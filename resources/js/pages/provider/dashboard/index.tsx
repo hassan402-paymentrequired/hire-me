@@ -13,11 +13,9 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
-import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import {
-    Activity,
     ArrowUpRight,
     Calendar,
     Clock,
@@ -27,6 +25,7 @@ import {
     Star,
     Users,
 } from 'lucide-react';
+import { dashboard } from '@/routes/business';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {

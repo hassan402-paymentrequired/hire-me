@@ -1,5 +1,4 @@
 import { Breadcrumbs } from '@/components/breadcrumbs';
-import { dashboard, login, register } from '@/routes';
 import { Icon } from '@/components/icon';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -29,17 +28,18 @@ import { Link, usePage } from '@inertiajs/react';
 import { BookOpen, Folder,  Menu, Search } from 'lucide-react';
 import AppLogo from './app-logo';
 import AppLogoIcon from './app-logo-icon';
-import { welcome } from '@/actions/App/Http/Controllers/Guest/GuestController';
+import { home, login } from '@/routes';
+import business from '@/routes/business';
 import client from '@/routes/client';
 
-const mainNavItems: NavItem[] = [
+const mainNavItems = [
     {
         title: 'Marketplace',
-        href: welcome(),
+        href: home(),
     },
 ];
 
-const rightNavItems: NavItem[] = [
+const rightNavItems = [
     {
         title: 'Repository',
         href: 'https://github.com/laravel/react-starter-kit',
@@ -135,7 +135,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                     </div>
 
                     <Link
-                        href={dashboard()}
+                        href={business.dashboard()}
                         prefetch
                         className="flex items-center space-x-2"
                     >
@@ -184,7 +184,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                         {auth?.user ? (
                             <div className="flex items-center gap-2">
                                 <Link
-                                    href={auth.user.role === 'provider' ? dashboard() : client.bookings.index()}
+                                    href={auth.user.role === 'provider' ? business.dashboard() : client.bookings.index()}
                                 >
                                     <Button size="sm" variant="outline">
                                         {auth.user.role === 'provider' ? 'Dashboard' : 'My Bookings'}

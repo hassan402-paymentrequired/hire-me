@@ -9,6 +9,7 @@ import AdvancedSettings from '@/pages/provider/business/components/advance-setti
 import ServicesManager from '@/pages/provider/business/components/services-manager';
 import { Button } from '@/components/ui/button';
 import { router } from '@inertiajs/react';
+import business from '@/routes/business';
 
 interface Props {
     initialSchedule: any;
@@ -206,7 +207,7 @@ const BusinessHoursConfig = ({ initialSchedule, initialHolidays, initialSettings
     };
 
     const handleSaveChanges = () => {
-        router.post(route('business.hours.update'), {
+        router.post(business.hours.update(), {
             schedule,
             holidays,
             settings: advancedSettings
@@ -215,10 +216,7 @@ const BusinessHoursConfig = ({ initialSchedule, initialHolidays, initialSettings
         });
     };
 
-    const handlePreviewBooking = () => {
-        // navigate('/landing-marketing-page');
-    };
-
+   
     const tabs = [
         { id: 'schedule', label: 'Weekly Schedule', icon: Clock }, // Using Lucide component directly in loop requires component type
         { id: 'services', label: 'Services', icon: Scissors },
@@ -247,15 +245,7 @@ const BusinessHoursConfig = ({ initialSchedule, initialHolidays, initialSettings
                             </div>
                         </div>
                         <div className="flex flex-wrap gap-2 w-full lg:w-auto">
-                            <Button
-                                variant="outline"
-                                iconName="Eye"
-                                iconPosition="left"
-                                onClick={handlePreviewBooking}
-                                className="flex-1 lg:flex-none"
-                            >
-                                Preview Page
-                            </Button>
+
                             <Button
                                 variant="default"
                                 iconName="Save"
