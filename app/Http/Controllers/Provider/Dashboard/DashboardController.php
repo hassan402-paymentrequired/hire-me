@@ -17,6 +17,11 @@ class DashboardController extends Controller
             return redirect()->route('onboarding.index');
         }
 
+        // Redirect Clients to Home (Marketplace)
+        if ($user->role === 'client') {
+            return redirect('/');
+        }
+
         // Key Stats
         $stats = [
             'revenue' => [

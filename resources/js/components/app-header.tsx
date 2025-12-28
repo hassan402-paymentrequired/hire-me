@@ -30,6 +30,7 @@ import { BookOpen, Folder,  Menu, Search } from 'lucide-react';
 import AppLogo from './app-logo';
 import AppLogoIcon from './app-logo-icon';
 import { welcome } from '@/actions/App/Http/Controllers/Guest/GuestController';
+import client from '@/routes/client';
 
 const mainNavItems: NavItem[] = [
     {
@@ -181,27 +182,37 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                     <div className="ml-auto flex items-center space-x-2">
 
                         {auth?.user ? (
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        className="size-10 rounded-full p-1"
-                                    >
-                                        <Avatar className="size-8 overflow-hidden rounded-full">
-                                            <AvatarImage
-                                                src={auth.user.avatar}
-                                                alt={auth.user.name}
-                                            />
-                                            <AvatarFallback className="rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">
-                                                {getInitials(auth.user.name)}
-                                            </AvatarFallback>
-                                        </Avatar>
+                            <div className="flex items-center gap-2">
+                                <Link
+                                    href={auth.user.role === 'provider' ? dashboard() : client.bookings.index()}
+                                >
+                                    <Button size="sm" variant="outline">
+                                        {auth.user.role === 'provider' ? 'Dashboard' : 'My Bookings'}
                                     </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-56" align="end">
-                                    <UserMenuContent user={auth.user} />
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                                </Link>
+
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            className="size-10 rounded-full p-1"
+                                        >
+                                            <Avatar className="size-8 overflow-hidden rounded-full">
+                                                <AvatarImage
+                                                    src={auth.user.avatar}
+                                                    alt={auth.user.name}
+                                                />
+                                                <AvatarFallback className="rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">
+                                                    {getInitials(auth.user.name)}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="w-56" align="end">
+                                        <UserMenuContent user={auth.user} />
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
                         ): (
                             <>
                                 <Link
