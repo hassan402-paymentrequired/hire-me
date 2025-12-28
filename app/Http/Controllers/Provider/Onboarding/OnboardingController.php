@@ -38,7 +38,7 @@ class OnboardingController extends Controller
 
     public function businessProfile()
     {
-        return Inertia::render('provider/onboarding/business-profile');
+        return Inertia::render('provider/onboarding/business-profile', ['step' => 'profile']);
     }
 
     public function storeBusinessProfile(Request $request)
@@ -62,7 +62,7 @@ class OnboardingController extends Controller
 
     public function workHours()
     {
-        return Inertia::render('provider/onboarding/work-hours');
+        return Inertia::render('provider/onboarding/work-hours', ['step' => 'hours']);
     }
 
     public function storeWorkHours(Request $request)
@@ -89,7 +89,7 @@ class OnboardingController extends Controller
 
     public function services()
     {
-        return Inertia::render('provider/onboarding/services');
+        return Inertia::render('provider/onboarding/services', ['step' => 'services']);
     }
 
     public function storeServices(Request $request)
