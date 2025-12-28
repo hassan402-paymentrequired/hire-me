@@ -18,43 +18,30 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-// Mock Data
-const timeSlots = Array.from({ length: 11 }, (_, i) => i + 9); // 9 AM to 7 PM
-const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const currentWeekDates = [23, 24, 25, 26, 27, 28, 29];
+interface Appointment {
+    id: number;
+    day: string;
+    start_time: string; // ISO string
+    end_time: string;
+    duration: number;
+    client: string;
+    service: string;
+    color: string;
+    hour: number;
+}
 
-const mockAppointments = [
-    {
-        id: 1,
-        day: 'Mon',
-        startTime: 10,
-        duration: 1, // hours
-        client: 'Tunde Adebayo',
-        service: 'Massage',
-        color: 'bg-blue-100 border-blue-200 text-blue-700',
-    },
-    {
-        id: 2,
-        day: 'Tue',
-        startTime: 13,
-        duration: 2,
-        client: 'Chioma Onu',
-        service: 'Facial',
-        color: 'bg-purple-100 border-purple-200 text-purple-700',
-    },
-    {
-        id: 3,
-        day: 'Fri',
-        startTime: 11,
-        duration: 1.5,
-        client: 'Emeka Okafor',
-        service: 'Haircut',
-        color: 'bg-green-100 border-green-200 text-green-700',
-    },
-];
+interface CalendarProps {
+    appointments: Appointment[];
+}
 
-export default function Calendar() {
+export default function Calendar({ appointments }: CalendarProps) {
     const [view, setView] = useState<'week' | 'day'>('week');
+
+    // Simple week dates generation (Current Week mock for visual alignment)
+    const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    // In a real app we'd calculate these based on a selected date state
+    const currentWeekDates = [23, 24, 25, 26, 27, 28, 29]; 
+    const timeSlots = Array.from({ length: 11 }, (_, i) => i + 9); // 9 AM to 7 PM
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -164,10 +151,12 @@ export default function Calendar() {
                             ))}
 
                             {/* Appointments overlay */}
-                            {mockAppointments.map((apt) => {
+                            {appointments.map((apt) => {
                                 const dayIndex = weekDays.indexOf(apt.day);
+                                if (dayIndex === -1) return null;
+                                
                                 const topOffset =
-                                    (apt.startTime - timeSlots[0]) * 80; // 80px per hour
+                                    (apt.hour - timeSlots[0]) * 80; // Simplification: using start hour
                                 const height = apt.duration * 80;
                                 const widthPercent = 100 / 7;
                                 const leftPercent = dayIndex * widthPercent;

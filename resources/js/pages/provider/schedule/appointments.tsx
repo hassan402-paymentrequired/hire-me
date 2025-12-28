@@ -33,78 +33,62 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const allAppointments = [
-    {
-        id: 1,
-        client: 'Tunde Adebayo',
-        service: 'Full Body Massage',
-        amount: '₦25,000',
-        date: 'Dec 23, 2025',
-        time: '10:00 AM',
-        status: 'Confirmed',
-        avatar: 'https://i.pravatar.cc/150?u=1',
-        paymentStatus: 'Paid',
-    },
-    {
-        id: 2,
-        client: 'Chioma Onu',
-        service: 'Facial Treatment',
-        amount: '₦15,000',
-        date: 'Dec 23, 2025',
-        time: '12:30 PM',
-        dateStr: '2025-12-23',
-        status: 'Confirmed',
-        avatar: 'https://i.pravatar.cc/150?u=2',
-        paymentStatus: 'Paid',
-    },
-    {
-        id: 3,
-        client: 'Emeka Okafor',
-        service: 'Haircut & Shave',
-        amount: '₦5,000',
-        date: 'Dec 23, 2025',
-        time: '02:00 PM',
-        status: 'Pending',
-        avatar: 'https://i.pravatar.cc/150?u=3',
-        paymentStatus: 'Unpaid',
-    },
-    {
-        id: 4,
-        client: 'Sarah James',
-        service: 'Manicure & Pedicure',
-        amount: '₦12,000',
-        date: 'Dec 24, 2025',
-        time: '09:00 AM',
-        status: 'Cancelled',
-        avatar: 'https://i.pravatar.cc/150?u=4',
-        paymentStatus: 'Refunded',
-    },
-    {
-        id: 5,
-        client: 'David West',
-        service: 'Deep Tissue Massage',
-        amount: '₦30,000',
-        date: 'Dec 24, 2025',
-        time: '11:00 AM',
-        status: 'Confirmed',
-        avatar: 'https://i.pravatar.cc/150?u=5',
-        paymentStatus: 'Paid',
-    },
-];
+import { router } from '@inertiajs/react';
+import { debounce } from 'lodash';
+import { useCallback, useEffect, useState } from 'react';
 
-export default function Appointments() {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState('all');
+// ... other imports
 
-    const filteredAppointments = allAppointments.filter((apt) => {
-        const matchesSearch = apt.client
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase());
-        const matchesStatus =
-            statusFilter === 'all' ||
-            apt.status.toLowerCase() === statusFilter.toLowerCase();
-        return matchesSearch && matchesStatus;
-    });
+interface AppointmentListProps {
+    appointments: {
+        data: Array<{
+            id: number;
+            client: string;
+            service: string;
+            amount: string;
+            date: string;
+            time: string;
+            status: string;
+            avatar: string;
+            paymentStatus: string;
+        }>;
+        links: any[];
+    };
+    filters: {
+        search?: string;
+        status?: string;
+    };
+}
+
+export default function Appointments({ appointments, filters }: AppointmentListProps) {
+    const [searchTerm, setSearchTerm] = useState(filters.search || '');
+    const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
+
+    // Debounce search to prevent excessive requests
+    const debouncedSearch = useCallback(
+        debounce((query: string) => {
+            router.get(
+                '/schedule/appointments',
+                { search: query, status: statusFilter !== 'all' ? statusFilter : undefined },
+                { preserveState: true, replace: true }
+            );
+        }, 300),
+        [statusFilter]
+    );
+
+    const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchTerm(e.target.value);
+        debouncedSearch(e.target.value);
+    };
+
+    const handleStatusChange = (value: string) => {
+        setStatusFilter(value);
+        router.get(
+            '/schedule/appointments',
+            { search: searchTerm, status: value !== 'all' ? value : undefined },
+            { preserveState: true, replace: true }
+        );
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -140,13 +124,13 @@ export default function Appointments() {
                                         placeholder="Search clients..."
                                         className="pl-9"
                                         value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        onChange={handleSearch}
                                     />
                                 </div>
                                 <div className="w-[140px]">
                                      <Select
                                         value={statusFilter}
-                                        onValueChange={setStatusFilter}
+                                        onValueChange={handleStatusChange}
                                      >
                                         <SelectTrigger>
                                             <div className="flex items-center gap-2">
@@ -192,8 +176,8 @@ export default function Appointments() {
                                         </tr>
                                     </thead>
                                     <tbody className="[&_tr:last-child]:border-0">
-                                        {filteredAppointments.length > 0 ? (
-                                            filteredAppointments.map((apt) => (
+                                        {appointments.data.length > 0 ? (
+                                            appointments.data.map((apt) => (
                                                 <tr
                                                     key={apt.id}
                                                     className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
@@ -279,6 +263,7 @@ export default function Appointments() {
                                 </table>
                             </div>
                         </div>
+                        {/* Pagination controls would go here */}
                     </CardContent>
                 </Card>
             </div>

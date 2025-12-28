@@ -35,31 +35,23 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const revenueData = [
-    { month: 'Jan', value: 35000 },
-    { month: 'Feb', value: 42000 },
-    { month: 'Mar', value: 38000 },
-    { month: 'Apr', value: 55000 },
-    { month: 'May', value: 62000 },
-    { month: 'Jun', value: 58000 },
-    { month: 'Jul', value: 75000 },
-    { month: 'Aug', value: 82000 },
-    { month: 'Sep', value: 80000 },
-    { month: 'Oct', value: 95000 },
-    { month: 'Nov', value: 90000 },
-    { month: 'Dec', value: 110000 },
-];
+interface AnalyticsProps {
+    revenueData: Array<{ month: string; value: number }>;
+    topServices: Array<{ name: string; bookings: number; revenue: string }>;
+    metrics: {
+        totalRevenue: string;
+        revenueChange: string;
+        totalBookings: number;
+        bookingsChange: string;
+        cancelRate: string;
+        cancelChange: string;
+    };
+}
 
-const maxRevenue = Math.max(...revenueData.map((d) => d.value));
+export default function Analytics({ revenueData, topServices, metrics }: AnalyticsProps) {
 
-const topServices = [
-    { name: 'Full Body Massage', bookings: 145, revenue: '₦3,625,000' },
-    { name: 'Facial Treatment', bookings: 98, revenue: '₦1,470,000' },
-    { name: 'Haircut & Shave', bookings: 210, revenue: '₦1,050,000' },
-    { name: 'Manicure & Pedicure', bookings: 85, revenue: '₦1,020,000' },
-];
+    const maxRevenue = Math.max(...revenueData.map((d) => d.value));
 
-export default function Analytics() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Analytics" />
@@ -105,10 +97,10 @@ export default function Analytics() {
                             <span className="text-muted-foreground">$</span>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">₦8.4M</div>
+                            <div className="text-2xl font-bold">{metrics.totalRevenue}</div>
                             <p className="flex items-center text-xs text-green-500">
                                 <ArrowUpRight className="mr-1 h-3 w-3" />
-                                +20.1% from last month
+                                {metrics.revenueChange} from last month
                             </p>
                         </CardContent>
                     </Card>
@@ -120,10 +112,10 @@ export default function Analytics() {
                             <Briefcase className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">538</div>
+                            <div className="text-2xl font-bold">{metrics.totalBookings}</div>
                             <p className="flex items-center text-xs text-green-500">
                                 <ArrowUpRight className="mr-1 h-3 w-3" />
-                                +12% from last month
+                                {metrics.bookingsChange} from last month
                             </p>
                         </CardContent>
                     </Card>
@@ -135,10 +127,10 @@ export default function Analytics() {
                             <ActivityIcon className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">4.2%</div>
+                            <div className="text-2xl font-bold">{metrics.cancelRate}</div>
                             <p className="flex items-center text-xs text-red-500">
                                 <ArrowDownRight className="mr-1 h-3 w-3" />
-                                +1.2% from last month
+                                {metrics.cancelChange} from last month
                             </p>
                         </CardContent>
                     </Card>

@@ -35,92 +35,57 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-// Mock Data
-const stats = [
-    {
-        title: 'Total Revenue',
-        value: '₦8,450,000',
-        change: '+20.1% from last month',
-        icon: CreditCard,
-    },
-    {
-        title: 'Bookings',
-        value: '+2350',
-        change: '+180.1% from last month',
-        icon: Calendar,
-    },
-    {
-        title: 'New Clients',
-        value: '+34',
-        change: '+19% from last month',
-        icon: Users,
-    },
-    {
-        title: 'Overall Rating',
-        value: '4.9',
-        change: '+0.1 from last month',
-        icon: Star,
-    },
-];
+interface DashboardProps {
+    stats: {
+        revenue: { value: number; change: number };
+        bookings: { value: number; change: number };
+        new_clients: { value: number; change: number };
+        rating: { value: number; change: number };
+    };
+    upcomingAppointments: Array<{
+        id: number;
+        client: string;
+        service: string;
+        time: string;
+        date: string;
+        status: string;
+        avatar: string;
+    }>;
+    recentActivity: Array<{
+        id: number;
+        message: string;
+        time: string;
+    }>;
+}
 
-const upcomingAppointments = [
-    {
-        id: 1,
-        client: 'Tunde Adebayo',
-        service: 'Full Body Massage',
-        time: '10:00 AM',
-        date: 'Today',
-        status: 'Confirmed',
-        avatar: 'https://i.pravatar.cc/150?u=1',
-    },
-    {
-        id: 2,
-        client: 'Chioma Onu',
-        service: 'Facial Treatment',
-        time: '12:30 PM',
-        date: 'Today',
-        status: 'Confirmed',
-        avatar: 'https://i.pravatar.cc/150?u=2',
-    },
-    {
-        id: 3,
-        client: 'Emeka Okafor',
-        service: 'Haircut & Shave',
-        time: '02:00 PM',
-        date: 'Today',
-        status: 'Pending',
-        avatar: 'https://i.pravatar.cc/150?u=3',
-    },
-];
+export default function Index({ stats, upcomingAppointments, recentActivity }: DashboardProps) {
+    const statCards = [
+        {
+            title: 'Total Revenue',
+            value: `₦${stats.revenue.value.toLocaleString()}`,
+            change: `+${stats.revenue.change}% from last month`,
+            icon: CreditCard,
+        },
+        {
+            title: 'Bookings',
+            value: stats.bookings.value,
+            change: `+${stats.bookings.change}% from last month`,
+            icon: Calendar,
+        },
+        {
+            title: 'New Clients',
+            value: stats.new_clients.value,
+            change: `+${stats.new_clients.change}% from last month`,
+            icon: Users,
+        },
+        {
+            title: 'Overall Rating',
+            value: stats.rating.value,
+            change: `+${stats.rating.change} from last month`,
+            icon: Star,
+        },
+    ];
 
-const recentActivity = [
-    {
-        id: 1,
-        message: 'New booking from Sarah James',
-        time: '2 mins ago',
-        icon: Calendar,
-    },
-    {
-        id: 2,
-        message: 'Payment received from Tunde',
-        time: '1 hour ago',
-        icon: CreditCard,
-    },
-    {
-        id: 3,
-        message: 'New review (5 stars) from Ali',
-        time: '3 hours ago',
-        icon: Star,
-    },
-    {
-        id: 4,
-        message: 'Appointment completed: Emeka',
-        time: '5 hours ago',
-        icon: Activity,
-    },
-];
-
-export default function Index() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Provider Dashboard" />
@@ -144,7 +109,7 @@ export default function Index() {
 
                 {/* Stats Grid */}
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    {stats.map((stat, i) => (
+                    {statCards.map((stat, i) => (
                         <Card key={i}>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">

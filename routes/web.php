@@ -21,7 +21,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/appointments', [App\Http\Controllers\Provider\Schedule\ScheduleController::class, 'appointments'])->name('schedule.appointments.index');
     });
 
+    // Provider Onboarding Routes
+    Route::prefix('onboarding')->middleware('auth')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'index'])->name('onboarding.index');
+
+        Route::get('/business-profile', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'businessProfile'])->name('onboarding.business-profile');
+        Route::post('/business-profile', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'storeBusinessProfile'])->name('onboarding.business-profile.store');
+
+        Route::get('/work-hours', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'workHours'])->name('onboarding.work-hours');
+        Route::post('/work-hours', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'storeWorkHours'])->name('onboarding.work-hours.store');
+
+        Route::get('/services', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'services'])->name('onboarding.services');
+        Route::post('/services', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'storeServices'])->name('onboarding.services.store');
+
+        Route::post('/skip', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'skip'])->name('onboarding.skip');
+    });
 
 });
 
-require __DIR__.'/settings.php';
+require __DIR__ . '/settings.php';

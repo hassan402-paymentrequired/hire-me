@@ -24,7 +24,13 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
     ];
+
+    public function isProvider(): bool
+    {
+        return $this->role === 'provider';
+    }
 
     /**
      * The attributes that should be hidden for serialization.
@@ -50,5 +56,25 @@ class User extends Authenticatable
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    public function businessProfile()
+    {
+        return $this->hasOne(BusinessProfile::class);
+    }
+
+    public function services()
+    {
+        return $this->hasMany(Service::class, 'provider_id');
+    }
+
+    public function appointmentsAsProvider()
+    {
+        return $this->hasMany(Appointment::class, 'provider_id');
+    }
+
+    public function appointmentsAsClient()
+    {
+        return $this->hasMany(Appointment::class, 'client_id');
     }
 }
