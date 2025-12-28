@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Http\Controllers\Provider;
+namespace App\Http\Controllers\Provider\Dashboard;
 
 use App\Http\Controllers\Controller;
+use Inertia\Inertia;
 
-class ProviderController extends Controller
+class DashboardController extends Controller
 {
 
     public function dashboard() {
