@@ -1,62 +1,42 @@
 import React, { useState } from 'react'
 import AppLayout from '@/layouts/app-layout';
-import { ArchiveIcon, Clock } from 'lucide-react';
+import { ArchiveIcon, Clock, Scissors } from 'lucide-react';
 import DayScheduleRow from '@/pages/provider/business/components/day-schedule-row';
 import QuickActions from '@/pages/provider/business/components/quick-action';
 import SchedulePreview from '@/pages/provider/business/components/schedule-preview';
 import HolidayManager from '@/pages/provider/business/components/holiday-manager';
 import AdvancedSettings from '@/pages/provider/business/components/advance-setting';
+import ServicesManager from '@/pages/provider/business/components/services-manager';
 import { Button } from '@/components/ui/button';
+import { router } from '@inertiajs/react';
 
-const BusinessHoursConfig = () => {
+interface Props {
+    initialSchedule: any;
+    initialHolidays: any[];
+    initialSettings: any;
+    services: any[];
+}
+
+const BusinessHoursConfig = ({ initialSchedule, initialHolidays, initialSettings, services = [] }: Props) => {
     const [activeTab, setActiveTab] = useState('schedule');
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-    const [schedule, setSchedule] = useState({
-        Monday: {
-            isOpen: true,
-            shifts: [{ start: '09:00', end: '17:00', breaks: [] }]
-        },
-        Tuesday: {
-            isOpen: true,
-            shifts: [{ start: '09:00', end: '17:00', breaks: [] }]
-        },
-        Wednesday: {
-            isOpen: true,
-            shifts: [{ start: '09:00', end: '17:00', breaks: [] }]
-        },
-        Thursday: {
-            isOpen: true,
-            shifts: [{ start: '09:00', end: '17:00', breaks: [] }]
-        },
-        Friday: {
-            isOpen: true,
-            shifts: [{ start: '09:00', end: '17:00', breaks: [] }]
-        },
-        Saturday: {
-            isOpen: true,
-            shifts: [{ start: '10:00', end: '16:00', breaks: [] }]
-        },
-        Sunday: {
-            isOpen: false,
-            shifts: [{ start: '09:00', end: '17:00', breaks: [] }]
-        }
-    });
+    // Default Fallback
+    const defaultSchedule = {
+        Monday: { isOpen: true, shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
+        Tuesday: { isOpen: true, shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
+        Wednesday: { isOpen: true, shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
+        Thursday: { isOpen: true, shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
+        Friday: { isOpen: true, shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
+        Saturday: { isOpen: true, shifts: [{ start: '10:00', end: '16:00', breaks: [] }] },
+        Sunday: { isOpen: false, shifts: [{ start: '09:00', end: '17:00', breaks: [] }] }
+    };
 
-    const [holidays, setHolidays] = useState([
-        {
-            name: 'Christmas Day',
-            date: '2025-12-25',
-            type: 'closed'
-        },
-        {
-            name: 'New Year\'s Day',
-            date: '2026-01-01',
-            type: 'closed'
-        }
-    ]);
+    const [schedule, setSchedule] = useState(initialSchedule || defaultSchedule);
 
-    const [advancedSettings, setAdvancedSettings] = useState({
+    const [holidays, setHolidays] = useState(initialHolidays || []);
+
+    const [advancedSettings, setAdvancedSettings] = useState(initialSettings || {
         bufferTime: '10',
         advanceBooking: '30',
         minNotice: '2',
@@ -216,15 +196,7 @@ const BusinessHoursConfig = () => {
     };
 
     const handleReset = () => {
-        setSchedule({
-            Monday: { isOpen: true, shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
-            Tuesday: { isOpen: true, shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
-            Wednesday: { isOpen: true, shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
-            Thursday: { isOpen: true, shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
-            Friday: { isOpen: true, shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
-            Saturday: { isOpen: true, shifts: [{ start: '10:00', end: '16:00', breaks: [] }] },
-            Sunday: { isOpen: false, shifts: [{ start: '09:00', end: '17:00', breaks: [] }] }
-        });
+        setSchedule(defaultSchedule);
         setHasUnsavedChanges(true);
     };
 
@@ -234,18 +206,24 @@ const BusinessHoursConfig = () => {
     };
 
     const handleSaveChanges = () => {
-        console.log('Saving business hours configuration:', { schedule, holidays, advancedSettings });
-        setHasUnsavedChanges(false);
+        router.post(route('business.hours.update'), {
+            schedule,
+            holidays,
+            settings: advancedSettings
+        }, {
+            onSuccess: () => setHasUnsavedChanges(false),
+        });
     };
 
     const handlePreviewBooking = () => {
-        navigate('/landing-marketing-page');
+        // navigate('/landing-marketing-page');
     };
 
     const tabs = [
-        { id: 'schedule', label: 'Weekly Schedule', icon: 'Calendar' },
-        { id: 'holidays', label: 'Holidays', icon: 'CalendarDays' },
-        { id: 'advanced', label: 'Advanced', icon: 'Settings' }
+        { id: 'schedule', label: 'Weekly Schedule', icon: Clock }, // Using Lucide component directly in loop requires component type
+        { id: 'services', label: 'Services', icon: Scissors },
+        { id: 'holidays', label: 'Holidays', icon: ArchiveIcon }, // Using ArchiveIcon as placeholder for generic Lucide icon if needed, or specific
+        { id: 'advanced', label: 'Advanced', icon: ArchiveIcon }
     ];
 
     return (
@@ -261,10 +239,10 @@ const BusinessHoursConfig = () => {
                             </div>
                             <div>
                                 <h2 className="text-xl md:text-2xl font-semibold text-foreground">
-                                    Operating Hours
+                                    Business Configuration
                                 </h2>
                                 <p className="text-sm text-muted-foreground">
-                                    Last updated: December 27, 2025
+                                    Manage your working hours, services, and settings.
                                 </p>
                             </div>
                         </div>
@@ -276,7 +254,7 @@ const BusinessHoursConfig = () => {
                                 onClick={handlePreviewBooking}
                                 className="flex-1 lg:flex-none"
                             >
-                                Preview Booking Page
+                                Preview Page
                             </Button>
                             <Button
                                 variant="default"
@@ -316,7 +294,7 @@ const BusinessHoursConfig = () => {
                                             ? 'border-primary text-primary' :'border-transparent text-muted-foreground hover:text-foreground'
                                     }`}
                                 >
-                                    <ArchiveIcon  size={18} />
+                                    <tab.icon size={18} />
                                     {tab?.label}
                                 </button>
                             ))}
@@ -351,6 +329,10 @@ const BusinessHoursConfig = () => {
                                 <SchedulePreview schedule={schedule} />
                             </div>
                         </div>
+                    )}
+
+                    {activeTab === 'services' && (
+                        <ServicesManager services={services} />
                     )}
 
                     {activeTab === 'holidays' && (

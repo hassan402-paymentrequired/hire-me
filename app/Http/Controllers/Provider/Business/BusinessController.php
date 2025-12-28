@@ -9,7 +9,70 @@ class BusinessController extends Controller
 {
     public function businessHours()
     {
-        return Inertia::render('provider/business/hours');
+        $user = auth()->user();
+        $businessProfile = $user->businessProfile;
+        $settings = $businessProfile?->settings ?? [];
+
+        return Inertia::render('provider/business/hours', [
+            'initialSchedule' => $settings['schedule'] ?? null,
+            'initialHolidays' => $settings['holidays'] ?? [],
+            'initialSettings' => $settings['advanced'] ?? null,
+            'services' => $user->services()->select('id', 'name', 'description', 'duration_minutes', 'price')->get(),
+        ]);
+    }
+
+    public function updateBusinessHours(\Illuminate\Http\Request $request)
+    {
+        $user = auth()->user();
+        $profile = $user->businessProfile;
+
+        // Merge existing settings with new updates
+        $currentSettings = $profile->settings ?? [];
+        $profile->settings = array_merge($currentSettings, [
+            'schedule' => $request->schedule,
+            'holidays' => $request->holidays,
+            'advanced' => $request->settings,
+        ]);
+        $profile->save();
+
+        return back();
+    }
+
+    public function storeService(\Illuminate\Http\Request $request)
+    {
+        $request->validate([
+            'name' => 'required',
+            'price' => 'required',
+            'duration_minutes' => 'required',
+        ]);
+
+        \App\Models\Service::create([
+            'provider_id' => auth()->id(),
+            'name' => $request->name,
+            'description' => $request->description,
+            'price' => $request->price,
+            'duration_minutes' => $request->duration_minutes,
+            'status' => 'active',
+        ]);
+
+        return back();
+    }
+
+    public function updateService(\Illuminate\Http\Request $request, $id)
+    {
+        $service = \App\Models\Service::where('provider_id', auth()->id())->findOrFail($id);
+
+        $service->update($request->only(['name', 'description', 'price', 'duration_minutes']));
+
+        return back();
+    }
+
+    public function destroyService($id)
+    {
+        $service = \App\Models\Service::where('provider_id', auth()->id())->findOrFail($id);
+        $service->delete();
+
+        return back();
     }
 
     public function analytics()

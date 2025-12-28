@@ -7,13 +7,19 @@ Route::get('/', [\App\Http\Controllers\Guest\GuestController::class, 'welcome'])
 
 Route::middleware(['auth', 'verified'])->group(function () {
 
-    Route::prefix('dashboard')->group(function () {
+    // Provider Business Management
+    Route::prefix('business')->name('business.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Provider\Dashboard\DashboardController::class, 'dashboard'])->name('dashboard');
-    });
+        // Hours & Config
+        Route::get('/hours', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'businessHours'])->name('hours');
+        Route::post('/hours', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateBusinessHours'])->name('hours.update');
 
-    Route::prefix('business')->group(function () {
-        Route::get('/hours', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'businessHours'])->name('business.hours.index');
-        Route::get('/analytics', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'analytics'])->name('business.analytics.index');
+        // Services
+        Route::post('/services', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'storeService'])->name('services.store');
+        Route::put('/services/{id}', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateService'])->name('services.update');
+        Route::delete('/services/{id}', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'destroyService'])->name('services.destroy');
+
+        Route::get('/analytics', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'analytics'])->name('analytics');
     });
 
     Route::prefix('schedule')->group(function () {

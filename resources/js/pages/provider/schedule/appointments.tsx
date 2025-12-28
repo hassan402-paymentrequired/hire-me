@@ -20,7 +20,6 @@ import {
     Search,
     User,
 } from 'lucide-react';
-import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
