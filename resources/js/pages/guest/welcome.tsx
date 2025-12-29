@@ -5,6 +5,7 @@ import AppLayout from '@/layouts/guest-layout';
 import { Head, Link, router } from '@inertiajs/react';
 import { MapPin } from 'lucide-react';
 import { HeaderFilter } from '@/pages/guest/components/filter';
+import BusinessCard from '@/pages/guest/components/business-card';
 
 interface Provider {
     id: string;
@@ -15,6 +16,7 @@ interface Provider {
     servicesCount: number;
     services: string[];
     distance?: number;
+    logo?: string | null;
 }
 
 interface Props {
@@ -113,25 +115,12 @@ export default function Welcome({ providers, categories, filters }: Props) {
             <AppLayout>
                 <div className="flex flex-col space-y-6 px-5 box-border overflow-hidden pb-10">
                     {/* Top Filter Bar */}
-                    <HeaderFilter categories={categories} filters={filters} />
-
-                    {/* Location Prompt */}
-                    {/*{!filters.lat && (*/}
-                    {/*    <div className="bg-muted/50 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 border border-border/50">*/}
-                    {/*        <div className="flex items-center gap-3">*/}
-                    {/*            <div className="p-2 bg-primary/10 rounded-full">*/}
-                    {/*                <MapPin className="h-5 w-5 text-primary" />*/}
-                    {/*            </div>*/}
-                    {/*            <div>*/}
-                    {/*                <h4 className="font-medium text-sm">Find services near you</h4>*/}
-                    {/*                <p className="text-xs text-muted-foreground">Enable location access to discover businesses in your area.</p>*/}
-                    {/*            </div>*/}
-                    {/*        </div>*/}
-                    {/*        <Button size="sm" onClick={requestLocation}>*/}
-                    {/*            Use current location*/}
-                    {/*        </Button>*/}
-                    {/*    </div>*/}
-                    {/*)}*/}
+                    <HeaderFilter
+                        categories={categories}
+                        filters={filters}
+                        onLocationRequest={requestLocation}
+                        hasLocation={!!filters.lat}
+                    />
 
                     {/* Main Content Grid */}
                     <div className="px-1 py-4">
@@ -142,69 +131,7 @@ export default function Welcome({ providers, categories, filters }: Props) {
                         ) : (
                             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                                 {allProviders.map((provider) => (
-                                    <Link
-                                        key={provider.id}
-                                        href={`/provider/${provider.slug}`}
-                                        className="group flex flex-col space-y-3 hover:border p-2 rounded transition-all"
-                                    >
-                                        {/* Card Image/Placeholder */}
-                                        <div className="relative aspect-[4/3] overflow-hidden rounded bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                                            <div className="text-center p-6">
-                                                <h3 className="text-2xl font-bold text-foreground mb-2">
-                                                    {provider.businessName}
-                                                </h3>
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <p className="text-sm text-muted-foreground">
-                                                        {provider.servicesCount} {provider.servicesCount === 1 ? 'service' : 'services'}
-                                                    </p>
-                                                    {provider.distance !== null && (
-                                                        <>
-                                                            <span className="text-muted-foreground/30">•</span>
-                                                            <p className="text-sm font-medium text-primary flex items-center gap-1">
-                                                                <MapPin className="h-3 w-3" />
-                                                                {provider.distance}km
-                                                            </p>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            {/* Hover Overlay */}
-                                            <div className="absolute inset-0 bg-primary/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                                        </div>
-
-                                        {/* Card Info */}
-                                        <div className="flex-1 space-y-2">
-                                            <div className="space-y-1">
-                                                <h3 className="line-clamp-1 font-semibold text-foreground group-hover:underline">
-                                                    {provider.businessName}
-                                                </h3>
-                                                <p className="line-clamp-1 text-sm text-muted-foreground">
-                                                    by {provider.name}
-                                                </p>
-                                            </div>
-
-                                            {provider.description && (
-                                                <p className="text-sm text-muted-foreground line-clamp-2">
-                                                    {provider.description}
-                                                </p>
-                                            )}
-
-                                            {provider.services.length > 0 && (
-                                                <div className="flex flex-wrap gap-2 pt-2">
-                                                    {provider.services.map((service, idx) => (
-                                                        <Badge
-                                                            key={idx}
-                                                            variant="secondary"
-                                                            className="text-xs"
-                                                        >
-                                                            {service}
-                                                        </Badge>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </Link>
+                                    <BusinessCard provider={provider} key={provider.id}/>
                                 ))}
                             </div>
                         )}

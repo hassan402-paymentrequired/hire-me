@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Filter, Search } from 'lucide-react';
+import { Filter, Search, MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -24,11 +24,21 @@ interface HeaderFilterProps {
         lat?: number | string;
         lng?: number | string;
     };
+    onLocationRequest?: () => void;
+    hasLocation?: boolean;
 }
 
-export const HeaderFilter = ({ categories, filters }: HeaderFilterProps) => {
+export const HeaderFilter = ({ categories, filters, onLocationRequest, hasLocation }: HeaderFilterProps) => {
     const [selectedCategory, setSelectedCategory] = useState(filters?.category || 'For You');
     const [search, setSearch] = useState(filters?.search || '');
+
+    useEffect(() => {
+        setSearch(filters?.search || '');
+    }, [filters?.search]);
+
+    useEffect(() => {
+        setSelectedCategory(filters?.category || 'For You');
+    }, [filters?.category]);
 
     const handleSearch = (value: string) => {
         setSearch(value);
@@ -53,21 +63,33 @@ export const HeaderFilter = ({ categories, filters }: HeaderFilterProps) => {
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 {/* Left: Filter & Search */}
                 <div className="flex flex-1 items-center space-x-4">
-                    <div className="relative w-full ">
-                        <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                            placeholder="Search Service, location..."
-                            className="h-10 rounded-full shadow-none pl-10 focus-visible:bg-background focus-visible:ring-1"
-                            value={search}
-                            onChange={(e) => handleSearch(e.target.value)}
-                        />
+                    <div className="relative w-full flex items-center">
+                        <div className="relative flex-1">
+                            <Search className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                placeholder="Search Service, location..."
+                                className="h-12 rounded-full pl-11 pr-12 focus-visible:bg-background focus-visible:ring-1 border-border/60"
+                                value={search}
+                                onChange={(e) => handleSearch(e.target.value)}
+                            />
+
+                                <button
+                                    className="absolute top-1/2 right-2 -translate-y-1/2 p-2 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
+                                    onClick={onLocationRequest}
+                                    title="Use current location"
+                                >
+                                    <MapPin className="h-4 w-4" />
+                                </button>
+
+
+                        </div>
                     </div>
                 </div>
 
                 {/* Right: Tabs & Sort */}
                 <div className="flex items-center space-x-2 overflow-x-auto pb-2 md:pb-0">
                     <div className="hidden sm:flex items-center rounded-full bg-muted/50 p-1">
-                        {['Services'].map(
+                        {['Businesses'].map(
                             (tab) => (
                                 <button
                                     key={tab}
