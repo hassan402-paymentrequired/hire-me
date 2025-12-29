@@ -8,34 +8,81 @@ use Inertia\Inertia;
 use Laravel\Fortify\Features;
 
 
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Models\BusinessProfile;
+
 class GuestController extends Controller
 {
-    public function welcome()
+    public function welcome(Request $request)
     {
-        $providers = User::where('role', 'provider')
+        $query = User::where('role', 'provider')
             ->with([
                 'businessProfile',
                 'services' => function ($query) {
                     $query->where('status', 'active');
                 }
             ])
-            ->whereHas('businessProfile')
-            ->get()
-            ->map(function ($provider) {
-                return [
-                    'id' => $provider->id,
-                    'name' => $provider->name,
-                    'businessName' => $provider->businessProfile->business_name,
-                    'slug' => $provider->businessProfile->slug,
-                    'description' => $provider->businessProfile->description,
-                    'servicesCount' => $provider->services->count(),
-                    'services' => $provider->services->take(3)->map(fn($s) => $s->name),
-                ];
+            ->whereHas('businessProfile');
+
+        // Filter by search
+        if ($request->search) {
+            $query->where(function ($q) use ($request) {
+                $q->where('name', 'like', "%{$request->search}%")
+                    ->orWhereHas('businessProfile', function ($bq) use ($request) {
+                        $bq->where('business_name', 'like', "%{$request->search}%")
+                            ->orWhere('description', 'like', "%{$request->search}%");
+                    });
             });
+        }
+
+        // Filter by category
+        if ($request->category && $request->category !== 'For You') {
+            $query->whereHas('businessProfile', function ($bq) use ($request) {
+                $bq->where('category', $request->category);
+            });
+        }
+
+        // Location based sorting/filtering
+        if ($request->lat && $request->lng) {
+            $lat = (float) $request->lat;
+            $lng = (float) $request->lng;
+
+            $query->leftJoin('business_profiles', 'users.id', '=', 'business_profiles.user_id')
+                ->select('users.*', DB::raw("
+                    (6371 * acos(cos(radians($lat)) 
+                    * cos(radians(business_profiles.latitude)) 
+                    * cos(radians(business_profiles.longitude) - radians($lng)) 
+                    + sin(radians($lat)) 
+                    * sin(radians(business_profiles.latitude)))) AS distance
+                "))
+                ->orderBy('distance');
+        }
+
+        $providers = $query->simplePaginate(12);
+
+        $providers->getCollection()->transform(function ($provider) {
+            return [
+                'id' => $provider->id,
+                'name' => $provider->name,
+                'businessName' => $provider->businessProfile->business_name,
+                'slug' => $provider->businessProfile->slug,
+                'description' => $provider->businessProfile->description,
+                'servicesCount' => $provider->services->count(),
+                'services' => $provider->services->take(3)->map(fn($s) => $s->name),
+                'distance' => isset($provider->distance) ? round($provider->distance, 1) : null,
+            ];
+        });
+
+        $categories = BusinessProfile::whereNotNull('category')
+            ->distinct()
+            ->pluck('category');
 
         return Inertia::render('guest/welcome', [
             'canRegister' => Features::enabled(Features::registration()),
             'providers' => $providers,
+            'categories' => $categories,
+            'filters' => $request->only(['search', 'category', 'lat', 'lng']),
         ]);
     }
 }

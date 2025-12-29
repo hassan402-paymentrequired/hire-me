@@ -22,6 +22,8 @@ class BusinessProfile extends Model
         'zip_code',
         'phone',
         'category',
+        'latitude',
+        'longitude',
         'settings',
     ];
 

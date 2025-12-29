@@ -53,6 +53,8 @@ class OnboardingController extends Controller
             'zip_code' => 'nullable|string|max:20',
             'phone' => 'nullable|string|max:20',
             'category' => 'nullable|string|max:50',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
         ]);
 
         $user = auth()->user();
@@ -68,6 +70,8 @@ class OnboardingController extends Controller
             'zip_code' => $request->zip_code,
             'phone' => $request->phone,
             'category' => $request->category,
+            'latitude' => $request->latitude,
+            'longitude' => $request->longitude,
         ];
 
         // Handle logo upload

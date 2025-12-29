@@ -57,6 +57,8 @@ export default function BusinessProfile() {
         zip_code: '',
         phone: '',
         category: '',
+        latitude: null as number | null,
+        longitude: null as number | null,
     });
 
     const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
@@ -94,6 +96,8 @@ export default function BusinessProfile() {
                     city,
                     state,
                     zip_code: zipCode,
+                    latitude: place.geometry?.location?.lat() || null,
+                    longitude: place.geometry?.location?.lng() || null,
                 });
             }
         }

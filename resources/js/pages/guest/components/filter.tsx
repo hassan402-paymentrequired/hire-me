@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import {  Filter,  Search } from 'lucide-react';
+import { Filter, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -9,27 +9,39 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { router } from '@inertiajs/react';
 
-export const HeaderFilter = () => {
-    const [selectedCategory, setSelectedCategory] = useState('For You');
+interface HeaderFilterProps {
+    categories: string[];
+    filters: {
+        category?: string;
+        search?: string;
+        lat?: number | string;
+        lng?: number | string;
+    };
+}
 
-    const categories = [
-        'For You',
-        'Following',
-        'Best of Behance',
-        'Graphic Design',
-        'Photography',
-        'Illustration',
-        '3D Art',
-        'UI/UX',
-        'Motion',
-        'Architecture',
-        'Product Design',
-        'Fashion',
-        'Advertising',
-        'Game Design',
-    ];
+export const HeaderFilter = ({ categories, filters }: HeaderFilterProps) => {
+    const [selectedCategory, setSelectedCategory] = useState(filters?.category || 'For You');
+    const [search, setSearch] = useState(filters?.search || '');
 
+    const handleSearch = (value: string) => {
+        setSearch(value);
+        router.get(
+            '/',
+            { ...filters, search: value },
+            { preserveState: true, replace: true, preserveScroll: true }
+        );
+    };
+
+    const handleCategoryChange = (category: string) => {
+        setSelectedCategory(category);
+        router.get(
+            '/',
+            { ...filters, category: category },
+            { preserveState: true, replace: true, preserveScroll: true }
+        );
+    };
 
     return (
         <div className="sticky top-0 z-10 -mx-4 -mt-4 border-b bg-background/95 px-4 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:-mx-6 sm:px-6 md:-mx-8 md:px-8">
@@ -41,6 +53,8 @@ export const HeaderFilter = () => {
                         <Input
                             placeholder="Search Service, location..."
                             className="h-10 rounded-full shadow-none pl-10 focus-visible:bg-background focus-visible:ring-1"
+                            value={search}
+                            onChange={(e) => handleSearch(e.target.value)}
                         />
                     </div>
                 </div>
@@ -48,12 +62,12 @@ export const HeaderFilter = () => {
                 {/* Right: Tabs & Sort */}
                 <div className="flex items-center space-x-2 overflow-x-auto pb-2 md:pb-0">
                     <div className="hidden sm:flex items-center rounded-full bg-muted/50 p-1">
-                        {['Projects'].map(
+                        {['Services'].map(
                             (tab) => (
                                 <button
                                     key={tab}
                                     className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                                        tab === 'Projects'
+                                        tab === 'Services'
                                             ? 'bg-background text-foreground shadow-sm'
                                             : 'text-muted-foreground hover:text-foreground'
                                     }`}
@@ -63,38 +77,32 @@ export const HeaderFilter = () => {
                             ),
                         )}
                     </div>
-                    <div className="hidden border-l pl-2 md:block">
-                        <Select defaultValue="recommended">
-                            <SelectTrigger className="w-[140px] border-none bg-transparent shadow-none focus:ring-0">
-                                <SelectValue placeholder="Sort" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="recommended">
-                                    Recommended
-                                </SelectItem>
-                                <SelectItem value="curated">Curated</SelectItem>
-                                <SelectItem value="most-viewed">
-                                    Most Viewed
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
                 </div>
             </div>
 
             {/* Category Pills */}
             <div className="scrollbar-hide mt-4 flex space-x-2 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                <button
+                    onClick={() => handleCategoryChange('For You')}
+                    className={`rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all ${
+                        selectedCategory === 'For You'
+                            ? 'bg-foreground text-background shadow-md'
+                            : 'bg-muted/30 text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+                    }`}
+                >
+                    For You
+                </button>
                 {categories.map((category) => (
                     <button
                         key={category}
-                        onClick={() => setSelectedCategory(category)}
+                        onClick={() => handleCategoryChange(category)}
                         className={`rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all ${
                             selectedCategory === category
                                 ? 'bg-foreground text-background shadow-md'
                                 : 'bg-muted/30 text-muted-foreground hover:bg-muted/80 hover:text-foreground'
                         }`}
                     >
-                        {category}
+                        {category?.charAt(0).toUpperCase() + category?.slice(1)}
                     </button>
                 ))}
             </div>
