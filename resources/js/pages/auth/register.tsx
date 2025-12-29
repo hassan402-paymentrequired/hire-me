@@ -22,7 +22,7 @@ export default function Register() {
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
-        post(register(), {
+        post(register().url, {
             onFinish: () => reset('password', 'password_confirmation'),
         });
     };
@@ -34,16 +34,16 @@ export default function Register() {
         >
             <Head title="Register" />
 
-            <form onSubmit={submit} className="flex flex-col gap-6">
+            <form onSubmit={submit} className="flex flex-col gap-4">
 
                 {/* Role Selection */}
-                <div className="grid grid-cols-2 gap-2 p-1 bg-muted/50 rounded-lg">
+                <div className="grid grid-cols-2 gap-2 p-1 bg-smoke-50 ">
                     <button
                         type="button"
                         onClick={() => setData('role', 'client')}
-                        className={`py-2 text-sm font-medium rounded-md transition-all ${
+                        className={`py-2 text-sm font-medium  transition-all ${
                             data.role === 'client'
-                                ? 'bg-background shadow-sm text-foreground'
+                                ? 'bg-smoke-300 text-foreground'
                                 : 'text-muted-foreground hover:text-foreground'
                         }`}
                     >
@@ -52,9 +52,9 @@ export default function Register() {
                     <button
                         type="button"
                         onClick={() => setData('role', 'provider')}
-                        className={`py-2 text-sm font-medium rounded-md transition-all ${
+                        className={`py-2 text-sm font-medium  transition-all ${
                             data.role === 'provider'
-                                ? 'bg-background shadow-sm text-foreground'
+                                ? 'bg-smoke-300 text-foreground'
                                 : 'text-muted-foreground hover:text-foreground'
                         }`}
                     >
@@ -63,7 +63,7 @@ export default function Register() {
                 </div>
                 <input type="hidden" name="role" value={data.role} />
 
-                <div className="grid gap-2">
+                <div className="grid gap-1">
                     <Label htmlFor="name">Name</Label>
                     <Input
                         id="name"
@@ -83,7 +83,7 @@ export default function Register() {
                     />
                 </div>
 
-                <div className="grid gap-2">
+                <div className="grid gap-1">
                     <Label htmlFor="email">Email address</Label>
                     <Input
                         id="email"
@@ -99,7 +99,7 @@ export default function Register() {
                     <InputError message={errors.email} />
                 </div>
 
-                <div className="grid gap-2">
+                <div className="grid gap-1">
                     <Label htmlFor="password">Password</Label>
                     <Input
                         id="password"
@@ -115,7 +115,7 @@ export default function Register() {
                     <InputError message={errors.password} />
                 </div>
 
-                <div className="grid gap-2">
+                <div className="grid gap-1">
                     <Label htmlFor="password_confirmation">
                         Confirm password
                     </Label>

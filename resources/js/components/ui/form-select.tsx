@@ -6,6 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Label } from '@/components/ui/label';
 
 interface FormSelectProps {
   label?: string
@@ -40,10 +41,10 @@ export function FormSelect({
   return (
     <div className={className}>
       {label && (
-        <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 mb-2 block">
+        <Label>
           {label}
           {required && <span className="text-destructive ml-1">*</span>}
-        </label>
+        </Label>
       )}
       <Select
         value={value}

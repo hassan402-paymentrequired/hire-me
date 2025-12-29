@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Hedvig+Letters+Sans&family=Josefin+Sans:ital,wght@0,100..700;1,100..700&display=swap');
 @import 'tailwindcss';
 
 @import "tw-animate-css";
@@ -9,7 +10,7 @@
 
 @theme {
     --font-sans:
-        'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+       'Josefin Sans', 'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
 
@@ -59,6 +60,18 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+
+    --color-smoke-50: var(--color-white-smoke-50);
+    --color-smoke-100: var(--color-white-smoke-100);
+    --color-smoke-200: var(--color-white-smoke-200);
+    --color-smoke-300: var(--color-white-smoke-300);
+    --color-smoke-400: var(--color-white-smoke-400);
+    --color-smoke-500: var(--color-white-smoke-500);
+    --color-smoke-600: var(--color-white-smoke-600);
+    --color-smoke-700: var(--color-white-smoke-700);
+    --color-smoke-800: var(--color-white-smoke-800);
+    --color-smoke-900: var(--color-white-smoke-900);
+    --color-smoke-950: var(--color-white-smoke-950);
 }
 
 :root {

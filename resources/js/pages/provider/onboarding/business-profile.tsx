@@ -5,6 +5,9 @@ import OnboardingLayout from '@/layouts/onboarding-layout';
 import { Button } from '@/components/ui/button';
 import { Building2, Clock, Scissors, Upload } from 'lucide-react';
 import { FormSelect } from '@/components/ui/form-select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 const STEPS = [
     {
@@ -66,7 +69,7 @@ export default function BusinessProfile() {
     const onPlaceChanged = () => {
         if (autocomplete !== null) {
             const place = autocomplete.getPlace();
-            
+
             if (place.address_components) {
                 let city = '';
                 let state = '';
@@ -122,12 +125,12 @@ export default function BusinessProfile() {
             <div className="space-y-6">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">Tell us about your business</h2>
-                    <p className="text-muted-foreground mt-2">
+                    <p className="text-muted-foreground ">
                         This information will be visible to clients on your public profile.
                     </p>
                 </div>
 
-                <form onSubmit={submit} className="space-y-6">
+                <form onSubmit={submit} className="space-y-4">
                     {/* Logo Upload */}
                     <div>
                         <label className="text-sm font-medium leading-none mb-2 block">
@@ -169,15 +172,14 @@ export default function BusinessProfile() {
                     </div>
 
                     {/* Business Name */}
+                    <div className="grid sm:grid-cols-2 gap-3">
                     <div>
-                        <label className="text-sm font-medium leading-none mb-2 block">
-                            Business Name <span className="text-destructive">*</span>
-                        </label>
-                        <input
+                        <Label >Business Name <span className="text-destructive">*</span></Label>
+                        <Input
                             type="text"
                             value={data.business_name}
                             onChange={(e) => setData('business_name', e.target.value)}
-                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+
                             required
                         />
                         {errors.business_name && <p className="text-sm text-destructive mt-1">{errors.business_name}</p>}
@@ -185,23 +187,23 @@ export default function BusinessProfile() {
 
                     {/* Category */}
                     <FormSelect
+                        required={true}
                         label="Business Category"
                         options={BUSINESS_CATEGORIES}
                         value={data.category}
                         onChange={(value) => setData('category', value)}
                         placeholder="Select a category"
                     />
-
+                    </div>
                     {/* Description */}
                     <div>
-                        <label className="text-sm font-medium leading-none mb-2 block">
+                        <Label>
                             Description
-                        </label>
-                        <textarea
+                        </Label>
+                        <Textarea
                             value={data.description}
                             onChange={(e) => setData('description', e.target.value)}
-                            rows={4}
-                            className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                            rows={6}
                             placeholder="Tell clients about your business..."
                         />
                         {errors.description && <p className="text-sm text-destructive mt-1">{errors.description}</p>}
@@ -211,16 +213,15 @@ export default function BusinessProfile() {
                     {googleMapsApiKey ? (
                         <LoadScript googleMapsApiKey={googleMapsApiKey} libraries={libraries}>
                             <div>
-                                <label className="text-sm font-medium leading-none mb-2 block">
+                                <Label>
                                     Business Address
-                                </label>
+                                </Label>
                                 <Autocomplete onLoad={onLoad} onPlaceChanged={onPlaceChanged}>
-                                    <input
-                                        type="text"
+                                    <Input
                                         value={data.address}
                                         onChange={(e) => setData('address', e.target.value)}
                                         placeholder="Start typing your address..."
-                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                        autoComplete={"off"}
                                     />
                                 </Autocomplete>
                                 {errors.address && <p className="text-sm text-destructive mt-1">{errors.address}</p>}
@@ -228,15 +229,13 @@ export default function BusinessProfile() {
                         </LoadScript>
                     ) : (
                         <div>
-                            <label className="text-sm font-medium leading-none mb-2 block">
+                            <Label>
                                 Business Address
-                            </label>
-                            <input
-                                type="text"
+                            </Label>
+                            <Input
                                 value={data.address}
                                 onChange={(e) => setData('address', e.target.value)}
                                 placeholder="Enter your address"
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                             />
                             <p className="text-xs text-warning mt-1">Google Maps API key not configured</p>
                         </div>
@@ -245,45 +244,41 @@ export default function BusinessProfile() {
                     {/* City, State, Zip (Auto-filled from Google Maps or manual) */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="text-sm font-medium leading-none mb-2 block">City</label>
-                            <input
-                                type="text"
+                            <Label>City</Label>
+                            <Input
                                 value={data.city}
                                 onChange={(e) => setData('city', e.target.value)}
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                placeholder="Type here..."
                             />
                         </div>
                         <div>
-                            <label className="text-sm font-medium leading-none mb-2 block">State</label>
-                            <input
-                                type="text"
+                            <Label>State</Label>
+                            <Input
                                 value={data.state}
                                 onChange={(e) => setData('state', e.target.value)}
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                placeholder="Type here..."
                             />
                         </div>
                         <div>
-                            <label className="text-sm font-medium leading-none mb-2 block">Zip Code</label>
-                            <input
-                                type="text"
+                            <Label>Zip Code</Label>
+                            <Input
                                 value={data.zip_code}
                                 onChange={(e) => setData('zip_code', e.target.value)}
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                placeholder="Type here..."
                             />
                         </div>
                     </div>
 
                     {/* Phone */}
                     <div>
-                        <label className="text-sm font-medium leading-none mb-2 block">
+                        <Label>
                             Business Phone
-                        </label>
-                        <input
+                        </Label>
+                        <Input
                             type="tel"
                             value={data.phone}
                             onChange={(e) => setData('phone', e.target.value)}
-                            placeholder="(555) 123-4567"
-                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                            placeholder="(+234) 123-4567..."
                         />
                         {errors.phone && <p className="text-sm text-destructive mt-1">{errors.phone}</p>}
                     </div>
