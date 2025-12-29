@@ -16,10 +16,10 @@ import { Head } from '@inertiajs/react';
 import {
     Calendar,
     Filter,
-    MoreHorizontal,
     Search,
     User,
 } from 'lucide-react';
+import { AppointmentActions } from '@/components/appointments/appointment-actions';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -101,14 +101,6 @@ export default function Appointments({ appointments, filters }: AppointmentListP
                         <p className="text-muted-foreground">
                             Manage your bookings and view details.
                         </p>
-                    </div>
-                    <div className="flex gap-2">
-                         <Button variant="outline">
-                             Export
-                         </Button>
-                        <Button>
-                             New Appointment
-                        </Button>
                     </div>
                 </div>
 
@@ -239,12 +231,10 @@ export default function Appointments({ appointments, filters }: AppointmentListP
                                                         </Badge>
                                                     </td>
                                                     <td className="p-4 align-middle text-right">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                        >
-                                                            <MoreHorizontal className="h-4 w-4" />
-                                                        </Button>
+                                                        <AppointmentActions 
+                                                            appointmentId={apt.id}
+                                                            status={apt.status.toLowerCase()}
+                                                        />
                                                     </td>
                                                 </tr>
                                             ))

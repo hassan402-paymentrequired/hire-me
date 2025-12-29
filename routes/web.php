@@ -27,6 +27,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/appointments', [App\Http\Controllers\Provider\Schedule\ScheduleController::class, 'appointments'])->name('schedule.appointments.index');
     });
 
+    // Provider Appointment Management
+    Route::prefix('provider/appointments')->name('provider.appointments.')->group(function () {
+        Route::post('/{id}/confirm', [\App\Http\Controllers\Provider\Schedule\ScheduleController::class, 'confirmAppointment'])->name('confirm');
+        Route::post('/{id}/cancel', [\App\Http\Controllers\Provider\Schedule\ScheduleController::class, 'cancelAppointment'])->name('cancel');
+        Route::get('/{id}', [\App\Http\Controllers\Provider\Schedule\ScheduleController::class, 'showAppointment'])->name('show');
+    });
+
+
     // Provider Onboarding
     Route::prefix('onboarding')->name('onboarding.')->middleware(\App\Http\Middleware\EnsureOnboardingComplete::class)->group(function () {
         Route::get('/', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'index'])->name('index');

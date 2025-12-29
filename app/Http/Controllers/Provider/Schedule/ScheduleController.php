@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Provider\Schedule;
 
 use App\Http\Controllers\Controller;
+use App\Models\Appointment;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -65,6 +66,57 @@ class ScheduleController extends Controller
         return Inertia::render('provider/schedule/appointments', [
             'appointments' => $appointments,
             'filters' => $request->only(['search', 'status']),
+        ]);
+    }
+
+    public function confirmAppointment($id)
+    {
+        $appointment = Appointment::where('provider_id', auth()->id())
+            ->where('status', 'pending')
+            ->findOrFail($id);
+
+        $appointment->update(['status' => 'confirmed']);
+
+        return back()->with('success', 'Appointment confirmed successfully.');
+    }
+
+    public function cancelAppointment(Request $request, $id)
+    {
+        $request->validate([
+            'reason' => 'required|string|max:500',
+        ]);
+
+        $appointment = Appointment::where('provider_id', auth()->id())
+            ->where('status', '!=', 'cancelled')
+            ->findOrFail($id);
+
+        $appointment->update([
+            'status' => 'cancelled',
+            'cancellation_reason' => $request->reason,
+            'cancelled_by' => 'provider',
+        ]);
+
+        return back()->with('success', 'Appointment cancelled successfully.');
+    }
+
+    public function showAppointment($id)
+    {
+        $appointment = Appointment::where('provider_id', auth()->id())
+            ->with(['client', 'service'])
+            ->findOrFail($id);
+
+        return Inertia::render('provider/schedule/appointment-details', [
+            'appointment' => [
+                'id' => $appointment->id,
+                'client_name' => $appointment->client->name,
+                'service_name' => $appointment->service->name,
+                'start_time' => $appointment->start_time->format('M d, Y g:i A'),
+                'end_time' => $appointment->end_time->format('g:i A'),
+                'status' => $appointment->status,
+                'price' => '$' . number_format($appointment->price, 2),
+                'notes' => $appointment->notes,
+                'created_at' => $appointment->created_at->format('M d, Y'),
+            ],
         ]);
     }
 }

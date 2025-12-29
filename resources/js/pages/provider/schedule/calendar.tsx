@@ -36,12 +36,46 @@ interface CalendarProps {
 
 export default function Calendar({ appointments }: CalendarProps) {
     const [view, setView] = useState<'week' | 'day'>('week');
+    const [currentDate, setCurrentDate] = useState(new Date());
 
-    // Simple week dates generation (Current Week mock for visual alignment)
+    // Calculate week dates based on current date
+    const getWeekDates = () => {
+        const start = new Date(currentDate);
+        const day = start.getDay();
+        const diff = start.getDate() - day + (day === 0 ? -6 : 1); // Adjust to Monday
+        start.setDate(diff);
+
+        const dates = [];
+        for (let i = 0; i < 7; i++) {
+            const date = new Date(start);
+            date.setDate(start.getDate() + i);
+            dates.push(date);
+        }
+        return dates;
+    };
+
+    const weekDates = getWeekDates();
     const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    // In a real app we'd calculate these based on a selected date state
-    const currentWeekDates = [23, 24, 25, 26, 27, 28, 29]; 
     const timeSlots = Array.from({ length: 11 }, (_, i) => i + 9); // 9 AM to 7 PM
+
+    const goToPreviousWeek = () => {
+        const newDate = new Date(currentDate);
+        newDate.setDate(newDate.getDate() - 7);
+        setCurrentDate(newDate);
+    };
+
+    const goToNextWeek = () => {
+        const newDate = new Date(currentDate);
+        newDate.setDate(newDate.getDate() + 7);
+        setCurrentDate(newDate);
+    };
+
+    const goToToday = () => {
+        setCurrentDate(new Date());
+    };
+
+    const monthYear = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const today = new Date();
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -50,13 +84,13 @@ export default function Calendar({ appointments }: CalendarProps) {
                 {/* Calendar Header */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon">
+                        <Button variant="outline" size="icon" onClick={goToPreviousWeek}>
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
                         <h2 className="text-lg font-semibold">
-                            December 2025
+                            {monthYear}
                         </h2>
-                        <Button variant="outline" size="icon">
+                        <Button variant="outline" size="icon" onClick={goToNextWeek}>
                             <ChevronRight className="h-4 w-4" />
                         </Button>
                         <div className="ml-4 flex items-center rounded-lg border bg-muted p-1">
@@ -83,7 +117,7 @@ export default function Calendar({ appointments }: CalendarProps) {
                         </div>
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="outline">Today</Button>
+                        <Button variant="outline" onClick={goToToday}>Today</Button>
                         <Button>
                             <Plus className="mr-2 h-4 w-4" /> Add Event
                         </Button>
@@ -95,25 +129,30 @@ export default function Calendar({ appointments }: CalendarProps) {
                     {/* Header Row */}
                     <div className="flex border-b">
                         <div className="w-16 flex-none border-r bg-muted/50 p-2"></div>
-                        {weekDays.map((day, i) => (
-                            <div
-                                key={day}
-                                className="flex-1 border-r p-2 text-center last:border-r-0"
-                            >
-                                <div className="text-xs font-semibold text-muted-foreground">
-                                    {day}
-                                </div>
+                        {weekDays.map((day, i) => {
+                            const date = weekDates[i];
+                            const isToday = date.toDateString() === today.toDateString();
+
+                            return (
                                 <div
-                                    className={`mt-1 text-lg font-bold ${
-                                        day === 'Mon' // Simulating "Today"
-                                            ? 'flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground mx-auto'
-                                            : ''
-                                    }`}
+                                    key={day}
+                                    className="flex-1 border-r p-2 text-center last:border-r-0"
                                 >
-                                    {currentWeekDates[i]}
+                                    <div className="text-xs font-semibold text-muted-foreground">
+                                        {day}
+                                    </div>
+                                    <div
+                                        className={`mt-1 text-lg font-bold ${
+                                            isToday
+                                                ? 'flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground mx-auto'
+                                                : ''
+                                        }`}
+                                    >
+                                        {date.getDate()}
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
 
                     {/* Time Grid */}
@@ -154,7 +193,7 @@ export default function Calendar({ appointments }: CalendarProps) {
                             {appointments.map((apt) => {
                                 const dayIndex = weekDays.indexOf(apt.day);
                                 if (dayIndex === -1) return null;
-                                
+
                                 const topOffset =
                                     (apt.hour - timeSlots[0]) * 80; // Simplification: using start hour
                                 const height = apt.duration * 80;
@@ -185,9 +224,9 @@ export default function Calendar({ appointments }: CalendarProps) {
                                     </div>
                                 );
                             })}
-                            
+
                             {/* Current Time Line Mockup */}
-                             <div 
+                             <div
                                 className="absolute left-0 w-full border-t-2 border-red-500 z-10 pointer-events-none"
                                 style={{ top: '150px' }} // 10:50ish mockup
                              >
