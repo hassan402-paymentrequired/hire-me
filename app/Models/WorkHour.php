@@ -15,7 +15,12 @@ class WorkHour extends Model
         'day_of_week',
         'start_time',
         'end_time',
+        'breaks',
         'is_closed',
+    ];
+
+    protected $casts = [
+        'breaks' => 'array',
     ];
 
     public function provider()

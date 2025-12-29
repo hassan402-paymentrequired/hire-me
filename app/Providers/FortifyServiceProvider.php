@@ -4,16 +4,17 @@ namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
-use App\Enum\UserRoleEnum;
+use App\Actions\Response\RegisterResponse;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
+use Laravel\Fortify\Contracts\RegisterResponse as RegisterResponseContract;
+
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -33,20 +34,6 @@ class FortifyServiceProvider extends ServiceProvider
         $this->configureActions();
         $this->configureViews();
         $this->configureRateLimiting();
-
-        Fortify::authenticateUsing(function (Request $request) {
-            $user = User::where('email', $request->email)->first();
-
-            if ($user &&
-                Hash::check($request->password, $user->password)) {
-                Auth::login($user);
-
-                if($user->role == UserRoleEnum::PROVIDER->name)
-                    return redirect()->intended('business.dashboard');
-
-                return redirect()->intended('home');
-            }
-        });
     }
 
     /**
@@ -56,6 +43,10 @@ class FortifyServiceProvider extends ServiceProvider
     {
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
         Fortify::createUsersUsing(CreateNewUser::class);
+        $this->app->singleton(
+            RegisterResponseContract::class,
+            RegisterResponse::class
+        );
     }
 
     /**

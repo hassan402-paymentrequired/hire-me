@@ -60,11 +60,11 @@ export default function ServicesManager({ services }: ServicesManagerProps) {
         e.preventDefault();
         
         if (editingService) {
-            put(route('business.services.update', editingService.id), {
+            put(`/business/services/${editingService.id}`, {
                 onSuccess: () => setIsCreating(false),
             });
         } else {
-            post(route('business.services.store'), {
+            post('/business/services', {
                 onSuccess: () => setIsCreating(false),
             });
         }
@@ -72,7 +72,7 @@ export default function ServicesManager({ services }: ServicesManagerProps) {
 
     const handleDelete = (id: string) => {
         if (confirm('Are you sure you want to delete this service?')) {
-            destroy(route('business.services.destroy', id));
+            destroy(`/business/services/${id}`);
         }
     };
 

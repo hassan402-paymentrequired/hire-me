@@ -31,7 +31,7 @@ const SchedulePreview = ({ schedule }) => {
                 </div>
             </div>
             <div className="space-y-3">
-                {Object.entries(schedule)?.map(([day, daySchedule]) => (
+                {schedule && Object.entries(schedule)?.map(([day, daySchedule]) => (
                     <div
                         key={day}
                         className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-3 md:p-4 bg-background rounded-lg border border-border"
@@ -47,6 +47,11 @@ const SchedulePreview = ({ schedule }) => {
             </span>
                     </div>
                 ))}
+                {!schedule && (
+                    <div className="text-center py-8">
+                        <p className="text-sm text-muted-foreground">No schedule configured yet.</p>
+                    </div>
+                )}
             </div>
             <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
                 <div className="flex gap-3">

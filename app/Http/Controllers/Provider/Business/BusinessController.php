@@ -13,10 +13,46 @@ class BusinessController extends Controller
         $businessProfile = $user->businessProfile;
         $settings = $businessProfile?->settings ?? [];
 
+        // Fetch WorkHours from DB
+        $workHours = \App\Models\WorkHour::where('provider_id', $user->id)->get();
+
+        $schedule = null;
+        if ($workHours->isNotEmpty()) {
+            $schedule = [];
+            $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+            foreach ($days as $day) {
+                $dayRecords = $workHours->where('day_of_week', $day);
+
+                if ($dayRecords->isEmpty()) {
+                    // Default to closed if no record exists for this day but others exist
+                    $schedule[$day] = ['isOpen' => false, 'shifts' => []];
+                } else {
+                    $firstRecord = $dayRecords->first();
+                    if ($firstRecord->is_closed) {
+                        $schedule[$day] = ['isOpen' => false, 'shifts' => []];
+                    } else {
+                        $shifts = $dayRecords->map(function ($record) {
+                            return [
+                                'start' => $record->start_time ? \Carbon\Carbon::parse($record->start_time)->format('H:i') : '09:00',
+                                'end' => $record->end_time ? \Carbon\Carbon::parse($record->end_time)->format('H:i') : '17:00',
+                                'breaks' => $record->breaks ?? []
+                            ];
+                        })->values()->toArray();
+
+                        $schedule[$day] = [
+                            'isOpen' => true,
+                            'shifts' => $shifts
+                        ];
+                    }
+                }
+            }
+        }
+
         return Inertia::render('provider/business/hours', [
-            'initialSchedule' => $settings['schedule'] ?? null,
+            'initialSchedule' => $schedule, // If null, frontend uses default
             'initialHolidays' => $settings['holidays'] ?? [],
-            'initialSettings' => $settings['advanced'] ?? null,
+            // 'initialSettings' removed as requested
             'services' => $user->services()->select('id', 'name', 'description', 'duration_minutes', 'price')->get(),
         ]);
     }
@@ -26,14 +62,46 @@ class BusinessController extends Controller
         $user = auth()->user();
         $profile = $user->businessProfile;
 
-        // Merge existing settings with new updates
+        // Update Holidays in Profile Settings
         $currentSettings = $profile->settings ?? [];
         $profile->settings = array_merge($currentSettings, [
-            'schedule' => $request->schedule,
             'holidays' => $request->holidays,
-            'advanced' => $request->settings,
         ]);
         $profile->save();
+
+        // Sync Work Hours
+        // Strategy: Delete all existing for user and recreate
+        \App\Models\WorkHour::where('provider_id', $user->id)->delete();
+
+        if ($request->schedule) {
+            foreach ($request->schedule as $day => $data) {
+                if (empty($data['isOpen']) || $data['isOpen'] === false) {
+                    \App\Models\WorkHour::create([
+                        'provider_id' => $user->id,
+                        'day_of_week' => $day,
+                        'is_closed' => true,
+                    ]);
+                } else {
+                    if (!empty($data['shifts'])) {
+                        foreach ($data['shifts'] as $shift) {
+                            \App\Models\WorkHour::create([
+                                'provider_id' => $user->id,
+                                'day_of_week' => $day,
+                                'start_time' => $shift['start'],
+                                'end_time' => $shift['end'],
+                                'breaks' => $shift['breaks'] ?? [],
+                                'is_closed' => false,
+                            ]);
+                        }
+                    } else {
+                        // Open but no shifts defined? Treat as closed or ignoring?
+                        // Let's create a placeholder or just ignore. 
+                        // If isOpen is true but no shifts, it's ambiguous. 
+                        // Frontend usually provides at least one shift if isOpen.
+                    }
+                }
+            }
+        }
 
         return back();
     }

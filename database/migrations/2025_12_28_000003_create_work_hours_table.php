@@ -13,6 +13,7 @@ return new class extends Migration {
             $table->string('day_of_week'); // Monday, Tuesday, etc.
             $table->time('start_time')->nullable();
             $table->time('end_time')->nullable();
+            $table->json('breaks')->nullable(); // Stores array of {start, end}
             $table->boolean('is_closed')->default(false);
             $table->timestamps();
         });

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/select';
+import { FormSelect } from '@/components/ui/form-select';
+import { Coffee, Plus, Trash2 } from 'lucide-react';
 
 const DayScheduleRow = ({
                             day,
@@ -9,9 +10,7 @@ const DayScheduleRow = ({
                             onTimeChange,
                             onAddBreak,
                             onRemoveBreak,
-                            onBreakChange,
-                            onAddShift,
-                            onRemoveShift
+                            onBreakChange
                         }) => {
     const timeOptions = Array.from({ length: 48 }, (_, i) => {
         const hour = Math.floor(i / 2);
@@ -24,6 +23,9 @@ const DayScheduleRow = ({
             label: `${displayHour}:${minute} ${period}`
         };
     });
+
+    const shift = schedule?.shifts?.[0]; // Only use first shift
+    const shiftIndex = 0; // Always target first shift
 
     return (
         <div className={`p-4 md:p-6 rounded-lg border transition-smooth ${schedule?.isOpen ? 'bg-card border-border' : 'bg-muted/50 border-border/50'}`}>
@@ -44,102 +46,73 @@ const DayScheduleRow = ({
                         </p>
                     </div>
                 </div>
-
-                {schedule?.isOpen && (
-                    <div className="flex flex-wrap gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            iconName="Plus"
-                            iconPosition="left"
-                            onClick={() => onAddShift(day)}
-                        >
-                            Add Shift
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            iconName="Coffee"
-                            iconPosition="left"
-                            onClick={() => onAddBreak(day, 0)}
-                        >
-                            Add Break
-                        </Button>
-                    </div>
-                )}
             </div>
-            {schedule?.isOpen && (
-                <div className="space-y-4">
-                    {schedule?.shifts?.map((shift, shiftIndex) => (
-                        <div key={shiftIndex} className="p-4 bg-background rounded-lg border border-border space-y-4">
-                            <div className="flex items-center justify-between">
-                                <h4 className="text-sm font-medium text-foreground">
-                                    {shiftIndex === 0 ? 'Primary Shift' : `Shift ${shiftIndex + 1}`}
-                                </h4>
-                                {shiftIndex > 0 && (
+
+            {schedule?.isOpen && shift && (
+                <div className="p-4 bg-background rounded-lg border border-border space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormSelect
+                            label="Start Time"
+                            options={timeOptions}
+                            value={shift?.start}
+                            onChange={(value) => onTimeChange(day, shiftIndex, 'start', value)}
+                            required
+                        />
+                        <FormSelect
+                            label="End Time"
+                            options={timeOptions}
+                            value={shift?.end}
+                            onChange={(value) => onTimeChange(day, shiftIndex, 'end', value)}
+                            required
+                        />
+                    </div>
+
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onAddBreak(day, shiftIndex)}
+                        className="w-full md:w-auto"
+                    >
+                        <Coffee className="size-4" />
+                        Add Break
+                    </Button>
+
+                    {shift?.breaks && shift?.breaks?.length > 0 && (
+                        <div className="space-y-3">
+                            <h5 className="text-sm font-medium text-foreground flex items-center gap-2">
+                                <Coffee size={16} />
+                                Break Times
+                            </h5>
+                            {shift?.breaks?.map((breakTime, breakIndex) => (
+                                <div key={breakIndex} className="flex flex-col md:flex-row gap-3 p-3 bg-muted/50 rounded-lg">
+                                    <div className="flex-1 grid grid-cols-2 gap-3">
+                                        <FormSelect
+                                            label="Break Start"
+                                            options={timeOptions}
+                                            value={breakTime?.start}
+                                            onChange={(value) => onBreakChange(day, shiftIndex, breakIndex, 'start', value)}
+                                            required
+                                        />
+                                        <FormSelect
+                                            label="Break End"
+                                            options={timeOptions}
+                                            value={breakTime?.end}
+                                            onChange={(value) => onBreakChange(day, shiftIndex, breakIndex, 'end', value)}
+                                            required
+                                        />
+                                    </div>
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        iconName="X"
-                                        onClick={() => onRemoveShift(day, shiftIndex)}
-                                    />
-                                )}
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Select
-                                    label="Start Time"
-                                    options={timeOptions}
-                                    value={shift?.start}
-                                    onChange={(value) => onTimeChange(day, shiftIndex, 'start', value)}
-                                    required
-                                />
-                                <Select
-                                    label="End Time"
-                                    options={timeOptions}
-                                    value={shift?.end}
-                                    onChange={(value) => onTimeChange(day, shiftIndex, 'end', value)}
-                                    required
-                                />
-                            </div>
-
-                            {shift?.breaks && shift?.breaks?.length > 0 && (
-                                <div className="space-y-3">
-                                    <h5 className="text-sm font-medium text-foreground flex items-center gap-2">
-                                        <Icon name="Coffee" size={16} />
-                                        Break Times
-                                    </h5>
-                                    {shift?.breaks?.map((breakTime, breakIndex) => (
-                                        <div key={breakIndex} className="flex flex-col md:flex-row gap-3 p-3 bg-muted/50 rounded-lg">
-                                            <div className="flex-1 grid grid-cols-2 gap-3">
-                                                <Select
-                                                    label="Break Start"
-                                                    options={timeOptions}
-                                                    value={breakTime?.start}
-                                                    onChange={(value) => onBreakChange(day, shiftIndex, breakIndex, 'start', value)}
-                                                    required
-                                                />
-                                                <Select
-                                                    label="Break End"
-                                                    options={timeOptions}
-                                                    value={breakTime?.end}
-                                                    onChange={(value) => onBreakChange(day, shiftIndex, breakIndex, 'end', value)}
-                                                    required
-                                                />
-                                            </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                iconName="Trash2"
-                                                onClick={() => onRemoveBreak(day, shiftIndex, breakIndex)}
-                                                className="md:self-end"
-                                            />
-                                        </div>
-                                    ))}
+                                        onClick={() => onRemoveBreak(day, shiftIndex, breakIndex)}
+                                        className="md:self-end"
+                                    >
+                                        <Trash2 className="size-4" />
+                                    </Button>
                                 </div>
-                            )}
+                            ))}
                         </div>
-                    ))}
+                    )}
                 </div>
             )}
         </div>

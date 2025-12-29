@@ -1,52 +1,26 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import AppLayout from '@/layouts/app-layout';
 import { ArchiveIcon, Clock, Scissors } from 'lucide-react';
 import DayScheduleRow from '@/pages/provider/business/components/day-schedule-row';
-import QuickActions from '@/pages/provider/business/components/quick-action';
 import SchedulePreview from '@/pages/provider/business/components/schedule-preview';
 import HolidayManager from '@/pages/provider/business/components/holiday-manager';
-import AdvancedSettings from '@/pages/provider/business/components/advance-setting';
 import ServicesManager from '@/pages/provider/business/components/services-manager';
 import { Button } from '@/components/ui/button';
-import { router } from '@inertiajs/react';
-import business from '@/routes/business';
+import { router, usePage } from '@inertiajs/react';
 
 interface Props {
     initialSchedule: any;
     initialHolidays: any[];
-    initialSettings: any;
     services: any[];
 }
 
-const BusinessHoursConfig = ({ initialSchedule, initialHolidays, initialSettings, services = [] }: Props) => {
+const BusinessHoursConfig = ({ initialSchedule, initialHolidays, services = [] }: Props) => {
+    const { flash } = usePage().props as any;
     const [activeTab, setActiveTab] = useState('schedule');
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-    // Default Fallback
-    const defaultSchedule = {
-        Monday: { isOpen: true, shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
-        Tuesday: { isOpen: true, shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
-        Wednesday: { isOpen: true, shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
-        Thursday: { isOpen: true, shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
-        Friday: { isOpen: true, shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
-        Saturday: { isOpen: true, shifts: [{ start: '10:00', end: '16:00', breaks: [] }] },
-        Sunday: { isOpen: false, shifts: [{ start: '09:00', end: '17:00', breaks: [] }] }
-    };
-
-    const [schedule, setSchedule] = useState(initialSchedule || defaultSchedule);
-
+    const [schedule, setSchedule] = useState(initialSchedule);
     const [holidays, setHolidays] = useState(initialHolidays || []);
-
-    const [advancedSettings, setAdvancedSettings] = useState(initialSettings || {
-        bufferTime: '10',
-        advanceBooking: '30',
-        minNotice: '2',
-        maxDaily: '20',
-        allowSameDay: true,
-        enableWaitlist: true,
-        autoConfirm: false,
-        sendReminders: true
-    });
 
     const handleToggleDay = (day:string) => {
         setSchedule(prev => ({
@@ -69,27 +43,7 @@ const BusinessHoursConfig = ({ initialSchedule, initialHolidays, initialSettings
         setHasUnsavedChanges(true);
     };
 
-    const handleAddShift = (day) => {
-        setSchedule(prev => ({
-            ...prev,
-            [day]: {
-                ...prev?.[day],
-                shifts: [...prev?.[day]?.shifts, { start: '09:00', end: '17:00', breaks: [] }]
-            }
-        }));
-        setHasUnsavedChanges(true);
-    };
 
-    const handleRemoveShift = (day, shiftIndex) => {
-        setSchedule(prev => ({
-            ...prev,
-            [day]: {
-                ...prev?.[day],
-                shifts: prev?.[day]?.shifts?.filter((_, idx) => idx !== shiftIndex)
-            }
-        }));
-        setHasUnsavedChanges(true);
-    };
 
     const handleAddBreak = (day: string, shiftIndex: number) => {
         setSchedule(prev => ({
@@ -156,72 +110,24 @@ const BusinessHoursConfig = ({ initialSchedule, initialHolidays, initialSettings
         setHasUnsavedChanges(true);
     };
 
-    const handleCopyToAll = () => {
-        const mondaySchedule = schedule?.Monday;
-        const newSchedule = {};
-        Object.keys(schedule)?.forEach(day => {
-            newSchedule[day] = { ...mondaySchedule };
-        });
-        setSchedule(newSchedule);
-        setHasUnsavedChanges(true);
-    };
 
-    const handleApplyTemplate = (templateName) => {
-        let newSchedule = {};
 
-        if (templateName === 'Standard 9-5') {
-            Object.keys(schedule)?.forEach(day => {
-                newSchedule[day] = {
-                    isOpen: day !== 'Saturday' && day !== 'Sunday',
-                    shifts: [{ start: '09:00', end: '17:00', breaks: [{ start: '12:00', end: '13:00' }] }]
-                };
-            });
-        } else if (templateName === 'Retail Hours') {
-            Object.keys(schedule)?.forEach(day => {
-                newSchedule[day] = {
-                    isOpen: day !== 'Sunday',
-                    shifts: [{ start: '10:00', end: '20:00', breaks: [{ start: '14:00', end: '15:00' }] }]
-                };
-            });
-        } else if (templateName === 'Salon Schedule') {
-            Object.keys(schedule)?.forEach(day => {
-                newSchedule[day] = {
-                    isOpen: day !== 'Sunday' && day !== 'Monday',
-                    shifts: [{ start: '09:00', end: '19:00', breaks: [{ start: '13:00', end: '14:00' }] }]
-                };
-            });
-        }
 
-        setSchedule(newSchedule);
-        setHasUnsavedChanges(true);
-    };
-
-    const handleReset = () => {
-        setSchedule(defaultSchedule);
-        setHasUnsavedChanges(true);
-    };
-
-    const handleSettingsChange = (field, value) => {
-        setAdvancedSettings(prev => ({ ...prev, [field]: value }));
-        setHasUnsavedChanges(true);
-    };
 
     const handleSaveChanges = () => {
-        router.post(business.hours.update(), {
+        router.post('/business/hours', {
             schedule,
             holidays,
-            settings: advancedSettings
         }, {
             onSuccess: () => setHasUnsavedChanges(false),
         });
     };
 
-   
+
     const tabs = [
         { id: 'schedule', label: 'Weekly Schedule', icon: Clock }, // Using Lucide component directly in loop requires component type
         { id: 'services', label: 'Services', icon: Scissors },
         { id: 'holidays', label: 'Holidays', icon: ArchiveIcon }, // Using ArchiveIcon as placeholder for generic Lucide icon if needed, or specific
-        { id: 'advanced', label: 'Advanced', icon: ArchiveIcon }
     ];
 
     return (
@@ -273,6 +179,18 @@ const BusinessHoursConfig = ({ initialSchedule, initialHolidays, initialSettings
                         </div>
                     )}
 
+                    {flash?.success && (
+                        <div className="mb-6 p-4 bg-success/10 rounded-lg border border-success/20">
+                            <p className="text-sm font-medium text-success">{flash.success}</p>
+                        </div>
+                    )}
+
+                    {flash?.error && (
+                        <div className="mb-6 p-4 bg-error/10 rounded-lg border border-error/20">
+                            <p className="text-sm font-medium text-error">{flash.error}</p>
+                        </div>
+                    )}
+
                     <div className="mb-6 overflow-x-auto">
                         <div className="flex gap-2 border-b border-border min-w-max">
                             {tabs?.map(tab => (
@@ -292,32 +210,24 @@ const BusinessHoursConfig = ({ initialSchedule, initialHolidays, initialSettings
                     </div>
 
                     {activeTab === 'schedule' && (
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-                            <div className="lg:col-span-2 space-y-4">
-                                {Object.keys(schedule)?.map(day => (
-                                    <DayScheduleRow
-                                        key={day}
-                                        day={day}
-                                        schedule={schedule?.[day]}
-                                        onToggle={handleToggleDay}
-                                        onTimeChange={handleTimeChange}
-                                        onAddBreak={handleAddBreak}
-                                        onRemoveBreak={handleRemoveBreak}
-                                        onBreakChange={handleBreakChange}
-                                        onAddShift={handleAddShift}
-                                        onRemoveShift={handleRemoveShift}
-                                    />
-                                ))}
-                            </div>
-
-                            <div className="space-y-6">
-                                <QuickActions
-                                    onCopyToAll={handleCopyToAll}
-                                    onApplyTemplate={handleApplyTemplate}
-                                    onReset={handleReset}
+                        <div className="space-y-4">
+                            {schedule && Object.keys(schedule)?.map(day => (
+                                <DayScheduleRow
+                                    key={day}
+                                    day={day}
+                                    schedule={schedule?.[day]}
+                                    onToggle={handleToggleDay}
+                                    onTimeChange={handleTimeChange}
+                                    onAddBreak={handleAddBreak}
+                                    onRemoveBreak={handleRemoveBreak}
+                                    onBreakChange={handleBreakChange}
                                 />
-                                <SchedulePreview schedule={schedule} />
-                            </div>
+                            ))}
+                            {!schedule && (
+                                <div className="text-center py-12">
+                                    <p className="text-muted-foreground">No schedule set. Please complete onboarding to set your business hours.</p>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -341,19 +251,6 @@ const BusinessHoursConfig = ({ initialSchedule, initialHolidays, initialSettings
                         </div>
                     )}
 
-                    {activeTab === 'advanced' && (
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-                            <div className="lg:col-span-2">
-                                <AdvancedSettings
-                                    settings={advancedSettings}
-                                    onSettingsChange={handleSettingsChange}
-                                />
-                            </div>
-                            <div>
-                                <SchedulePreview schedule={schedule} />
-                            </div>
-                        </div>
-                    )}
                 </main>
             </AppLayout>
 

@@ -33,7 +33,7 @@ class OnboardingController extends Controller
         }
 
         // All done
-        return redirect()->route('dashboard');
+        return redirect()->route('business.dashboard');
     }
 
     public function businessProfile()
@@ -111,11 +111,11 @@ class OnboardingController extends Controller
             'status' => 'active',
         ]);
 
-        return redirect()->route('dashboard');
+        return redirect()->route('business.dashboard');
     }
 
     public function skip()
     {
-        return redirect()->route('dashboard');
+        return redirect()->route('business.dashboard');
     }
 }
