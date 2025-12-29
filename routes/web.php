@@ -39,10 +39,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/skip', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'skip'])->name('skip');
     });
 
+    // Marketplace (public)
+    Route::get('/marketplace', [\App\Http\Controllers\Client\MarketplaceController::class, 'index'])->name('marketplace.index');
+    Route::get('/provider/{slug}', [\App\Http\Controllers\Client\MarketplaceController::class, 'show'])->name('provider.show');
+
+    // Client Appointments
+    Route::prefix('appointments')->name('appointments.')->group(function () {
+        Route::post('/', [\App\Http\Controllers\Client\AppointmentController::class, 'store'])->name('store');
+        Route::post('/{id}/cancel', [\App\Http\Controllers\Client\AppointmentController::class, 'cancel'])->name('cancel');
+        Route::get('/slots', [\App\Http\Controllers\Client\AppointmentController::class, 'availableSlots'])->name('slots');
+    });
+
     // Client Bookings
     Route::prefix('my-bookings')->name('client.bookings.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Client\Bookings\BookingController::class, 'index'])->name('index');
-        Route::get('/{id}', [\App\Http\Controllers\Client\Bookings\BookingController::class, 'show'])->name('show');
+        Route::get('/', [\App\Http\Controllers\Client\AppointmentController::class, 'index'])->name('index');
+        Route::get('/{id}', [\App\Http\Controllers\Client\AppointmentController::class, 'show'])->name('show');
     });
 
 });
