@@ -88,20 +88,38 @@ class OnboardingController extends Controller
 
     public function storeWorkHours(Request $request)
     {
-        // For simplicity, we'll just create default M-F 9-5 hours if they choose to "Save & Continue"
-        // In a real app, this would receive a complex schedule object.
-        // Or we can just skip to default setup.
+        $validated = $request->validate([
+            'schedule' => 'required|array',
+            'schedule.*.isOpen' => 'required|boolean',
+            'schedule.*.shifts' => 'required|array',
+            'schedule.*.shifts.*.start' => 'required|string',
+            'schedule.*.shifts.*.end' => 'required|string',
+            'schedule.*.shifts.*.breaks' => 'nullable|array',
+            'schedule.*.shifts.*.breaks.*.start' => 'required|string',
+            'schedule.*.shifts.*.breaks.*.end' => 'required|string',
+        ]);
 
         $user = auth()->user();
-        $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
-        foreach ($days as $day) {
+        // Delete existing work hours for this provider (in case of re-onboarding)
+        WorkHour::where('provider_id', $user->id)->delete();
+
+        foreach ($validated['schedule'] as $day => $dayData) {
+            // Get the first shift (current schema supports one time period per day)
+            $firstShift = $dayData['shifts'][0] ?? null;
+
             WorkHour::create([
                 'provider_id' => $user->id,
                 'day_of_week' => $day,
-                'start_time' => '09:00:00',
-                'end_time' => '17:00:00',
-                'is_closed' => false,
+                'start_time' => !$dayData['isOpen'] || !$firstShift ? null : $firstShift['start'] . ':00',
+                'end_time' => !$dayData['isOpen'] || !$firstShift ? null : $firstShift['end'] . ':00',
+                'breaks' => !$dayData['isOpen'] || !$firstShift ? null : array_map(function ($break) {
+                    return [
+                        'start' => $break['start'],
+                        'end' => $break['end']
+                    ];
+                }, $firstShift['breaks'] ?? []),
+                'is_closed' => !$dayData['isOpen'],
             ]);
         }
 

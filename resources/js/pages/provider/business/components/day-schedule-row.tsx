@@ -10,8 +10,11 @@ const DayScheduleRow = ({
                             onTimeChange,
                             onAddBreak,
                             onRemoveBreak,
-                            onBreakChange
+                            onBreakChange,
+                            errors
                         }) => {
+    const getError = (path) => errors?.[`schedule.${day}.shifts.0.${path}`];
+    const getBreakError = (breakIndex, field) => errors?.[`schedule.${day}.shifts.0.breaks.${breakIndex}.${field}`];
     const timeOptions = Array.from({ length: 48 }, (_, i) => {
         const hour = Math.floor(i / 2);
         const minute = i % 2 === 0 ? '00' : '30';
@@ -68,6 +71,7 @@ const DayScheduleRow = ({
                             value={shift?.start}
                             onChange={(value) => onTimeChange(day, shiftIndex, 'start', value)}
                             required
+                            error={getError('start')}
                         />
                         <FormSelect
                             label="End Time"
@@ -75,6 +79,7 @@ const DayScheduleRow = ({
                             value={shift?.end}
                             onChange={(value) => onTimeChange(day, shiftIndex, 'end', value)}
                             required
+                            error={getError('end')}
                         />
                     </div>
 
@@ -93,6 +98,7 @@ const DayScheduleRow = ({
                                             value={breakTime?.start}
                                             onChange={(value) => onBreakChange(day, shiftIndex, breakIndex, 'start', value)}
                                             required
+                                            error={getBreakError(breakIndex, 'start')}
                                         />
                                         <FormSelect
                                             label="Break End"
@@ -100,6 +106,7 @@ const DayScheduleRow = ({
                                             value={breakTime?.end}
                                             onChange={(value) => onBreakChange(day, shiftIndex, breakIndex, 'end', value)}
                                             required
+                                            error={getBreakError(breakIndex, 'end')}
                                         />
                                     </div>
                                     <Button

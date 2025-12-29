@@ -14,8 +14,9 @@ import {
 } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import {
+    ArchiveIcon,
     ArrowUpRight,
     Calendar,
     Clock,
@@ -26,6 +27,14 @@ import {
     Users,
 } from 'lucide-react';
 import { dashboard } from '@/routes/business';
+import {
+    Empty,
+    EmptyContent,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from "@/components/ui/empty"
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -58,6 +67,7 @@ interface DashboardProps {
 }
 
 export default function Index({ stats, upcomingAppointments, recentActivity }: DashboardProps) {
+    const auth = usePage().props.auth;
     const statCards = [
         {
             title: 'Total Revenue',
@@ -93,16 +103,11 @@ export default function Index({ stats, upcomingAppointments, recentActivity }: D
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">
-                            Welcome back, Provider!
+                            Welcome back, {auth.user.name}!
                         </h1>
                         <p className="text-muted-foreground">
                             Here's what's happening with your business today.
                         </p>
-                    </div>
-                    <div className="flex gap-2">
-                        <Button>
-                            <Plus className="mr-2 h-4 w-4" /> New Appointment
-                        </Button>
                     </div>
                 </div>
 
@@ -135,63 +140,77 @@ export default function Index({ stats, upcomingAppointments, recentActivity }: D
                         <CardHeader>
                             <CardTitle>Upcoming Schedule</CardTitle>
                             <CardDescription>
-                                You have {upcomingAppointments.length} appointments left today.
+                                You have {upcomingAppointments.length}{' '}
+                                appointments left today.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
-                                {upcomingAppointments.map((apt) => (
-                                    <div
-                                        key={apt.id}
-                                        className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors"
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <Avatar>
-                                                <AvatarImage
-                                                    src={apt.avatar}
-                                                    alt={apt.client}
-                                                />
-                                                <AvatarFallback>
-                                                    {apt.client.charAt(0)}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                            <div className="space-y-1">
-                                                <p className="text-sm font-medium leading-none">
-                                                    {apt.client}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {apt.service}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            <div className="text-right">
-                                                <div className="flex items-center text-sm font-medium">
-                                                    <Clock className="mr-1 h-3 w-3 text-muted-foreground" />
-                                                    {apt.time}
+                                {upcomingAppointments.length === 0 ? (
+                                    <Empty>
+                                        <EmptyHeader>
+                                            <EmptyMedia variant="default">
+                                                <ArchiveIcon />
+                                            </EmptyMedia>
+                                            <EmptyTitle>
+                                                No Upcoming Appointment
+                                            </EmptyTitle>
+                                        </EmptyHeader>
+                                    </Empty>
+                                ) : (
+                                    upcomingAppointments.map((apt) => (
+                                        <div
+                                            key={apt.id}
+                                            className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <Avatar>
+                                                    <AvatarImage
+                                                        src={apt.avatar}
+                                                        alt={apt.client}
+                                                    />
+                                                    <AvatarFallback>
+                                                        {apt.client.charAt(0)}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div className="space-y-1">
+                                                    <p className="text-sm leading-none font-medium">
+                                                        {apt.client}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {apt.service}
+                                                    </p>
                                                 </div>
-                                                <Badge
-                                                    variant={
-                                                        apt.status ===
-                                                        'Confirmed'
-                                                            ? 'default'
-                                                            : 'secondary'
-                                                    }
-                                                    className="mt-1"
-                                                >
-                                                    {apt.status}
-                                                </Badge>
                                             </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8"
-                                            >
-                                                <MoreHorizontal className="h-4 w-4" />
-                                            </Button>
+                                            <div className="flex items-center gap-4">
+                                                <div className="text-right">
+                                                    <div className="flex items-center text-sm font-medium">
+                                                        <Clock className="mr-1 h-3 w-3 text-muted-foreground" />
+                                                        {apt.time}
+                                                    </div>
+                                                    <Badge
+                                                        variant={
+                                                            apt.status ===
+                                                            'Confirmed'
+                                                                ? 'default'
+                                                                : 'secondary'
+                                                        }
+                                                        className="mt-1"
+                                                    >
+                                                        {apt.status}
+                                                    </Badge>
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8"
+                                                >
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))
+                                )}
                             </div>
                         </CardContent>
                     </Card>
@@ -206,26 +225,42 @@ export default function Index({ stats, upcomingAppointments, recentActivity }: D
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-8">
-                                {recentActivity.map((activity, i) => (
-                                    <div key={i} className="flex items-start">
-                                        <span className="relative flex h-2 w-2 translate-y-2 rounded-full bg-sky-500 mr-4 shrink-0" />
-                                        <div className="space-y-1">
-                                            <p className="text-sm font-medium leading-none">
-                                                {activity.message}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {activity.time}
-                                            </p>
-                                        </div>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="ml-auto h-6 w-6"
+                                {recentActivity.length === 0 ? (
+                                    <Empty>
+                                        <EmptyHeader>
+                                            <EmptyMedia variant="default">
+                                                <ArchiveIcon />
+                                            </EmptyMedia>
+                                            <EmptyTitle>
+                                                No Recent Activity
+                                            </EmptyTitle>
+                                        </EmptyHeader>
+                                    </Empty>
+                                ) : (
+                                    recentActivity.map((activity, i) => (
+                                        <div
+                                            key={i}
+                                            className="flex items-start"
                                         >
-                                            <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-                                        </Button>
-                                    </div>
-                                ))}
+                                            <span className="relative mr-4 flex h-2 w-2 shrink-0 translate-y-2 rounded-full bg-sky-500" />
+                                            <div className="space-y-1">
+                                                <p className="text-sm leading-none font-medium">
+                                                    {activity.message}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {activity.time}
+                                                </p>
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="ml-auto h-6 w-6"
+                                            >
+                                                <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+                                            </Button>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </CardContent>
                     </Card>

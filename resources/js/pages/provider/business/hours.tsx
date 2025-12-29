@@ -1,12 +1,30 @@
 import React, { useState, useEffect } from 'react'
 import AppLayout from '@/layouts/app-layout';
-import { ArchiveIcon, Clock, Scissors } from 'lucide-react';
+import { ArchiveIcon, Clock, Save, Scissors } from 'lucide-react';
 import DayScheduleRow from '@/pages/provider/business/components/day-schedule-row';
 import SchedulePreview from '@/pages/provider/business/components/schedule-preview';
 import HolidayManager from '@/pages/provider/business/components/holiday-manager';
 import ServicesManager from '@/pages/provider/business/components/services-manager';
 import { Button } from '@/components/ui/button';
 import { router, usePage } from '@inertiajs/react';
+import type { BreadcrumbItem } from '@/types';
+import business from '@/routes/business';
+
+
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: 'Dashboard',
+        href: business.dashboard().url,
+    },
+    {
+        title: 'Business',
+        href: business.hours().url,
+    },
+    {
+        title: 'Operating Hours',
+        href: '',
+    },
+];
 
 interface Props {
     initialSchedule: any;
@@ -132,15 +150,12 @@ const BusinessHoursConfig = ({ initialSchedule, initialHolidays, services = [] }
 
     return (
 
-            <AppLayout>
+            <AppLayout breadcrumbs={breadcrumbs}>
 
-                <main className="p-4 md:p-6 lg:p-8 pb-20 lg:pb-8">
+                <main className="flex flex-col p-4">
 
                     <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6 md:mb-8">
                         <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                                <Clock size={24} color="var(--color-primary)" />
-                            </div>
                             <div>
                                 <h2 className="text-xl md:text-2xl font-semibold text-foreground">
                                     Business Configuration
@@ -154,21 +169,19 @@ const BusinessHoursConfig = ({ initialSchedule, initialHolidays, services = [] }
 
                             <Button
                                 variant="default"
-                                iconName="Save"
-                                iconPosition="left"
                                 onClick={handleSaveChanges}
                                 disabled={!hasUnsavedChanges}
                                 className="flex-1 lg:flex-none"
                             >
-                                Save Changes
+                               <Save /> Save Changes
                             </Button>
                         </div>
                     </div>
 
                     {hasUnsavedChanges && (
-                        <div className="mb-6 p-4 bg-warning/5 rounded-lg border border-warning/20">
+                        <div className="mb-6 p-4 bg-warning/5 rounded border border-red-300">
                             <div className="flex gap-3">
-                                <ArchiveIcon name="AlertCircle" size={20} color="var(--color-warning)" className="flex-shrink-0 mt-0.5" />
+                                <ArchiveIcon  size={20}  className="flex-shrink-0 mt-0.5" />
                                 <div>
                                     <p className="text-sm font-medium text-foreground">Unsaved Changes</p>
                                     <p className="text-xs text-muted-foreground mt-1">

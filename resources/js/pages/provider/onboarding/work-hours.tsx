@@ -2,9 +2,10 @@ import { Button } from '@/components/ui/button';
 import OnboardingLayout from '@/layouts/onboarding-layout';
 import onboarding from '@/routes/onboarding';
 import { useForm } from '@inertiajs/react';
-import { Building2, Clock, Scissors } from 'lucide-react';
+import { Building2, Clock, Scissors, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
 import DayScheduleRow from '@/pages/provider/business/components/day-schedule-row';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const STEPS = [
     {
@@ -41,84 +42,83 @@ const defaultSchedule = {
 };
 
 export default function WorkHours() {
-    const [schedule, setSchedule] = useState(defaultSchedule);
-    const { post, processing } = useForm({});
+    const { data, setData, post, processing, errors } = useForm({
+        schedule: defaultSchedule
+    });
 
     const handleToggleDay = (day: string) => {
-        setSchedule(prev => ({
-            ...prev,
-            [day]: { ...prev?.[day], isOpen: !prev?.[day]?.isOpen }
-        }));
+        setData('schedule', {
+            ...data.schedule,
+            [day]: { ...data.schedule[day], isOpen: !data.schedule[day].isOpen }
+        });
     };
 
     const handleTimeChange = (day: string, shiftIndex: number, field: string, value: any) => {
-        setSchedule(prev => ({
-            ...prev,
+        setData('schedule', {
+            ...data.schedule,
             [day]: {
-                ...prev?.[day],
-                shifts: prev?.[day]?.shifts?.map((shift, idx) =>
+                ...data.schedule[day],
+                shifts: data.schedule[day].shifts.map((shift, idx) =>
                     idx === shiftIndex ? { ...shift, [field]: value } : shift
                 )
             }
-        }));
+        });
     };
 
     const handleAddBreak = (day: string, shiftIndex: number) => {
-        setSchedule(prev => ({
-            ...prev,
+        setData('schedule', {
+            ...data.schedule,
             [day]: {
-                ...prev?.[day],
-                shifts: prev?.[day]?.shifts?.map((shift, idx) =>
+                ...data.schedule[day],
+                shifts: data.schedule[day].shifts.map((shift, idx) =>
                     idx === shiftIndex
-                        ? { ...shift, breaks: [...shift?.breaks, { start: '12:00', end: '13:00' }] }
+                        ? { ...shift, breaks: [...shift.breaks, { start: '12:00', end: '13:00' }] }
                         : shift
                 )
             }
-        }));
+        });
     };
 
     const handleRemoveBreak = (day: string, shiftIndex: number, breakIndex: number) => {
-        setSchedule(prev => ({
-            ...prev,
+        setData('schedule', {
+            ...data.schedule,
             [day]: {
-                ...prev?.[day],
-                shifts: prev?.[day]?.shifts?.map((shift, idx) =>
+                ...data.schedule[day],
+                shifts: data.schedule[day].shifts.map((shift, idx) =>
                     idx === shiftIndex
-                        ? { ...shift, breaks: shift?.breaks?.filter((_, bIdx) => bIdx !== breakIndex) }
+                        ? { ...shift, breaks: shift.breaks.filter((_, bIdx) => bIdx !== breakIndex) }
                         : shift
                 )
             }
-        }));
+        });
     };
 
     const handleBreakChange = (day: string, shiftIndex: number, breakIndex: number, field: string, value: any) => {
-        setSchedule(prev => ({
-            ...prev,
+        setData('schedule', {
+            ...data.schedule,
             [day]: {
-                ...prev?.[day],
-                shifts: prev?.[day]?.shifts?.map((shift, idx) =>
+                ...data.schedule[day],
+                shifts: data.schedule[day].shifts.map((shift, idx) =>
                     idx === shiftIndex
                         ? {
                             ...shift,
-                            breaks: shift?.breaks?.map((breakTime, bIdx) =>
+                            breaks: shift.breaks.map((breakTime, bIdx) =>
                                 bIdx === breakIndex ? { ...breakTime, [field]: value } : breakTime
                             )
                         }
                         : shift
                 )
             }
-        }));
+        });
     };
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(onboarding.workHours.store(), {
-            data: { schedule }
-        });
+        post(onboarding.workHours.store().url);
     };
 
     const skip = () => {
-        post(onboarding.skip());
+        post(onboarding.skip().url);
     };
 
     return (
@@ -131,17 +131,28 @@ export default function WorkHours() {
                     </p>
                 </div>
 
+                {Object.keys(errors).length > 0 && (
+                    <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>
+                            Please fix the errors below before continuing.
+                        </AlertDescription>
+                    </Alert>
+                )}
+
                 <form onSubmit={submit} className="space-y-4">
-                    {Object.keys(schedule).map(day => (
+                    {Object.keys(data.schedule).map(day => (
                         <DayScheduleRow
                             key={day}
                             day={day}
-                            schedule={schedule[day]}
+                            schedule={data.schedule[day]}
                             onToggle={handleToggleDay}
                             onTimeChange={handleTimeChange}
                             onAddBreak={handleAddBreak}
                             onRemoveBreak={handleRemoveBreak}
                             onBreakChange={handleBreakChange}
+                            errors={errors}
                         />
                     ))}
 

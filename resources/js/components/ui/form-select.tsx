@@ -19,6 +19,7 @@ interface FormSelectProps {
   placeholder?: string
   disabled?: boolean
   className?: string
+  error?: string
 }
 
 export function FormSelect({
@@ -32,6 +33,7 @@ export function FormSelect({
   placeholder = "Select...",
   disabled = false,
   className,
+  error,
 }: FormSelectProps) {
   const handleValueChange = (newValue: string) => {
     if (onChange) onChange(newValue)
@@ -41,7 +43,7 @@ export function FormSelect({
   return (
     <div className={className}>
       {label && (
-        <Label>
+        <Label className={error ? "text-destructive" : ""}>
           {label}
           {required && <span className="text-destructive ml-1">*</span>}
         </Label>
@@ -53,7 +55,7 @@ export function FormSelect({
         disabled={disabled}
         required={required}
       >
-        <SelectTrigger>
+        <SelectTrigger className={error ? "border-destructive" : ""}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
@@ -64,6 +66,9 @@ export function FormSelect({
           ))}
         </SelectContent>
       </Select>
+      {error && (
+        <p className="text-sm font-medium text-destructive mt-1">{error}</p>
+      )}
     </div>
   )
 }

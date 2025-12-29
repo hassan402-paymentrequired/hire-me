@@ -23,6 +23,10 @@ import { AppointmentActions } from '@/components/appointments/appointment-action
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
+        title: 'Dashboard',
+        href: business.dashboard().url,
+    },
+    {
         title: 'Schedule',
         href: '/schedule',
     },
@@ -35,6 +39,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 import { router } from '@inertiajs/react';
 import { debounce } from 'lodash';
 import { useCallback, useEffect, useState } from 'react';
+import business from '@/routes/business';
 
 // ... other imports
 
@@ -231,7 +236,7 @@ export default function Appointments({ appointments, filters }: AppointmentListP
                                                         </Badge>
                                                     </td>
                                                     <td className="p-4 align-middle text-right">
-                                                        <AppointmentActions 
+                                                        <AppointmentActions
                                                             appointmentId={apt.id}
                                                             status={apt.status.toLowerCase()}
                                                         />
