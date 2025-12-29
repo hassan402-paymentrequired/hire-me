@@ -47,10 +47,10 @@ export default function Welcome({ providers }: Props) {
                                     <Link
                                         key={provider.id}
                                         href={`/provider/${provider.slug}`}
-                                        className="group flex flex-col space-y-3"
+                                        className="group flex flex-col space-y-3 hover:border p-2 rounded"
                                     >
                                         {/* Card Image/Placeholder */}
-                                        <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                                        <div className="relative aspect-[4/3] overflow-hidden rounded bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
                                             <div className="text-center p-6">
                                                 <h3 className="text-2xl font-bold text-foreground mb-2">
                                                     {provider.businessName}
@@ -59,7 +59,7 @@ export default function Welcome({ providers }: Props) {
                                                     {provider.servicesCount} {provider.servicesCount === 1 ? 'service' : 'services'}
                                                 </p>
                                             </div>
-                                            
+
                                             {/* Hover Overlay */}
                                             <div className="absolute inset-0 bg-primary/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                                         </div>
@@ -95,11 +95,6 @@ export default function Welcome({ providers }: Props) {
                                                 </div>
                                             )}
 
-                                            <div className="pt-2">
-                                                <Button size="sm" className="w-full">
-                                                    View Profile & Book
-                                                </Button>
-                                            </div>
                                         </div>
                                     </Link>
                                 ))}

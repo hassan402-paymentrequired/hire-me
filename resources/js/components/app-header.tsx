@@ -218,7 +218,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                 <Link
                                     href={login()}
                                 >
-                                    <Button size={"sm"} className={"rounded"}>Log in</Button>
+                                    <Button size={"sm"} >Get started</Button>
                                 </Link>
                             </>
                         )}

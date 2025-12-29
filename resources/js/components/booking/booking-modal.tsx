@@ -5,6 +5,8 @@ import { FormSelect } from '@/components/ui/form-select';
 import { Calendar, Clock, DollarSign } from 'lucide-react';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 interface Service {
     id: string;
@@ -156,15 +158,14 @@ export function BookingModal({ isOpen, onClose, provider, service }: BookingModa
 
                     {/* Notes */}
                     <div>
-                        <label className="text-sm font-medium leading-none mb-2 block">
+                        <Label>
                             Notes (Optional)
-                        </label>
-                        <textarea
+                        </Label>
+                        <Textarea
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
                             rows={3}
                             placeholder="Any special requests or notes..."
-                            className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                         />
                     </div>
 
@@ -173,8 +174,8 @@ export function BookingModal({ isOpen, onClose, provider, service }: BookingModa
                         <Button variant="outline" onClick={onClose} className="flex-1">
                             Cancel
                         </Button>
-                        <Button 
-                            onClick={handleBooking} 
+                        <Button
+                            onClick={handleBooking}
                             disabled={!selectedDate || !selectedSlot}
                             className="flex-1"
                         >

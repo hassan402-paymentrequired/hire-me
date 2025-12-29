@@ -49,19 +49,18 @@ export default function ProviderProfile({ provider, services, workHours }: Props
 
     return (
         <GuestLayout title={provider.businessName}>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {/* Back Button */}
-                <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6">
-                    ← Back to marketplace
-                </Link>
+            <div className="p-4 ">
 
                 {/* Provider Header */}
-                <div className="bg-card rounded-lg border border-border p-8 mb-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+
+                <div className="bg-card lg:col-span-2 rounded border border-border p-4 ">
                     <div className="flex flex-col md:flex-row gap-6">
                         <div className="flex-1">
                             <h1 className="text-3xl font-bold text-foreground mb-2">{provider.businessName}</h1>
                             <p className="text-muted-foreground mb-4">by {provider.name}</p>
-                            
+
                             {provider.description && (
                                 <p className="text-foreground mb-6">{provider.description}</p>
                             )}
@@ -76,11 +75,32 @@ export default function ProviderProfile({ provider, services, workHours }: Props
                     </div>
                 </div>
 
+                 <div className="bg-card rounded border border-border p-4 ">
+                            <h3 className="text-lg font-semibold text-foreground mb-4">Business Hours</h3>
+                            <div className="space-y-3">
+                                {Object.entries(workHours).map(([day, hours]) => (
+                                    <div key={day} className="flex justify-between text-sm">
+                                        <span className="font-medium text-foreground">{day}</span>
+                                        {hours.isOpen ? (
+                                            <span className="text-muted-foreground">
+                                                {hours.hours?.map(h => `${h.start} - ${h.end}`).join(', ') || 'Open'}
+                                            </span>
+                                        ) : (
+                                            <span className="text-muted-foreground">Closed</span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                </div>
+
+
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Services */}
                     <div className="lg:col-span-2">
                         <h2 className="text-2xl font-bold text-foreground mb-6">Services</h2>
-                        
+
                         {services.length === 0 ? (
                             <div className="bg-card rounded-lg border border-border p-8 text-center">
                                 <p className="text-muted-foreground">No services available at the moment.</p>
@@ -125,26 +145,7 @@ export default function ProviderProfile({ provider, services, workHours }: Props
                         )}
                     </div>
 
-                    {/* Sidebar - Business Hours */}
-                    <div>
-                        <div className="bg-card rounded-lg border border-border p-6 sticky top-8">
-                            <h3 className="text-lg font-semibold text-foreground mb-4">Business Hours</h3>
-                            <div className="space-y-3">
-                                {Object.entries(workHours).map(([day, hours]) => (
-                                    <div key={day} className="flex justify-between text-sm">
-                                        <span className="font-medium text-foreground">{day}</span>
-                                        {hours.isOpen ? (
-                                            <span className="text-muted-foreground">
-                                                {hours.hours?.map(h => `${h.start} - ${h.end}`).join(', ') || 'Open'}
-                                            </span>
-                                        ) : (
-                                            <span className="text-muted-foreground">Closed</span>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
+
                 </div>
             </div>
 

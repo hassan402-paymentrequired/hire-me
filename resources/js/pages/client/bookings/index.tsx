@@ -1,12 +1,20 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head, Link } from '@inertiajs/react';
-import { Calendar, Clock, MapPin, ChevronRight, User } from 'lucide-react';
+import {
+    Calendar,
+    Clock,
+    MapPin,
+    ChevronRight,
+    User,
+    Timer,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import GuestLayout from '@/layouts/guest-layout';
 import client from '@/routes/client';
+import BookingCard from '@/pages/client/components/booking-card';
 
 interface Booking {
     id: string;
@@ -35,7 +43,7 @@ export default function BookingList({ bookings = [] }: { bookings?: Booking[] })
         <GuestLayout>
             <Head title="My Appointments" />
 
-            <div className="max-w-4xl mx-auto py-10 px-4 md:px-0">
+            <div className="p-4 ">
                 <div className="flex items-center justify-between mb-8">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">My Bookings</h1>
@@ -46,46 +54,9 @@ export default function BookingList({ bookings = [] }: { bookings?: Booking[] })
                 </div>
 
                 {bookings.length > 0 ? (
-                    <div className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {bookings.map((booking) => (
-                            <Link key={booking.id} href={client.bookings.show(booking.id)}>
-                                <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                                    <CardContent className="p-6 flex items-center justify-between">
-
-                                        {/* Left Side: Service & Provider Info */}
-                                        <div className="flex items-center gap-4">
-                                            <Avatar className="h-12 w-12 border">
-                                                <AvatarImage src={booking.avatar} alt={booking.provider_name} />
-                                                <AvatarFallback><User className="w-6 h-6 text-muted-foreground" /></AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <h3 className="font-semibold text-lg leading-none">{booking.service_name}</h3>
-                                                <p className="text-sm text-muted-foreground mt-1 text-blue-600 font-medium">
-                                                    with {booking.provider_name}
-                                                </p>
-                                                <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                                                    <div className="flex items-center gap-1">
-                                                        <Calendar className="w-3.5 h-3.5" />
-                                                        {booking.start_time}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Right Side: Price, Status & Chevron */}
-                                        <div className="flex items-center gap-6">
-                                            <div className="text-right hidden sm:block">
-                                                <div className="font-bold text-lg">{booking.price}</div>
-                                                <Badge variant={getStatusVariant(booking.status)} className="mt-1">
-                                                    {booking.status}
-                                                </Badge>
-                                            </div>
-                                            <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                                        </div>
-
-                                    </CardContent>
-                                </Card>
-                            </Link>
+                           <BookingCard booking={booking} key={booking.id} />
                         ))}
                     </div>
                 ) : (

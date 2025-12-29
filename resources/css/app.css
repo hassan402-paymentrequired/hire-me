@@ -166,3 +166,8 @@
         @apply bg-background text-foreground;
     }
 }
+
+/* Add to your global CSS or component styles */
+.booking-card-hover {
+    @apply hover:scale-[1.02] active:scale-[0.98];
+}

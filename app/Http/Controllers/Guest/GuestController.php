@@ -12,7 +12,6 @@ class GuestController extends Controller
 {
     public function welcome()
     {
-        // Get all providers with their business profiles and services
         $providers = User::where('role', 'provider')
             ->with([
                 'businessProfile',

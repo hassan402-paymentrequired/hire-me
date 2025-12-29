@@ -20,19 +20,7 @@ class AppointmentController extends Controller
         $bookings = Appointment::where('client_id', $user->id)
             ->with(['provider', 'service'])
             ->orderBy('start_time', 'desc')
-            ->get()
-            ->map(function ($appointment) {
-                return [
-                    'id' => $appointment->id,
-                    'provider_name' => $appointment->provider->name,
-                    'service_name' => $appointment->service->name,
-                    'start_time' => $appointment->start_time->format('M d, Y g:i A'),
-                    'end_time' => $appointment->end_time->format('g:i A'),
-                    'status' => $appointment->status,
-                    'price' => '$' . number_format($appointment->price, 2),
-                    'notes' => $appointment->notes,
-                ];
-            });
+            ->get();
 
         return Inertia::render('client/bookings/index', [
             'bookings' => $bookings,
