@@ -21,17 +21,21 @@ import {
     ArrowUpRight,
     Briefcase,
     Calendar,
-    Users,
 } from 'lucide-react';
+import business from '@/routes/business';
 
 const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: 'Dashboard',
+        href: business.dashboard().url,
+    },
     {
         title: 'Business',
         href: '/business',
     },
     {
         title: 'Analytics',
-        href: '/business/analytics',
+        href: '',
     },
 ];
 

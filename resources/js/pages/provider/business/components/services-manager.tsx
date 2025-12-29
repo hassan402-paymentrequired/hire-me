@@ -21,7 +21,7 @@ interface ServicesManagerProps {
 }
 
 export default function ServicesManager({ services }: ServicesManagerProps) {
-    const [isCreating, setIsCreating] = useState(false);
+    const [isCreating, setIsCreating] = useState(true);
     const [editingService, setEditingService] = useState<Service | null>(null);
 
     const { data, setData, post, put, delete: destroy, processing, reset, errors, clearErrors } = useForm({
@@ -58,7 +58,7 @@ export default function ServicesManager({ services }: ServicesManagerProps) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (editingService) {
             put(`/business/services/${editingService.id}`, {
                 onSuccess: () => setIsCreating(false),
@@ -86,9 +86,6 @@ export default function ServicesManager({ services }: ServicesManagerProps) {
                             <CardTitle>Your Services</CardTitle>
                             <CardDescription>Manage the services you offer to clients.</CardDescription>
                         </div>
-                        <Button onClick={handleCreate} disabled={isCreating && !editingService} size="sm">
-                            <Plus className="w-4 h-4 mr-2" /> Add Service
-                        </Button>
                     </CardHeader>
                     <CardContent>
                         {services.length > 0 ? (
@@ -138,7 +135,7 @@ export default function ServicesManager({ services }: ServicesManagerProps) {
             </div>
 
             {/* Create/Edit Form */}
-            {isCreating && (
+
                 <div className="lg:col-span-1">
                     <Card className="sticky top-6">
                         <CardHeader>
@@ -201,7 +198,7 @@ export default function ServicesManager({ services }: ServicesManagerProps) {
                         </CardContent>
                     </Card>
                 </div>
-            )}
+
         </div>
     );
 }

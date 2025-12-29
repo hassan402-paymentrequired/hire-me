@@ -18,9 +18,8 @@ const SchedulePreview = ({ schedule }) => {
     };
 
     return (
-        <div className="bg-card rounded-lg border border-border p-4 md:p-6">
-            <div className="flex items-center gap-2 mb-6">
-                <Eye size={24}  />
+        <div className="bg-card sticky rounded border border-border p-4 ">
+            <div className="flex items-center gap-2 mb-4">
                 <div>
                     <h3 className="text-lg md:text-xl font-semibold text-foreground">
                         Schedule Preview
@@ -34,7 +33,7 @@ const SchedulePreview = ({ schedule }) => {
                 {schedule && Object.entries(schedule)?.map(([day, daySchedule]) => (
                     <div
                         key={day}
-                        className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-3 md:p-4 bg-background rounded-lg border border-border"
+                        className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-3 md:p-4 bg-background rounded border border-border"
                     >
                         <div className="flex items-center gap-3">
                             <div className={`w-2 h-2 rounded-full ${daySchedule?.isOpen ? 'bg-success' : 'bg-muted-foreground'}`} />

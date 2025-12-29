@@ -223,6 +223,8 @@ const BusinessHoursConfig = ({ initialSchedule, initialHolidays, services = [] }
                     </div>
 
                     {activeTab === 'schedule' && (
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+                            <div className="lg:col-span-2">
                         <div className="space-y-4">
                             {schedule && Object.keys(schedule)?.map(day => (
                                 <DayScheduleRow
@@ -241,6 +243,11 @@ const BusinessHoursConfig = ({ initialSchedule, initialHolidays, services = [] }
                                     <p className="text-muted-foreground">No schedule set. Please complete onboarding to set your business hours.</p>
                                 </div>
                             )}
+                        </div>
+                            </div>
+                            <div>
+                                <SchedulePreview schedule={schedule} />
+                            </div>
                         </div>
                     )}
 
