@@ -11,6 +11,7 @@ use Laravel\Fortify\Features;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\BusinessProfile;
+use App\Models\Category;
 
 class GuestController extends Controller
 {
@@ -58,9 +59,7 @@ class GuestController extends Controller
                 ->orderBy('distance');
         }
 
-        $providers = $query->simplePaginate(12);
-
-        $providers->getCollection()->transform(function ($provider) {
+        $providers = $query->simplePaginate(12)->through(function ($provider) {
             return [
                 'id' => $provider->id,
                 'name' => $provider->name,
@@ -73,9 +72,7 @@ class GuestController extends Controller
             ];
         });
 
-        $categories = BusinessProfile::whereNotNull('category')
-            ->distinct()
-            ->pluck('category');
+        $categories = Category::orderBy('name')->get(['name', 'slug']);
 
         return Inertia::render('guest/welcome', [
             'canRegister' => Features::enabled(Features::registration()),

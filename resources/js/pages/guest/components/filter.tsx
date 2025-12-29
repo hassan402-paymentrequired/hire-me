@@ -11,8 +11,13 @@ import {
 } from '@/components/ui/select';
 import { router } from '@inertiajs/react';
 
+interface Category {
+    name: string;
+    slug: string;
+}
+
 interface HeaderFilterProps {
-    categories: string[];
+    categories: Category[];
     filters: {
         category?: string;
         search?: string;
@@ -94,15 +99,15 @@ export const HeaderFilter = ({ categories, filters }: HeaderFilterProps) => {
                 </button>
                 {categories.map((category) => (
                     <button
-                        key={category}
-                        onClick={() => handleCategoryChange(category)}
+                        key={category.slug}
+                        onClick={() => handleCategoryChange(category.slug)}
                         className={`rounded px-4 py-2 text-xs font-medium whitespace-nowrap transition-all ${
-                            selectedCategory === category
+                            selectedCategory === category.slug
                                 ? 'bg-foreground text-background shadow-md'
                                 : 'bg-muted/30 text-muted-foreground hover:bg-muted/80 hover:text-foreground'
                         }`}
                     >
-                        {category?.charAt(0).toUpperCase() + category?.slice(1)}
+                        {category.name}
                     </button>
                 ))}
             </div>

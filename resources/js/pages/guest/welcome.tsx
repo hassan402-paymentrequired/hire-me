@@ -28,7 +28,7 @@ interface Props {
         next_page_url: string | null;
         current_page: number;
     };
-    categories: string[];
+    categories: { name: string; slug: string }[];
     filters: {
         search?: string;
         category?: string;

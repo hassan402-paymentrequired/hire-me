@@ -33,20 +33,13 @@ const STEPS = [
     },
 ];
 
-const BUSINESS_CATEGORIES = [
-    { value: 'salon', label: 'Salon & Barber' },
-    { value: 'spa', label: 'Spa & Wellness' },
-    { value: 'fitness', label: 'Fitness & Training' },
-    { value: 'healthcare', label: 'Healthcare' },
-    { value: 'automotive', label: 'Automotive' },
-    { value: 'home_services', label: 'Home Services' },
-    { value: 'professional', label: 'Professional Services' },
-    { value: 'other', label: 'Other' },
-];
+interface BusinessProfileProps {
+    categories: { value: string; label: string }[];
+}
 
 const libraries: ("places")[] = ["places"];
 
-export default function BusinessProfile() {
+export default function BusinessProfile({ categories }: BusinessProfileProps) {
     const { data, setData, post, processing, errors } = useForm({
         business_name: '',
         description: '',
@@ -187,7 +180,7 @@ export default function BusinessProfile() {
                     <FormSelect
                         required={true}
                         label="Business Category"
-                        options={BUSINESS_CATEGORIES}
+                        options={categories}
                         value={data.category}
                         onChange={(value) => setData('category', value)}
                         placeholder="Select a category"

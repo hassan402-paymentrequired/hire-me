@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BusinessProfile;
 use App\Models\Service;
 use App\Models\WorkHour;
+use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -38,7 +39,17 @@ class OnboardingController extends Controller
 
     public function businessProfile()
     {
-        return Inertia::render('provider/onboarding/business-profile', ['step' => 'profile']);
+        $categories = Category::orderBy('name')->get()->map(function ($category) {
+            return [
+                'value' => $category->slug,
+                'label' => $category->name,
+            ];
+        });
+
+        return Inertia::render('provider/onboarding/business-profile', [
+            'step' => 'profile',
+            'categories' => $categories
+        ]);
     }
 
     public function storeBusinessProfile(Request $request)
