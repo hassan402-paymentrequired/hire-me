@@ -28,9 +28,9 @@ const DayScheduleRow = ({
     const shiftIndex = 0; // Always target first shift
 
     return (
-        <div className={`p-4 md:p-6 rounded-lg border transition-smooth ${schedule?.isOpen ? 'bg-card border-border' : 'bg-muted/50 border-border/50'}`}>
+        <div className={`p-2 md:p-4 rounded border transition-smooth ${schedule?.isOpen ? 'bg-card border-border' : 'bg-muted/50 border-border/50'}`}>
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
-                <div className="flex items-center gap-3">
+                <div className="flex items-start gap-2">
                     <button
                         onClick={() => onToggle(day)}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-smooth focus-ring ${schedule?.isOpen ? 'bg-primary' : 'bg-muted-foreground/30'}`}
@@ -46,10 +46,21 @@ const DayScheduleRow = ({
                         </p>
                     </div>
                 </div>
+
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onAddBreak(day, shiftIndex)}
+                    className="w-full md:w-auto"
+                    type={"button"}
+                >
+                    <Coffee className="size-4" />
+                    Add Break
+                </Button>
             </div>
 
             {schedule?.isOpen && shift && (
-                <div className="p-4 bg-background rounded-lg border border-border space-y-4">
+                <div className=" space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormSelect
                             label="Start Time"
@@ -67,16 +78,6 @@ const DayScheduleRow = ({
                         />
                     </div>
 
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onAddBreak(day, shiftIndex)}
-                        className="w-full md:w-auto"
-                    >
-                        <Coffee className="size-4" />
-                        Add Break
-                    </Button>
-
                     {shift?.breaks && shift?.breaks?.length > 0 && (
                         <div className="space-y-3">
                             <h5 className="text-sm font-medium text-foreground flex items-center gap-2">
@@ -84,7 +85,7 @@ const DayScheduleRow = ({
                                 Break Times
                             </h5>
                             {shift?.breaks?.map((breakTime, breakIndex) => (
-                                <div key={breakIndex} className="flex flex-col md:flex-row gap-3 p-3 bg-muted/50 rounded-lg">
+                                <div key={breakIndex} className="flex flex-col md:flex-row gap-3 p-3 bg-muted/50 rounded">
                                     <div className="flex-1 grid grid-cols-2 gap-3">
                                         <FormSelect
                                             label="Break Start"

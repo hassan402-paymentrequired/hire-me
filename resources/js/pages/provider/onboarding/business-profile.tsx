@@ -151,17 +151,11 @@ export default function BusinessProfile() {
                                 )}
                             </div>
                             <div className="flex-1">
-                                <input
+                                <Input
                                     type="file"
                                     accept="image/*"
                                     onChange={handleLogoChange}
-                                    className="block w-full text-sm text-muted-foreground
-                                        file:mr-4 file:py-2 file:px-4
-                                        file:rounded-md file:border-0
-                                        file:text-sm file:font-medium
-                                        file:bg-primary file:text-primary-foreground
-                                        hover:file:bg-primary/90
-                                        cursor-pointer"
+                                    className="block "
                                 />
                                 <p className="text-xs text-muted-foreground mt-1">
                                     PNG, JPG up to 2MB
@@ -179,7 +173,7 @@ export default function BusinessProfile() {
                             type="text"
                             value={data.business_name}
                             onChange={(e) => setData('business_name', e.target.value)}
-
+                            placeholder="What's your business name?"
                             required
                         />
                         {errors.business_name && <p className="text-sm text-destructive mt-1">{errors.business_name}</p>}

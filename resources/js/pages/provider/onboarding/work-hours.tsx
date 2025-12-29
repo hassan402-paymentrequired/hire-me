@@ -123,10 +123,10 @@ export default function WorkHours() {
 
     return (
         <OnboardingLayout title="Work Hours" steps={STEPS} currentStepId="hours">
-            <div className="space-y-6">
+            <div className="space-y-4">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">Set your availability</h2>
-                    <p className="text-muted-foreground mt-2">
+                    <p className="text-muted-foreground ">
                         Configure your working hours for each day of the week. You can customize this later.
                     </p>
                 </div>
