@@ -16,6 +16,12 @@ class BusinessProfile extends Model
         'slug',
         'description',
         'logo_path',
+        'address',
+        'city',
+        'state',
+        'zip_code',
+        'phone',
+        'category',
         'settings',
     ];
 

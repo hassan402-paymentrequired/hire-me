@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import GuestLayout from '@/layouts/guest-layout';
+import client from '@/routes/client';
 
 interface Booking {
     id: string;
@@ -17,8 +18,8 @@ interface Booking {
     avatar?: string;
 }
 
-export default function BookingList({ bookings }: { bookings: Booking[] }) {
-    
+export default function BookingList({ bookings = [] }: { bookings?: Booking[] }) {
+
     // Helper to get color based on status
     const getStatusVariant = (status: string) => {
         switch (status.toLowerCase()) {
@@ -47,10 +48,10 @@ export default function BookingList({ bookings }: { bookings: Booking[] }) {
                 {bookings.length > 0 ? (
                     <div className="space-y-4">
                         {bookings.map((booking) => (
-                            <Link key={booking.id} href={route('client.bookings.show', booking.id)}>
+                            <Link key={booking.id} href={client.bookings.show(booking.id)}>
                                 <Card className="hover:shadow-md transition-shadow cursor-pointer">
                                     <CardContent className="p-6 flex items-center justify-between">
-                                        
+
                                         {/* Left Side: Service & Provider Info */}
                                         <div className="flex items-center gap-4">
                                             <Avatar className="h-12 w-12 border">

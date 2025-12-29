@@ -17,25 +17,25 @@ class AppointmentController extends Controller
     {
         $user = auth()->user();
 
-        $appointments = Appointment::where('client_id', $user->id)
+        $bookings = Appointment::where('client_id', $user->id)
             ->with(['provider', 'service'])
             ->orderBy('start_time', 'desc')
             ->get()
             ->map(function ($appointment) {
                 return [
                     'id' => $appointment->id,
-                    'providerName' => $appointment->provider->name,
-                    'serviceName' => $appointment->service->name,
-                    'startTime' => $appointment->start_time->format('M d, Y g:i A'),
-                    'endTime' => $appointment->end_time->format('g:i A'),
+                    'provider_name' => $appointment->provider->name,
+                    'service_name' => $appointment->service->name,
+                    'start_time' => $appointment->start_time->format('M d, Y g:i A'),
+                    'end_time' => $appointment->end_time->format('g:i A'),
                     'status' => $appointment->status,
-                    'price' => $appointment->price,
+                    'price' => '$' . number_format($appointment->price, 2),
                     'notes' => $appointment->notes,
                 ];
             });
 
         return Inertia::render('client/bookings/index', [
-            'appointments' => $appointments,
+            'bookings' => $bookings,
         ]);
     }
 
@@ -48,20 +48,16 @@ class AppointmentController extends Controller
         return Inertia::render('client/bookings/show', [
             'appointment' => [
                 'id' => $appointment->id,
-                'provider' => [
-                    'name' => $appointment->provider->name,
-                    'businessName' => $appointment->provider->businessProfile->business_name,
-                ],
-                'service' => [
-                    'name' => $appointment->service->name,
-                    'duration' => $appointment->service->duration_minutes,
-                ],
-                'startTime' => $appointment->start_time->format('M d, Y g:i A'),
-                'endTime' => $appointment->end_time->format('g:i A'),
+                'provider_name' => $appointment->provider->name,
+                'business_name' => $appointment->provider->businessProfile->business_name,
+                'service_name' => $appointment->service->name,
+                'duration' => $appointment->service->duration_minutes,
+                'start_time' => $appointment->start_time->format('M d, Y g:i A'),
+                'end_time' => $appointment->end_time->format('g:i A'),
                 'status' => $appointment->status,
-                'price' => $appointment->price,
+                'price' => '$' . number_format($appointment->price, 2),
                 'notes' => $appointment->notes,
-                'createdAt' => $appointment->created_at->format('M d, Y'),
+                'created_at' => $appointment->created_at->format('M d, Y'),
             ],
         ]);
     }

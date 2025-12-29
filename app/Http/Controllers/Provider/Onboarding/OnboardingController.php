@@ -46,18 +46,39 @@ class OnboardingController extends Controller
         $request->validate([
             'business_name' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'logo' => 'nullable|image|max:2048', // 2MB max
+            'address' => 'nullable|string|max:500',
+            'city' => 'nullable|string|max:100',
+            'state' => 'nullable|string|max:100',
+            'zip_code' => 'nullable|string|max:20',
+            'phone' => 'nullable|string|max:20',
+            'category' => 'nullable|string|max:50',
         ]);
 
         $user = auth()->user();
 
-        BusinessProfile::create([
+        $data = [
             'user_id' => $user->id,
             'business_name' => $request->business_name,
             'slug' => Str::slug($request->business_name) . '-' . Str::random(6),
             'description' => $request->description,
-        ]);
+            'address' => $request->address,
+            'city' => $request->city,
+            'state' => $request->state,
+            'zip_code' => $request->zip_code,
+            'phone' => $request->phone,
+            'category' => $request->category,
+        ];
 
-        return redirect()->route('onboarding.index'); // Will auto-redirect to next step
+        // Handle logo upload
+        if ($request->hasFile('logo')) {
+            $logoPath = $request->file('logo')->store('business-logos', 'public');
+            $data['logo_path'] = $logoPath;
+        }
+
+        BusinessProfile::create($data);
+
+        return redirect()->route('onboarding.index');
     }
 
     public function workHours()
