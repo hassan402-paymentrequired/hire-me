@@ -87,18 +87,21 @@ const BookingCard = ({ booking }: { booking: Booking }) => {
 
                                 {/* Status indicator dot */}
                                 {booking.status === 'confirmed' && (
-                                    <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 border-2 border-background rounded-full" />
+                                    <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 border-2 border-background rounded" />
                                 )}
                                 {booking.status === 'pending' && (
-                                    <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-yellow-500 border-2 border-background rounded-full animate-pulse" />
+                                    <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-yellow-500 border-2 border-background rounded animate-pulse" />
                                 )}
                             </div>
 
                             {/* Service name and "with" text */}
                             <div className="flex-1 min-w-0 pt-1">
-                                <h3 className="font-bold text-xl leading-tight mb-1.5 truncate group-hover:text-primary transition-colors">
+                                <h3 className="font-bold text-xl leading-tight  truncate group-hover:text-primary transition-colors">
                                     {booking.service?.name || 'Service'}
                                 </h3>
+                                <p className="text-sm text-muted-foreground">
+                                    <span className="text-xs">with {booking.provider.name}</span>
+                                </p>
                             </div>
                         </div>
 

@@ -34,19 +34,7 @@ class AppointmentController extends Controller
             ->findOrFail($id);
 
         return Inertia::render('client/bookings/show', [
-            'appointment' => [
-                'id' => $appointment->id,
-                'provider_name' => $appointment->provider->name,
-                'business_name' => $appointment->provider->businessProfile->business_name,
-                'service_name' => $appointment->service->name,
-                'duration' => $appointment->service->duration_minutes,
-                'start_time' => $appointment->start_time->format('M d, Y g:i A'),
-                'end_time' => $appointment->end_time->format('g:i A'),
-                'status' => $appointment->status,
-                'price' => '$' . number_format($appointment->price, 2),
-                'notes' => $appointment->notes,
-                'created_at' => $appointment->created_at->format('M d, Y'),
-            ],
+            'booking' => $appointment,
         ]);
     }
 

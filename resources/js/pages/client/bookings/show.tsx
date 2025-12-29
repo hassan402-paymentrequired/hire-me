@@ -1,115 +1,420 @@
 import GuestLayout from '@/layouts/guest-layout';
 import { Head, Link, router } from '@inertiajs/react';
-import { Calendar, Clock, ArrowLeft, MoreHorizontal, MapPinCheck } from 'lucide-react';
+import {
+    Calendar,
+    Clock,
+    ArrowLeft,
+    MapPin,
+    Timer,
+    Phone,
+    Mail,
+    Building2,
+    FileText,
+    AlertCircle,
+    CheckCircle2,
+    XCircle
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import client from '@/routes/client';
+import { formatDate, formatTime, formatPrice, formatStatus, getStatusVariant } from '@/lib/utils';
 
-interface AppointmentDetail {
+interface BusinessProfile {
     id: string;
-    provider_name: string;
     business_name: string;
-    service_name: string;
-    duration: number;
-    start_time: string;
-    end_time: string;
-    status: string;
-    price: string;
-    notes?: string;
-    created_at: string;
+    description: string;
+    category: string;
+    phone: string;
+    address: string;
+    city: string;
+    state: string;
+    zip_code: string;
+    logo_path: string | null;
+    slug: string;
 }
 
-export default function BookingDetails({ appointment }: { appointment: AppointmentDetail }) {
+interface Provider {
+    id: string;
+    name: string;
+    email: string;
+    business_profile: BusinessProfile;
+}
+
+interface Service {
+    id: string;
+    name: string;
+    description: string;
+    duration_minutes: number;
+    price: string;
+    status: string;
+}
+
+interface Booking {
+    id: string;
+    provider_id: string;
+    service_id: string;
+    client_id: string;
+    client_name: string | null;
+    client_email: string | null;
+    start_time: string;
+    end_time: string;
+    status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
+    price: string;
+    notes: string | null;
+    provider: Provider;
+    service: Service;
+    created_at: string;
+    updated_at: string;
+}
+
+export default function BookingDetails({ booking }: { booking: Booking }) {
+    const handleCancelBooking = () => {
+        if (confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
+            router.post(
+                `/bookings/${booking.id}/cancel`,
+                {},
+                {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        // Optionally show a success toast
+                    },
+                }
+            );
+        }
+    };
+
+    const handleRescheduleBooking = () => {
+        router.visit(`/bookings/${booking.id}/reschedule`);
+    };
+
+    const getStatusIcon = (status: string) => {
+        switch (status.toLowerCase()) {
+            case 'confirmed':
+                return <CheckCircle2 className="w-5 h-5" />;
+            case 'cancelled':
+                return <XCircle className="w-5 h-5" />;
+            case 'pending':
+                return <AlertCircle className="w-5 h-5" />;
+            default:
+                return <CheckCircle2 className="w-5 h-5" />;
+        }
+    };
+
     return (
         <GuestLayout>
-            <Head title={`Booking - ${appointment.service_name}`} />
+            <Head title={`Booking - ${booking.service?.name}`} />
 
-            <div className="max-w-3xl mx-auto py-10 px-4">
-                <div className="mb-6">
-                    <Link href={client.bookings.index()} className="text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-1 mb-4">
+            <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+                {/* Header */}
+                <div className="mb-8">
+                    <Link
+                        href={client.bookings.index()}
+                        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mb-4"
+                    >
                         <ArrowLeft className="w-4 h-4" />
                         Back to Bookings
                     </Link>
-                    <div className="flex items-center justify-between">
-                        <h1 className="text-2xl font-bold tracking-tight">Booking Details</h1>
-                        <Badge variant={appointment.status === 'Confirmed' ? 'default' : 'secondary'} className="text-sm px-3 py-1">
-                            {appointment.status}
+
+                    <div className="flex items-start justify-between gap-4">
+                        <div>
+                            <h1 className="text-3xl font-bold tracking-tight mb-2">Booking Details</h1>
+                            <p className="text-muted-foreground">
+                                Booking ID: <span className="font-mono text-sm">{booking.id}</span>
+                            </p>
+                        </div>
+                        <Badge
+                            variant={getStatusVariant(booking.status)}
+                            className="text-sm px-4 py-1.5 flex items-center gap-2"
+                        >
+                            {getStatusIcon(booking.status)}
+                            {formatStatus(booking.status)}
                         </Badge>
                     </div>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-3">
-                    {/* Main Details Card */}
-                    <div className="md:col-span-2 space-y-6">
+                <div className="grid gap-6 lg:grid-cols-3">
+                    {/* Main Content - Left Side */}
+                    <div className="lg:col-span-2 space-y-6">
+                        {/* Service & Provider Card */}
+                        <Card>
+                            <CardHeader className="pb-4">
+                                <div className="flex items-start justify-between gap-4">
+                                    <div className="flex items-start gap-4 flex-1">
+                                        {/* Business Logo */}
+                                        <Avatar className="h-16 w-16 border-2">
+                                            <AvatarImage
+                                                src={booking.provider?.business_profile?.logo_path
+                                                    ? `/storage/${booking.provider.business_profile.logo_path}`
+                                                    : undefined
+                                                }
+                                                alt={booking.provider?.business_profile?.business_name}
+                                            />
+                                            <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">
+                                                {booking.provider?.business_profile?.business_name
+                                                    ? booking.provider.business_profile.business_name
+                                                        .split(' ')
+                                                        .map(n => n[0])
+                                                        .slice(0, 2)
+                                                        .join('')
+                                                        .toUpperCase()
+                                                    : 'BN'
+                                                }
+                                            </AvatarFallback>
+                                        </Avatar>
+
+                                        <div className="flex-1 min-w-0">
+                                            <h2 className="text-2xl font-bold mb-1 truncate">
+                                                {booking.service?.name}
+                                            </h2>
+                                            <p className="text-muted-foreground mb-2">
+                                                with <span className="font-semibold text-foreground">
+                                                    {booking.provider?.name}
+                                                </span>
+                                            </p>
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                <Building2 className="w-4 h-4" />
+                                                <span className="font-medium">
+                                                    {booking.provider?.business_profile?.business_name}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Price */}
+                                    <div className="text-right flex-shrink-0">
+                                        <div className="text-3xl font-bold">
+                                            {formatPrice(booking.price)}
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mt-1">Total Price</p>
+                                    </div>
+                                </div>
+                            </CardHeader>
+
+                            {booking.service?.description && (
+                                <>
+                                    <Separator />
+                                    <CardContent className="pt-4">
+                                        <div className="flex gap-2">
+                                            <FileText className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                                            <div>
+                                                <p className="text-sm font-medium mb-1">Service Description</p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {booking.service.description}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </>
+                            )}
+                        </Card>
+
+                        {/* Appointment Details Card */}
                         <Card>
                             <CardHeader>
-                                <CardTitle className="flex justify-between items-start">
-                                    <span>{appointment.service_name}</span>
-                                    <span className="text-xl font-bold">{appointment.price}</span>
-                                </CardTitle>
-                                <p className="text-muted-foreground text-sm font-medium">Provided by {appointment.provider_name}</p>
+                                <CardTitle>Appointment Details</CardTitle>
                             </CardHeader>
                             <Separator />
-                            <CardContent className="space-y-6 pt-6">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Date</div>
-                                        <div className="flex items-center gap-2 font-medium">
-                                            <Calendar className="w-4 h-4 text-primary" />
-                                            {appointment.start_time}
+                            <CardContent className="pt-6">
+                                <div className="grid sm:grid-cols-2 gap-6">
+                                    {/* Date */}
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                                            <Calendar className="w-4 h-4" />
+                                            <span className="font-medium">Date</span>
                                         </div>
+                                        <p className="text-lg font-semibold">
+                                            {formatDate(booking.start_time)}
+                                        </p>
                                     </div>
-                                    <div>
-                                        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Time</div>
-                                        <div className="flex items-center gap-2 font-medium">
-                                            <Clock className="w-4 h-4 text-primary" />
-                                            {appointment.end_time}
+
+                                    {/* Time */}
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                                            <Clock className="w-4 h-4" />
+                                            <span className="font-medium">Time</span>
                                         </div>
+                                        <p className="text-lg font-semibold">
+                                            {formatTime(booking.start_time)} - {formatTime(booking.end_time)}
+                                        </p>
+                                    </div>
+
+                                    {/* Duration */}
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                                            <Timer className="w-4 h-4" />
+                                            <span className="font-medium">Duration</span>
+                                        </div>
+                                        <p className="text-lg font-semibold">
+                                            {booking.service?.duration_minutes} minutes
+                                        </p>
+                                    </div>
+
+                                    {/* Location */}
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                                            <MapPin className="w-4 h-4" />
+                                            <span className="font-medium">Location</span>
+                                        </div>
+                                        <p className="text-sm font-medium leading-relaxed">
+                                            {booking.provider?.business_profile?.address}
+                                        </p>
                                     </div>
                                 </div>
+                            </CardContent>
+                        </Card>
 
-                                <div>
-                                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Duration</div>
-                                    <div className="font-medium">{appointment.duration}</div>
-                                </div>
+                        {/* Notes Card (if exists) */}
+                        {booking.notes && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-base">Special Notes</CardTitle>
+                                </CardHeader>
+                                <Separator />
+                                <CardContent className="pt-4">
+                                    <div className="bg-muted/50 rounded-lg p-4 border border-muted">
+                                        <p className="text-sm leading-relaxed">{booking.notes}</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
 
-                                {appointment.notes && (
-                                    <div className="bg-muted/30 p-4 rounded-md">
-                                        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Notes</div>
-                                        <p className="text-sm">{appointment.notes}</p>
+                    {/* Sidebar - Right Side */}
+                    <div className="lg:col-span-1 space-y-6">
+                        {/* Actions Card */}
+                        {booking.status !== 'cancelled' && booking.status !== 'completed' && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-base">Manage Booking</CardTitle>
+                                </CardHeader>
+                                <Separator />
+                                <CardContent className="pt-4 space-y-3">
+                                    {booking.status === 'confirmed' && (
+                                        <Button
+                                            variant="outline"
+                                            className="w-full justify-start"
+                                            onClick={handleRescheduleBooking}
+                                        >
+                                            <Calendar className="w-4 h-4 mr-2" />
+                                            Reschedule Appointment
+                                        </Button>
+                                    )}
+
+                                    <Button
+                                        variant="outline"
+                                        className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        onClick={handleCancelBooking}
+                                    >
+                                        <XCircle className="w-4 h-4 mr-2" />
+                                        Cancel Booking
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Contact Information Card */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base">Contact Information</CardTitle>
+                            </CardHeader>
+                            <Separator />
+                            <CardContent className="pt-4 space-y-4">
+                                {/* Phone */}
+                                {booking.provider?.business_profile?.phone && (
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                                            <Phone className="w-4 h-4" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs text-muted-foreground mb-1">Phone</p>
+
+                                           <a href={`tel:${booking.provider.business_profile.phone}`}
+                                            className="text-sm font-medium hover:text-primary transition-colors"
+                                            >
+                                            {booking.provider.business_profile.phone}
+                                        </a>
+                                    </div>
+                                    </div>
+                                    )}
+
+                                {/* Email */}
+                                {booking.provider?.email && (
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                                            <Mail className="w-4 h-4" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs text-muted-foreground mb-1">Email</p>
+
+                                          <a href={`mailto:${booking.provider.email}`}
+                                            className="text-sm font-medium hover:text-primary transition-colors break-all"
+                                            >
+                                            {booking.provider.email}
+                                        </a>
+                                    </div>
+                                    </div>
+                                    )}
+
+                                {/* Address */}
+                                {booking.provider?.business_profile?.address && (
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                                            <MapPin className="w-4 h-4" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs text-muted-foreground mb-1">Address</p>
+                                            <p className="text-sm font-medium leading-relaxed">
+                                                {booking.provider.business_profile.address}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                {booking.provider.business_profile.city}, {booking.provider.business_profile.state} {booking.provider.business_profile.zip_code}
+                                            </p>
+                                        </div>
                                     </div>
                                 )}
                             </CardContent>
                         </Card>
-                    </div>
 
-                    {/* Sidebar / Actions */}
-                    <div className="md:col-span-1 space-y-4">
+                        {/* Business Info Card */}
+                        {booking.provider?.business_profile?.description && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-base">About {booking.provider.business_profile.business_name}</CardTitle>
+                                </CardHeader>
+                                <Separator />
+                                <CardContent className="pt-4">
+                                    <p className="text-sm text-muted-foreground leading-relaxed">
+                                        {booking.provider.business_profile.description}
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Booking Info Card */}
                         <Card>
-                             <CardHeader>
-                                <CardTitle className="text-base">Help & Support</CardTitle>
-                             </CardHeader>
-                             <CardContent className="space-y-2">
-                                {appointment.status !== 'cancelled' && (
-                                    <Button 
-                                        variant="outline" 
-                                        className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        onClick={() => {
-                                            if (confirm('Are you sure you want to cancel this appointment?')) {
-                                                router.post(`/appointments/${appointment.id}/cancel`, {}, {
-                                                    onSuccess: () => {
-                                                        alert('Appointment cancelled successfully');
-                                                    }
-                                                });
-                                            }
-                                        }}
-                                    >
-                                        Cancel Booking
-                                    </Button>
-                                )}
-                             </CardContent>
+                            <CardHeader>
+                                <CardTitle className="text-base">Booking Information</CardTitle>
+                            </CardHeader>
+                            <Separator />
+                            <CardContent className="pt-4 space-y-3 text-sm">
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Booked on</span>
+                                    <span className="font-medium">{formatDate(booking.created_at)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Last updated</span>
+                                    <span className="font-medium">{formatDate(booking.updated_at)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Category</span>
+                                    <span className="font-medium capitalize">
+                                        {booking.provider?.business_profile?.category}
+                                    </span>
+                                </div>
+                            </CardContent>
                         </Card>
                     </div>
                 </div>
