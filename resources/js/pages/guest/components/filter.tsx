@@ -81,10 +81,10 @@ export const HeaderFilter = ({ categories, filters }: HeaderFilterProps) => {
             </div>
 
             {/* Category Pills */}
-            <div className="scrollbar-hide mt-4 flex space-x-2 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div className="scrollbar-hide mt-3 flex space-x-2 overflow-x-auto  [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 <button
                     onClick={() => handleCategoryChange('For You')}
-                    className={`rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all ${
+                    className={`rounded px-4 py-2 text-sm font-medium whitespace-nowrap transition-all ${
                         selectedCategory === 'For You'
                             ? 'bg-foreground text-background shadow-md'
                             : 'bg-muted/30 text-muted-foreground hover:bg-muted/80 hover:text-foreground'
@@ -96,7 +96,7 @@ export const HeaderFilter = ({ categories, filters }: HeaderFilterProps) => {
                     <button
                         key={category}
                         onClick={() => handleCategoryChange(category)}
-                        className={`rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all ${
+                        className={`rounded px-4 py-2 text-xs font-medium whitespace-nowrap transition-all ${
                             selectedCategory === category
                                 ? 'bg-foreground text-background shadow-md'
                                 : 'bg-muted/30 text-muted-foreground hover:bg-muted/80 hover:text-foreground'

@@ -116,22 +116,22 @@ export default function Welcome({ providers, categories, filters }: Props) {
                     <HeaderFilter categories={categories} filters={filters} />
 
                     {/* Location Prompt */}
-                    {!filters.lat && (
-                        <div className="bg-muted/50 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 border border-border/50">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-primary/10 rounded-full">
-                                    <MapPin className="h-5 w-5 text-primary" />
-                                </div>
-                                <div>
-                                    <h4 className="font-medium text-sm">Find services near you</h4>
-                                    <p className="text-xs text-muted-foreground">Enable location access to discover businesses in your area.</p>
-                                </div>
-                            </div>
-                            <Button size="sm" onClick={requestLocation}>
-                                Use current location
-                            </Button>
-                        </div>
-                    )}
+                    {/*{!filters.lat && (*/}
+                    {/*    <div className="bg-muted/50 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 border border-border/50">*/}
+                    {/*        <div className="flex items-center gap-3">*/}
+                    {/*            <div className="p-2 bg-primary/10 rounded-full">*/}
+                    {/*                <MapPin className="h-5 w-5 text-primary" />*/}
+                    {/*            </div>*/}
+                    {/*            <div>*/}
+                    {/*                <h4 className="font-medium text-sm">Find services near you</h4>*/}
+                    {/*                <p className="text-xs text-muted-foreground">Enable location access to discover businesses in your area.</p>*/}
+                    {/*            </div>*/}
+                    {/*        </div>*/}
+                    {/*        <Button size="sm" onClick={requestLocation}>*/}
+                    {/*            Use current location*/}
+                    {/*        </Button>*/}
+                    {/*    </div>*/}
+                    {/*)}*/}
 
                     {/* Main Content Grid */}
                     <div className="px-1 py-4">

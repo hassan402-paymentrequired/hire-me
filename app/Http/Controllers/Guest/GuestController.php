@@ -43,17 +43,16 @@ class GuestController extends Controller
             });
         }
 
-        // Location based sorting/filtering
         if ($request->lat && $request->lng) {
             $lat = (float) $request->lat;
             $lng = (float) $request->lng;
 
             $query->leftJoin('business_profiles', 'users.id', '=', 'business_profiles.user_id')
                 ->select('users.*', DB::raw("
-                    (6371 * acos(cos(radians($lat)) 
-                    * cos(radians(business_profiles.latitude)) 
-                    * cos(radians(business_profiles.longitude) - radians($lng)) 
-                    + sin(radians($lat)) 
+                    (6371 * acos(cos(radians($lat))
+                    * cos(radians(business_profiles.latitude))
+                    * cos(radians(business_profiles.longitude) - radians($lng))
+                    + sin(radians($lat))
                     * sin(radians(business_profiles.latitude)))) AS distance
                 "))
                 ->orderBy('distance');
