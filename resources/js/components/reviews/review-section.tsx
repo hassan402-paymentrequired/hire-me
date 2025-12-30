@@ -40,7 +40,7 @@ export const ReviewSection = ({ reviews, canReview, pendingAppointmentId }: Revi
     return (
         <div className="space-y-8">
             <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-foreground">Reviews ({reviews.length})</h2>
+                <h2 className="text-xl font-bold text-foreground">Reviews ({reviews.length})</h2>
                 {canReview && !isWriting && (
                     <Button onClick={() => setIsWriting(true)}>Write a Review</Button>
                 )}

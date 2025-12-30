@@ -150,7 +150,7 @@ class AppointmentController extends Controller
                     ];
                 }
 
-                $current->addMinutes(30); // 30-minute intervals
+                $current->addMinutes(30);
             }
         }
 

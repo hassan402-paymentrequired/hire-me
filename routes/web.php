@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [\App\Http\Controllers\Guest\GuestController::class, 'welcome'])->name('home');
 Route::get('/provider/{slug}', [\App\Http\Controllers\Client\MarketplaceController::class, 'show'])->name('provider.show');
+Route::get('/appointments/slots', [\App\Http\Controllers\Client\AppointmentController::class, 'availableSlots'])->name('slots');
 
 Route::middleware(['auth', 'verified'])->group(function () {
 
@@ -56,7 +57,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('appointments')->name('appointments.')->group(function () {
         Route::post('/', [\App\Http\Controllers\Client\AppointmentController::class, 'store'])->name('store');
         Route::post('/{id}/cancel', [\App\Http\Controllers\Client\AppointmentController::class, 'cancel'])->name('cancel');
-        Route::get('/slots', [\App\Http\Controllers\Client\AppointmentController::class, 'availableSlots'])->name('slots');
     });
 
     // Client Bookings

@@ -98,6 +98,8 @@ class MarketplaceController extends Controller
                 'rating' => $reviews->avg('rating') ?: 0,
                 'reviews_count' => $reviews->count(),
                 'can_review' => $canReview,
+                'latitude' => $businessProfile->latitude,
+                'longitude' => $businessProfile->longitude,
                 'pending_appointment_id' => $canReview ? Appointment::where('client_id', auth()->id())
                     ->where('provider_id', $provider->id)
                     ->where('status', 'completed')

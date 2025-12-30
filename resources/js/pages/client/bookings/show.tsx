@@ -110,13 +110,6 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
             <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
                 {/* Header */}
                 <div className="mb-8">
-                    <Link
-                        href={client.bookings.index()}
-                        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mb-4"
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                        Back to Bookings
-                    </Link>
 
                     <div className="flex items-start justify-between gap-4">
                         <div>

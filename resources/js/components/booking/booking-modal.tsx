@@ -100,15 +100,16 @@ export function BookingModal({ isOpen, onClose, provider, service }: BookingModa
     }));
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[500px]">
+        <Dialog open={isOpen} onOpenChange={onClose} >
+            <DialogContent className="sm:max-w-[500px] max-h-[90dvh] overflow-auto p-4 flex flex-col"
+                           style={{ maxHeight: '90dvh' }}>
                 <DialogHeader>
                     <DialogTitle>Book {service.name}</DialogTitle>
                 </DialogHeader>
 
                 <div className="space-y-6">
                     {/* Service Summary */}
-                    <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                    <div className="bg-muted/50 rounded p-4 space-y-2">
                         <div className="flex items-center justify-between">
                             <span className="text-sm text-muted-foreground">Provider</span>
                             <span className="font-medium">{provider.businessName}</span>
@@ -127,8 +128,7 @@ export function BookingModal({ isOpen, onClose, provider, service }: BookingModa
                         <div className="flex items-center justify-between">
                             <span className="text-sm text-muted-foreground">Price</span>
                             <span className="font-semibold flex items-center gap-1">
-                                <DollarSign className="size-4" />
-                                {service.price}
+                                ₦{service.price}
                             </span>
                         </div>
                     </div>

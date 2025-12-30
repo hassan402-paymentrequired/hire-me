@@ -43,4 +43,9 @@ class Appointment extends Model
     {
         return $this->belongsTo(Service::class);
     }
+
+    public function review()
+    {
+        return $this->hasMany(Review::class);
+    }
 }
