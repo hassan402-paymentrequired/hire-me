@@ -98,25 +98,28 @@ export const ReviewSection = ({ reviews, canReview, pendingAppointmentId }: Revi
                     <p className="text-muted-foreground">No reviews yet. Be the first to review!</p>
                 </div>
             ) : (
-                <div className="grid gap-6">
+                <div className="grid sm:grid-cols-2 gap-6">
                     {reviews.map((review) => (
-                        <div key={review.id} className="bg-card border rounded-lg p-6 space-y-3">
+                        <div key={review.id} className="bg-card border rounded p-3 space-y-3">
                             <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
                                 <div className="font-bold text-foreground">{review.client_name}</div>
+                                    <div className="flex gap-0.5">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <Star
+                                                key={star}
+                                                className={`size-4 ${
+                                                    star <= review.rating
+                                                        ? 'fill-yellow-400 text-yellow-400'
+                                                        : 'text-muted-foreground'
+                                                }`}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
                                 <div className="text-xs text-muted-foreground">{review.created_at}</div>
                             </div>
-                            <div className="flex gap-0.5">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                    <Star
-                                        key={star}
-                                        className={`size-4 ${
-                                            star <= review.rating
-                                                ? 'fill-yellow-400 text-yellow-400'
-                                                : 'text-muted-foreground'
-                                        }`}
-                                    />
-                                ))}
-                            </div>
+
                             <p className="text-foreground leading-relaxed">{review.comment}</p>
                         </div>
                     ))}

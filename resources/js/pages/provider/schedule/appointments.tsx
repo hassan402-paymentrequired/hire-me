@@ -43,19 +43,25 @@ import business from '@/routes/business';
 
 // ... other imports
 
+interface Appointment {
+    id: number;
+    client: string;
+    email?: string;
+    service: string;
+    description?: string;
+    amount: string;
+    date: string;
+    time: string;
+    end_time: string;
+    status: string;
+    notes?: string;
+    avatar: string;
+    paymentStatus: string;
+}
+
 interface AppointmentListProps {
     appointments: {
-        data: Array<{
-            id: number;
-            client: string;
-            service: string;
-            amount: string;
-            date: string;
-            time: string;
-            status: string;
-            avatar: string;
-            paymentStatus: string;
-        }>;
+        data: Appointment[];
         links: any[];
     };
     filters: {
@@ -237,8 +243,7 @@ export default function Appointments({ appointments, filters }: AppointmentListP
                                                     </td>
                                                     <td className="p-4 align-middle text-right">
                                                         <AppointmentActions
-                                                            appointmentId={apt.id}
-                                                            status={apt.status.toLowerCase()}
+                                                            appointment={apt}
                                                         />
                                                     </td>
                                                 </tr>

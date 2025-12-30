@@ -57,6 +57,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('appointments')->name('appointments.')->group(function () {
         Route::post('/', [\App\Http\Controllers\Client\AppointmentController::class, 'store'])->name('store');
         Route::post('/{id}/cancel', [\App\Http\Controllers\Client\AppointmentController::class, 'cancel'])->name('cancel');
+        Route::post('/{id}/complete', [\App\Http\Controllers\Client\AppointmentController::class, 'complete'])->name('complete');
     });
 
     // Client Bookings

@@ -53,11 +53,15 @@ class ScheduleController extends Controller
             return [
                 'id' => $apt->id,
                 'client' => $apt->client_name ?? 'Guest',
+                'email' => $apt->client_email,
                 'service' => $apt->service->name,
+                'description' => $apt->service->description,
                 'amount' => '₦' . number_format($apt->price),
                 'date' => $apt->start_time->format('M d, Y'),
                 'time' => $apt->start_time->format('h:i A'),
+                'end_time' => $apt->end_time->format('h:i A'),
                 'status' => ucfirst($apt->status),
+                'notes' => $apt->notes,
                 'avatar' => 'https://ui-avatars.com/api/?name=' . urlencode($apt->client_name ?? 'User'),
                 'paymentStatus' => 'Paid', // Mock for now
             ];

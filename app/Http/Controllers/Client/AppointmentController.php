@@ -30,7 +30,7 @@ class AppointmentController extends Controller
     public function show($id)
     {
         $appointment = Appointment::where('client_id', auth()->id())
-            ->with(['provider.businessProfile', 'service'])
+            ->with(['provider.businessProfile', 'service', 'review'])
             ->findOrFail($id);
 
         return Inertia::render('client/bookings/show', [
@@ -75,6 +75,17 @@ class AppointmentController extends Controller
         $appointment->update(['status' => 'cancelled']);
 
         return back()->with('success', 'Appointment cancelled successfully.');
+    }
+
+    public function complete($id)
+    {
+        $appointment = Appointment::where('client_id', auth()->id())
+            ->where('status', 'confirmed')
+            ->findOrFail($id);
+
+        $appointment->update(['status' => 'completed']);
+
+        return back()->with('success', 'Appointment marked as completed. You can now leave a review!');
     }
 
     public function availableSlots(Request $request)

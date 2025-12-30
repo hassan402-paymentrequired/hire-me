@@ -21,6 +21,7 @@ import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import client from '@/routes/client';
 import { formatDate, formatTime, formatPrice, formatStatus, getStatusVariant } from '@/lib/utils';
+import { ReviewSection } from '@/components/reviews/review-section';
 
 interface BusinessProfile {
     id: string;
@@ -61,20 +62,21 @@ interface Booking {
     client_email: string | null;
     start_time: string;
     end_time: string;
-    status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
+    status: string;
     price: string;
     notes: string | null;
     provider: Provider;
     service: Service;
     created_at: string;
     updated_at: string;
+    review?: any[];
 }
 
 export default function BookingDetails({ booking }: { booking: Booking }) {
     const handleCancelBooking = () => {
         if (confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
             router.post(
-                `/bookings/${booking.id}/cancel`,
+                `/appointments/${booking.id}/cancel`,
                 {},
                 {
                     preserveScroll: true,
@@ -286,24 +288,51 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
                                 <Separator />
                                 <CardContent className="pt-4 space-y-3">
                                     {booking.status === 'confirmed' && (
+                                        <>
+                                            <Button
+                                                variant="default"
+                                                className="w-full justify-start bg-green-600 hover:bg-green-700"
+                                                onClick={() => {
+                                                    if (confirm('Mark this appointment as completed?')) {
+                                                        router.post(`/appointments/${booking.id}/complete`);
+                                                    }
+                                                }}
+                                            >
+                                                <CheckCircle2 className="w-4 h-4 mr-2" />
+                                                Mark as Completed
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                className="w-full justify-start"
+                                                onClick={handleRescheduleBooking}
+                                            >
+                                                <Calendar className="w-4 h-4 mr-2" />
+                                                Reschedule Appointment
+                                            </Button>
+                                        </>
+                                    )}
+
+                                    {booking.status !== 'cancelled' && booking.status !== 'completed' && (
                                         <Button
                                             variant="outline"
-                                            className="w-full justify-start"
-                                            onClick={handleRescheduleBooking}
+                                            className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+                                            onClick={handleCancelBooking}
                                         >
-                                            <Calendar className="w-4 h-4 mr-2" />
-                                            Reschedule Appointment
+                                            <XCircle className="w-4 h-4 mr-2" />
+                                            Cancel Booking
                                         </Button>
                                     )}
 
-                                    <Button
-                                        variant="outline"
-                                        className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
-                                        onClick={handleCancelBooking}
-                                    >
-                                        <XCircle className="w-4 h-4 mr-2" />
-                                        Cancel Booking
-                                    </Button>
+                                    {booking.status === 'completed' && (
+                                        <div className="pt-4 border-t">
+                                            <p className="text-sm font-medium mb-4 text-center">How was your experience?</p>
+                                            <ReviewSection
+                                                reviews={booking.review || []}
+                                                canReview={!booking.review || booking.review.length === 0}
+                                                pendingAppointmentId={booking.id}
+                                            />
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
                         )}
@@ -371,20 +400,7 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
                             </CardContent>
                         </Card>
 
-                        {/* Business Info Card */}
-                        {booking.provider?.business_profile?.description && (
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-base">About {booking.provider.business_profile.business_name}</CardTitle>
-                                </CardHeader>
-                                <Separator />
-                                <CardContent className="pt-4">
-                                    <p className="text-sm text-muted-foreground leading-relaxed">
-                                        {booking.provider.business_profile.description}
-                                    </p>
-                                </CardContent>
-                            </Card>
-                        )}
+
 
                         {/* Booking Info Card */}
                         <Card>
