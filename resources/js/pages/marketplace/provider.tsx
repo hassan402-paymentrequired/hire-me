@@ -6,11 +6,14 @@ import {
     Star,
     Navigation,
     ImageIcon,
+    ChevronLeft,
+    ChevronRight,
 } from 'lucide-react';
 import { ReviewSection } from '@/components/reviews/review-section';
 import { router, Link } from '@inertiajs/react';
 import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
 import { Badge } from '@/components/ui/badge';
+import ReviewDrawal from '@/pages/marketplace/components/review-drawal';
 
 interface Service {
     id: string;
@@ -80,10 +83,11 @@ function deg2rad(deg: number) {
 }
 
 export default function ProviderProfile({ provider, services, workHours, reviews }: Props) {
-    const [selectedService, setSelectedService] = useState<Service | null>(null);
-    const [showBookingModal, setShowBookingModal] = useState(false);
     const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [distance, setDistance] = useState<number | null>(null);
+
+    const [currentSlide, setCurrentSlide] = useState(0);
+
 
     const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
@@ -109,10 +113,6 @@ export default function ProviderProfile({ provider, services, workHours, reviews
         }
     }, [provider.latitude, provider.longitude]);
 
-    const handleBookService = (service: Service) => {
-        router.get(`/provider/${provider.slug}/book`, { service: service.id });
-    };
-
 
     const logo = provider.images.find(img => img.isLogo) || provider.images[0];
     const otherImages = provider.images.filter(img => img !== logo);
@@ -122,14 +122,86 @@ export default function ProviderProfile({ provider, services, workHours, reviews
         window.open(url, '_blank');
     };
 
+    const allImages = logo ? [logo, ...otherImages] : otherImages;
+
+    const nextSlide = () => {
+        setCurrentSlide((prev) => (prev + 1) % allImages.length);
+    };
+
+    const prevSlide = () => {
+        setCurrentSlide((prev) => (prev - 1 + allImages.length) % allImages.length);
+    };
+
     return (
         <GuestLayout>
             <div className="p-4 max-w-6xl mx-auto space-y-4">
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 auto-rows-[200px]">
+                <div className="md:hidden relative">
+                    {allImages.length > 0 ? (
+                        <>
+                            <div className="relative aspect-[4/3] rounded overflow-hidden border bg-muted">
+                                <img
+                                    src={allImages[currentSlide].url}
+                                    alt={currentSlide === 0 && logo ? 'Business logo' : `Gallery image ${currentSlide}`}
+                                    className="w-full h-full object-cover"
+                                />
+
+                                {/* Navigation Buttons */}
+                                {allImages.length > 1 && (
+                                    <>
+                                        <button
+                                            onClick={prevSlide}
+                                            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors"
+                                            aria-label="Previous image"
+                                        >
+                                            <ChevronLeft className="w-5 h-5" />
+                                        </button>
+                                        <button
+                                            onClick={nextSlide}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors"
+                                            aria-label="Next image"
+                                        >
+                                            <ChevronRight className="w-5 h-5" />
+                                        </button>
+                                    </>
+                                )}
+
+                                {/* Slide indicator */}
+                                {allImages.length > 1 && (
+                                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                                        {allImages.map((_, i) => (
+                                            <button
+                                                key={i}
+                                                onClick={() => setCurrentSlide(i)}
+                                                className={`w-2 h-2 rounded-full transition-all ${
+                                                    i === currentSlide
+                                                        ? 'bg-white w-6'
+                                                        : 'bg-white/50'
+                                                }`}
+                                                aria-label={`Go to slide ${i + 1}`}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    ) : (
+                        <div className="aspect-[4/3] rounded border bg-muted flex items-center justify-center text-muted-foreground">
+                            <div className="text-center">
+                                <ImageIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                <p>No images available</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Desktop Bento Grid */}
+                <div className="hidden md:grid grid-cols-4 gap-4 auto-rows-[200px]">
                     {/* Logo - large, featured position */}
                     {logo && (
-                        <div className="col-span-3 row-span-2 rounded overflow-hidden border bg-muted relative group">
+                        <div className={`rounded overflow-hidden border bg-muted relative group ${
+                            otherImages.length === 1 ? 'col-span-2 row-span-2' : 'col-span-3 row-span-2'
+                        }`}>
                             <img
                                 src={logo.url}
                                 alt="Business logo"
@@ -140,7 +212,23 @@ export default function ProviderProfile({ provider, services, workHours, reviews
 
                     {/* Other images - smart bento layout */}
                     {otherImages.map((img, i) => {
-                        // Make every 3rd image larger for visual interest
+                        // Special handling when there's only 1 other image (2 total)
+                        if (otherImages.length === 1) {
+                            return (
+                                <div
+                                    key={i}
+                                    className="col-span-2 row-span-2 rounded overflow-hidden border bg-muted relative group"
+                                >
+                                    <img
+                                        src={img.url}
+                                        alt={`Gallery image ${i + 1}`}
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                    />
+                                </div>
+                            );
+                        }
+
+                        // Make every 3rd image larger for visual interest when there are more images
                         const isLarge = (i + 1) % 3 === 0;
 
                         return (
@@ -155,14 +243,13 @@ export default function ProviderProfile({ provider, services, workHours, reviews
                                     alt={`Gallery image ${i + 1}`}
                                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                 />
-
                             </div>
                         );
                     })}
 
                     {/* Empty state when no images */}
                     {!logo && otherImages.length === 0 && (
-                        <div className="col-span-2 md:col-span-4 aspect-[21/9] rounded border bg-muted flex items-center justify-center text-muted-foreground">
+                        <div className="col-span-4 aspect-[21/9] rounded border bg-muted flex items-center justify-center text-muted-foreground">
                             <div className="text-center">
                                 <ImageIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
                                 <p>No images available</p>
@@ -179,17 +266,27 @@ export default function ProviderProfile({ provider, services, workHours, reviews
                         <div className="space-y-3">
                             <div>
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                    <h1 className="sm:text-3xl text-2xl font-black tracking-tight text-foreground uppercase italic underline decoration-primary decoration-4 underline-offset-8">
+                                    <h1 className="sm:text-xl text-base font-black tracking-tight text-foreground uppercase italic underline decoration-primary decoration-4 underline-offset-8">
                                         {provider.businessName}
                                     </h1>
-                                    <Link href={`/provider/${provider.slug}/book`}>
+                                    <Link href={`/provider/${provider.slug}/book`} className={"hidden sm:flex"}>
                                         <Button >
                                             Book an Appointment
                                         </Button>
                                     </Link>
+
+                                    <div className={"flex sm:hidden items-center gap-2"}>
+                                        <Link href={`/provider/${provider.slug}/book`} className={" sm:hidden"}>
+                                            <Button >
+                                                Book an Appointment
+                                            </Button>
+                                        </Link>
+<ReviewDrawal reviews={reviews}/>
+
+                                    </div>
                                 </div>
-                                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                                    <p className="text-sm text-muted-foreground font-medium">by {provider.name}</p>
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:mt-0 mt-2">
+                                    <p className="text-sm text-muted-foreground font-medium ">by {provider.name}</p>
                                     <div className="flex items-center gap-1.5  px-3 py-1.5 text-sm font-bold">
                                         <Star className="size-4 fill-yellow-500 text-yellow-500" />
                                         <span>{provider.rating.toFixed(1)}</span>
@@ -246,56 +343,12 @@ export default function ProviderProfile({ provider, services, workHours, reviews
                             )}
                         </section>
 
-                        {/* Reviews Section */}
-                        <section>
-                            <ReviewSection
-                                reviews={reviews}
-                                canReview={provider.can_review}
-                                pendingAppointmentId={provider.pending_appointment_id}
-                            />
-                        </section>
+
                     </div>
 
                     {/* Right Column: Sidebar (Location, Map, Hours) */}
                     <aside className="space-y-6">
-                        {/* Location Card */}
-                        <div className="bg-card rounded border p-3 space-y-4">
-                            <div className="space-y-4">
-                                <div className="flex items-start gap-3">
-                                    <div className="flex-1">
-                                        <h4 className="font-semibold text-sm">Location</h4>
-                                        <p className="text-sm text-muted-foreground">{provider.address}</p>
-                                        {distance !== null && (
-                                            <p className="text-xs font-bold text-primary mt-1">
-                                                {distance.toFixed(1)} km from your location
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                                <Button onClick={getDirections} variant="outline" className="w-full">
-                                    <Navigation className="size-4" />
-                                    Get Directions
-                                </Button>
-                            </div>
 
-                            {googleMapsApiKey && provider.latitude && provider.longitude && (
-                                <div className="rounded border overflow-hidden  h-64">
-                                    <LoadScript googleMapsApiKey={googleMapsApiKey} libraries={libraries}>
-                                        <GoogleMap
-                                            mapContainerStyle={{ width: '100%', height: '100%' }}
-                                            center={{ lat: provider.latitude, lng: provider.longitude }}
-                                            zoom={15}
-                                            options={{
-                                                disableDefaultUI: true,
-                                                zoomControl: true,
-                                            }}
-                                        >
-                                            <Marker position={{ lat: provider.latitude, lng: provider.longitude }} />
-                                        </GoogleMap>
-                                    </LoadScript>
-                                </div>
-                            )}
-                        </div>
 
                         {/* Working Hours Card */}
                         <div className="bg-card rounded border p-4 sticky top-6">

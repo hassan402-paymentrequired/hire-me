@@ -63,6 +63,11 @@ const mainNavItems: NavItem[] = [
                 title: 'Analytics',
                 href: business.analytics(),
                 icon: ChartArea,
+            },
+            {
+                title: 'Services',
+                href: business.services(),
+                icon: LayoutGrid,
             }
         ]
     }

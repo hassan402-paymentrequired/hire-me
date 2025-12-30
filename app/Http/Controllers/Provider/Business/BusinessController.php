@@ -50,10 +50,8 @@ class BusinessController extends Controller
         }
 
         return Inertia::render('provider/business/hours', [
-            'initialSchedule' => $schedule, // If null, frontend uses default
+            'initialSchedule' => $schedule,
             'initialHolidays' => $settings['holidays'] ?? [],
-            // 'initialSettings' removed as requested
-            'services' => $user->services()->select('id', 'name', 'description', 'duration_minutes', 'price')->get(),
         ]);
     }
 
@@ -95,8 +93,8 @@ class BusinessController extends Controller
                         }
                     } else {
                         // Open but no shifts defined? Treat as closed or ignoring?
-                        // Let's create a placeholder or just ignore. 
-                        // If isOpen is true but no shifts, it's ambiguous. 
+                        // Let's create a placeholder or just ignore.
+                        // If isOpen is true but no shifts, it's ambiguous.
                         // Frontend usually provides at least one shift if isOpen.
                     }
                 }
@@ -106,16 +104,65 @@ class BusinessController extends Controller
         return back();
     }
 
+    public function services()
+    {
+        $user = auth()->user();
+        $services = $user->services()->with('category')->get();
+        $categories = \App\Models\Category::orderBy('name')->get();
+
+        // 1. Total Services with "change" (mocked change for now)
+        $totalServices = $services->count();
+
+        // 2. Active Categories listed
+        $activeCategoriesCount = $services->whereNotNull('category_id')->pluck('category_id')->unique()->count();
+
+        // 3. Most Booked Service
+        $mostBookedService = $user->appointmentsAsProvider()
+            ->join('services', 'appointments.service_id', '=', 'services.id')
+            ->selectRaw('services.name, COUNT(appointments.id) as bookings')
+            ->whereIn('appointments.status', ['confirmed', 'completed'])
+            ->groupBy('services.id', 'services.name')
+            ->orderByDesc('bookings')
+            ->first();
+
+        return Inertia::render('provider/business/services/index', [
+            'services' => $services->map(fn($s) => [
+                'id' => $s->id,
+                'name' => $s->name,
+                'description' => $s->description,
+                'price' => $s->price,
+                'duration_minutes' => $s->duration_minutes,
+                'category_id' => $s->category_id,
+                'category_name' => $s->category?->name,
+                'status' => $s->status,
+            ]),
+            'categories' => $categories,
+            'stats' => [
+                'totalServices' => [
+                    'value' => $totalServices,
+                    'change' => '+12%', // Mock
+                ],
+                'activeCategories' => $activeCategoriesCount,
+                'mostBooked' => [
+                    'name' => $mostBookedService?->name ?? 'N/A',
+                    'change' => '+5%', // Mock
+                ]
+            ]
+        ]);
+    }
+
     public function storeService(\Illuminate\Http\Request $request)
     {
         $request->validate([
-            'name' => 'required',
-            'price' => 'required',
-            'duration_minutes' => 'required',
+            'name' => 'required|string|max:255',
+            'price' => 'required|numeric|min:0',
+            'duration_minutes' => 'required|integer|min:1',
+            'category_id' => 'nullable|exists:categories,id',
         ]);
 
         \App\Models\Service::create([
             'provider_id' => auth()->id(),
+            'category_id' => $request->category_id,
             'name' => $request->name,
             'description' => $request->description,
             'price' => $request->price,
@@ -123,14 +170,30 @@ class BusinessController extends Controller
             'status' => 'active',
         ]);
 
-        return back();
+        return back()->with('success', 'Service created successfully.');
     }
 
     public function updateService(\Illuminate\Http\Request $request, $id)
     {
         $service = \App\Models\Service::where('provider_id', auth()->id())->findOrFail($id);
 
-        $service->update($request->only(['name', 'description', 'price', 'duration_minutes']));
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'price' => 'required|numeric|min:0',
+            'duration_minutes' => 'required|integer|min:1',
+            'category_id' => 'nullable|exists:categories,id',
+        ]);
+
+        $service->update($request->only(['name', 'description', 'price', 'duration_minutes', 'category_id']));
+
+        return back()->with('success', 'Service updated successfully.');
+    }
+
+    public function toggleServiceStatus($id)
+    {
+        $service = \App\Models\Service::where('provider_id', auth()->id())->findOrFail($id);
+        $service->status = $service->status === 'active' ? 'inactive' : 'active';
+        $service->save();
 
         return back();
     }

@@ -143,9 +143,8 @@ const BusinessHoursConfig = ({ initialSchedule, initialHolidays, services = [] }
 
 
     const tabs = [
-        { id: 'schedule', label: 'Weekly Schedule', icon: Clock }, // Using Lucide component directly in loop requires component type
-        { id: 'services', label: 'Services', icon: Scissors },
-        { id: 'holidays', label: 'Holidays', icon: ArchiveIcon }, // Using ArchiveIcon as placeholder for generic Lucide icon if needed, or specific
+        { id: 'schedule', label: 'Weekly Schedule', icon: Clock },
+        { id: 'holidays', label: 'Holidays', icon: ArchiveIcon },
     ];
 
     return (
@@ -161,7 +160,7 @@ const BusinessHoursConfig = ({ initialSchedule, initialHolidays, services = [] }
                                     Business Configuration
                                 </h2>
                                 <p className="text-sm text-muted-foreground">
-                                    Manage your working hours, services, and settings.
+                                    Manage your working hours, holidays, and settings.
                                 </p>
                             </div>
                         </div>
@@ -249,10 +248,6 @@ const BusinessHoursConfig = ({ initialSchedule, initialHolidays, services = [] }
                                 <SchedulePreview schedule={schedule} />
                             </div>
                         </div>
-                    )}
-
-                    {activeTab === 'services' && (
-                        <ServicesManager services={services} />
                     )}
 
                     {activeTab === 'holidays' && (
