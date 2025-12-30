@@ -66,7 +66,8 @@ interface Booking {
     price: string;
     notes: string | null;
     provider: Provider;
-    service: Service;
+    service: Service; // Keep for fallback or just ignore
+    services: Service[];
     created_at: string;
     updated_at: string;
     review?: any[];
@@ -107,7 +108,7 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
 
     return (
         <GuestLayout>
-            <Head title={`Booking - ${booking.service?.name}`} />
+            <Head title={`Booking - ${booking.services?.length > 0 ? booking.services[0].name : (booking.service?.name || 'Appointment')}`} />
 
             <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
                 {/* Header */}
@@ -162,7 +163,9 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
 
                                         <div className="flex-1 min-w-0">
                                             <h2 className="text-2xl font-bold mb-1 truncate">
-                                                {booking.service?.name}
+                                                {booking.services?.length > 0 
+                                                    ? booking.services.map(s => s.name).join(' + ')
+                                                    : booking.service?.name}
                                             </h2>
                                             <p className="text-muted-foreground mb-2">
                                                 with <span className="font-semibold text-foreground">
@@ -188,7 +191,32 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
                                 </div>
                             </CardHeader>
 
-                            {booking.service?.description && (
+                            {booking.services && booking.services.length > 0 && (
+                                <>
+                                    <Separator />
+                                    <CardContent className="pt-4 px-6">
+                                        <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-4">Booked Services</h3>
+                                        <div className="space-y-4">
+                                            {booking.services.map((service) => (
+                                                <div key={service.id} className="flex items-start justify-between gap-4 p-3 rounded-xl bg-muted/30 border border-muted/50">
+                                                    <div className="flex-1">
+                                                        <p className="font-bold text-base capitalize">{service.name}</p>
+                                                        {service.description && (
+                                                            <p className="text-xs text-muted-foreground mt-1">{service.description}</p>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="font-bold">{formatPrice(service.price)}</p>
+                                                        <p className="text-[10px] text-muted-foreground font-bold mt-1 uppercase">{service.duration_minutes} MINS</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </CardContent>
+                                </>
+                            )}
+
+                            {(!booking.services || booking.services.length === 0) && booking.service?.description && (
                                 <>
                                     <Separator />
                                     <CardContent className="pt-4">

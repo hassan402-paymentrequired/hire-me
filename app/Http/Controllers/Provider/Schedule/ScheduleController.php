@@ -41,7 +41,7 @@ class ScheduleController extends Controller
     public function appointments(Request $request)
     {
         $user = auth()->user();
-        $query = $user->appointmentsAsProvider()->with(['service']);
+        $query = $user->appointmentsAsProvider()->with(['services', 'client']);
 
         if ($request->has('search')) {
             $search = $request->input('search');
@@ -57,8 +57,8 @@ class ScheduleController extends Controller
                 'id' => $apt->id,
                 'client' => $apt->client_name ?? 'Guest',
                 'email' => $apt->client_email,
-                'service' => $apt->service->name,
-                'description' => $apt->service->description,
+                'services' => $apt->services,
+                'description' => $apt->services->pluck('name')->join(', '),
                 'amount' => '₦' . number_format($apt->price),
                 'date' => $apt->start_time->format('M d, Y'),
                 'time' => $apt->start_time->format('h:i A'),
@@ -115,18 +115,23 @@ class ScheduleController extends Controller
     public function showAppointment($id)
     {
         $appointment = Appointment::where('provider_id', auth()->id())
-            ->with(['client', 'service'])
+            ->with(['client', 'services'])
             ->findOrFail($id);
 
         return Inertia::render('provider/schedule/appointment-details', [
             'appointment' => [
                 'id' => $appointment->id,
                 'client_name' => $appointment->client->name,
-                'service_name' => $appointment->service->name,
+                'email' => $appointment->client->email,
+                'services' => $appointment->services->map(fn($s) => [
+                    'id' => $s->id,
+                    'name' => $s->name,
+                    'price' => $s->price,
+                ]),
                 'start_time' => $appointment->start_time->format('M d, Y g:i A'),
                 'end_time' => $appointment->end_time->format('g:i A'),
                 'status' => $appointment->status,
-                'price' => '$' . number_format($appointment->price, 2),
+                'price' => '₦' . number_format($appointment->price, 2),
                 'notes' => $appointment->notes,
                 'created_at' => $appointment->created_at->format('M d, Y'),
             ],

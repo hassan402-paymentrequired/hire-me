@@ -43,6 +43,7 @@ export default function Booking({ provider, services }: Props) {
     const [selectedSlot, setSelectedSlot] = useState('');
     const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
     const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
+    const [notes, setNotes] = useState('');
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -116,6 +117,7 @@ export default function Booking({ provider, services }: Props) {
             provider_id: provider.id,
             service_ids: selectedServiceIds,
             start_time: selectedSlot,
+            notes: notes,
         });
     };
 
@@ -242,6 +244,19 @@ export default function Booking({ provider, services }: Props) {
                                             </div>
                                         </div>
                                     ))}
+                                </div>
+                            </div>
+
+                            {/* Booking Notes */}
+                            <div className="space-y-4">
+                                <h3 className="text-xl font-black tracking-tight">Additional Notes</h3>
+                                <div className="bg-card rounded border p-4">
+                                    <textarea
+                                        placeholder="Add any special requests or information for the provider..."
+                                        className="w-full h-32 bg-transparent border-none focus:ring-0 resize-none text-sm"
+                                        value={notes}
+                                        onChange={(e) => setNotes(e.target.value)}
+                                    />
                                 </div>
                             </div>
                         </div>

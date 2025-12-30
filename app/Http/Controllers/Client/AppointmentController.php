@@ -34,7 +34,7 @@ class AppointmentController extends Controller
     public function show($id)
     {
         $appointment = Appointment::where('client_id', auth()->id())
-            ->with(['provider.businessProfile', 'service', 'review'])
+            ->with(['provider.businessProfile', 'services', 'review'])
             ->findOrFail($id);
 
         return Inertia::render('client/bookings/show', [

@@ -1,6 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
@@ -14,10 +13,8 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import {
-    Calendar,
     Filter,
     Search,
-    User,
 } from 'lucide-react';
 import { AppointmentActions } from '@/components/appointments/appointment-actions';
 
@@ -38,7 +35,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 import { router } from '@inertiajs/react';
 import { debounce } from 'lodash';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback,  useState } from 'react';
 import business from '@/routes/business';
 
 // ... other imports
@@ -48,6 +45,7 @@ interface Appointment {
     client: string;
     email?: string;
     service: string;
+    services: { id: string; name: string; price: string }[];
     description?: string;
     amount: string;
     date: string;
@@ -206,7 +204,14 @@ export default function Appointments({ appointments, filters }: AppointmentListP
                                                         </div>
                                                     </td>
                                                     <td className="p-4 align-middle">
-                                                        {apt.service}
+                                                        <div className="flex flex-col gap-1">
+                                                            <span className="font-medium capitalize">{apt.service}</span>
+                                                            {apt.services?.length > 1 && (
+                                                                <span className="text-[10px] text-muted-foreground bg-muted w-fit px-1.5 py-0.5 rounded font-bold uppercase">
+                                                                    +{apt.services.length - 1} More
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                     <td className="p-4 align-middle">
                                                         <div className="flex flex-col">
