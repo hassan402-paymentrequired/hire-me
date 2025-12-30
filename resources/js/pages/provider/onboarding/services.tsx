@@ -5,6 +5,7 @@ import OnboardingLayout from '@/layouts/onboarding-layout';
 import onboarding from '@/routes/onboarding';
 import { useForm } from '@inertiajs/react';
 import { Building2, Clock, Scissors } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 
 const STEPS = [
     {
@@ -35,15 +36,16 @@ export default function Services() {
         name: '',
         price: '',
         duration_minutes: '60',
+        description: ''
     });
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(onboarding.services.store());
+        post(onboarding.services.store().url);
     };
 
     const skip = () => {
-         post(onboarding.skip());
+         post(onboarding.skip().url);
     };
 
     return (
@@ -66,11 +68,22 @@ export default function Services() {
                                 onChange={(e) => setData('name', e.target.value)}
                                 placeholder="e.g. Standard Haircut"
                                 required
-                                className="h-11"
                             />
                             {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
                         </div>
-                        
+
+                        <div className="space-y-2">
+                            <Label htmlFor="description">Service Description</Label>
+                            <Textarea
+                                id="description"
+                                value={data.description}
+                                onChange={(e) => setData('description', e.target.value)}
+                                placeholder="Tell users about your service"
+                                required
+                            />
+                            {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
+                        </div>
+
                         <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <Label htmlFor="price">Price (₦)</Label>
@@ -81,7 +94,6 @@ export default function Services() {
                                     onChange={(e) => setData('price', e.target.value)}
                                     placeholder="5000"
                                     required
-                                    className="h-11"
                                 />
                                 {errors.price && <p className="text-sm text-red-500">{errors.price}</p>}
                             </div>
@@ -94,7 +106,6 @@ export default function Services() {
                                     onChange={(e) => setData('duration_minutes', e.target.value)}
                                     placeholder="60"
                                     required
-                                    className="h-11"
                                 />
                                 {errors.duration_minutes && <p className="text-sm text-red-500">{errors.duration_minutes}</p>}
                             </div>

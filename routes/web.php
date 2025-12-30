@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 
 Route::get('/', [\App\Http\Controllers\Guest\GuestController::class, 'welcome'])->name('home');
+Route::get('/provider/{slug}', [\App\Http\Controllers\Client\MarketplaceController::class, 'show'])->name('provider.show');
 
 Route::middleware(['auth', 'verified'])->group(function () {
 
@@ -49,7 +50,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Marketplace (public)
     Route::get('/marketplace', [\App\Http\Controllers\Client\MarketplaceController::class, 'index'])->name('marketplace.index');
-    Route::get('/provider/{slug}', [\App\Http\Controllers\Client\MarketplaceController::class, 'show'])->name('provider.show');
+
 
     // Client Appointments
     Route::prefix('appointments')->name('appointments.')->group(function () {
@@ -63,6 +64,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/', [\App\Http\Controllers\Client\AppointmentController::class, 'index'])->name('index');
         Route::get('/{id}', [\App\Http\Controllers\Client\AppointmentController::class, 'show'])->name('show');
     });
+
+    // Reviews
+    Route::post('/reviews', [\App\Http\Controllers\Guest\ReviewController::class, 'store'])->name('reviews.store');
 
 });
 

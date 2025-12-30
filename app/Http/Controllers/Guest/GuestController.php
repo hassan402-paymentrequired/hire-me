@@ -19,7 +19,7 @@ class GuestController extends Controller
     {
         $query = User::where('role', 'provider')
             ->with([
-                'businessProfile',
+                'businessProfile.images',
                 'services' => function ($query) {
                     $query->where('status', 'active');
                 }
@@ -65,7 +65,9 @@ class GuestController extends Controller
                 'name' => $provider->name,
                 'businessName' => $provider->businessProfile->business_name,
                 'slug' => $provider->businessProfile->slug,
-                'logo' => $provider->businessProfile->logo_path ? \Illuminate\Support\Facades\Storage::url($provider->businessProfile->logo_path) : null,
+                'logo' => $provider->businessProfile->images->where('is_logo', true)->first()?->image_path
+                    ? \Illuminate\Support\Facades\Storage::url($provider->businessProfile->images->where('is_logo', true)->first()->image_path)
+                    : null,
                 'address' => $provider->businessProfile->address,
                 'servicesCount' => $provider->services->count(),
                 'services' => $provider->services->take(3)->map(fn($s) => $s->name),

@@ -35,7 +35,7 @@ import client from '@/routes/client';
 const mainNavItems = [
     {
         title: 'Marketplace',
-        href: home(),
+        href: home().url,
     },
 ];
 

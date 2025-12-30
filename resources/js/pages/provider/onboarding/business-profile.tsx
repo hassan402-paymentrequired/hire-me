@@ -43,7 +43,8 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
     const { data, setData, post, processing, errors } = useForm({
         business_name: '',
         description: '',
-        logo: null as File | null,
+        images: [] as File[],
+        logo_index: 0,
         address: '',
         city: '',
         state: '',
@@ -55,7 +56,7 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
     });
 
     const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
-    const [logoPreview, setLogoPreview] = useState<string | null>(null);
+    const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
     const onLoad = (autocompleteInstance: google.maps.places.Autocomplete) => {
         setAutocomplete(autocompleteInstance);
@@ -96,16 +97,35 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
         }
     };
 
-    const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setData('logo', file);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setLogoPreview(reader.result as string);
-            };
-            reader.readAsDataURL(file);
+    const handleImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length > 0) {
+            const newImages = [...data.images, ...files].slice(0, 3);
+            setData('images', newImages);
+
+            const newPreviews: string[] = [];
+            newImages.forEach(file => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    newPreviews.push(reader.result as string);
+                    if (newPreviews.length === newImages.length) {
+                        setImagePreviews(newPreviews);
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
         }
+    };
+
+    const removeImage = (index: number) => {
+        const newImages = data.images.filter((_, i) => i !== index);
+        const newPreviews = imagePreviews.filter((_, i) => i !== index);
+        setData({
+            ...data,
+            images: newImages,
+            logo_index: data.logo_index >= newImages.length ? 0 : data.logo_index
+        });
+        setImagePreviews(newPreviews);
     };
 
     const submit = (e: React.FormEvent) => {
@@ -128,38 +148,56 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                 </div>
 
                 <form onSubmit={submit} className="space-y-4">
-                    {/* Logo Upload */}
-                    <div>
-                        <label className="text-sm font-medium leading-none mb-2 block">
-                            Business Logo
-                        </label>
-                        <div className="flex items-center gap-4">
-                            <div className="relative">
-                                {logoPreview ? (
-                                    <img
-                                        src={logoPreview}
-                                        alt="Logo preview"
-                                        className="w-24 h-24 rounded-lg object-cover border-2 border-border"
-                                    />
-                                ) : (
-                                    <div className="w-24 h-24 rounded-lg border-2 border-dashed border-border flex items-center justify-center bg-muted">
-                                        <Upload className="w-8 h-8 text-muted-foreground" />
+                    {/* Images Upload */}
+                    <div className="space-y-4">
+                        <Label className="text-base">Business Images (Min 2, Max 3)</Label>
+                        <p className="text-sm text-muted-foreground">Upload at least 2 images. Select one to use as your business logo.</p>
+                        
+                        <div className="grid grid-cols-3 gap-4">
+                            {imagePreviews.map((preview, index) => (
+                                <div key={index} className={`relative group aspect-square rounded-xl overflow-hidden border-2 transition-all ${data.logo_index === index ? 'border-primary shadow-md' : 'border-border'}`}>
+                                    <img src={preview} alt="" className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                        <Button 
+                                            type="button" 
+                                            variant={data.logo_index === index ? "default" : "secondary"}
+                                            size="sm"
+                                            onClick={() => setData('logo_index', index)}
+                                        >
+                                            {data.logo_index === index ? 'Logo' : 'Set as Logo'}
+                                        </Button>
+                                        <button 
+                                            type="button"
+                                            onClick={() => removeImage(index)}
+                                            className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90"
+                                        >
+                                            <Upload className="w-3 h-3 rotate-45" />
+                                        </button>
                                     </div>
-                                )}
-                            </div>
-                            <div className="flex-1">
-                                <Input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleLogoChange}
-                                    className="block "
-                                />
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    PNG, JPG up to 2MB
-                                </p>
-                            </div>
+                                    {data.logo_index === index && (
+                                        <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">
+                                            LOGO
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                            
+                            {imagePreviews.length < 3 && (
+                                <label className="aspect-square rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors">
+                                    <Upload className="w-8 h-8 text-muted-foreground mb-2" />
+                                    <span className="text-xs font-medium text-muted-foreground">Add Image</span>
+                                    <input 
+                                        type="file" 
+                                        accept="image/*" 
+                                        multiple 
+                                        className="hidden" 
+                                        onChange={handleImagesChange}
+                                    />
+                                </label>
+                            )}
                         </div>
-                        {errors.logo && <p className="text-sm text-destructive mt-1">{errors.logo}</p>}
+                        {errors.images && <p className="text-sm text-destructive mt-1">{errors.images}</p>}
+                        {errors.logo_index && <p className="text-sm text-destructive mt-1">{errors.logo_index}</p>}
                     </div>
 
                     {/* Business Name */}

@@ -35,4 +35,14 @@ class BusinessProfile extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function images()
+    {
+        return $this->hasMany(BusinessImage::class);
+    }
+
+    public function logo()
+    {
+        return $this->hasOne(BusinessImage::class)->where('is_logo', true);
+    }
 }

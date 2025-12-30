@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Client;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\BusinessProfile;
+use App\Models\Appointment;
 use Inertia\Inertia;
 
 class MarketplaceController extends Controller
@@ -67,13 +68,41 @@ class MarketplaceController extends Controller
                 ];
             });
 
+        // Get reviews
+        $reviews = \App\Models\Review::where('provider_id', $provider->id)
+            ->with('client:id,name')
+            ->latest()
+            ->get();
+
+        $canReview = false;
+        if (auth()->check()) {
+            $canReview = Appointment::where('client_id', auth()->id())
+                ->where('provider_id', $provider->id)
+                ->where('status', 'completed')
+                ->whereDoesntHave('review')
+                ->exists();
+        }
+
         return Inertia::render('marketplace/provider', [
             'provider' => [
                 'id' => $provider->id,
                 'name' => $provider->name,
                 'businessName' => $businessProfile->business_name,
+                'address' => $businessProfile->address,
                 'slug' => $businessProfile->slug,
                 'description' => $businessProfile->description,
+                'images' => $businessProfile->images->map(fn($img) => [
+                    'url' => \Illuminate\Support\Facades\Storage::url($img->image_path),
+                    'isLogo' => $img->is_logo
+                ]),
+                'rating' => $reviews->avg('rating') ?: 0,
+                'reviews_count' => $reviews->count(),
+                'can_review' => $canReview,
+                'pending_appointment_id' => $canReview ? Appointment::where('client_id', auth()->id())
+                    ->where('provider_id', $provider->id)
+                    ->where('status', 'completed')
+                    ->whereDoesntHave('review')
+                    ->first()->id : null,
             ],
             'services' => $provider->services->map(fn($service) => [
                 'id' => $service->id,
@@ -83,6 +112,13 @@ class MarketplaceController extends Controller
                 'price' => $service->price,
             ]),
             'workHours' => $workHours,
+            'reviews' => $reviews->map(fn($r) => [
+                'id' => $r->id,
+                'client_name' => $r->client->name,
+                'rating' => $r->rating,
+                'comment' => $r->comment,
+                'created_at' => $r->created_at->diffForHumans(),
+            ]),
         ]);
     }
 }

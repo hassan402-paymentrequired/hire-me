@@ -57,7 +57,9 @@ class OnboardingController extends Controller
         $request->validate([
             'business_name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'logo' => 'nullable|image|max:2048', // 2MB max
+            'images' => 'required|array|min:2|max:3',
+            'images.*' => 'image|max:2048',
+            'logo_index' => 'required|integer|min:0|max:2',
             'address' => 'nullable|string|max:500',
             'city' => 'nullable|string|max:100',
             'state' => 'nullable|string|max:100',
@@ -85,13 +87,18 @@ class OnboardingController extends Controller
             'longitude' => $request->longitude,
         ];
 
-        // Handle logo upload
-        if ($request->hasFile('logo')) {
-            $logoPath = $request->file('logo')->store('business-logos', 'public');
-            $data['logo_path'] = $logoPath;
-        }
+        $businessProfile = BusinessProfile::create($data);
 
-        BusinessProfile::create($data);
+        // Handle images upload
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $index => $image) {
+                $path = $image->store('business-images', 'public');
+                $businessProfile->images()->create([
+                    'image_path' => $path,
+                    'is_logo' => $index == $request->logo_index,
+                ]);
+            }
+        }
 
         return redirect()->route('onboarding.index');
     }
