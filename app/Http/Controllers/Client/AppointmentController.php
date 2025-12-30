@@ -46,29 +46,36 @@ class AppointmentController extends Controller
     {
         $request->validate([
             'provider_id' => 'required|exists:users,id',
-            'service_id' => 'required|exists:services,id',
+            'service_ids' => 'required|array',
+            'service_ids.*' => 'exists:services,id',
             'start_time' => 'required|date',
             'notes' => 'nullable|string|max:500',
         ]);
 
-        $service = Service::findOrFail($request->service_id);
+        $services = Service::whereIn('id', $request->service_ids)->get();
+        $totalPrice = $services->sum('price');
+        $totalDuration = $services->sum('duration_minutes');
+        $maxBuffer = $services->max('buffer_time_minutes') ?? 0;
+
         $startTime = Carbon::parse($request->start_time);
-        $endTime = $startTime->copy()->addMinutes($service->duration_minutes);
+        $endTime = $startTime->copy()->addMinutes($totalDuration);
 
         $appointment = Appointment::create([
             'client_id' => auth()->id(),
             'provider_id' => $request->provider_id,
-            'service_id' => $request->service_id,
+            'service_id' => $request->service_ids[0], // Keep first for compatibility
             'start_time' => $startTime,
             'end_time' => $endTime,
-            'buffer_time_minutes' => $service->buffer_time_minutes,
+            'buffer_time_minutes' => $maxBuffer,
             'status' => 'pending',
-            'price' => $service->price,
+            'price' => $totalPrice,
             'notes' => $request->notes,
         ]);
 
+        $appointment->services()->attach($request->service_ids);
+
         // Send email to provider
-        Mail::to($appointment->provider->email)->send(new NewBookingMail($appointment));
+        Mail::to($appointment->provider->email)->send(new NewBookingMail($appointment->load('services')));
 
         return redirect()->route('client.bookings.show', $appointment->id)
             ->with('success', 'Appointment booked successfully!');
@@ -106,12 +113,16 @@ class AppointmentController extends Controller
     {
         $request->validate([
             'provider_id' => 'required|exists:users,id',
-            'service_id' => 'required|exists:services,id',
+            'service_ids' => 'required|array',
+            'service_ids.*' => 'exists:services,id',
             'date' => 'required|date',
         ]);
 
         $provider = User::findOrFail($request->provider_id);
-        $service = Service::findOrFail($request->service_id);
+        $services = Service::whereIn('id', $request->service_ids)->get();
+        $totalDuration = $services->sum('duration_minutes');
+        $maxBuffer = $services->max('buffer_time_minutes') ?? 0;
+
         $date = Carbon::parse($request->date);
         $dayOfWeek = $date->format('l');
 
@@ -136,11 +147,20 @@ class AppointmentController extends Controller
         foreach ($workHours as $workHour) {
             $start = Carbon::parse($date->format('Y-m-d') . ' ' . $workHour->start_time);
             $end = Carbon::parse($date->format('Y-m-d') . ' ' . $workHour->end_time);
+
+            // If the date is today, ensure start time is at least now
+            if ($date->isToday()) {
+                $now = Carbon::now();
+                if ($start->lt($now)) {
+                    $start = $now->copy()->ceilMinutes(30); // Start from next 30min block
+                }
+            }
+
             $current = $start->copy();
 
-            while ($current->copy()->addMinutes($service->duration_minutes)->lte($end)) {
+            while ($current->copy()->addMinutes($totalDuration)->lte($end)) {
                 $slotStart = $current->copy();
-                $slotEnd = $current->copy()->addMinutes($service->duration_minutes);
+                $slotEnd = $current->copy()->addMinutes($totalDuration);
 
                 // Check if slot is during break
                 $isDuringBreak = false;
@@ -148,10 +168,8 @@ class AppointmentController extends Controller
                     foreach ($workHour->breaks as $break) {
                         $breakStart = Carbon::parse($date->format('Y-m-d') . ' ' . $break['start']);
                         $breakEnd = Carbon::parse($date->format('Y-m-d') . ' ' . $break['end']);
-                        if (
-                            $slotStart->between($breakStart, $breakEnd, false) ||
-                            $slotEnd->between($breakStart, $breakEnd, false)
-                        ) {
+                        // Overlap check
+                        if ($slotStart->lt($breakEnd) && $slotEnd->gt($breakStart)) {
                             $isDuringBreak = true;
                             break;
                         }
@@ -159,17 +177,14 @@ class AppointmentController extends Controller
                 }
 
                 // Check if slot overlaps with existing appointment
-                $isBooked = $existingAppointments->contains(function ($apt) use ($slotStart, $slotEnd, $service) {
+                $isBooked = $existingAppointments->contains(function ($apt) use ($slotStart, $slotEnd, $maxBuffer) {
                     $aptEndWithBuffer = $apt->end_time->copy()->addMinutes($apt->buffer_time_minutes);
-                    $slotEndWithBuffer = $slotEnd->copy()->addMinutes($service->buffer_time_minutes);
+                    $slotEndWithBuffer = $slotEnd->copy()->addMinutes($maxBuffer);
 
                     return $slotStart->lt($aptEndWithBuffer) && $slotEndWithBuffer->gt($apt->start_time);
                 });
 
-                // Only include future slots
-                $isFuture = $slotStart->isFuture();
-
-                if (!$isDuringBreak && !$isBooked && $isFuture) {
+                if (!$isDuringBreak && !$isBooked) {
                     $slots[] = [
                         'start' => $slotStart->format('H:i'),
                         'end' => $slotEnd->format('H:i'),

@@ -123,4 +123,36 @@ class MarketplaceController extends Controller
             ]),
         ]);
     }
+
+    public function booking($slug)
+    {
+        $businessProfile = BusinessProfile::where('slug', $slug)->firstOrFail();
+        $provider = $businessProfile->user()
+            ->with([
+                'services' => function ($query) {
+                    $query->where('status', 'active');
+                }
+            ])
+            ->firstOrFail();
+
+        return Inertia::render('marketplace/booking', [
+            'provider' => [
+                'id' => $provider->id,
+                'name' => $provider->name,
+                'businessName' => $businessProfile->business_name,
+                'address' => $businessProfile->address,
+                'slug' => $businessProfile->slug,
+                'logo' => $businessProfile->images->where('is_logo', true)->first()?->image_path
+                    ? \Illuminate\Support\Facades\Storage::url($businessProfile->images->where('is_logo', true)->first()->image_path)
+                    : null,
+            ],
+            'services' => $provider->services->map(fn($service) => [
+                'id' => $service->id,
+                'name' => $service->name,
+                'description' => $service->description,
+                'duration' => $service->duration_minutes,
+                'price' => $service->price,
+            ]),
+        ]);
+    }
 }

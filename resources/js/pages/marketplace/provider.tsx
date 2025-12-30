@@ -7,8 +7,8 @@ import {
     Navigation,
     ImageIcon,
 } from 'lucide-react';
-import { BookingModal } from '@/components/booking/booking-modal';
 import { ReviewSection } from '@/components/reviews/review-section';
+import { router, Link } from '@inertiajs/react';
 import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
 import { Badge } from '@/components/ui/badge';
 
@@ -110,8 +110,7 @@ export default function ProviderProfile({ provider, services, workHours, reviews
     }, [provider.latitude, provider.longitude]);
 
     const handleBookService = (service: Service) => {
-        setSelectedService(service);
-        setShowBookingModal(true);
+        router.get(`/provider/${provider.slug}/book`, { service: service.id });
     };
 
 
@@ -125,7 +124,7 @@ export default function ProviderProfile({ provider, services, workHours, reviews
 
     return (
         <GuestLayout>
-            <div className="p-4 max-w-7xl mx-auto space-y-4">
+            <div className="p-4 max-w-6xl mx-auto space-y-4">
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 auto-rows-[200px]">
                     {/* Logo - large, featured position */}
@@ -179,9 +178,16 @@ export default function ProviderProfile({ provider, services, workHours, reviews
                         {/* Business Info */}
                         <div className="space-y-3">
                             <div>
-                                <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-                                    {provider.businessName}
-                                </h1>
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                    <h1 className="sm:text-3xl text-2xl font-black tracking-tight text-foreground uppercase italic underline decoration-primary decoration-4 underline-offset-8">
+                                        {provider.businessName}
+                                    </h1>
+                                    <Link href={`/provider/${provider.slug}/book`}>
+                                        <Button >
+                                            Book an Appointment
+                                        </Button>
+                                    </Link>
+                                </div>
                                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                                     <p className="text-sm text-muted-foreground font-medium">by {provider.name}</p>
                                     <div className="flex items-center gap-1.5  px-3 py-1.5 text-sm font-bold">
@@ -207,15 +213,15 @@ export default function ProviderProfile({ provider, services, workHours, reviews
                                     <p className="text-muted-foreground">No services available at the moment.</p>
                                 </div>
                             ) : (
-                                <div className="space-y-4">
+                                <div className="space-y-4 ">
                                     {services.map((service) => (
                                         <div
                                             key={service.id}
                                             className="bg-card rounded border p-3 hover:shadow-md transition-all group"
                                         >
-                                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+                                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                                                 <div className="space-y-2">
-                                                    <h3 className="text-lg font-bold group-hover:text-primary transition-colors">
+                                                    <h3 className="text-lg capitalize font-bold group-hover:text-primary transition-colors">
                                                         {service.name}
                                                     </h3>
                                                     {service.description && (
@@ -233,9 +239,6 @@ export default function ProviderProfile({ provider, services, workHours, reviews
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <Button onClick={() => handleBookService(service)} size="sm">
-                                                    Book Now
-                                                </Button>
                                             </div>
                                         </div>
                                     ))}
@@ -319,15 +322,6 @@ export default function ProviderProfile({ provider, services, workHours, reviews
                 </div>
             </div>
 
-            {/* Booking Modal */}
-            {selectedService && (
-                <BookingModal
-                    isOpen={showBookingModal}
-                    onClose={() => setShowBookingModal(false)}
-                    provider={provider}
-                    service={selectedService}
-                />
-            )}
         </GuestLayout>
     );
 }
