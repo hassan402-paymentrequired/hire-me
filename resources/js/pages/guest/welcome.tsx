@@ -17,6 +17,10 @@ interface Provider {
     services: string[];
     distance?: number;
     logo?: string | null;
+    rating: number;
+    reviewsCount: number;
+    minPrice: number | string;
+    address: string;
 }
 
 interface Props {
@@ -36,6 +40,8 @@ interface Props {
         category?: string;
         lat?: number | string;
         lng?: number | string;
+        sort?: string;
+        min_rating?: number | string;
     };
     canRegister: boolean;
 }

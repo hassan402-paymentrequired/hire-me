@@ -16,11 +16,14 @@ class Appointment extends Model
         'service_id',
         'start_time',
         'end_time',
+        'buffer_time_minutes',
         'status',
         'price',
         'notes',
         'client_name',
         'client_email',
+        'cancelled_by',
+        'cancellation_reason',
     ];
 
     protected $casts = [

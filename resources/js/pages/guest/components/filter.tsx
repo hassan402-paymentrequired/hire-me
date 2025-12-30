@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Filter, Search, MapPin } from 'lucide-react';
+import { Filter, Search, MapPin, Star } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -8,6 +8,7 @@ import {
     SelectItem,
     SelectTrigger,
     SelectValue,
+    SelectGroup,
 } from '@/components/ui/select';
 import { router } from '@inertiajs/react';
 
@@ -23,6 +24,8 @@ interface HeaderFilterProps {
         search?: string;
         lat?: number | string;
         lng?: number | string;
+        sort?: string;
+        min_rating?: number | string;
     };
     onLocationRequest?: () => void;
     hasLocation?: boolean;
@@ -58,6 +61,22 @@ export const HeaderFilter = ({ categories, filters, onLocationRequest, hasLocati
         );
     };
 
+    const handleSortChange = (sort: string) => {
+        router.get(
+            '/',
+            { ...filters, sort: sort },
+            { preserveState: true, replace: true, preserveScroll: true }
+        );
+    };
+
+    const handleRatingChange = (rating: string) => {
+        router.get(
+            '/',
+            { ...filters, min_rating: rating === 'all' ? undefined : rating },
+            { preserveState: true, replace: true, preserveScroll: true }
+        );
+    };
+
     return (
         <div className="sticky top-0 z-10 -mx-4 -mt-4 border-b bg-background/95 px-4 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:-mx-6 sm:px-6 md:-mx-8 md:px-8">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -73,37 +92,45 @@ export const HeaderFilter = ({ categories, filters, onLocationRequest, hasLocati
                                 onChange={(e) => handleSearch(e.target.value)}
                             />
 
-                                <button
-                                    className="absolute top-1/2 right-2 -translate-y-1/2 p-2 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
-                                    onClick={onLocationRequest}
-                                    title="Use current location"
-                                >
-                                    <MapPin className="h-4 w-4" />
-                                </button>
-
-
+                            <button
+                                className="absolute top-1/2 right-2 -translate-y-1/2 p-2 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
+                                onClick={onLocationRequest}
+                                title="Use current location"
+                            >
+                                <MapPin className="h-4 w-4" />
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                {/* Right: Tabs & Sort */}
+                {/* Right: Filters & Sort */}
                 <div className="flex items-center space-x-2 overflow-x-auto pb-2 md:pb-0">
-                    <div className="hidden sm:flex items-center rounded-full bg-muted/50 p-1">
-                        {['Businesses'].map(
-                            (tab) => (
-                                <button
-                                    key={tab}
-                                    className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                                        tab === 'Services'
-                                            ? 'bg-background text-foreground shadow-sm'
-                                            : 'text-muted-foreground hover:text-foreground'
-                                    }`}
-                                >
-                                    {tab}
-                                </button>
-                            ),
-                        )}
-                    </div>
+                    <Select value={filters?.min_rating?.toString() || 'all'} onValueChange={handleRatingChange}>
+                        <SelectTrigger className="w-[130px] rounded-full bg-muted/50 border-none h-9">
+                            <SelectValue placeholder="Rating" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Any Rating</SelectItem>
+                            <SelectItem value="4">4+ Stars</SelectItem>
+                            <SelectItem value="3">3+ Stars</SelectItem>
+                            <SelectItem value="2">2+ Stars</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    <Select value={filters?.sort || 'recommended'} onValueChange={handleSortChange}>
+                        <SelectTrigger className="w-[160px] rounded-full bg-muted/50 border-none h-9">
+                            <SelectValue placeholder="Sort by" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectGroup>
+                                <SelectItem value="recommended">Recommended</SelectItem>
+                                <SelectItem value="price_asc">Price: Low to High</SelectItem>
+                                <SelectItem value="price_desc">Price: High to Low</SelectItem>
+                                <SelectItem value="rating_desc">Top Rated</SelectItem>
+                                {hasLocation && <SelectItem value="distance_asc">Distance</SelectItem>}
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
                 </div>
             </div>
 
@@ -136,4 +163,3 @@ export const HeaderFilter = ({ categories, filters, onLocationRequest, hasLocati
         </div>
     );
 }
-

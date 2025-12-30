@@ -7,6 +7,9 @@ use App\Models\Appointment;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\AppointmentConfirmedMail;
+use App\Mail\AppointmentCancelledMail;
 
 class ScheduleController extends Controller
 {
@@ -81,6 +84,9 @@ class ScheduleController extends Controller
 
         $appointment->update(['status' => 'confirmed']);
 
+        // Send email to client
+        Mail::to($appointment->client->email)->send(new AppointmentConfirmedMail($appointment));
+
         return back()->with('success', 'Appointment confirmed successfully.');
     }
 
@@ -99,6 +105,9 @@ class ScheduleController extends Controller
             'cancellation_reason' => $request->reason,
             'cancelled_by' => 'provider',
         ]);
+
+        // Send email to client
+        Mail::to($appointment->client->email)->send(new AppointmentCancelledMail($appointment, 'provider'));
 
         return back()->with('success', 'Appointment cancelled successfully.');
     }

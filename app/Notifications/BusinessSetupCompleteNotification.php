@@ -7,7 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class WelcomeNotification extends Notification implements ShouldQueue
+class BusinessSetupCompleteNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -34,10 +34,9 @@ class WelcomeNotification extends Notification implements ShouldQueue
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $mail = $notifiable->role === 'provider' ? 'emails.provider.welcome-notification' : 'emails.client.welcome-notification';
         return (new MailMessage)
-            ->subject('Welcome to '. config('app.name'))
-            ->markdown($mail, ['user' => $notifiable]);
+            ->subject('Business Setup Complete - ' . config('app.name'))
+            ->markdown('emails.provider.business-setup-complete', ['user' => $notifiable]);
     }
 
     /**

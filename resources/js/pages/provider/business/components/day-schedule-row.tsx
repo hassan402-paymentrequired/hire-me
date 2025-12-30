@@ -39,6 +39,7 @@ const DayScheduleRow = ({
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-smooth focus-ring ${schedule?.isOpen ? 'bg-primary' : 'bg-muted-foreground/30'}`}
                         role="switch"
                         aria-checked={schedule?.isOpen}
+                        type={"button"}
                     >
                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-smooth ${schedule?.isOpen ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
@@ -114,6 +115,7 @@ const DayScheduleRow = ({
                                         size="sm"
                                         onClick={() => onRemoveBreak(day, shiftIndex, breakIndex)}
                                         className="md:self-end"
+                                        type={"button"}
                                     >
                                         <Trash2 className="size-4" />
                                     </Button>

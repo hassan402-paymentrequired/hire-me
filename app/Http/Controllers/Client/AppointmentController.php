@@ -10,6 +10,10 @@ use App\Models\WorkHour;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\NewBookingMail;
+use App\Mail\AppointmentCancelledMail;
+use App\Mail\AppointmentCompletedMail;
 
 class AppointmentController extends Controller
 {
@@ -57,10 +61,14 @@ class AppointmentController extends Controller
             'service_id' => $request->service_id,
             'start_time' => $startTime,
             'end_time' => $endTime,
+            'buffer_time_minutes' => $service->buffer_time_minutes,
             'status' => 'pending',
             'price' => $service->price,
             'notes' => $request->notes,
         ]);
+
+        // Send email to provider
+        Mail::to($appointment->provider->email)->send(new NewBookingMail($appointment));
 
         return redirect()->route('client.bookings.show', $appointment->id)
             ->with('success', 'Appointment booked successfully!');
@@ -72,7 +80,10 @@ class AppointmentController extends Controller
             ->where('status', '!=', 'cancelled')
             ->findOrFail($id);
 
-        $appointment->update(['status' => 'cancelled']);
+        $appointment->update(['status' => 'cancelled', 'cancelled_by' => 'client']);
+
+        // Send email to provider
+        Mail::to($appointment->provider->email)->send(new AppointmentCancelledMail($appointment, 'client'));
 
         return back()->with('success', 'Appointment cancelled successfully.');
     }
@@ -84,6 +95,9 @@ class AppointmentController extends Controller
             ->findOrFail($id);
 
         $appointment->update(['status' => 'completed']);
+
+        // Send email to client
+        Mail::to($appointment->client->email)->send(new AppointmentCompletedMail($appointment));
 
         return back()->with('success', 'Appointment marked as completed. You can now leave a review!');
     }
@@ -145,8 +159,11 @@ class AppointmentController extends Controller
                 }
 
                 // Check if slot overlaps with existing appointment
-                $isBooked = $existingAppointments->contains(function ($apt) use ($slotStart, $slotEnd) {
-                    return $slotStart->lt($apt->end_time) && $slotEnd->gt($apt->start_time);
+                $isBooked = $existingAppointments->contains(function ($apt) use ($slotStart, $slotEnd, $service) {
+                    $aptEndWithBuffer = $apt->end_time->copy()->addMinutes($apt->buffer_time_minutes);
+                    $slotEndWithBuffer = $slotEnd->copy()->addMinutes($service->buffer_time_minutes);
+
+                    return $slotStart->lt($aptEndWithBuffer) && $slotEndWithBuffer->gt($apt->start_time);
                 });
 
                 // Only include future slots

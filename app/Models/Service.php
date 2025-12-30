@@ -15,6 +15,7 @@ class Service extends Model
         'name',
         'description',
         'duration_minutes',
+        'buffer_time_minutes',
         'price',
         'status',
     ];

@@ -7,7 +7,10 @@ use App\Models\BusinessProfile;
 use App\Models\Service;
 use App\Models\WorkHour;
 use App\Models\Category;
+use App\Notifications\BusinessSetupCompleteNotification;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -58,7 +61,7 @@ class OnboardingController extends Controller
             'business_name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'images' => 'required|array|min:2|max:3',
-            'images.*' => 'image|max:2048',
+            'images.*' => 'image|max:5120',
             'logo_index' => 'required|integer|min:0|max:2',
             'address' => 'nullable|string|max:500',
             'city' => 'nullable|string|max:100',
@@ -70,37 +73,45 @@ class OnboardingController extends Controller
             'longitude' => 'nullable|numeric',
         ]);
 
-        $user = auth()->user();
+        try {
+            DB::beginTransaction();
+            $user = auth()->user();
 
-        $data = [
-            'user_id' => $user->id,
-            'business_name' => $request->business_name,
-            'slug' => Str::slug($request->business_name) . '-' . Str::random(6),
-            'description' => $request->description,
-            'address' => $request->address,
-            'city' => $request->city,
-            'state' => $request->state,
-            'zip_code' => $request->zip_code,
-            'phone' => $request->phone,
-            'category' => $request->category,
-            'latitude' => $request->latitude,
-            'longitude' => $request->longitude,
-        ];
+            $data = [
+                'user_id' => $user->id,
+                'business_name' => $request->business_name,
+                'slug' => Str::slug($request->business_name) . '-' . Str::random(6),
+                'description' => $request->description,
+                'address' => $request->address,
+                'city' => $request->city,
+                'state' => $request->state,
+                'zip_code' => $request->zip_code,
+                'phone' => $request->phone,
+                'category' => $request->category,
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
+            ];
 
-        $businessProfile = BusinessProfile::create($data);
+            $businessProfile = BusinessProfile::create($data);
 
-        // Handle images upload
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $index => $image) {
-                $path = $image->store('business-images', 'public');
-                $businessProfile->images()->create([
-                    'image_path' => $path,
-                    'is_logo' => $index == $request->logo_index,
-                ]);
+            // Handle images upload
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $index => $image) {
+                    $path = $image->store('business-images', 'public');
+                    $businessProfile->images()->create([
+                        'image_path' => $path,
+                        'is_logo' => $index == $request->logo_index,
+                    ]);
+                }
             }
-        }
 
-        return redirect()->route('onboarding.index');
+            DB::commit();
+            return redirect()->route('onboarding.index');
+        }catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Error creating business profile: {$e->getMessage()}");
+            return back()->withErrors(['business_name' => 'Error creating business profile. Please try again.']);
+        }
     }
 
     public function workHours()
@@ -172,7 +183,14 @@ class OnboardingController extends Controller
             'status' => 'active',
         ]);
 
-        return redirect()->route('business.dashboard');
+        $user->notify(new BusinessSetupCompleteNotification());
+
+        return redirect()->route('onboarding.success');
+    }
+
+    public function success()
+    {
+        return Inertia::render('provider/onboarding/success');
     }
 
     public function skip()
