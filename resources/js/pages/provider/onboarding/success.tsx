@@ -8,7 +8,7 @@ export default function Success() {
     return (
         <div className="min-h-screen bg-background">
             <Head title="Success - Business Setup Complete" />
-            
+
             <div className="max-w-3xl mx-auto px-6 py-20 text-center">
                 <div className="mb-8 flex justify-center">
                     <div className="size-20 bg-green-100 rounded-full flex items-center justify-center">
@@ -16,26 +16,26 @@ export default function Success() {
                     </div>
                 </div>
 
-                <h1 className="text-4xl font-bold tracking-tight mb-4">
+                <h1 className="text-2xl font-bold tracking-tight mb-1">
                     Your Business is Ready!
                 </h1>
-                
-                <p className="text-xl text-muted-foreground mb-12">
-                    Congratulations! You've successfully set up your business profile. 
+
+                <p className="text-sm text-muted-foreground mb-3">
+                    Congratulations! You've successfully set up your business profile.
                     Clients can now find and book your services on our marketplace.
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-                    <div className="bg-muted/50 p-6 rounded-2xl border text-left">
-                        <LayoutDashboard className="size-8 text-primary mb-4" />
+                    <div className="bg-muted/50 p-6 rounded border text-left">
+                        {/*<LayoutDashboard className="size-8 text-primary mb-4" />*/}
                         <h3 className="font-bold text-lg mb-2">Manage Appointments</h3>
                         <p className="text-sm text-muted-foreground">
                             View your schedule, confirm bookings, and manage your availability from your dashboard.
                         </p>
                     </div>
 
-                    <div className="bg-muted/50 p-6 rounded-2xl border text-left">
-                        <Store className="size-8 text-primary mb-4" />
+                    <div className="bg-muted/50 p-6 rounded border text-left">
+                        {/*<Store className="size-8 text-primary mb-4" />*/}
                         <h3 className="font-bold text-lg mb-2">Public Profile</h3>
                         <p className="text-sm text-muted-foreground">
                             Your business is now live on the marketplace. Share your profile link with clients.

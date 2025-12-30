@@ -3,9 +3,10 @@ import OnboardingLayout from '@/layouts/onboarding-layout';
 import onboarding from '@/routes/onboarding';
 import { useForm } from '@inertiajs/react';
 import { Building2, Clock, Scissors, AlertCircle } from 'lucide-react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import DayScheduleRow from '@/pages/provider/business/components/day-schedule-row';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Spinner } from '@/components/ui/spinner';
 
 const STEPS = [
     {
@@ -158,7 +159,7 @@ export default function WorkHours() {
 
                     <div className="flex items-center gap-4 pt-4">
                         <Button type="submit" size="lg" disabled={processing} className="w-full md:w-auto">
-                            Continue
+                            {processing && <Spinner />} Continue
                         </Button>
                         <Button type="button" variant="ghost" onClick={skip}>
                             Skip for now

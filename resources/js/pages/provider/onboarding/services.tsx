@@ -6,6 +6,7 @@ import onboarding from '@/routes/onboarding';
 import { useForm } from '@inertiajs/react';
 import { Building2, Clock, Scissors } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
+import { Spinner } from '@/components/ui/spinner';
 
 const STEPS = [
     {
@@ -49,12 +50,19 @@ export default function Services() {
     };
 
     return (
-        <OnboardingLayout title="Add Services" steps={STEPS} currentStepId="services">
-             <div className="space-y-6">
+        <OnboardingLayout
+            title="Add Services"
+            steps={STEPS}
+            currentStepId="services"
+        >
+            <div className="space-y-6">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Add your first service</h2>
-                    <p className="text-muted-foreground mt-2">
-                        Create a service so clients can start booking you immediately.
+                    <h2 className="text-2xl font-bold tracking-tight">
+                        Add your first service
+                    </h2>
+                    <p className="mt-2 text-muted-foreground">
+                        Create a service so clients can start booking you
+                        immediately.
                     </p>
                 </div>
 
@@ -65,23 +73,37 @@ export default function Services() {
                             <Input
                                 id="name"
                                 value={data.name}
-                                onChange={(e) => setData('name', e.target.value)}
+                                onChange={(e) =>
+                                    setData('name', e.target.value)
+                                }
                                 placeholder="e.g. Standard Haircut"
                                 required
                             />
-                            {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
+                            {errors.name && (
+                                <p className="text-sm text-red-500">
+                                    {errors.name}
+                                </p>
+                            )}
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="description">Service Description</Label>
+                            <Label htmlFor="description">
+                                Service Description
+                            </Label>
                             <Textarea
                                 id="description"
                                 value={data.description}
-                                onChange={(e) => setData('description', e.target.value)}
-                                placeholder="Tell users about your service"
+                                onChange={(e) =>
+                                    setData('description', e.target.value)
+                                }
+                                placeholder={'Tell users about ' + data.name}
                                 required
                             />
-                            {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
+                            {errors.name && (
+                                <p className="text-sm text-red-500">
+                                    {errors.name}
+                                </p>
+                            )}
                         </div>
 
                         <div className="grid grid-cols-2 gap-6">
@@ -91,30 +113,52 @@ export default function Services() {
                                     id="price"
                                     type="number"
                                     value={data.price}
-                                    onChange={(e) => setData('price', e.target.value)}
-                                    placeholder="5000"
+                                    onChange={(e) =>
+                                        setData('price', e.target.value)
+                                    }
+                                    placeholder={'How much is ' + data.name}
                                     required
                                 />
-                                {errors.price && <p className="text-sm text-red-500">{errors.price}</p>}
+                                {errors.price && (
+                                    <p className="text-sm text-red-500">
+                                        {errors.price}
+                                    </p>
+                                )}
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="duration">Duration (mins)</Label>
+                                <Label htmlFor="duration">
+                                    Duration (mins)
+                                </Label>
                                 <Input
                                     id="duration"
                                     type="number"
                                     value={data.duration_minutes}
-                                    onChange={(e) => setData('duration_minutes', e.target.value)}
-                                    placeholder="60"
+                                    onChange={(e) =>
+                                        setData(
+                                            'duration_minutes',
+                                            e.target.value,
+                                        )
+                                    }
+                                    placeholder={'how many minutes does it take to complete ' + data.name }
                                     required
                                 />
-                                {errors.duration_minutes && <p className="text-sm text-red-500">{errors.duration_minutes}</p>}
+                                {errors.duration_minutes && (
+                                    <p className="text-sm text-red-500">
+                                        {errors.duration_minutes}
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <Button type="submit" size="lg" disabled={processing} className="w-full md:w-auto">
-                            Save & Finish
+                        <Button
+                            type="submit"
+                            size="lg"
+                            disabled={processing}
+                            className="w-full md:w-auto"
+                        >
+                            {processing && <Spinner />} Save & Finish
                         </Button>
                         <Button type="button" variant="ghost" onClick={skip}>
                             Skip for now

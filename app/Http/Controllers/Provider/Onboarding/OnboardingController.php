@@ -134,11 +134,9 @@ class OnboardingController extends Controller
 
         $user = auth()->user();
 
-        // Delete existing work hours for this provider (in case of re-onboarding)
         WorkHour::where('provider_id', $user->id)->delete();
 
         foreach ($validated['schedule'] as $day => $dayData) {
-            // Get the first shift (current schema supports one time period per day)
             $firstShift = $dayData['shifts'][0] ?? null;
 
             WorkHour::create([

@@ -25,7 +25,7 @@ import { useInitials } from '@/hooks/use-initials';
 import { cn, isSameUrl, resolveUrl } from '@/lib/utils';
 import { type BreadcrumbItem, type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder,  Menu, Search } from 'lucide-react';
+import { BookOpen, CalendarSync, Folder,  Menu, Notebook, Search } from 'lucide-react';
 import AppLogo from './app-logo';
 import AppLogoIcon from './app-logo-icon';
 import { home, login } from '@/routes';
@@ -186,9 +186,18 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                 <Link
                                     href={auth.user.role === 'provider' ? business.dashboard() : client.bookings.index()}
                                 >
-                                    <Button size="sm" variant="outline">
-                                        {auth.user.role === 'provider' ? 'Dashboard' : 'My Bookings'}
-                                    </Button>
+                                    {auth.user.role === 'provider' ?
+                                        (
+                                            <Button size="sm" >
+                                                Dashboard
+                                            </Button>
+                                        )
+                                        :
+                                        <Button size="sm" variant="outline" className="shadow-none rounded-full">
+                                            <CalendarSync className="h-5 w-5" />
+                                        </Button>
+                                    }
+
                                 </Link>
 
                                 <DropdownMenu>

@@ -27,8 +27,8 @@ const DayScheduleRow = ({
         };
     });
 
-    const shift = schedule?.shifts?.[0]; // Only use first shift
-    const shiftIndex = 0; // Always target first shift
+    const shift = schedule?.shifts?.[0];
+    const shiftIndex = 0;
 
     return (
         <div className={`p-2 md:p-4 rounded border transition-smooth ${schedule?.isOpen ? 'bg-card border-border' : 'bg-muted/50 border-border/50'}`}>
@@ -51,16 +51,18 @@ const DayScheduleRow = ({
                     </div>
                 </div>
 
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onAddBreak(day, shiftIndex)}
-                    className="w-full md:w-auto"
-                    type={"button"}
-                >
-                    <Coffee className="size-4" />
-                    Add Break
-                </Button>
+                {schedule?.isOpen && (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onAddBreak(day, shiftIndex)}
+                        className="w-full md:w-auto"
+                        type={"button"}
+                    >
+                        <Coffee className="size-4" />
+                        Add Break
+                    </Button>
+                )}
             </div>
 
             {schedule?.isOpen && shift && (

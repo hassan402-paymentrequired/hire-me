@@ -8,6 +8,7 @@ import { FormSelect } from '@/components/ui/form-select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Spinner } from '@/components/ui/spinner';
 
 const STEPS = [
     {
@@ -152,21 +153,21 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                     <div className="space-y-4">
                         <Label className="text-base">Business Images (Min 2, Max 3)</Label>
                         <p className="text-sm text-muted-foreground">Upload at least 2 images. Select one to use as your business logo.</p>
-                        
+
                         <div className="grid grid-cols-3 gap-4">
                             {imagePreviews.map((preview, index) => (
-                                <div key={index} className={`relative group aspect-square rounded-xl overflow-hidden border-2 transition-all ${data.logo_index === index ? 'border-primary shadow-md' : 'border-border'}`}>
+                                <div key={index} className={`relative group  h-[150px] rounded overflow-hidden border-2 transition-all ${data.logo_index === index ? 'border-primary shadow-md' : 'border-border'}`}>
                                     <img src={preview} alt="" className="w-full h-full object-cover" />
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                        <Button 
-                                            type="button" 
+                                        <Button
+                                            type="button"
                                             variant={data.logo_index === index ? "default" : "secondary"}
                                             size="sm"
                                             onClick={() => setData('logo_index', index)}
                                         >
                                             {data.logo_index === index ? 'Logo' : 'Set as Logo'}
                                         </Button>
-                                        <button 
+                                        <button
                                             type="button"
                                             onClick={() => removeImage(index)}
                                             className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90"
@@ -181,16 +182,16 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                                     )}
                                 </div>
                             ))}
-                            
+
                             {imagePreviews.length < 3 && (
-                                <label className="aspect-square rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors">
+                                <label className=" rounded h-[150px] border-2 border-dashed border-border flex flex-col items-center justify-center bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors">
                                     <Upload className="w-8 h-8 text-muted-foreground mb-2" />
                                     <span className="text-xs font-medium text-muted-foreground">Add Image</span>
-                                    <input 
-                                        type="file" 
-                                        accept="image/*" 
-                                        multiple 
-                                        className="hidden" 
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        className="hidden"
                                         onChange={handleImagesChange}
                                     />
                                 </label>
@@ -314,7 +315,7 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
 
                     <div className="flex items-center gap-4">
                         <Button type="submit" size="lg" disabled={processing} className="w-full md:w-auto">
-                            Continue
+                            {processing && <Spinner />}  Continue
                         </Button>
                     </div>
                 </form>
