@@ -191,17 +191,6 @@ const BusinessHoursConfig = ({ initialSchedule, initialHolidays, services = [] }
                         </div>
                     )}
 
-                    {flash?.success && (
-                        <div className="mb-6 p-4 bg-success/10 rounded-lg border border-success/20">
-                            <p className="text-sm font-medium text-success">{flash.success}</p>
-                        </div>
-                    )}
-
-                    {flash?.error && (
-                        <div className="mb-6 p-4 bg-error/10 rounded-lg border border-error/20">
-                            <p className="text-sm font-medium text-error">{flash.error}</p>
-                        </div>
-                    )}
 
                     <div className="mb-6 overflow-x-auto">
                         <div className="flex gap-2 border-b border-border min-w-max">

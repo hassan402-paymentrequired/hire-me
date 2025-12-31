@@ -109,7 +109,7 @@ class BusinessController extends Controller
             }
         }
 
-        return back();
+        return back()->with('success-toast', 'Business configuration updated successfully.');
     }
 
     public function services()
@@ -178,7 +178,7 @@ class BusinessController extends Controller
             'status' => 'active',
         ]);
 
-        return back()->with('success', 'Service created successfully.');
+        return back()->with('success-toast', 'Service created successfully.');
     }
 
     public function updateService(\Illuminate\Http\Request $request, $id)
@@ -194,7 +194,7 @@ class BusinessController extends Controller
 
         $service->update($request->only(['name', 'description', 'price', 'duration_minutes', 'category_id']));
 
-        return back()->with('success', 'Service updated successfully.');
+        return back()->with('success-toast', 'Service updated successfully.');
     }
 
     public function toggleServiceStatus($id)
@@ -203,15 +203,16 @@ class BusinessController extends Controller
         $service->status = $service->status === 'active' ? 'inactive' : 'active';
         $service->save();
 
-        return back();
+        return back()->with('success-toast', "Service status changed to '{$service->status}'.");
     }
 
     public function destroyService($id)
     {
         $service = \App\Models\Service::where('provider_id', auth()->id())->findOrFail($id);
+        $name = $service->name;
         $service->delete();
 
-        return back();
+        return back()->with('success-toast', "Service '$name' deleted successfully.");
     }
 
     public function analytics()
