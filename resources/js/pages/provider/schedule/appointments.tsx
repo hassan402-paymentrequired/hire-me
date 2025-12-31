@@ -226,9 +226,9 @@ export default function Appointments({ appointments, filters }: AppointmentListP
                                                     <td className="p-4 align-middle">
                                                         <div className="flex flex-col">
                                                              <span>{apt.amount}</span>
-                                                             <span className={`text-xs ${apt.paymentStatus === 'Paid' ? 'text-green-600' : 'text-red-500'}`}>
-                                                                {apt.paymentStatus}
-                                                             </span>
+                                                             {/*<span className={`text-xs ${apt.paymentStatus === 'Paid' ? 'text-green-600' : 'text-red-500'}`}>*/}
+                                                             {/*   {apt.paymentStatus}*/}
+                                                             {/*</span>*/}
                                                         </div>
                                                     </td>
                                                     <td className="p-4 align-middle">
