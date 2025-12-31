@@ -22,7 +22,7 @@ class AppointmentController extends Controller
         $user = auth()->user();
 
         $bookings = Appointment::where('client_id', $user->id)
-            ->with(['provider', 'service'])
+            ->with(['provider.businessProfile', 'services'])
             ->orderBy('start_time', 'desc')
             ->get();
 

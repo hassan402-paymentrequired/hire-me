@@ -12,7 +12,8 @@ import {
     FileText,
     AlertCircle,
     CheckCircle2,
-    XCircle
+    XCircle,
+    User,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -136,48 +137,19 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
                     <div className="lg:col-span-2 space-y-6">
                         {/* Service & Provider Card */}
                         <Card>
-                            <CardHeader className="pb-4">
+                            <CardHeader className="">
                                 <div className="flex items-start justify-between gap-4">
                                     <div className="flex items-start gap-4 flex-1">
-                                        {/* Business Logo */}
-                                        <Avatar className="h-16 w-16 border-2">
-                                            <AvatarImage
-                                                src={booking.provider?.business_profile?.logo_path
-                                                    ? `/storage/${booking.provider.business_profile.logo_path}`
-                                                    : undefined
-                                                }
-                                                alt={booking.provider?.business_profile?.business_name}
-                                            />
-                                            <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">
-                                                {booking.provider?.business_profile?.business_name
-                                                    ? booking.provider.business_profile.business_name
-                                                        .split(' ')
-                                                        .map(n => n[0])
-                                                        .slice(0, 2)
-                                                        .join('')
-                                                        .toUpperCase()
-                                                    : 'BN'
-                                                }
-                                            </AvatarFallback>
-                                        </Avatar>
 
                                         <div className="flex-1 min-w-0">
-                                            <h2 className="text-2xl font-bold mb-1 truncate">
-                                                {booking.services?.length > 0 
-                                                    ? booking.services.map(s => s.name).join(' + ')
-                                                    : booking.service?.name}
+                                            <h2 className="text-2xl font-bold  truncate">
+                                                {booking.provider.business_profile.business_name || 'Business Name'}
                                             </h2>
                                             <p className="text-muted-foreground mb-2">
-                                                with <span className="font-semibold text-foreground">
+                                                by <span className="font-semibold text-foreground">
                                                     {booking.provider?.name}
                                                 </span>
                                             </p>
-                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                <Building2 className="w-4 h-4" />
-                                                <span className="font-medium">
-                                                    {booking.provider?.business_profile?.business_name}
-                                                </span>
-                                            </div>
                                         </div>
                                     </div>
 

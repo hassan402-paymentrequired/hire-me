@@ -2,18 +2,9 @@ import AppLayout from '@/layouts/app-layout';
 import { Head, Link } from '@inertiajs/react';
 import {
     Calendar,
-    Clock,
-    MapPin,
-    ChevronRight,
-    User,
-    Timer,
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import GuestLayout from '@/layouts/guest-layout';
-import client from '@/routes/client';
 import BookingCard from '@/pages/client/components/booking-card';
 
 interface Booking {
@@ -28,33 +19,22 @@ interface Booking {
 
 export default function BookingList({ bookings = [] }: { bookings?: Booking[] }) {
 
-    // Helper to get color based on status
-    const getStatusVariant = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'confirmed': return 'default'; // primary
-            case 'completed': return 'secondary';
-            case 'cancelled': return 'destructive';
-            case 'pending': return 'outline';
-            default: return 'secondary';
-        }
-    };
-
     return (
         <GuestLayout>
             <Head title="My Appointments" />
 
-            <div className="p-4 ">
+            <div className="p-4 sm:max-w-6xl mx-auto">
                 <div className="flex items-center justify-between mb-8">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">My Bookings</h1>
                         <p className="text-muted-foreground mt-1">
-                            Manage and track your appointments in one place.
+                            Manage and track your appointments Usein one place.
                         </p>
                     </div>
                 </div>
 
                 {bookings.length > 0 ? (
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 ">
                         {bookings.map((booking) => (
                            <BookingCard booking={booking} key={booking.id} />
                         ))}

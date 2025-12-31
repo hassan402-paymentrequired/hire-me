@@ -17,6 +17,6 @@ class RegisterResponse implements RegisterResponseContract
             return redirect()->route('onboarding.index');
         }
 
-        return redirect()->route('home');
+        return redirect()->route('home')->with('success-toast', 'Your account has been created!');
     }
 }

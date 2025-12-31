@@ -111,7 +111,7 @@ export default function Welcome({ providers, categories, filters }: Props) {
 
     return (
         <>
-            <Head title="Find Services">
+            <Head title="Find Services Providers Near You | HireMe">
                 <link rel="preconnect" href="https://fonts.bunny.net" />
                 <link
                     href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600"

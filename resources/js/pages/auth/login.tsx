@@ -10,6 +10,7 @@ import { register } from '@/routes';
 import { request } from '@/routes/password';
 import { Form, Head } from '@inertiajs/react';
 import { store } from '@/routes/login';
+import { useLoading } from '@/contexts/loading-context';
 
 interface LoginProps {
     status?: string;
@@ -22,6 +23,7 @@ export default function Login({
     canResetPassword,
     canRegister,
 }: LoginProps) {
+    const { showLoading, hideLoading } = useLoading();
     return (
         <AuthLayout
             title="Log in to your account"
@@ -31,6 +33,8 @@ export default function Login({
 
             <Form
                 {...store()}
+                // onStart={() => showLoading()}
+                // onFinish={() => hideLoading()}
                 resetOnSuccess={['password']}
                 className="flex flex-col gap-6"
             >

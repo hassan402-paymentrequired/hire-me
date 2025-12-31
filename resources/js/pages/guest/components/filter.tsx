@@ -105,7 +105,7 @@ export const HeaderFilter = ({ categories, filters, onLocationRequest, hasLocati
 
                 {/* Right: Filters & Sort */}
                 <div className="flex items-center space-x-2 overflow-x-auto pb-2 md:pb-0">
-                    <Select value={filters?.min_rating?.toString() || 'all'} onValueChange={handleRatingChange}>
+                    <Select  onValueChange={handleRatingChange}>
                         <SelectTrigger className="w-[130px] rounded-full bg-muted/50 border-none h-9">
                             <SelectValue placeholder="Rating" />
                         </SelectTrigger>
@@ -117,7 +117,7 @@ export const HeaderFilter = ({ categories, filters, onLocationRequest, hasLocati
                         </SelectContent>
                     </Select>
 
-                    <Select value={filters?.sort || 'recommended'} onValueChange={handleSortChange}>
+                    <Select  onValueChange={handleSortChange}>
                         <SelectTrigger className="w-[160px] rounded-full bg-muted/50 border-none h-9">
                             <SelectValue placeholder="Sort by" />
                         </SelectTrigger>

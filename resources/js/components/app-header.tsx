@@ -68,7 +68,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
             <div className="border-b border-sidebar-border/80">
                 <div className="mx-auto flex h-14 items-center px-4 md:max-w-7xl">
                     {/* Mobile Menu */}
-                    <div className="lg:hidden">
+                    <div className="hidden">
                         <Sheet>
                             <SheetTrigger asChild>
                                 <Button
@@ -135,7 +135,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                     </div>
 
                     <Link
-                        href={business.dashboard()}
+                        href={'/'}
                         prefetch
                         className="flex items-center space-x-2"
                     >
