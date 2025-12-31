@@ -313,7 +313,7 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                         {errors.phone && <p className="text-sm text-destructive mt-1">{errors.phone}</p>}
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-end gap-4">
                         <Button type="submit" size="lg" disabled={processing} className="w-full md:w-auto">
                             {processing && <Spinner />}  Continue
                         </Button>

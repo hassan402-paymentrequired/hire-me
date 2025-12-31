@@ -15,6 +15,7 @@ interface Props {
     rating: number;
     reviewsCount: number;
     minPrice: number | string;
+    [key: string]: string | number | boolean | null | undefined | (string | number | boolean | null | undefined)
 }
 
 const BusinessCard = ({provider}: {provider: Props}) => {
@@ -79,10 +80,8 @@ const BusinessCard = ({provider}: {provider: Props}) => {
 
                 <div className="flex items-center gap-1 text-sm font-medium">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span>{provider.rating > 0 ? provider.rating : 'New'}</span>
-                    {provider.reviewsCount > 0 && (
+                    <span>{provider.rating.toFixed(2) }</span>
                         <span className="text-muted-foreground text-xs">({provider.reviewsCount})</span>
-                    )}
                 </div>
             </div>
         </Link>

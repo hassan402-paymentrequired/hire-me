@@ -1,9 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import AppLayout from '@/layouts/guest-layout';
-import { Head, Link, router } from '@inertiajs/react';
-import { MapPin } from 'lucide-react';
+import { Head, router } from '@inertiajs/react';
 import { HeaderFilter } from '@/pages/guest/components/filter';
 import BusinessCard from '@/pages/guest/components/business-card';
 
@@ -50,6 +47,33 @@ export default function Welcome({ providers, categories, filters }: Props) {
     const [allProviders, setAllProviders] = useState(providers.data);
     const [loading, setLoading] = useState(false);
     const loadMoreRef = useRef<HTMLDivElement>(null);
+    const isLoadingRef = useRef(false); // Prevent multiple simultaneous requests
+
+    const loadMore = useCallback(() => {
+        if (!providers.next_page_url || isLoadingRef.current) return;
+
+        isLoadingRef.current = true;
+        setLoading(true);
+
+        router.get(
+            providers.next_page_url,
+            {},
+            {
+                preserveState: true,
+                preserveScroll: true,
+                only: ['providers'],
+                onFinish: () => {
+                    setLoading(false);
+                    isLoadingRef.current = false;
+                },
+                onError: () => {
+                    setLoading(false);
+                    isLoadingRef.current = false;
+                }
+            }
+        );
+    }, [providers.next_page_url]);
+
 
     useEffect(() => {
         if (providers.current_page === 1) {
@@ -64,48 +88,50 @@ export default function Welcome({ providers, categories, filters }: Props) {
         }
     }, [providers.data, providers.current_page]);
 
+
     useEffect(() => {
         const observer = new IntersectionObserver(
             (entries) => {
-                if (entries[0].isIntersecting && providers.next_page_url && !loading) {
+                if (entries[0].isIntersecting && !isLoadingRef.current) {
                     loadMore();
                 }
             },
-            { threshold: 1.0 }
+            { threshold: 0.5, rootMargin: '100px' } // Trigger earlier for better UX
         );
 
-        if (loadMoreRef.current) {
-            observer.observe(loadMoreRef.current);
+        const currentRef = loadMoreRef.current;
+        if (currentRef) {
+            observer.observe(currentRef);
         }
 
-        return () => observer.disconnect();
-    }, [providers.next_page_url, loading]);
-
-    const loadMore = () => {
-        setLoading(true);
-        router.get(
-            providers.next_page_url!,
-            {},
-            {
-                preserveState: true,
-                preserveScroll: true,
-                only: ['providers'],
-                onFinish: () => setLoading(false),
+        return () => {
+            if (currentRef) {
+                observer.unobserve(currentRef);
             }
-        );
-    };
+            observer.disconnect();
+        };
+    }, [loadMore]);
 
     const requestLocation = () => {
         if ("geolocation" in navigator) {
-            navigator.geolocation.getCurrentPosition((position) => {
-                router.get('/', {
-                    ...filters,
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude
-                }, { preserveState: true, replace: true, preserveScroll: true });
-            }, (error) => {
-                console.error("Error getting location:", error);
-            });
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    router.get('/', {
+                        ...filters,
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    }, {
+                        preserveState: true,
+                        replace: true,
+                        preserveScroll: true
+                    });
+                },
+                (error) => {
+                    console.error("Error getting location:", error);
+                }
+            );
+        } else {
+            console.error("Geolocation is not supported by this browser.");
         }
     };
 
@@ -130,27 +156,31 @@ export default function Welcome({ providers, categories, filters }: Props) {
 
                     {/* Main Content Grid */}
                     <div className="px-1 py-4">
-                        {allProviders.length === 0 ? (
+                        {allProviders.length === 0 && !loading ? (
                             <div className="text-center py-12">
                                 <p className="text-muted-foreground">No providers available at the moment.</p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                {allProviders.map((provider) => (
-                                    <BusinessCard provider={provider} key={provider.id}/>
-                                ))}
-                            </div>
-                        )}
-
-                        {/* Infinite Scroll Trigger */}
-                        <div ref={loadMoreRef} className="h-10 mt-8 flex items-center justify-center">
-                            {loading && (
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                    Loading more...
+                            <>
+                                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                    {allProviders.map((provider) => (
+                                        <BusinessCard provider={provider} key={provider.id} />
+                                    ))}
                                 </div>
-                            )}
-                        </div>
+
+                                {/* Infinite Scroll Trigger */}
+                                {providers.next_page_url && (
+                                    <div ref={loadMoreRef} className="h-10 mt-8 flex items-center justify-center">
+                                        {loading && (
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                                Loading more...
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </>
+                        )}
                     </div>
                 </div>
             </AppLayout>
