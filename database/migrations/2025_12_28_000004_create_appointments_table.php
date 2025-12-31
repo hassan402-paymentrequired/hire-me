@@ -14,7 +14,7 @@ return new class extends Migration {
             $table->foreignUlid('service_id')->constrained()->cascadeOnDelete();
             $table->dateTime('start_time');
             $table->dateTime('end_time');
-            $table->string('status')->default('pending'); // pending, confirmed, cancelled, completed, no_show
+            $table->string('status')->default('pending');
             $table->decimal('price', 10, 2);
             $table->text('notes')->nullable();
             $table->string('client_name')->nullable(); // Fallback if regular user not registered

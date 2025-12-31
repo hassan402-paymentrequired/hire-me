@@ -24,6 +24,9 @@ class Appointment extends Model
         'client_email',
         'cancelled_by',
         'cancellation_reason',
+        'first_reminder_sent_at',
+        'last_reminder_sent_at',
+        'reminder_count'
     ];
 
     protected $casts = [
