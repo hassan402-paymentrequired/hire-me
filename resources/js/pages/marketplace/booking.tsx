@@ -45,11 +45,19 @@ export default function Booking({ provider, services }: Props) {
     const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
     const [notes, setNotes] = useState('');
     const [loading, setLoading] = useState(false);
+    const [rescheduleId, setRescheduleId] = useState<string | null>(null);
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const serviceId = params.get('service');
-        if (serviceId && services.find(s => s.id === serviceId)) {
+        const serviceIds = params.get('service_ids')?.split(',') || [];
+        const resId = params.get('reschedule_id');
+
+        if (resId) setRescheduleId(resId);
+
+        if (serviceIds.length > 0) {
+            setSelectedServiceIds(serviceIds.filter(id => services.find(s => s.id === id)));
+        } else if (serviceId && services.find(s => s.id === serviceId)) {
             setSelectedServiceIds([serviceId]);
         } else if (services.length > 0) {
             setSelectedServiceIds([services[0].id]);
@@ -118,6 +126,7 @@ export default function Booking({ provider, services }: Props) {
             service_ids: selectedServiceIds,
             start_time: selectedSlot,
             notes: notes,
+            reschedule_id: rescheduleId,
         });
     };
 

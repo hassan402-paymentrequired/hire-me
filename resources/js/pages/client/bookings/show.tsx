@@ -1,28 +1,36 @@
 import GuestLayout from '@/layouts/guest-layout';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head,  router } from '@inertiajs/react';
 import {
     Calendar,
     Clock,
-    ArrowLeft,
     MapPin,
     Timer,
     Phone,
     Mail,
-    Building2,
     FileText,
     AlertCircle,
     CheckCircle2,
     XCircle,
-    User,
+    Star,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import client from '@/routes/client';
 import { formatDate, formatTime, formatPrice, formatStatus, getStatusVariant } from '@/lib/utils';
 import { ReviewSection } from '@/components/reviews/review-section';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import React, {useState} from 'react';
 
 interface BusinessProfile {
     id: string;
@@ -75,23 +83,49 @@ interface Booking {
 }
 
 export default function BookingDetails({ booking }: { booking: Booking }) {
+    const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    const [rating, setRating] = useState(5);
+    const [comment, setComment] = useState('');
+    const [reportReason, setReportReason] = useState('');
+    const [reportDescription, setReportDescription] = useState('');
+
+    const startTime = new Date(booking.start_time);
+    const now = new Date();
+    const fiveHoursFromNow = new Date(now.getTime() + 5 * 60 * 60 * 1000);
+    const canCancel = startTime > fiveHoursFromNow;
+
     const handleCancelBooking = () => {
         if (confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
-            router.post(
-                `/appointments/${booking.id}/cancel`,
-                {},
-                {
-                    preserveScroll: true,
-                    onSuccess: () => {
-                        // Optionally show a success toast
-                    },
-                }
-            );
+            router.post(`/appointments/${booking.id}/cancel`);
         }
     };
 
     const handleRescheduleBooking = () => {
-        router.visit(`/bookings/${booking.id}/reschedule`);
+        router.visit(`/appointments/${booking.id}/reschedule`);
+    };
+
+    const handleComplete = (withReview: boolean) => {
+        router.post(`/appointments/${booking.id}/complete`, {
+            rating: withReview ? rating : null,
+            comment: withReview ? comment : null,
+        }, {
+            onSuccess: () => setIsCompleteModalOpen(false),
+        });
+    };
+
+    const handleReport = (e: React.FormEvent) => {
+        e.preventDefault();
+        router.post(`/appointments/${booking.id}/report`, {
+            reason: reportReason,
+            description: reportDescription,
+        }, {
+            onSuccess: () => {
+                setIsReportModalOpen(false);
+                setReportReason('');
+                setReportDescription('');
+            },
+        });
     };
 
     const getStatusIcon = (status: string) => {
@@ -283,24 +317,78 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
                         {booking.status !== 'cancelled' && booking.status !== 'completed' && (
                             <Card>
                                 <CardHeader>
-                                    <CardTitle className="text-base">Manage Booking</CardTitle>
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="text-base">Manage Booking</CardTitle>
+                                        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-tight text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">
+                                            <AlertCircle className="w-3 h-3" />
+                                            5h Cancellation Policy
+                                        </div>
+                                    </div>
                                 </CardHeader>
                                 <Separator />
                                 <CardContent className="pt-4 space-y-3">
                                     {booking.status === 'confirmed' && (
                                         <>
-                                            <Button
-                                                variant="default"
-                                                className="w-full justify-start bg-green-600 hover:bg-green-700"
-                                                onClick={() => {
-                                                    if (confirm('Mark this appointment as completed?')) {
-                                                        router.post(`/appointments/${booking.id}/complete`);
-                                                    }
-                                                }}
-                                            >
-                                                <CheckCircle2 className="w-4 h-4 mr-2" />
-                                                Mark as Completed
-                                            </Button>
+                                            <Dialog open={isCompleteModalOpen} onOpenChange={setIsCompleteModalOpen}>
+                                                <DialogTrigger asChild>
+                                                    <Button
+                                                        variant="default"
+                                                        className="w-full justify-start bg-green-600 hover:bg-green-700"
+                                                    >
+                                                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                                                        Mark as Completed
+                                                    </Button>
+                                                </DialogTrigger>
+                                                <DialogContent className="sm:max-w-[425px]">
+                                                    <DialogHeader>
+                                                        <DialogTitle>Complete Appointment</DialogTitle>
+                                                        <DialogDescription>
+                                                            How was your experience with {booking.provider.name}? Leaving a review helps others!
+                                                        </DialogDescription>
+                                                    </DialogHeader>
+                                                    <div className="grid gap-4 py-4">
+                                                        <div className="flex flex-col gap-2">
+                                                            <Label>Rating</Label>
+                                                            <div className="flex gap-1">
+                                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                                    <button
+                                                                        key={star}
+                                                                        type="button"
+                                                                        onClick={() => setRating(star)}
+                                                                        className="focus:outline-none transition-transform active:scale-95"
+                                                                    >
+                                                                        <Star
+                                                                            className={`size-8 ${
+                                                                                star <= rating
+                                                                                    ? 'fill-yellow-400 text-yellow-400'
+                                                                                    : 'text-muted-foreground/30'
+                                                                            }`}
+                                                                        />
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-col gap-2">
+                                                            <Label htmlFor="comment">Your Review (Optional)</Label>
+                                                            <Textarea
+                                                                id="comment"
+                                                                placeholder="Share your experience..."
+                                                                value={comment}
+                                                                onChange={(e) => setComment(e.target.value)}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <DialogFooter className="flex-col sm:flex-row gap-2">
+                                                        <Button variant="ghost" onClick={() => handleComplete(false)}>
+                                                            Skip & Complete
+                                                        </Button>
+                                                        <Button onClick={() => handleComplete(true)}>
+                                                            Submit & Complete
+                                                        </Button>
+                                                    </DialogFooter>
+                                                </DialogContent>
+                                            </Dialog>
+
                                             <Button
                                                 variant="outline"
                                                 className="w-full justify-start"
@@ -313,15 +401,75 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
                                     )}
 
                                     {booking.status !== 'cancelled' && booking.status !== 'completed' && (
-                                        <Button
-                                            variant="outline"
-                                            className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
-                                            onClick={handleCancelBooking}
-                                        >
-                                            <XCircle className="w-4 h-4 mr-2" />
-                                            Cancel Booking
-                                        </Button>
+                                        <div className="space-y-2">
+                                            <Button
+                                                variant="outline"
+                                                className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                onClick={handleCancelBooking}
+                                                disabled={!canCancel}
+                                            >
+                                                <XCircle className="w-4 h-4 mr-2" />
+                                                Cancel Booking
+                                            </Button>
+                                            {!canCancel && (
+                                                <p className="text-[10px] text-destructive font-medium px-2">
+                                                    Cancellation is only available 5+ hours before start time.
+                                                </p>
+                                            )}
+                                        </div>
                                     )}
+
+                                    {/* Report Issue Button */}
+                                    <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-foreground">
+                                                <AlertCircle className="w-4 h-4 mr-2" />
+                                                Report an Issue
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                            <form onSubmit={handleReport}>
+                                                <DialogHeader>
+                                                    <DialogTitle>Report an Issue</DialogTitle>
+                                                    <DialogDescription>
+                                                        Please describe the issue you encountered with this appointment.
+                                                    </DialogDescription>
+                                                </DialogHeader>
+                                                <div className="grid gap-4 py-4">
+                                                    <div className="flex flex-col gap-2">
+                                                        <Label htmlFor="reason">Reason</Label>
+                                                        <select
+                                                            id="reason"
+                                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                                            value={reportReason}
+                                                            onChange={(e) => setReportReason(e.target.value)}
+                                                            required
+                                                        >
+                                                            <option value="">Select a reason</option>
+                                                            <option value="no-show">Provider did not show up</option>
+                                                            <option value="poor-service">Poor service quality</option>
+                                                            <option value="incorrect-price">Incorrect pricing charged</option>
+                                                            <option value="unprofessional">Unprofessional behavior</option>
+                                                            <option value="other">Other</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="flex flex-col gap-2">
+                                                        <Label htmlFor="description">Details</Label>
+                                                        <Textarea
+                                                            id="description"
+                                                            placeholder="Provide more details..."
+                                                            value={reportDescription}
+                                                            onChange={(e) => setReportDescription(e.target.value)}
+                                                            required
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <DialogFooter>
+                                                    <Button type="submit">Submit Report</Button>
+                                                </DialogFooter>
+                                            </form>
+                                        </DialogContent>
+                                    </Dialog>
 
                                     {booking.status === 'completed' && (
                                         <div className="pt-4 border-t">

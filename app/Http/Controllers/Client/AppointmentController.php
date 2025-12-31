@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
+use App\Models\Report;
 use App\Models\Service;
 use App\Models\User;
 use App\Models\WorkHour;
@@ -50,6 +51,7 @@ class AppointmentController extends Controller
             'service_ids.*' => 'exists:services,id',
             'start_time' => 'required|date',
             'notes' => 'nullable|string|max:500',
+            'reschedule_id' => 'nullable|exists:appointments,id',
         ]);
 
         $services = Service::whereIn('id', $request->service_ids)->get();
@@ -60,25 +62,39 @@ class AppointmentController extends Controller
         $startTime = Carbon::parse($request->start_time);
         $endTime = $startTime->copy()->addMinutes($totalDuration);
 
-        $appointment = Appointment::create([
-            'client_id' => auth()->id(),
-            'provider_id' => $request->provider_id,
-            'service_id' => $request->service_ids[0], // Keep first for compatibility
-            'start_time' => $startTime,
-            'end_time' => $endTime,
-            'buffer_time_minutes' => $maxBuffer,
-            'status' => 'pending',
-            'price' => $totalPrice,
-            'notes' => $request->notes,
-        ]);
-
-        $appointment->services()->attach($request->service_ids);
+        if ($request->reschedule_id) {
+            $appointment = Appointment::where('client_id', auth()->id())->findOrFail($request->reschedule_id);
+            $appointment->update([
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'buffer_time_minutes' => $maxBuffer,
+                'status' => 'pending', // Reset to pending after reschedule? Or keep confirmed? Usually pending.
+                'price' => $totalPrice,
+                'notes' => $request->notes,
+            ]);
+            $appointment->services()->sync($request->service_ids);
+            $message = 'Appointment rescheduled successfully!';
+        } else {
+            $appointment = Appointment::create([
+                'client_id' => auth()->id(),
+                'provider_id' => $request->provider_id,
+                'service_id' => $request->service_ids[0], // Keep first for compatibility
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'buffer_time_minutes' => $maxBuffer,
+                'status' => 'pending',
+                'price' => $totalPrice,
+                'notes' => $request->notes,
+            ]);
+            $appointment->services()->attach($request->service_ids);
+            $message = 'Appointment booked successfully!';
+        }
 
         // Send email to provider
         Mail::to($appointment->provider->email)->send(new NewBookingMail($appointment->load('services')));
 
         return redirect()->route('client.bookings.show', $appointment->id)
-            ->with('success', 'Appointment booked successfully!');
+            ->with('success-toast', $message);
     }
 
     public function cancel($id)
@@ -87,15 +103,19 @@ class AppointmentController extends Controller
             ->where('status', '!=', 'cancelled')
             ->findOrFail($id);
 
+        if (Carbon::now()->addHours(5)->gt($appointment->start_time)) {
+            return back()->with('error-toast', 'Appointments can only be cancelled 5 hours before the start time.');
+        }
+
         $appointment->update(['status' => 'cancelled', 'cancelled_by' => 'client']);
 
         // Send email to provider
         Mail::to($appointment->provider->email)->send(new AppointmentCancelledMail($appointment, 'client'));
 
-        return back()->with('success', 'Appointment cancelled successfully.');
+        return back()->with('success-toast', 'Appointment cancelled successfully.');
     }
 
-    public function complete($id)
+    public function complete(Request $request, $id)
     {
         $appointment = Appointment::where('client_id', auth()->id())
             ->where('status', 'confirmed')
@@ -103,10 +123,57 @@ class AppointmentController extends Controller
 
         $appointment->update(['status' => 'completed']);
 
+        // Optional Review
+        if ($request->has('rating') && $request->has('comment')) {
+            $appointment->review()->create([
+                'client_id' => auth()->id(),
+                'provider_id' => $appointment->provider_id,
+                'rating' => $request->rating,
+                'comment' => $request->comment,
+            ]);
+        }
+
         // Send email to client
         Mail::to($appointment->client->email)->send(new AppointmentCompletedMail($appointment));
 
-        return back()->with('success', 'Appointment marked as completed. You can now leave a review!');
+        return back()->with('success-toast', 'Appointment marked as completed.');
+    }
+
+    public function reschedule($id)
+    {
+        $appointment = Appointment::where('client_id', auth()->id())
+            ->with('services')
+            ->findOrFail($id);
+
+        $slug = $appointment->provider->businessProfile->slug;
+        $serviceIds = $appointment->services->pluck('id')->toArray();
+
+        // Redirect to marketplace booking page with services pre-selected
+        // We'll need to update marketplace.booking to handle pre-selected services if possible
+        return redirect()->route('marketplace.booking', [
+            'slug' => $slug,
+            'service_ids' => $serviceIds,
+            'reschedule_id' => $appointment->id
+        ]);
+    }
+
+    public function report(Request $request, $id)
+    {
+        $request->validate([
+            'reason' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+        ]);
+
+        $appointment = Appointment::where('client_id', auth()->id())->findOrFail($id);
+
+        Report::create([
+            'appointment_id' => $appointment->id,
+            'user_id' => auth()->id(),
+            'reason' => $request->reason,
+            'description' => $request->description,
+        ]);
+
+        return back()->with('success-toast', 'Issue reported successfully. Our team will look into it.');
     }
 
     public function availableSlots(Request $request)

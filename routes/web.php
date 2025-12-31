@@ -62,6 +62,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/', [\App\Http\Controllers\Client\AppointmentController::class, 'store'])->name('store');
         Route::post('/{id}/cancel', [\App\Http\Controllers\Client\AppointmentController::class, 'cancel'])->name('cancel');
         Route::post('/{id}/complete', [\App\Http\Controllers\Client\AppointmentController::class, 'complete'])->name('complete');
+        Route::get('/{id}/reschedule', [\App\Http\Controllers\Client\AppointmentController::class, 'reschedule'])->name('reschedule');
+        Route::post('/{id}/report', [\App\Http\Controllers\Client\AppointmentController::class, 'report'])->name('report');
     });
 
     // Client Bookings
