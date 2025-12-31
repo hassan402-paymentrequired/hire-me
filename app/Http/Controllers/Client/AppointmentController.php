@@ -68,6 +68,34 @@ class AppointmentController extends Controller
                 ->with('error-toast', 'You already have an active appointment with this provider. Please manage your existing booking.');
         }
 
+        // Frequency Limits check
+        $provider = User::with('businessProfile')->findOrFail($request->provider_id);
+        $settings = $provider->businessProfile->settings ?? [];
+        $maxPerWeek = $settings['max_bookings_per_week'] ?? null;
+        $maxPerMonth = $settings['max_bookings_per_month'] ?? null;
+
+        if ($maxPerWeek) {
+            $weekCount = Appointment::where('client_id', auth()->id())
+                ->where('provider_id', $request->provider_id)
+                ->where('start_time', '>=', Carbon::now()->startOfWeek())
+                ->where('status', '!=', 'cancelled')
+                ->count();
+            if ($weekCount >= $maxPerWeek) {
+                return to_route('client.bookings.index')->with('error-toast', "You have reached the maximum of {$maxPerWeek} bookings per week with this provider.");
+            }
+        }
+
+        if ($maxPerMonth) {
+            $monthCount = Appointment::where('client_id', auth()->id())
+                ->where('provider_id', $request->provider_id)
+                ->where('start_time', '>=', Carbon::now()->startOfMonth())
+                ->where('status', '!=', 'cancelled')
+                ->count();
+            if ($monthCount >= $maxPerMonth) {
+                return to_route('client.bookings.index')->with('error-toast', "You have reached the maximum of {$maxPerMonth} bookings per month with this provider.");
+            }
+        }
+
         $services = Service::whereIn('id', $request->service_ids)->get();
         $totalPrice = $services->sum('price');
         $totalDuration = $services->sum('duration_minutes');

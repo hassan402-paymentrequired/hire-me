@@ -71,6 +71,25 @@ const AdvancedSettings = ({ settings, onSettingsChange }) => {
                     />
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                        label="Max Bookings per Week (per user)"
+                        type="number"
+                        description="How many times a client can book you in a week"
+                        value={settings?.max_bookings_per_week}
+                        onChange={(e) => onSettingsChange('max_bookings_per_week', e?.target?.value)}
+                        min="1"
+                    />
+                    <Input
+                        label="Max Bookings per Month (per user)"
+                        type="number"
+                        description="How many times a client can book you in a month"
+                        value={settings?.max_bookings_per_month}
+                        onChange={(e) => onSettingsChange('max_bookings_per_month', e?.target?.value)}
+                        min="1"
+                    />
+                </div>
+
                 <div className="pt-4 border-t border-border space-y-4">
                     <h4 className="text-sm font-medium text-foreground">Booking Preferences</h4>
                     <div className="space-y-3">

@@ -25,6 +25,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/services/{id}/toggle', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'toggleServiceStatus'])->name('services.toggle');
 
         Route::get('/analytics', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'analytics'])->name('analytics');
+        Route::get('/settings', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'settings'])->name('settings');
+        Route::post('/settings', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateSettings'])->name('settings.update');
     });
 
     Route::prefix('schedule')->group(function () {

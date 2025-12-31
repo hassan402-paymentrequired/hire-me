@@ -3,6 +3,14 @@
 namespace App\Http\Controllers\Provider\Business;
 
 use App\Http\Controllers\Controller;
+use App\Models\BusinessImage;
+use App\Models\BusinessProfile;
+use App\Models\Category;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class BusinessController extends Controller
@@ -270,5 +278,130 @@ class BusinessController extends Controller
                 'cancelChange' => '+1.2%', // Mock
             ]
         ]);
+    }
+
+    public function settings()
+    {
+        $user = auth()->user();
+        $profile = $user->businessProfile()->with('images')->first();
+        $categories = Category::orderBy('name')->get()->map(function ($category) {
+            return [
+                'value' => $category->slug,
+                'label' => $category->name,
+            ];
+        });
+
+        return Inertia::render('provider/business/settings', [
+            'profile' => $profile ? [
+                'id' => $profile->id,
+                'business_name' => $profile->business_name,
+                'description' => $profile->description,
+                'address' => $profile->address,
+                'city' => $profile->city,
+                'state' => $profile->state,
+                'zip_code' => $profile->zip_code,
+                'phone' => $profile->phone,
+                'category' => $profile->category,
+                'latitude' => $profile->latitude,
+                'longitude' => $profile->longitude,
+                'settings' => $profile->settings ?? [],
+                'images' => $profile->images->map(fn($img) => [
+                    'id' => $img->id,
+                    'path' => Storage::url($img->image_path),
+                    'is_logo' => $img->is_logo,
+                ]),
+            ] : null,
+            'categories' => $categories,
+        ]);
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $user = auth()->user();
+        $profile = $user->businessProfile;
+
+        $request->validate([
+            'business_name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'address' => 'nullable|string|max:500',
+            'city' => 'nullable|string|max:100',
+            'state' => 'nullable|string|max:100',
+            'zip_code' => 'nullable|string|max:20',
+            'phone' => 'nullable|string|max:20',
+            'category' => 'nullable|string|max:50',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+            'settings' => 'nullable|array',
+            'logo' => 'nullable|image|max:2048',
+            'new_images' => 'nullable|array',
+            'new_images.*' => 'image|max:5120',
+            'delete_image_ids' => 'nullable|array',
+            'delete_image_ids.*' => 'exists:business_images,id',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $profile->update([
+                'business_name' => $request->business_name,
+                'description' => $request->description,
+                'address' => $request->address,
+                'city' => $request->city,
+                'state' => $request->state,
+                'zip_code' => $request->zip_code,
+                'phone' => $request->phone,
+                'category' => $request->category,
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
+                'settings' => array_merge($profile->settings ?? [], $request->settings ?? []),
+            ]);
+
+            // Handle Logo Upload
+            if ($request->hasFile('logo')) {
+                // Delete old logo
+                $oldLogo = $profile->images()->where('is_logo', true)->first();
+                if ($oldLogo) {
+                    Storage::disk('public')->delete($oldLogo->image_path);
+                    $oldLogo->delete();
+                }
+
+                $path = $request->file('logo')->store('business-logos', 'public');
+                $profile->images()->create([
+                    'image_path' => $path,
+                    'is_logo' => true,
+                ]);
+            }
+
+            // Handle New Images
+            if ($request->hasFile('new_images')) {
+                foreach ($request->file('new_images') as $image) {
+                    $path = $image->store('business-images', 'public');
+                    $profile->images()->create([
+                        'image_path' => $path,
+                        'is_logo' => false,
+                    ]);
+                }
+            }
+
+            // Handle Image Deletion
+            if ($request->delete_image_ids) {
+                // Get image paths first
+                $imagesToDelete = BusinessImage::whereIn('id', $request->delete_image_ids)
+                    ->where('business_profile_id', $profile->id)
+                    ->get();
+
+                foreach ($imagesToDelete as $img) {
+                    Storage::disk('public')->delete($img->image_path);
+                    $img->delete();
+                }
+            }
+
+            DB::commit();
+            return to_route('business.settings')->with('success-toast', 'Business settings updated successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Error updating business settings: {$e->getMessage()}");
+            return to_route('business.settings')->with('error-toast', 'Error updating business settings. Please try again.');
+        }
     }
 }

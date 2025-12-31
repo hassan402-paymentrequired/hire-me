@@ -20,6 +20,7 @@ import {
     Folder,
     LayoutGrid,
     Notebook,
+    Settings,
 } from 'lucide-react';
 import AppLogo from './app-logo';
 import schedule from '@/routes/schedule';
@@ -68,6 +69,11 @@ const mainNavItems: NavItem[] = [
                 title: 'Services',
                 href: business.services(),
                 icon: LayoutGrid,
+            },
+            {
+                title: 'Settings',
+                href: business.settings(),
+                icon: Settings,
             }
         ]
     }
@@ -82,7 +88,7 @@ const footerNavItems = [
     {
         title: 'Documentation',
         href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
+        icon: Settings,
     },
 ];
 
