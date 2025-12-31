@@ -8,6 +8,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import GuestLayout from '@/layouts/guest-layout';
+import { Textarea } from '@/components/ui/textarea';
 
 interface Service {
     id: string;
@@ -46,6 +47,7 @@ export default function Booking({ provider, services }: Props) {
     const [notes, setNotes] = useState('');
     const [loading, setLoading] = useState(false);
     const [rescheduleId, setRescheduleId] = useState<string | null>(null);
+    const [apiMessage, setApiMessage] = useState<string | null>(null);
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -72,18 +74,22 @@ export default function Booking({ provider, services }: Props) {
 
     const fetchAvailableSlots = async () => {
         setLoading(true);
+        setApiMessage(null);
         try {
             const response = await axios.get('/appointments/slots', {
                 params: {
                     provider_id: provider.id,
                     service_ids: selectedServiceIds,
                     date: format(selectedDate, 'yyyy-MM-dd'),
+                    reschedule_id: rescheduleId,
                 }
             });
             setAvailableSlots(response.data.slots || []);
+            setApiMessage(response.data.message || null);
         } catch (error) {
             console.error('Failed to fetch slots:', error);
             setAvailableSlots([]);
+            setApiMessage('An error occurred while fetching available slots.');
         } finally {
             setLoading(false);
         }
@@ -177,8 +183,11 @@ export default function Booking({ provider, services }: Props) {
                                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                                             </div>
                                         ) : availableSlots.length === 0 ? (
-                                            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground bg-muted/20 rounded border border-dashed">
-                                                <p className="font-medium">No availability for this date</p>
+                                            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground  px-8 text-center">
+                                                <p className="font-medium -3 py-2 mb-2">
+                                                    {apiMessage || 'No availability for this date'}
+                                                </p>
+                                                <p className="text-xs">Try selecting fewer services or picking another date.</p>
                                             </div>
                                         ) : (
                                             <ScrollArea  className="h-96 pr-4">
@@ -257,16 +266,13 @@ export default function Booking({ provider, services }: Props) {
                             </div>
 
                             {/* Booking Notes */}
-                            <div className="space-y-4">
+                            <div className="space-y-2">
                                 <h3 className="text-xl font-black tracking-tight">Additional Notes</h3>
-                                <div className="bg-card rounded border p-4">
-                                    <textarea
+                                    <Textarea
                                         placeholder="Add any special requests or information for the provider..."
-                                        className="w-full h-32 bg-transparent border-none focus:ring-0 resize-none text-sm"
                                         value={notes}
                                         onChange={(e) => setNotes(e.target.value)}
                                     />
-                                </div>
                             </div>
                         </div>
 

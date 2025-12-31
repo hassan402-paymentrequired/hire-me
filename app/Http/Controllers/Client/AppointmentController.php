@@ -54,6 +54,20 @@ class AppointmentController extends Controller
             'reschedule_id' => 'nullable|exists:appointments,id',
         ]);
 
+        // Constraint: One active appointment per provider
+        $existingActive = Appointment::where('client_id', auth()->id())
+            ->where('provider_id', $request->provider_id)
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->when($request->reschedule_id, function ($q) use ($request) {
+                return $q->where('id', '!=', $request->reschedule_id);
+            })
+            ->first();
+
+        if ($existingActive) {
+            return redirect()->route('client.bookings.show', $existingActive->id)
+                ->with('error-toast', 'You already have an active appointment with this provider. Please manage your existing booking.');
+        }
+
         $services = Service::whereIn('id', $request->service_ids)->get();
         $totalPrice = $services->sum('price');
         $totalDuration = $services->sum('duration_minutes');
@@ -68,7 +82,7 @@ class AppointmentController extends Controller
                 'start_time' => $startTime,
                 'end_time' => $endTime,
                 'buffer_time_minutes' => $maxBuffer,
-                'status' => 'pending', // Reset to pending after reschedule? Or keep confirmed? Usually pending.
+                'status' => 'pending',
                 'price' => $totalPrice,
                 'notes' => $request->notes,
             ]);
@@ -78,7 +92,7 @@ class AppointmentController extends Controller
             $appointment = Appointment::create([
                 'client_id' => auth()->id(),
                 'provider_id' => $request->provider_id,
-                'service_id' => $request->service_ids[0], // Keep first for compatibility
+                'service_id' => $request->service_ids[0],
                 'start_time' => $startTime,
                 'end_time' => $endTime,
                 'buffer_time_minutes' => $maxBuffer,
@@ -183,6 +197,7 @@ class AppointmentController extends Controller
             'service_ids' => 'required|array',
             'service_ids.*' => 'exists:services,id',
             'date' => 'required|date',
+            'reschedule_id' => 'nullable|exists:appointments,id',
         ]);
 
         $provider = User::findOrFail($request->provider_id);
@@ -200,13 +215,31 @@ class AppointmentController extends Controller
             ->get();
 
         if ($workHours->isEmpty()) {
-            return response()->json(['slots' => []]);
+            return response()->json(['slots' => [], 'message' => 'The provider is closed on this day.']);
+        }
+
+        // Check if any work hours block can accommodate the total duration
+        $maxAvailableBlock = 0;
+        foreach ($workHours as $wh) {
+            $s = Carbon::parse($wh->start_time);
+            $e = Carbon::parse($wh->end_time);
+            $maxAvailableBlock = max($maxAvailableBlock, $s->diffInMinutes($e));
+        }
+
+        if ($totalDuration > $maxAvailableBlock) {
+            return response()->json([
+                'slots' => [],
+                'message' => "The selected services require {$totalDuration} minutes, which exceeds the provider's longest working block ({$maxAvailableBlock} minutes) on this day."
+            ]);
         }
 
         // Get existing appointments for this day
         $existingAppointments = Appointment::where('provider_id', $provider->id)
             ->whereDate('start_time', $date)
             ->whereIn('status', ['pending', 'confirmed'])
+            ->when($request->reschedule_id, function ($q) use ($request) {
+                return $q->where('id', '!=', $request->reschedule_id);
+            })
             ->get();
 
         $slots = [];
@@ -264,6 +297,9 @@ class AppointmentController extends Controller
             }
         }
 
-        return response()->json(['slots' => $slots]);
+        return response()->json([
+            'slots' => $slots,
+            'message' => empty($slots) ? 'No available slots found for the selected services and date.' : null
+        ]);
     }
 }
