@@ -1,5 +1,5 @@
 import GuestLayout from '@/layouts/guest-layout';
-import { Head,  router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import {
     Calendar,
     Clock,
@@ -12,6 +12,7 @@ import {
     CheckCircle2,
     XCircle,
     Star,
+    Loader2,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -30,7 +31,8 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import React, {useState} from 'react';
+import React, { useState } from 'react';
+import { toast } from 'sonner'; // Assuming you have a toast library
 
 interface BusinessProfile {
     id: string;
@@ -75,7 +77,7 @@ interface Booking {
     price: string;
     notes: string | null;
     provider: Provider;
-    service: Service; // Keep for fallback or just ignore
+    service: Service;
     services: Service[];
     created_at: string;
     updated_at: string;
@@ -89,15 +91,36 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
     const [comment, setComment] = useState('');
     const [reportReason, setReportReason] = useState('');
     const [reportDescription, setReportDescription] = useState('');
+    const [isProcessing, setIsProcessing] = useState(false);
 
     const startTime = new Date(booking.start_time);
     const now = new Date();
     const fiveHoursFromNow = new Date(now.getTime() + 5 * 60 * 60 * 1000);
-    const canCancel = startTime > fiveHoursFromNow;
+    const canCancel = startTime > fiveHoursFromNow && booking.status !== 'cancelled' && booking.status !== 'completed';
+
+    // Calculate total duration from all services
+    const totalDuration = booking.services?.reduce((sum, s) => sum + s.duration_minutes, 0)
+        || booking.service?.duration_minutes
+        || 0;
+
+    // Check if appointment has passed
+    const hasPassed = new Date(booking.end_time) < now;
+    const canMarkComplete = booking.status === 'confirmed' && hasPassed;
 
     const handleCancelBooking = () => {
+        if (!canCancel) return;
+
         if (confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
-            router.post(`/appointments/${booking.id}/cancel`);
+            setIsProcessing(true);
+            router.post(`/appointments/${booking.id}/cancel`, {}, {
+                onSuccess: () => {
+                    toast.success('Booking cancelled successfully');
+                },
+                onError: (errors) => {
+                    toast.error(errors?.message || 'Failed to cancel booking');
+                },
+                onFinish: () => setIsProcessing(false),
+            });
         }
     };
 
@@ -106,16 +129,25 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
     };
 
     const handleComplete = (withReview: boolean) => {
+        setIsProcessing(true);
         router.post(`/appointments/${booking.id}/complete`, {
             rating: withReview ? rating : null,
             comment: withReview ? comment : null,
         }, {
-            onSuccess: () => setIsCompleteModalOpen(false),
+            onSuccess: () => {
+                setIsCompleteModalOpen(false);
+                toast.success(withReview ? 'Thank you for your review!' : 'Appointment marked as completed');
+            },
+            onError: (errors) => {
+                toast.error(errors?.message || 'Failed to complete appointment');
+            },
+            onFinish: () => setIsProcessing(false),
         });
     };
 
     const handleReport = (e: React.FormEvent) => {
         e.preventDefault();
+        setIsProcessing(true);
         router.post(`/appointments/${booking.id}/report`, {
             reason: reportReason,
             description: reportDescription,
@@ -124,7 +156,12 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
                 setIsReportModalOpen(false);
                 setReportReason('');
                 setReportDescription('');
+                toast.success('Report submitted successfully. We will review it shortly.');
             },
+            onError: (errors) => {
+                toast.error(errors?.message || 'Failed to submit report');
+            },
+            onFinish: () => setIsProcessing(false),
         });
     };
 
@@ -136,10 +173,46 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
                 return <XCircle className="w-5 h-5" />;
             case 'pending':
                 return <AlertCircle className="w-5 h-5" />;
-            default:
+            case 'completed':
                 return <CheckCircle2 className="w-5 h-5" />;
+            default:
+                return <AlertCircle className="w-5 h-5" />;
         }
     };
+
+    // Contact info component to reduce duplication
+    const ContactItem = ({
+                             icon: Icon,
+                             label,
+                             value,
+                             href
+                         }: {
+        icon: any;
+        label: string;
+        value: string;
+        href?: string;
+    }) => (
+        <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                <Icon className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground mb-1">{label}</p>
+                {href ? (
+                    <a
+                        href={href}
+                        className="text-sm font-medium hover:text-primary transition-colors break-words"
+                    >
+                        {value}
+                    </a>
+                ) : (
+                    <p className="text-sm font-medium leading-relaxed break-words">
+                        {value}
+                    </p>
+                )}
+            </div>
+        </div>
+    );
 
     return (
         <GuestLayout>
@@ -148,7 +221,6 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
             <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
                 {/* Header */}
                 <div className="mb-8">
-
                     <div className="flex items-start justify-between gap-4">
                         <div>
                             <h1 className="text-3xl font-bold tracking-tight mb-2">Booking Details</h1>
@@ -171,12 +243,11 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
                     <div className="lg:col-span-2 space-y-6">
                         {/* Service & Provider Card */}
                         <Card>
-                            <CardHeader className="">
+                            <CardHeader>
                                 <div className="flex items-start justify-between gap-4">
                                     <div className="flex items-start gap-4 flex-1">
-
                                         <div className="flex-1 min-w-0">
-                                            <h2 className="text-2xl font-bold  truncate">
+                                            <h2 className="text-2xl font-bold truncate">
                                                 {booking.provider.business_profile.business_name || 'Business Name'}
                                             </h2>
                                             <p className="text-muted-foreground mb-2">
@@ -201,19 +272,23 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
                                 <>
                                     <Separator />
                                     <CardContent className="pt-4 px-6">
-                                        <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-4">Booked Services</h3>
+                                        <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-4">
+                                            Booked Services ({booking.services.length})
+                                        </h3>
                                         <div className="space-y-4">
                                             {booking.services.map((service) => (
                                                 <div key={service.id} className="flex items-start justify-between gap-4 p-3 rounded-xl bg-muted/30 border border-muted/50">
                                                     <div className="flex-1">
                                                         <p className="font-bold text-base capitalize">{service.name}</p>
                                                         {service.description && (
-                                                            <p className="text-xs text-muted-foreground mt-1">{service.description}</p>
+                                                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{service.description}</p>
                                                         )}
                                                     </div>
-                                                    <div className="text-right">
+                                                    <div className="text-right flex-shrink-0">
                                                         <p className="font-bold">{formatPrice(service.price)}</p>
-                                                        <p className="text-[10px] text-muted-foreground font-bold mt-1 uppercase">{service.duration_minutes} MINS</p>
+                                                        <p className="text-[10px] text-muted-foreground font-bold mt-1 uppercase">
+                                                            {service.duration_minutes} MINS
+                                                        </p>
                                                     </div>
                                                 </div>
                                             ))}
@@ -274,10 +349,10 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                                             <Timer className="w-4 h-4" />
-                                            <span className="font-medium">Duration</span>
+                                            <span className="font-medium">Total Duration</span>
                                         </div>
                                         <p className="text-lg font-semibold">
-                                            {booking.service?.duration_minutes} minutes
+                                            {totalDuration} minutes
                                         </p>
                                     </div>
 
@@ -303,9 +378,26 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
                                 </CardHeader>
                                 <Separator />
                                 <CardContent className="pt-4">
-                                    <div className="bg-muted/50 rounded-lg p-4 border border-muted">
+                                    <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg p-4">
                                         <p className="text-sm leading-relaxed">{booking.notes}</p>
                                     </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Reviews Section - Only show for completed bookings */}
+                        {booking.status === 'completed' && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Your Review</CardTitle>
+                                </CardHeader>
+                                <Separator />
+                                <CardContent className="pt-4">
+                                    <ReviewSection
+                                        reviews={booking.review || []}
+                                        canReview={!booking.review || booking.review.length === 0}
+                                        pendingAppointmentId={booking.id}
+                                    />
                                 </CardContent>
                             </Card>
                         )}
@@ -317,9 +409,9 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
                         {booking.status !== 'cancelled' && booking.status !== 'completed' && (
                             <Card>
                                 <CardHeader>
-                                    <div className="flex items-center justify-between">
+                                    <div className="flex flex-col gap-2">
                                         <CardTitle className="text-base">Manage Booking</CardTitle>
-                                        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-tight text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">
+                                        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-tight text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200 w-fit">
                                             <AlertCircle className="w-3 h-3" />
                                             5h Cancellation Policy
                                         </div>
@@ -327,102 +419,130 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
                                 </CardHeader>
                                 <Separator />
                                 <CardContent className="pt-4 space-y-3">
-                                    {booking.status === 'confirmed' && (
-                                        <>
-                                            <Dialog open={isCompleteModalOpen} onOpenChange={setIsCompleteModalOpen}>
-                                                <DialogTrigger asChild>
-                                                    <Button
-                                                        variant="default"
-                                                        className="w-full justify-start bg-green-600 hover:bg-green-700"
-                                                    >
-                                                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                                                        Mark as Completed
-                                                    </Button>
-                                                </DialogTrigger>
-                                                <DialogContent className="sm:max-w-[425px]">
-                                                    <DialogHeader>
-                                                        <DialogTitle>Complete Appointment</DialogTitle>
-                                                        <DialogDescription>
-                                                            How was your experience with {booking.provider.name}? Leaving a review helps others!
-                                                        </DialogDescription>
-                                                    </DialogHeader>
-                                                    <div className="grid gap-4 py-4">
-                                                        <div className="flex flex-col gap-2">
-                                                            <Label>Rating</Label>
-                                                            <div className="flex gap-1">
-                                                                {[1, 2, 3, 4, 5].map((star) => (
-                                                                    <button
-                                                                        key={star}
-                                                                        type="button"
-                                                                        onClick={() => setRating(star)}
-                                                                        className="focus:outline-none transition-transform active:scale-95"
-                                                                    >
-                                                                        <Star
-                                                                            className={`size-8 ${
-                                                                                star <= rating
-                                                                                    ? 'fill-yellow-400 text-yellow-400'
-                                                                                    : 'text-muted-foreground/30'
-                                                                            }`}
-                                                                        />
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex flex-col gap-2">
-                                                            <Label htmlFor="comment">Your Review (Optional)</Label>
-                                                            <Textarea
-                                                                id="comment"
-                                                                placeholder="Share your experience..."
-                                                                value={comment}
-                                                                onChange={(e) => setComment(e.target.value)}
-                                                            />
+                                    {/* Mark as Completed - Only if confirmed AND has passed */}
+                                    {canMarkComplete && (
+                                        <Dialog open={isCompleteModalOpen} onOpenChange={setIsCompleteModalOpen}>
+                                            <DialogTrigger asChild>
+                                                <Button
+                                                    variant="default"
+                                                    className="w-full justify-start bg-green-600 hover:bg-green-700"
+                                                    disabled={isProcessing}
+                                                >
+                                                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                                                    Mark as Completed
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="sm:max-w-[425px]">
+                                                <DialogHeader>
+                                                    <DialogTitle>Complete Appointment</DialogTitle>
+                                                    <DialogDescription>
+                                                        How was your experience with {booking.provider.name}? Leaving a review helps others!
+                                                    </DialogDescription>
+                                                </DialogHeader>
+                                                <div className="grid gap-4 py-4">
+                                                    <div className="flex flex-col gap-2">
+                                                        <Label htmlFor="rating">Rating</Label>
+                                                        <div className="flex gap-1" role="group" aria-label="Rating">
+                                                            {[1, 2, 3, 4, 5].map((star) => (
+                                                                <button
+                                                                    key={star}
+                                                                    type="button"
+                                                                    onClick={() => setRating(star)}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter' || e.key === ' ') {
+                                                                            e.preventDefault();
+                                                                            setRating(star);
+                                                                        }
+                                                                    }}
+                                                                    className="focus:outline-none focus:ring-2 focus:ring-primary rounded transition-transform active:scale-95"
+                                                                    aria-label={`Rate ${star} stars`}
+                                                                    aria-pressed={star <= rating}
+                                                                >
+                                                                    <Star
+                                                                        className={`size-8 ${
+                                                                            star <= rating
+                                                                                ? 'fill-yellow-400 text-yellow-400'
+                                                                                : 'text-muted-foreground/30'
+                                                                        }`}
+                                                                    />
+                                                                </button>
+                                                            ))}
                                                         </div>
                                                     </div>
-                                                    <DialogFooter className="flex-col sm:flex-row gap-2">
-                                                        <Button variant="ghost" onClick={() => handleComplete(false)}>
-                                                            Skip & Complete
-                                                        </Button>
-                                                        <Button onClick={() => handleComplete(true)}>
-                                                            Submit & Complete
-                                                        </Button>
-                                                    </DialogFooter>
-                                                </DialogContent>
-                                            </Dialog>
-
-                                            <Button
-                                                variant="outline"
-                                                className="w-full justify-start"
-                                                onClick={handleRescheduleBooking}
-                                            >
-                                                <Calendar className="w-4 h-4 mr-2" />
-                                                Reschedule Appointment
-                                            </Button>
-                                        </>
+                                                    <div className="flex flex-col gap-2">
+                                                        <Label htmlFor="comment">Your Review (Optional)</Label>
+                                                        <Textarea
+                                                            id="comment"
+                                                            placeholder="Share your experience..."
+                                                            value={comment}
+                                                            onChange={(e) => setComment(e.target.value)}
+                                                            rows={4}
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <DialogFooter className="flex-col sm:flex-row gap-2">
+                                                    <Button
+                                                        variant="ghost"
+                                                        onClick={() => handleComplete(false)}
+                                                        disabled={isProcessing}
+                                                    >
+                                                        Skip & Complete
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() => handleComplete(true)}
+                                                        disabled={isProcessing}
+                                                    >
+                                                        {isProcessing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                                        Submit & Complete
+                                                    </Button>
+                                                </DialogFooter>
+                                            </DialogContent>
+                                        </Dialog>
                                     )}
 
-                                    {booking.status !== 'cancelled' && booking.status !== 'completed' && (
-                                        <div className="space-y-2">
-                                            <Button
-                                                variant="outline"
-                                                className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                onClick={handleCancelBooking}
-                                                disabled={!canCancel}
-                                            >
+                                    {/* Reschedule - Only for confirmed bookings */}
+                                    {booking.status === 'confirmed' && (
+                                        <Button
+                                            variant="outline"
+                                            className="w-full justify-start"
+                                            onClick={handleRescheduleBooking}
+                                            disabled={isProcessing}
+                                        >
+                                            <Calendar className="w-4 h-4 mr-2" />
+                                            Reschedule Appointment
+                                        </Button>
+                                    )}
+
+                                    {/* Cancel Booking */}
+                                    <div className="space-y-2">
+                                        <Button
+                                            variant="outline"
+                                            className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            onClick={handleCancelBooking}
+                                            disabled={!canCancel || isProcessing}
+                                        >
+                                            {isProcessing ? (
+                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            ) : (
                                                 <XCircle className="w-4 h-4 mr-2" />
-                                                Cancel Booking
-                                            </Button>
-                                            {!canCancel && (
-                                                <p className="text-[10px] text-destructive font-medium px-2">
-                                                    Cancellation is only available 5+ hours before start time.
-                                                </p>
                                             )}
-                                        </div>
-                                    )}
+                                            Cancel Booking
+                                        </Button>
+                                        {!canCancel && booking.status !== 'cancelled' && booking.status !== 'completed' && (
+                                            <p className="text-[10px] text-destructive font-medium px-2">
+                                                Cancellation is only available 5+ hours before start time.
+                                            </p>
+                                        )}
+                                    </div>
 
                                     {/* Report Issue Button */}
                                     <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
                                         <DialogTrigger asChild>
-                                            <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-foreground">
+                                            <Button
+                                                variant="ghost"
+                                                className="w-full justify-start text-muted-foreground hover:text-foreground"
+                                                disabled={isProcessing}
+                                            >
                                                 <AlertCircle className="w-4 h-4 mr-2" />
                                                 Report an Issue
                                             </Button>
@@ -437,10 +557,10 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
                                                 </DialogHeader>
                                                 <div className="grid gap-4 py-4">
                                                     <div className="flex flex-col gap-2">
-                                                        <Label htmlFor="reason">Reason</Label>
+                                                        <Label htmlFor="reason">Reason *</Label>
                                                         <select
                                                             id="reason"
-                                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                                             value={reportReason}
                                                             onChange={(e) => setReportReason(e.target.value)}
                                                             required
@@ -450,37 +570,43 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
                                                             <option value="poor-service">Poor service quality</option>
                                                             <option value="incorrect-price">Incorrect pricing charged</option>
                                                             <option value="unprofessional">Unprofessional behavior</option>
+                                                            <option value="safety-concern">Safety concern</option>
                                                             <option value="other">Other</option>
                                                         </select>
                                                     </div>
                                                     <div className="flex flex-col gap-2">
-                                                        <Label htmlFor="description">Details</Label>
+                                                        <Label htmlFor="description">Details *</Label>
                                                         <Textarea
                                                             id="description"
-                                                            placeholder="Provide more details..."
+                                                            placeholder="Provide more details about the issue..."
                                                             value={reportDescription}
                                                             onChange={(e) => setReportDescription(e.target.value)}
                                                             required
+                                                            rows={5}
+                                                            minLength={20}
                                                         />
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Minimum 20 characters
+                                                        </p>
                                                     </div>
                                                 </div>
                                                 <DialogFooter>
-                                                    <Button type="submit">Submit Report</Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        onClick={() => setIsReportModalOpen(false)}
+                                                        disabled={isProcessing}
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                    <Button type="submit" disabled={isProcessing}>
+                                                        {isProcessing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                                        Submit Report
+                                                    </Button>
                                                 </DialogFooter>
                                             </form>
                                         </DialogContent>
                                     </Dialog>
-
-                                    {booking.status === 'completed' && (
-                                        <div className="pt-4 border-t">
-                                            <p className="text-sm font-medium mb-4 text-center">How was your experience?</p>
-                                            <ReviewSection
-                                                reviews={booking.review || []}
-                                                canReview={!booking.review || booking.review.length === 0}
-                                                pendingAppointmentId={booking.id}
-                                            />
-                                        </div>
-                                    )}
                                 </CardContent>
                             </Card>
                         )}
@@ -492,43 +618,24 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
                             </CardHeader>
                             <Separator />
                             <CardContent className="pt-4 space-y-4">
-                                {/* Phone */}
                                 {booking.provider?.business_profile?.phone && (
-                                    <div className="flex items-start gap-3">
-                                        <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                                            <Phone className="w-4 h-4" />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-xs text-muted-foreground mb-1">Phone</p>
+                                    <ContactItem
+                                        icon={Phone}
+                                        label="Phone"
+                                        value={booking.provider.business_profile.phone}
+                                        href={`tel:${booking.provider.business_profile.phone}`}
+                                    />
+                                )}
 
-                                           <a href={`tel:${booking.provider.business_profile.phone}`}
-                                            className="text-sm font-medium hover:text-primary transition-colors"
-                                            >
-                                            {booking.provider.business_profile.phone}
-                                        </a>
-                                    </div>
-                                    </div>
-                                    )}
-
-                                {/* Email */}
                                 {booking.provider?.email && (
-                                    <div className="flex items-start gap-3">
-                                        <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                                            <Mail className="w-4 h-4" />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-xs text-muted-foreground mb-1">Email</p>
+                                    <ContactItem
+                                        icon={Mail}
+                                        label="Email"
+                                        value={booking.provider.email}
+                                        href={`mailto:${booking.provider.email}`}
+                                    />
+                                )}
 
-                                          <a href={`mailto:${booking.provider.email}`}
-                                            className="text-sm font-medium hover:text-primary transition-colors break-all"
-                                            >
-                                            {booking.provider.email}
-                                        </a>
-                                    </div>
-                                    </div>
-                                    )}
-
-                                {/* Address */}
                                 {booking.provider?.business_profile?.address && (
                                     <div className="flex items-start gap-3">
                                         <div className="p-2 rounded-lg bg-primary/10 text-primary">
@@ -547,8 +654,6 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
                                 )}
                             </CardContent>
                         </Card>
-
-
 
                         {/* Booking Info Card */}
                         <Card>
