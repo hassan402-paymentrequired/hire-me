@@ -87,7 +87,7 @@ class ScheduleController extends Controller
         // Send email to client
         Mail::to($appointment->client->email)->send(new AppointmentConfirmedMail($appointment));
 
-        return back()->with('success', 'Appointment confirmed successfully.');
+        return to_route('provider.appointments.show', ['id' => $appointment->id])->with('success-toast', 'Appointment confirmed successfully.');
     }
 
     public function cancelAppointment(Request $request, $id)

@@ -50,6 +50,8 @@ export default function AppointmentDetailsPage({ appointment }: { appointment: A
         { title: appointment.client_name, href: '' },
     ];
     const handleConfirm = () => {
+        const confirmed = confirm('Are you sure you want to confirm this appointment?');
+        if (!confirmed) return;
         router.post(`/provider/appointments/${appointment.id}/confirm`);
     };
 
