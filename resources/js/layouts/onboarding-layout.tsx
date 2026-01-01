@@ -3,6 +3,7 @@ import { Head, Link } from '@inertiajs/react';
 import { PropsWithChildren } from 'react';
 import { home } from '@/routes';
 import AppLogoIcon from '@/components/app-logo-icon';
+import ToastNotification from '@/components/ui/toast-notification';
 
 interface Step {
     id: string;
@@ -99,6 +100,7 @@ export default function OnboardingLayout({ title, steps, currentStepId, children
                     </div>
 
                     {children}
+                    <ToastNotification />
                 </main>
             </div>
         </div>

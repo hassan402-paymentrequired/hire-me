@@ -23,7 +23,8 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'provider' => \App\Http\Middleware\BusinessProviderMiddleware::class
+            'provider' => \App\Http\Middleware\BusinessProviderMiddleware::class,
+            'provider.setup' => \App\Http\Middleware\EnsureSetup::class
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

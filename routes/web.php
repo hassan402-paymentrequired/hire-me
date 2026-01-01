@@ -2,37 +2,38 @@
 
 use Illuminate\Support\Facades\Route;
 
+Route::middleware(['provider.setup'])->group(function () {
+    Route::get('/', [\App\Http\Controllers\Guest\GuestController::class, 'welcome'])->name('home');
+    Route::get('/provider/{slug}', [\App\Http\Controllers\Client\MarketplaceController::class, 'show'])->name('provider.show');
+    Route::get('/provider/{slug}/book', [\App\Http\Controllers\Client\MarketplaceController::class, 'booking'])->name('marketplace.booking');
+    Route::get('/appointments/slots', [\App\Http\Controllers\Client\AppointmentController::class, 'availableSlots'])->name('slots');
+});
 
-Route::get('/', [\App\Http\Controllers\Guest\GuestController::class, 'welcome'])->name('home');
-Route::get('/provider/{slug}', [\App\Http\Controllers\Client\MarketplaceController::class, 'show'])->name('provider.show');
-Route::get('/provider/{slug}/book', [\App\Http\Controllers\Client\MarketplaceController::class, 'booking'])->name('marketplace.booking');
-Route::get('/appointments/slots', [\App\Http\Controllers\Client\AppointmentController::class, 'availableSlots'])->name('slots');
-
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
 
     Route::middleware('provider')->group(function () {
 
-    // Provider Business Management
-    Route::prefix('business')->name('business.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Provider\Dashboard\DashboardController::class, 'dashboard'])->name('dashboard');
-        // Hours & Config
-        Route::get('/hours', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'businessHours'])->name('hours');
-        Route::post('/hours', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateBusinessHours'])->name('hours.update');
+        // Provider Business Management
+        Route::prefix('business')->name('business.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Provider\Dashboard\DashboardController::class, 'dashboard'])->name('dashboard');
+            // Hours & Config
+            Route::get('/hours', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'businessHours'])->name('hours');
+            Route::post('/hours', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateBusinessHours'])->name('hours.update');
 
-        // Services
-        Route::get('/services', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'services'])->name('services');
-        Route::post('/services', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'storeService'])->name('services.store');
-        Route::put('/services/{id}', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateService'])->name('services.update');
-        Route::delete('/services/{id}', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'destroyService'])->name('services.destroy');
-        Route::post('/services/{id}/toggle', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'toggleServiceStatus'])->name('services.toggle');
+            // Services
+            Route::get('/services', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'services'])->name('services');
+            Route::post('/services', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'storeService'])->name('services.store');
+            Route::put('/services/{id}', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateService'])->name('services.update');
+            Route::delete('/services/{id}', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'destroyService'])->name('services.destroy');
+            Route::post('/services/{id}/toggle', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'toggleServiceStatus'])->name('services.toggle');
 
-        Route::get('/analytics', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'analytics'])->name('analytics');
-        Route::get('/settings', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'settings'])->name('settings');
-        Route::post('/settings', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateSettings'])->name('settings.update');
-    });
+            Route::get('/analytics', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'analytics'])->name('analytics');
+            Route::get('/settings', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'settings'])->name('settings');
+            Route::post('/settings', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateSettings'])->name('settings.update');
+        });
 
-    Route::prefix('schedule')->group(function () {
-        Route::get('/calender', [App\Http\Controllers\Provider\Schedule\ScheduleController::class, 'calender'])->name('schedule.calender.index');
+        Route::prefix('schedule')->group(function () {
+            Route::get('/calender', [App\Http\Controllers\Provider\Schedule\ScheduleController::class, 'calender'])->name('schedule.calender.index');
         Route::get('/appointments', [App\Http\Controllers\Provider\Schedule\ScheduleController::class, 'appointments'])->name('schedule.appointments.index');
     });
 
