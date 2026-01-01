@@ -31,8 +31,11 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                     <UserInfo user={user} showEmail={true} />
                 </div>
             </DropdownMenuLabel>
+            {user.role === 'provider' && (
+                <>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
+
                 <DropdownMenuItem asChild>
                     <Link
                         className="block w-full"
@@ -46,6 +49,9 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                     </Link>
                 </DropdownMenuItem>
             </DropdownMenuGroup>
+                </>
+            )}
+
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
                 <Link

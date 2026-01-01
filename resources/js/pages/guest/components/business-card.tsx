@@ -24,6 +24,7 @@ const BusinessCard = ({provider}: {provider: Props}) => {
             key={provider.id}
             href={`/provider/${provider.slug}`}
             className="group flex flex-col space-y-1.5 transition-all"
+            prefetch
         >
             {/* Card Image/Placeholder */}
             <div className="relative aspect-[4/3] overflow-hidden rounded bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">

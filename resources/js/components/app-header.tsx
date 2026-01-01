@@ -165,7 +165,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                 {mainNavItems.map((item, index) => (
                                     <NavigationMenuItem
                                         key={index}
-                                        className="relative flex h-full items-center"
+                                        className="relative flex h-full items-center hover:bg-none"
                                     >
                                         <Link
                                             href={item.href}
@@ -177,6 +177,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                                 ) && activeItemStyles,
                                                 'h-9 cursor-pointer px-3 relative',
                                             )}
+                                            prefetch
                                         >
                                             {item.icon && (
                                                 <Icon
@@ -206,6 +207,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                         <TooltipTrigger>
                                 <Link
                                     href={auth.user.role === 'provider' ? business.dashboard() : client.bookings.index()}
+                                    prefetch
                                 >
                                     {auth.user.role === 'provider' ?
                                         (
@@ -267,6 +269,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                             <>
                                 <Link
                                     href={login()}
+                                    prefetch
                                 >
                                     <Button size={"sm"} >Get started</Button>
                                 </Link>

@@ -16,6 +16,7 @@ export default function TextLink({
                 className,
             )}
             {...props}
+            prefetch
         >
             {children}
         </Link>
