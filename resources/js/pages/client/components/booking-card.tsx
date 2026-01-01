@@ -93,7 +93,7 @@ const BookingCard = ({ booking }: { booking: Booking }) => {
     const isPast = startTime < now;
 
     return (
-        <Link href={client.bookings.show(booking.id)}>
+        <Link href={client.bookings.show(booking.id)} prefetch>
             <Card className="hover:shadow-xl p-0 hover:border-primary/50 transition-all duration-300 cursor-pointer group overflow-hidden">
                 {/* Business Banner/Logo Section */}
                 <div className="relative h-40 bg-gradient-to-br from-muted to-muted/50 overflow-hidden">

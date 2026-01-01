@@ -221,6 +221,7 @@ const FavoriteSheet = () => {
                                                     <Link
                                                         href={`/provider/${favorite.business_profile.slug}`}
                                                         className="flex-1"
+                                                        prefetch
                                                     >
                                                         <Button variant="default" size="sm" className="w-full">
                                                             <ExternalLink className="w-3 h-3 mr-2" />
@@ -230,6 +231,7 @@ const FavoriteSheet = () => {
                                                     <Link
                                                         href={`/provider/${favorite.business_profile.slug}/book`}
                                                         className="flex-1"
+                                                        prefetch
                                                     >
                                                         <Button variant="outline" size="sm" className="w-full">
                                                             Book Now

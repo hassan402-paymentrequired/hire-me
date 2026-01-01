@@ -10,6 +10,8 @@ Route::get('/appointments/slots', [\App\Http\Controllers\Client\AppointmentContr
 
 Route::middleware(['auth', 'verified'])->group(function () {
 
+    Route::middleware('provider')->group(function () {
+
     // Provider Business Management
     Route::prefix('business')->name('business.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Provider\Dashboard\DashboardController::class, 'dashboard'])->name('dashboard');
@@ -55,9 +57,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/skip', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'skip'])->name('skip');
     });
 
-    // Marketplace (public)
-    Route::get('/marketplace', [\App\Http\Controllers\Client\MarketplaceController::class, 'index'])->name('marketplace.index');
-
+    });
 
     // Client Appointments
     Route::prefix('appointments')->name('appointments.')->group(function () {
