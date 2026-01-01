@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enum\UserRoleEnum;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,7 +18,10 @@ class BusinessProviderMiddleware
     {
         $user = auth()->user();
 
-        if($user->role !== 'provider') return redirect()->route('home');
+        if($user->role !== UserRoleEnum::PROVIDER)
+        {
+            return redirect()->route('home');
+        }
 
         return $next($request);
     }

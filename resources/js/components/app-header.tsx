@@ -224,7 +224,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                 </Link>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            <p>My appointments</p>
+                                            <p> {auth.user.role === 'provider' ? 'Dashboard' : 'My appointments' }</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Provider\Dashboard;
 
+use App\Enum\UserRoleEnum;
 use App\Http\Controllers\Controller;
 use Inertia\Inertia;
 
@@ -12,15 +13,10 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
-        // Redirect Providers to Onboarding if incomplete
-        if ($user->role === 'provider' && !$user->businessProfile) {
-            return redirect()->route('onboarding.index');
+        if ($user->role === UserRoleEnum::PROVIDER && !$user->businessProfile) {
+            return redirect()->route('onboarding.index')->with('error-toast', 'Please complete your profile before continuing.');
         }
 
-        // Redirect Clients to Home (Marketplace)
-        if ($user->role === 'client') {
-            return redirect('/');
-        }
 
         // Key Stats
         $stats = [
