@@ -11,8 +11,6 @@ import {
     MapPin,
     Share2,
     Heart,
-    Phone,
-    Mail,
     Calendar,
     Award,
     TrendingUp,
@@ -20,9 +18,9 @@ import {
 } from 'lucide-react';
 import { ReviewSection } from '@/components/reviews/review-section';
 import { router, Link } from '@inertiajs/react';
-import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
 import { Badge } from '@/components/ui/badge';
 import ReviewDrawal from '@/pages/marketplace/components/review-drawal';
+import favourite from '@/routes/favourite';
 
 interface Service {
     id: string;
@@ -35,6 +33,7 @@ interface Service {
 interface Provider {
     id: string;
     name: string;
+    businessId: string;
     businessName: string;
     slug: string;
     description: string;
@@ -68,9 +67,9 @@ interface Props {
     services: Service[];
     workHours: WorkHours;
     reviews: Review[];
+    canEdit: boolean;
+    isFavourite: boolean;
 }
-
-const libraries: ("places")[] = ["places"];
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
     const R = 6371;
@@ -89,13 +88,11 @@ function deg2rad(deg: number) {
     return deg * (Math.PI / 180);
 }
 
-export default function ProviderProfile({ provider, services, workHours, reviews }: Props) {
+export default function ProviderProfile({ provider, services, workHours, reviews, canEdit, isFavourite }: Props) {
     const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [distance, setDistance] = useState<number | null>(null);
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isFavorite, setIsFavorite] = useState(false);
-
-    const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
     useEffect(() => {
         if ("geolocation" in navigator) {
@@ -146,15 +143,21 @@ export default function ProviderProfile({ provider, services, workHours, reviews
         }
     };
 
-    // Get current day status
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
     const todayHours = workHours[today];
     const isOpenNow = todayHours?.isOpen;
 
+    const handleFavourite = () => {
+        setIsFavorite(!isFavorite)
+        router.post(favourite.update().url, {
+            id: provider.businessId,
+        })
+    }
+
     return (
         <GuestLayout>
             {/* Hero Section with Image Carousel */}
-            <div className="relative w-full h-[60vh] md:h-[70vh] overflow-hidden">
+            <div className="relative w-full h-[60vh] md:h-[80vh] overflow-hidden">
                 {allImages.length > 0 ? (
                     <>
                         <div className="relative w-full h-full">
@@ -204,12 +207,14 @@ export default function ProviderProfile({ provider, services, workHours, reviews
 
                         {/* Top Actions */}
                         <div className="absolute top-6 right-6 flex gap-2">
+                            {canEdit && (
                             <button
-                                onClick={() => setIsFavorite(!isFavorite)}
+                                onClick={handleFavourite}
                                 className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 text-white flex items-center justify-center transition-all hover:scale-110"
                             >
-                                <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} />
+                                <Heart className={`w-5 h-5 ${isFavourite ? 'fill-red-500 text-red-500' : ''}`} />
                             </button>
+                            )}
                             <button
                                 onClick={handleShare}
                                 className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 text-white flex items-center justify-center transition-all hover:scale-110"

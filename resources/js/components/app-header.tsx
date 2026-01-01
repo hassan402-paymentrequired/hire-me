@@ -25,12 +25,27 @@ import { useInitials } from '@/hooks/use-initials';
 import { cn, isSameUrl, resolveUrl } from '@/lib/utils';
 import { type BreadcrumbItem, type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, CalendarSync, Folder,  Menu, Notebook, Search } from 'lucide-react';
+import {
+    BookOpen,
+    CalendarSync,
+    Folder,
+    Heart,
+    Menu,
+    Notebook,
+    Search,
+} from 'lucide-react';
 import AppLogo from './app-logo';
 import AppLogoIcon from './app-logo-icon';
 import { home, login } from '@/routes';
 import business from '@/routes/business';
 import client from '@/routes/client';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { useLoading } from '@/contexts/loading-context';
 
 const mainNavItems = [
     {
@@ -63,6 +78,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
     const page = usePage<SharedData>();
     const { auth } = page.props;
     const getInitials = useInitials();
+    const {  toggleFavoriteSheet } = useLoading();
     return (
         <>
             <div className="border-b border-sidebar-border/80">
@@ -183,6 +199,11 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
 
                         {auth?.user ? (
                             <div className="flex items-center gap-2">
+                                <TooltipProvider
+                                    delayDuration={0}
+                                >
+                                    <Tooltip>
+                                        <TooltipTrigger>
                                 <Link
                                     href={auth.user.role === 'provider' ? business.dashboard() : client.bookings.index()}
                                 >
@@ -194,12 +215,32 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                         )
                                         :
                                         <Button size="sm" variant="outline" className="shadow-none rounded-full">
-                                            <CalendarSync className="h-5 w-5" />
+                                            <CalendarSync className="size-3" />
                                         </Button>
                                     }
 
                                 </Link>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>My appointments</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
 
+                                <TooltipProvider
+                                    delayDuration={0}
+                                >
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <Button size="sm" onClick={toggleFavoriteSheet} variant="outline" className="shadow-none rounded-full">
+                                                    <Heart className="size-3 opacity-80 group-hover:opacity-100" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Favourite services</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button

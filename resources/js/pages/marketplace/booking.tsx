@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head,  router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
-import { Clock, CheckCircle2, ArrowLeft, Check, Box } from 'lucide-react';
+import { Clock, CheckCircle2,  Check, Box } from 'lucide-react';
 import axios from 'axios';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calendar } from '@/components/ui/calendar';

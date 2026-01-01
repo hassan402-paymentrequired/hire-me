@@ -3,13 +3,12 @@ import { Link } from '@inertiajs/react';
 import {
     Calendar,
     Clock,
-    Timer,
-    ChevronRight,
     Layers,
     ImageIcon,
     MapPin,
     Coins,
-    LucideCalendarClock,
+    CalendarClock,
+    ChevronRight,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -80,13 +79,22 @@ const BookingCard = ({ booking }: { booking: Booking }) => {
     const totalDuration = services.reduce((sum, service) => sum + (service.duration_minutes || 0), 0);
     const primaryService = services[0];
 
-    // Get business logo or banner
-    const businessImage = '/storage/' + booking.provider?.business_profile?.logo_path;
-    const businessName = booking.provider?.business_profile?.business_name ;
-console.log(businessImage)
+    // Fix: Check if logo_path exists before constructing URL
+    const businessImage = booking.provider?.business_profile?.logo_path
+        ? `/storage/${booking.provider.business_profile.logo_path}`
+        : null;
+    const businessName = booking.provider?.business_profile?.business_name || 'Business';
+
+    // Check if appointment is upcoming, past, or today
+    const startTime = new Date(booking.start_time);
+    const now = new Date();
+    const isUpcoming = startTime > now;
+    const isToday = startTime.toDateString() === now.toDateString();
+    const isPast = startTime < now;
+
     return (
         <Link href={client.bookings.show(booking.id)}>
-            <Card className="hover:shadow-xl hover:border p-0 transition-all duration-300 cursor-pointer group overflow-hidden">
+            <Card className="hover:shadow-xl p-0 hover:border-primary/50 transition-all duration-300 cursor-pointer group overflow-hidden">
                 {/* Business Banner/Logo Section */}
                 <div className="relative h-40 bg-gradient-to-br from-muted to-muted/50 overflow-hidden">
                     {businessImage ? (
@@ -94,115 +102,140 @@ console.log(businessImage)
                             src={businessImage}
                             alt={businessName}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            onError={(e) => {
+                                // Fallback if image fails to load
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.parentElement?.querySelector('.fallback-icon')?.classList.remove('hidden');
+                            }}
                         />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
-                            <ImageIcon className="w-16 h-16 text-muted-foreground/30" />
-                        </div>
-                    )}
+                    ) : null}
+
+                    {/* Fallback Icon */}
+                    <div className={`${businessImage ? 'hidden' : ''} fallback-icon w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5`}>
+                        <ImageIcon className="w-16 h-16 text-muted-foreground/30" />
+                    </div>
 
                     {/* Status Badge Overlay */}
                     <div className="absolute -top-1 right-0">
                         <Badge
-                            variant="default"
-                            className={"rounded-none rounded-bl "}
+                            variant={getStatusVariant(booking.status)}
+                            className="rounded-none rounded-bl-lg shadow-lg"
                         >
                             {formatStatus(booking.status)}
                         </Badge>
                     </div>
 
+                    {/* Today/Upcoming Indicator */}
+                    {isToday && booking.status !== 'cancelled' && booking.status !== 'completed' && (
+                        <div className="absolute top-3 left-3">
+                            <Badge className="bg-orange-500 hover:bg-orange-600 shadow-lg animate-pulse">
+                                Today
+                            </Badge>
+                        </div>
+                    )}
 
-
-                    {/* Gradient Overlay for better text readability */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                    {/* Gradient Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
 
                     {/* Business Name Overlay */}
-                    <div className="absolute bottom-3 left-3 right-3">
-                        <h4 className="font-bold text-white text-lg drop-shadow-lg line-clamp-1">
+                    <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-2">
+                        <h4 className="font-bold text-white text-lg drop-shadow-lg line-clamp-1 flex-1">
                             {businessName}
                         </h4>
+                        <ChevronRight className="w-5 h-5 text-white/80 group-hover:translate-x-1 transition-transform flex-shrink-0" />
                     </div>
                 </div>
 
-                <CardContent className="">
+                <CardContent className="p-5">
                     {/* Service Header */}
-                    <div className="mb-4 flex items-center justify-between ">
-                        <div className="flex items-start justify-between gap-2 ">
-                            <h3 className="font-bold text-xl capitalize leading-tight group-hover:text-primary transition-colors line-clamp-2 flex-1">
-                                {primaryService?.name || 'Service'}
-                            </h3>
-                        </div>
+                    <div className="mb-4 flex items-start justify-between gap-3">
+                        <h3 className="font-bold text-lg capitalize leading-tight group-hover:text-primary transition-colors line-clamp-2 flex-1">
+                            {primaryService?.name || 'Service'}
+                        </h3>
 
-
-                            <div className="flex items-center gap-1.5 text-sm text-primary bg-primary/10 w-fit px-3 py-1 rounded-full">
-                                <Layers className="w-4 h-4" />
-                                <span className="font-medium text-xs">
-                                    {services.length} services
+                        {hasMultipleServices && (
+                            <div className="flex items-center gap-1.5 text-primary bg-primary/10 px-3 py-1 rounded-full flex-shrink-0">
+                                <Layers className="w-3.5 h-3.5" />
+                                <span className="font-semibold text-xs">
+                                    {services.length}
                                 </span>
                             </div>
+                        )}
                     </div>
 
                     {/* Date & Time Section */}
-                    <div className="bg-muted/50 grid grid-cols-2 rounded p-4 mb-4 space-y-2.5">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                <Calendar className="w-5 h-5 text-primary" />
-                            </div>
-                            <div className="flex-1">
-                                <p className="text-xs text-muted-foreground">Date</p>
-                                <p className="font-semibold text-sm">
-                                    {formatDate(booking.start_time)}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                <Clock className="w-5 h-5 text-primary" />
-                            </div>
-                            <div className="flex-1">
-                                <p className="text-xs text-muted-foreground">Time</p>
-                                <p className="font-semibold text-sm">
-                                    {formatTime(booking.start_time)}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                <Coins className="w-5 h-5 text-primary" />
-                            </div>
-                            <div className="flex-1">
-                                <p className="text-xs text-muted-foreground">Amount</p>
-                                <p className="font-semibold text-sm">
-                                    {formatPrice(booking.price)}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                <LucideCalendarClock className="w-5 h-5 text-primary" />
-                            </div>
-                            <div className="flex-1">
-                                <p className="text-xs text-muted-foreground">Booked</p>
-                                <p className="font-semibold text-sm">
-                                    {formatDate(booking.created_at)}
-                                </p>
-                            </div>
-                        </div>
-
-                            <div className="flex items-center gap-3 col-span-2">
-                                <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                    <MapPin className="w-5 h-5 text-primary" />
+                    <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                        {/* Date & Time Row */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="flex items-center gap-2">
+                                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                    <Calendar className="w-4 h-4 text-primary" />
                                 </div>
-                                <div className="flex-1">
-                                    <p className="text-xs text-muted-foreground">Address</p>
-                                    <p className="font-semibold text-sm">
-                                       {booking.provider?.business_profile?.address}
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Date</p>
+                                    <p className="font-bold text-sm truncate">
+                                        {formatDate(booking.start_time)}
                                     </p>
                                 </div>
                             </div>
+
+                            <div className="flex items-center gap-2">
+                                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                    <Clock className="w-4 h-4 text-primary" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Time</p>
+                                    <p className="font-bold text-sm truncate">
+                                        {formatTime(booking.start_time)}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Amount & Booked Row */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="flex items-center gap-2">
+                                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                    <Coins className="w-4 h-4 text-primary" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Amount</p>
+                                    <p className="font-bold text-sm truncate text-primary">
+                                        {formatPrice(booking.price)}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                    <CalendarClock className="w-4 h-4 text-primary" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Booked</p>
+                                    <p className="font-bold text-sm truncate">
+                                        {formatDate(booking.created_at)}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Address Row - Full Width */}
+                        {booking.provider?.business_profile?.address && (
+                            <div className="flex items-start gap-2 pt-2 border-t border-muted">
+                                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                    <MapPin className="w-4 h-4 text-primary" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Location</p>
+                                    <p className="font-medium text-xs leading-relaxed line-clamp-2">
+                                        {booking.provider.business_profile.address}
+                                        {booking.provider.business_profile.city && (
+                                            <>, {booking.provider.business_profile.city}</>
+                                        )}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
 

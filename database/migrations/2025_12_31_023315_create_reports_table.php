@@ -12,8 +12,8 @@ return new class extends Migration {
     {
         Schema::create('reports', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('appointment_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete(); // Reporter
+            $table->foreignUlid('appointment_id')->constrained('appointments')->cascadeOnDelete();
+            $table->foreignUlid('user_id')->constrained('users')->cascadeOnDelete(); // Reporter
             $table->string('reason');
             $table->text('description')->nullable();
             $table->timestamps();

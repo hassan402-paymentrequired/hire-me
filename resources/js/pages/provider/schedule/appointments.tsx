@@ -205,7 +205,7 @@ export default function Appointments({ appointments, filters }: AppointmentListP
                                                     </td>
                                                     <td className="p-4 align-middle">
                                                         <div className="flex flex-col gap-1">
-                                                            <span className="font-medium capitalize">{apt.service}</span>
+                                                            <span className="font-medium capitalize">{apt.services[0].name}</span>
                                                             {apt.services?.length > 1 && (
                                                                 <span className="text-[10px] text-muted-foreground bg-muted w-fit px-1.5 py-0.5 rounded font-bold uppercase">
                                                                     +{apt.services.length - 1} More

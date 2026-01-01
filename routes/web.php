@@ -74,6 +74,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/{id}', [\App\Http\Controllers\Client\AppointmentController::class, 'show'])->name('show');
     });
 
+    Route::post('/mark-as-favourite', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'markFavourites'])->name('favourite.update');
+    Route::get('/service/favourite', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'getUserFav'])->name('favourite.index');
+
     // Reviews
     Route::post('/reviews', [\App\Http\Controllers\Guest\ReviewController::class, 'store'])->name('reviews.store');
 

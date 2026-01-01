@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BusinessImage;
 use App\Models\BusinessProfile;
 use App\Models\Category;
+use App\Models\FavouriteBusiness;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -404,5 +405,40 @@ class BusinessController extends Controller
             Log::error("Error updating business settings: {$e->getMessage()}");
             return to_route('business.settings')->with('error-toast', 'Error updating business settings. Please try again.');
         }
+    }
+
+    public function markFavourites(Request $request)
+    {
+        try {
+            $request->validate(['id' => 'required|exists:business_profiles,id']);
+
+            $existing = FavouriteBusiness::query()->where('user_id', auth()->id())->where('business_profile_id', $request->id)->first();
+
+            if(!$existing)
+            {
+                 FavouriteBusiness::query()->create(
+                    [
+                        'user_id' => auth()->id(),
+                        'business_profile_id' => $request->id
+                    ]
+                );
+            }else{
+                $existing->delete();
+            }
+
+            return back()->with('success-toast', 'Business marked as favourite successfully.');
+
+        }catch (\Exception $e) {
+            Log::error("Error marking business as favourite: {$e->getMessage()}");
+            return back()->with('error-toast', 'Error marking business as favourite. Please try again.');
+        }
+    }
+
+    public function getUserFav()
+    {
+        $favourites = FavouriteBusiness::query()->where('user_id', auth()->id())
+            ->with(['businessProfile.user', 'user'])
+            ->get();
+        return response()->json($favourites);
     }
 }

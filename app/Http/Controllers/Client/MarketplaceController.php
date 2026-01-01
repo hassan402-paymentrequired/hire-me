@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
+use App\Models\FavouriteBusiness;
 use App\Models\User;
 use App\Models\BusinessProfile;
 use App\Models\Appointment;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class MarketplaceController extends Controller
@@ -75,18 +77,22 @@ class MarketplaceController extends Controller
             ->get();
 
         $canReview = false;
+        $isFavourite = false;
         if (auth()->check()) {
             $canReview = Appointment::where('client_id', auth()->id())
                 ->where('provider_id', $provider->id)
                 ->where('status', 'completed')
                 ->whereDoesntHave('review')
                 ->exists();
+        $isFavourite = FavouriteBusiness::query()->where('user_id', auth()->id())->where('business_profile_id', $businessProfile->id)->exists();
         }
+
 
         return Inertia::render('marketplace/provider', [
             'provider' => [
                 'id' => $provider->id,
                 'name' => $provider->name,
+                'businessId' => $businessProfile->id,
                 'businessName' => $businessProfile->business_name,
                 'address' => $businessProfile->address,
                 'slug' => $businessProfile->slug,
@@ -121,6 +127,8 @@ class MarketplaceController extends Controller
                 'comment' => $r->comment,
                 'created_at' => $r->created_at->diffForHumans(),
             ]),
+            'canEdit' => Auth::check(),
+            'isFavourite' => $isFavourite
         ]);
     }
 

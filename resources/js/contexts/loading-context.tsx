@@ -5,6 +5,8 @@ interface LoadingContextType {
     message?: string;
     showLoading: (msg?: string) => void;
     hideLoading: () => void;
+    showFavoriteSheet: boolean;
+    toggleFavoriteSheet: () => void;
 }
 
 const LoadingContext = createContext<LoadingContextType | undefined>(undefined);
@@ -12,6 +14,7 @@ const LoadingContext = createContext<LoadingContextType | undefined>(undefined);
 export const LoadingProvider = ({ children }: { children: ReactNode }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState<string | undefined>(undefined);
+    const [showFavoriteSheet, setShowFavoriteSheet] = useState(false);
 
     const showLoading = (msg?: string) => {
         setMessage(msg);
@@ -22,8 +25,11 @@ export const LoadingProvider = ({ children }: { children: ReactNode }) => {
         setMessage(undefined);
     };
 
+    const toggleFavoriteSheet = () => setShowFavoriteSheet(!showFavoriteSheet);
+
+
     return (
-        <LoadingContext.Provider value={{ isLoading, message, showLoading, hideLoading }}>
+        <LoadingContext.Provider value={{ isLoading, message, showLoading, hideLoading, showFavoriteSheet, toggleFavoriteSheet }}>
             {children}
         </LoadingContext.Provider>
     );
