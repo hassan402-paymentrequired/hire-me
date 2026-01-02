@@ -156,17 +156,17 @@ export default function OnboardingLayout({ title, steps, currentStepId, children
                     </div>
 
                     {/* Back Button */}
-                    {currentStepIndex > 0 && (
-                        <div className="mb-6">
-                            <button
-                                onClick={() => window.history.back()}
-                                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
-                            >
-                                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                                Back to previous step
-                            </button>
-                        </div>
-                    )}
+                    {/*{currentStepIndex > 0 && (*/}
+                    {/*    <div className="mb-6">*/}
+                    {/*        <button*/}
+                    {/*            onClick={() => window.history.back()}*/}
+                    {/*            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"*/}
+                    {/*        >*/}
+                    {/*            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />*/}
+                    {/*            Back to previous step*/}
+                    {/*        </button>*/}
+                    {/*    </div>*/}
+                    {/*)}*/}
 
                     {/* Content */}
                     <div className="space-y-6 ">
