@@ -18,6 +18,10 @@ return new class extends Migration {
             $table->unsignedTinyInteger('rating');
             $table->text('comment')->nullable();
             $table->timestamps();
+
+            $table->index('appointment_id');
+            $table->index('user_id');
+            $table->index('provider_id');
         });
     }
 

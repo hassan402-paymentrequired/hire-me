@@ -13,6 +13,9 @@ return new class extends Migration {
         Schema::table('business_profiles', function (Blueprint $table) {
             $table->decimal('latitude', 10, 8)->nullable()->after('category');
             $table->decimal('longitude', 11, 8)->nullable()->after('latitude');
+
+            $table->index( 'longitude');
+            $table->index('latitude');
         });
     }
 

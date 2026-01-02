@@ -20,6 +20,11 @@ return new class extends Migration {
             $table->string('client_name')->nullable(); // Fallback if regular user not registered
             $table->string('client_email')->nullable();
             $table->timestamps();
+
+            $table->index('provider_id');
+            $table->index('client_id');
+            $table->index('service_id');
+            $table->index('status');
         });
     }
 

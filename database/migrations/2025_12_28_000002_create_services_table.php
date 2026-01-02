@@ -16,6 +16,10 @@ return new class extends Migration {
             $table->decimal('price', 10, 2);
             $table->string('status')->default('active'); // active, inactive
             $table->timestamps();
+
+            $table->index('provider_id');
+            $table->index('name');
+            $table->index('status');
         });
     }
 

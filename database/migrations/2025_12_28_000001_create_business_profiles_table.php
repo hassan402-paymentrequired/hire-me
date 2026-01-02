@@ -16,6 +16,10 @@ return new class extends Migration {
             $table->string('logo_path')->nullable();
             $table->json('settings')->nullable();
             $table->timestamps();
+
+            $table->index('user_id');
+            $table->index('slug');
+            $table->index('business_name');
         });
     }
 
