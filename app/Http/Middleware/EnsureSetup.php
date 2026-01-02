@@ -30,7 +30,7 @@ class EnsureSetup
 
         // Single, authoritative check
         if (!$user->businessProfile) {
-            return redirect()->route('onboarding.index');
+            return redirect()->route('onboarding.index')->with('error-toast', 'Please complete your profile before continuing.');
         }
 
 

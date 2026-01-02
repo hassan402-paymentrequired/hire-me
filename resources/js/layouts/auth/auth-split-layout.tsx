@@ -38,12 +38,13 @@ export default function AuthSplitLayout({
                 {/* Logo and Brand */}
                 <Link
                     href={home()}
-                    className="relative z-20 flex items-center text-lg font-semibold group"
+                    className="relative z-20 flex items-center text-lg font-semibold group tracking-widest font-['Sekuya']"
+                    prefetch
                 >
                     <div className="p-2 rounded-lg bg-white/10 backdrop-blur-sm mr-3 group-hover:bg-white/20 transition-colors">
                         <AppLogoIcon className="size-6 fill-current text-white" />
                     </div>
-                    {name}
+                    Clockra
                 </Link>
 
                 {/* Main Content */}

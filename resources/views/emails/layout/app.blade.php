@@ -10,7 +10,7 @@
     <meta name="format-detection" content="telephone=no">
     <title>@yield('title', config('app.name'))</title>
     <!--[if (mso 16)]><style type="text/css">     a {text-decoration: none;}     </style><![endif]--><!--[if gte mso 9]><style>sup { font-size: 100% !important; }</style><![endif]--><!--[if gte mso 9]><xml> <o:OfficeDocumentSettings> <o:AllowPNG></o:AllowPNG> <o:PixelsPerInch>96</o:PixelsPerInch> </o:OfficeDocumentSettings> </xml>
-    <![endif]--><!--[if !mso]><!-- -->
+    <![endif]--><!--[if !mso]>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@500&display=swap"><!--<![endif]-->
     <style type="text/css">
         .rollover:hover .rollover-first {
