@@ -110,7 +110,7 @@ export default function AuthSplitLayout({
                         className="relative z-20 flex items-center justify-center gap-2 lg:hidden"
                     >
                         <AppLogoIcon className="h-10 fill-current text-primary sm:h-12" />
-                        <span className="text-xl font-semibold">{name}</span>
+                        <span className="text-xl font-semibold tracking-widest font-['Sekuya']">{name}</span>
                     </Link>
 
                     {/* Title and Description */}
