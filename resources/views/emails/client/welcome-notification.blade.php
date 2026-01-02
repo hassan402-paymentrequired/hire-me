@@ -10,5 +10,5 @@
     <p>You can now browse and book services from top-rated professionals in your area.</p>
 @endsection
 
-@section('cta_url', route('marketplace.index'))
+@section('cta_url', route('home'))
 @section('cta_text', 'Browse Marketplace')

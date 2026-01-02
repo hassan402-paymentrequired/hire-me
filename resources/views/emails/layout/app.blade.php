@@ -1,332 +1,279 @@
-<!DOCTYPE html
-    PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html dir="ltr" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office" lang="en">
-
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="x-apple-disable-message-reformatting">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="format-detection" content="telephone=no">
-    <title>@yield('title', config('app.name'))</title>
-    <!--[if (mso 16)]><style type="text/css">     a {text-decoration: none;}     </style><![endif]--><!--[if gte mso 9]><style>sup { font-size: 100% !important; }</style><![endif]--><!--[if gte mso 9]><xml> <o:OfficeDocumentSettings> <o:AllowPNG></o:AllowPNG> <o:PixelsPerInch>96</o:PixelsPerInch> </o:OfficeDocumentSettings> </xml>
-    <![endif]--><!--[if !mso]>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@500&display=swap"><!--<![endif]-->
+    <meta name="x-apple-disable-message-reformatting">
+    <title>@yield('title', 'Clockra')</title>
+    <!--[if mso]>
     <style type="text/css">
-        .rollover:hover .rollover-first {
-            max-height: 0px !important;
-            display: none !important;
+        body, table, td, a { font-family: Arial, sans-serif !important; }
+    </style>
+    <![endif]-->
+    <style type="text/css">
+        /* Reset styles */
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            -webkit-text-size-adjust: 100% !important;
+            -ms-text-size-adjust: 100% !important;
+            -webkit-font-smoothing: antialiased !important;
         }
-
-        .rollover:hover .rollover-second {
-            max-height: none !important;
-            display: block !important;
-        }
-
-        .rollover span {
-            font-size: 0px;
-        }
-
-        u+.body img~div div {
-            display: none;
-        }
-
-        #outlook a {
-            padding: 0;
-        }
-
-        span.MsoHyperlink,
-        span.MsoHyperlinkFollowed {
-            color: inherit;
-            mso-style-priority: 99;
-        }
-
-        a.es-button {
-            mso-style-priority: 100 !important;
+        img {
+            border: 0 !important;
+            outline: none !important;
             text-decoration: none !important;
+            -ms-interpolation-mode: bicubic !important;
+        }
+        table {
+            border-collapse: collapse !important;
+            mso-table-lspace: 0pt !important;
+            mso-table-rspace: 0pt !important;
+        }
+        td, a, span {
+            border-collapse: collapse;
+            mso-line-height-rule: exactly;
+        }
+        .button:hover {
+            background-color: #1D4ED8 !important;
         }
 
-        a[x-apple-data-detectors],
-        #MessageViewBody a {
-            color: inherit !important;
-            text-decoration: none !important;
-            font-size: inherit !important;
-            font-family: inherit !important;
-            font-weight: inherit !important;
-            line-height: inherit !important;
-        }
-
-        .es-desk-hidden {
-            display: none;
-            float: left;
-            overflow: hidden;
-            width: 0;
-            max-height: 0;
-            line-height: 0;
-            mso-hide: all;
-        }
-
-        .es-button-border:hover {
-            border-color: #42d159 #42d159 #42d159 #42d159 !important;
-            background: #E43D4E !important;
-        }
-
-        .es-button-border:hover a.es-button,
-        .es-button-border:hover button.es-button {
-            background: #E43D4E !important;
-        }
-
-        td .es-button-border-9762:hover {
-            background: #e43d4e !important;
-        }
-
-        td .es-button-border:hover a.es-button-9699 {
-            background: #e43d4e !important;
-            border-color: #e43d4e !important;
-        }
-
-        @media only screen and (max-width:600px) {
-            .es-m-p0r {
-                padding-right: 0px !important
-            }
-
-            .es-m-p20b {
-                padding-bottom: 20px !important
-            }
-
-            .es-m-p20r {
-                padding-right: 20px !important
-            }
-
-            .es-m-p20l {
-                padding-left: 20px !important
-            }
-
-            .es-m-txt-c,
-            .es-m-txt-c h1,
-            .es-m-txt-c h2,
-            .es-m-txt-c h3,
-            .es-m-txt-c h4,
-            .es-m-txt-c h5,
-            .es-m-txt-c h6 {
-                text-align: center !important
-            }
-
-            .es-adaptive table,
-            .es-left,
-            .es-right {
-                width: 100% !important
-            }
-
-            .es-content table,
-            .es-header table,
-            .es-footer table,
-            .es-content,
-            .es-footer,
-            .es-header {
+        /* Responsive */
+        @media only screen and (max-width: 600px) {
+            .wrapper {
                 width: 100% !important;
-                max-width: 600px !important
+                min-width: 100% !important;
             }
-
-            .adapt-img {
+            .responsive-td {
                 width: 100% !important;
-                height: auto !important
-            }
-
-            .es-adapt-td {
                 display: block !important;
-                width: 100% !important
             }
-
-            .es-mobile-hidden,
-            .es-hidden {
-                display: none !important
+            .mobile-padding {
+                padding: 20px !important;
+            }
+            .mobile-center {
+                text-align: center !important;
+            }
+            h1 {
+                font-size: 28px !important;
+                line-height: 36px !important;
+            }
+            .mobile-hide {
+                display: none !important;
             }
         }
     </style>
 </head>
+<body style="margin: 0; padding: 0; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+<!-- Wrapper -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #F8FAFC;">
+    <tr>
+        <td align="center" style="padding: 40px 20px;">
 
-<body class="body"
-    style="width:100%;height:100%;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;padding:0;Margin:0">
-    <div dir="ltr" class="es-wrapper-color" lang="en" style="background-color:#FFFFFF">
-        <table width="100%" cellspacing="0" cellpadding="0" class="es-wrapper" role="none"
-            style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;border-spacing:0px;padding:0;Margin:0;width:100%;height:100%;background-repeat:repeat;background-position:center top;background-color:#FFFFFF">
-            <tr>
-                <td valign="top" style="padding:0;Margin:0">
-                    <!-- Header -->
-                    <table cellspacing="0" align="center" cellpadding="0" class="es-header" role="none"
-                        style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;border-spacing:0px;width:100%;table-layout:fixed !important;background-color:#F3E2D8;background-repeat:repeat;background-position:center top">
-                        <tr>
-                            <td align="center" style="padding:0;Margin:0">
-                                <table cellpadding="0" cellspacing="0" bgcolor="#ffffff" align="center"
-                                    class="es-header-body" role="none"
-                                    style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;border-spacing:0px;background-color:#F3E2D8;width:600px">
-                                    <tr>
-                                        <td align="left"
-                                            style="padding:0;Margin:0;padding-top:20px;padding-right:20px;padding-left:20px">
-                                            <table cellpadding="0" cellspacing="0" width="100%" role="none"
-                                                style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;border-spacing:0px">
-                                                <tr>
-                                                    <td valign="top" align="center" class="es-m-p0r"
-                                                        style="padding:0;Margin:0;width:560px">
-                                                        <table cellpadding="0" cellspacing="0" width="100%"
-                                                            role="presentation"
-                                                            style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;border-spacing:0px">
-                                                            <tr>
-                                                                <td align="center"
-                                                                    style="padding:0;Margin:0;font-size:0px">
-                                                                    <a href="{{ config('app.url') }}" target="_blank"
-                                                                        style="mso-line-height-rule:exactly;text-decoration:underline;color:#563993;font-size:14px">
-                                                                        <img src="{{ asset('images/logo.png') }}"
-                                                                            alt="Logo" height="50" title="Logo"
-                                                                            style="display:block;font-size:16px;border:0;outline:none;text-decoration:none;margin:0"
-                                                                            onerror="this.src='https://euljdbk.stripocdn.email/content/guids/CABINET_0d71d49034ae71e9fc9c6ea70677feb4/images/group_90.png'">
-                                                                    </a>
-                                                                </td>
-                                                            </tr>
-                                                        </table>
-                                                    </td>
-                                                </tr>
-                                            </table>
-                                        </td>
-                                    </tr>
-                                </table>
-                            </td>
-                        </tr>
-                    </table>
+            <!-- Main Container -->
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="wrapper" style="background-color: #FFFFFF; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
 
-                    <!-- Content -->
-                    <table cellspacing="0" cellpadding="0" align="center" class="es-content" role="none"
-                        style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;border-spacing:0px;width:100%;table-layout:fixed !important">
-                        <tr>
-                            <td bgcolor="#F3E2D8" align="center" style="padding:0;Margin:0;background-color:#f3e2d8">
-                                <table cellpadding="0" bgcolor="#F3E2D8" align="center" cellspacing="0"
-                                    class="es-content-body"
-                                    style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;border-spacing:0px;background-color:#f3e2d8;width:600px"
-                                    role="none">
-                                    <tr>
-                                        <td align="left"
-                                            style="Margin:0;padding-right:20px;padding-left:20px;padding-top:40px;padding-bottom:40px">
-                                            <table cellpadding="0" width="100%" cellspacing="0" role="none"
-                                                style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;border-spacing:0px">
-                                                <tr>
-                                                    <td valign="top" align="center" class="es-m-p0r es-m-p20b"
-                                                        style="padding:0;Margin:0;width:560px">
-                                                        <table width="100%" cellspacing="0" cellpadding="0"
-                                                            role="presentation"
-                                                            style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;border-spacing:0px">
-                                                            @hasSection('hero_image')
-                                                                <tr>
-                                                                    <td align="center"
-                                                                        style="padding:0;Margin:0;font-size:0px">
-                                                                        <img src="@yield('hero_image')" alt="" width="515"
-                                                                            class="adapt-img"
-                                                                            style="display:block;font-size:16px;border:0;outline:none;text-decoration:none;margin:0"
-                                                                            height="331">
-                                                                    </td>
-                                                                </tr>
-                                                            @endif
-                                                            <tr>
-                                                                <td align="center"
-                                                                    style="padding:0;Margin:0;padding-top:30px">
-                                                                    <h1
-                                                                        style="Margin:0;font-family:Prompt, sans-serif;mso-line-height-rule:exactly;letter-spacing:0;font-size:36px;font-style:normal;font-weight:bold;line-height:43.2px;color:#2E175A">
-                                                                        @yield('heading')</h1>
-                                                                </td>
-                                                            </tr>
-                                                            <tr>
-                                                                <td align="center"
-                                                                    style="padding:0;Margin:0;padding-top:20px;padding-bottom:20px">
-                                                                    <div
-                                                                        style="Margin:0;mso-line-height-rule:exactly;font-family:helvetica, 'helvetica neue', arial, verdana, sans-serif;line-height:24px;letter-spacing:0;color:#563993;font-size:16px">
-                                                                        @yield('content')
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                            @hasSection('cta_url')
-                                                                <tr>
-                                                                    <td align="center" style="padding:0;Margin:0">
-                                                                        <span class="es-button-border"
-                                                                            style="border-style:solid;border-color:#2CB543;background:#BC2919;border-width:0px;display:inline-block;border-radius:1px;width:auto">
-                                                                            <a href="@yield('cta_url')" target="_blank"
-                                                                                class="es-button"
-                                                                                style="mso-style-priority:100 !important;text-decoration:none !important;mso-line-height-rule:exactly;color:#FFFFFF;font-size:18px;padding:15px 30px 15px 30px;display:inline-block;background:#BC2919;border-radius:1px;font-family:Prompt, sans-serif;font-weight:normal;font-style:normal;line-height:21.6px;width:auto;text-align:center;letter-spacing:0;">
-                                                                                @yield('cta_text', 'View Booking')
-                                                                            </a>
-                                                                        </span>
-                                                                    </td>
-                                                                </tr>
-                                                            @endif
-                                                        </table>
-                                                    </td>
-                                                </tr>
-                                            </table>
-                                        </td>
-                                    </tr>
-                                </table>
-                            </td>
-                        </tr>
-                    </table>
+                <!-- Header -->
+                <tr>
+                    <td style="background: linear-gradient(135deg, #2563EB 0%, #1E40AF 100%); padding: 30px 40px;" class="mobile-padding">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr>
+                                <td>
+                                    <!-- Logo -->
+                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                                        <tr>
+                                            <td style="vertical-align: middle; padding-right: 8px;">
+                                                <!-- Logo Icon Box -->
+                                                <div style="width: 40px; height: 40px; background-color: rgba(255, 255, 255, 0.2); border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;">
+                                                    <!-- SVG Logo Icon -->
+                                                    <svg width="24" height="24" viewBox="0 0 40 42" xmlns="http://www.w3.org/2000/svg" style="fill: #FFFFFF; display: block;">
+                                                        <path fill-rule="evenodd" clip-rule="evenodd" d="M17.2 5.63325L8.6 0.855469L0 5.63325V32.1434L16.2 41.1434L32.4 32.1434V23.699L40 19.4767V9.85547L31.4 5.07769L22.8 9.85547V18.2999L17.2 21.411V5.63325ZM38 18.2999L32.4 21.411V15.2545L38 12.1434V18.2999ZM36.9409 10.4439L31.4 13.5221L25.8591 10.4439L31.4 7.36561L36.9409 10.4439ZM24.8 18.2999V12.1434L30.4 15.2545V21.411L24.8 18.2999ZM23.8 20.0323L29.3409 23.1105L16.2 30.411L10.6591 27.3328L23.8 20.0323ZM7.6 27.9212L15.2 32.1434V38.2999L2 30.9666V7.92116L7.6 11.0323V27.9212ZM8.6 9.29991L3.05913 6.22165L8.6 3.14339L14.1409 6.22165L8.6 9.29991ZM30.4 24.8101L17.2 32.1434V38.2999L30.4 30.9666V24.8101ZM9.6 11.0323L15.2 7.92117V22.5221L9.6 25.6333V11.0323Z"/>
+                                                    </svg>
+                                                </div>
+                                            </td>
+                                            <td style="vertical-align: middle;">
+                                                <span style="font-size: 22px; font-weight: 600; color: #FFFFFF; letter-spacing: 0.05em; font-family: 'Sekuya', -apple-system, BlinkMacSystemFont, sans-serif;">Clockra</span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
 
-                    <!-- Footer -->
-                    <table cellpadding="0" cellspacing="0" align="center" class="es-footer" role="none"
-                        style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;border-spacing:0px;width:100%;table-layout:fixed !important;background-color:transparent;background-repeat:repeat;background-position:center top">
-                        <tr>
-                            <td align="center" style="padding:0;Margin:0">
-                                <table cellpadding="0" cellspacing="0" bgcolor="#ffffff" align="center"
-                                    class="es-footer-body" role="none"
-                                    style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;border-spacing:0px;background-color:#FFFFFF;width:600px">
-                                    <tr>
-                                        <td align="left"
-                                            style="Margin:0;padding-right:20px;padding-left:20px;padding-top:40px;padding-bottom:40px">
-                                            <table width="100%" cellpadding="0" cellspacing="0" role="none"
-                                                style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;border-spacing:0px">
-                                                <tr>
-                                                    <td align="left" style="padding:0;Margin:0;width:560px">
-                                                        <table width="100%" cellpadding="0" cellspacing="0"
-                                                            role="presentation"
-                                                            style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;border-spacing:0px">
-                                                            <tr>
-                                                                <td align="center"
-                                                                    style="padding:0;Margin:0;padding-top:5px;padding-bottom:5px">
-                                                                    <h2
-                                                                        style="Margin:0;font-family:Prompt, sans-serif;mso-line-height-rule:exactly;letter-spacing:0;font-size:24px;font-style:normal;font-weight:bold;line-height:28.8px;color:#2E175A">
-                                                                        Questions?</h2>
-                                                                </td>
-                                                            </tr>
-                                                            <tr>
-                                                                <td align="center"
-                                                                    style="padding:0;Margin:0;padding-bottom:20px;padding-top:10px">
-                                                                    <p
-                                                                        style="Margin:0;mso-line-height-rule:exactly;font-family:helvetica, 'helvetica neue', arial, verdana, sans-serif;line-height:21px;letter-spacing:0;color:#563993;font-size:14px">
-                                                                        Reach out to us if you have any questions about
-                                                                        your booking.
-                                                                    </p>
-                                                                </td>
-                                                            </tr>
-                                                            <tr>
-                                                                <td align="center"
-                                                                    style="padding:0;Margin:0;padding-bottom:20px;padding-top:10px;font-size:0px">
-                                                                    <img src="{{ asset('images/logo.png') }}" alt="Logo"
-                                                                        height="40" title="Logo"
-                                                                        style="display:block;font-size:16px;border:0;outline:none;text-decoration:none;margin:0"
-                                                                        onerror="this.src='https://euljdbk.stripocdn.email/content/guids/CABINET_0d71d49034ae71e9fc9c6ea70677feb4/images/group_90.png'">
-                                                                </td>
-                                                            </tr>
-                                                        </table>
-                                                    </td>
-                                                </tr>
-                                            </table>
-                                        </td>
-                                    </tr>
-                                </table>
-                            </td>
-                        </tr>
-                    </table>
-                </td>
-            </tr>
-        </table>
-    </div>
+                <!-- Content -->
+                <tr>
+                    <td style="padding: 50px 40px;" class="mobile-padding">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+
+                            @hasSection('hero_image')
+                                <!-- Hero Image -->
+                                <tr>
+                                    <td align="center" style="padding-bottom: 30px;">
+                                        <img src="@yield('hero_image')" alt="" width="520" style="max-width: 100%; height: auto; display: block; border-radius: 8px;">
+                                    </td>
+                                </tr>
+                            @endif
+
+                            <!-- Heading -->
+                            <tr>
+                                <td>
+                                    <h1 style="margin: 0 0 20px 0; font-size: 32px; line-height: 40px; font-weight: 700; color: #1E293B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                                        @yield('heading')
+                                    </h1>
+                                </td>
+                            </tr>
+
+                            <!-- Content -->
+                            <tr>
+                                <td style="padding-bottom: 30px;">
+                                    <div style="font-size: 16px; line-height: 26px; color: #475569; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                                        @yield('content')
+                                    </div>
+                                </td>
+                            </tr>
+
+                            @hasSection('cta_url')
+                                <!-- CTA Button -->
+                                <tr>
+                                    <td align="center" style="padding: 20px 0;">
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                                            <tr>
+                                                <td align="center" style="border-radius: 8px; background: linear-gradient(135deg, #2563EB 0%, #1E40AF 100%);">
+                                                    <a href="@yield('cta_url')" target="_blank" class="button" style="display: inline-block; padding: 16px 32px; font-size: 16px; font-weight: 600; color: #FFFFFF; text-decoration: none; border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                                                        @yield('cta_text', 'View Details')
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            @endif
+
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Divider -->
+                <tr>
+                    <td style="padding: 0 40px;">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr>
+                                <td style="border-top: 1px solid #E2E8F0;"></td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                    <td style="padding: 40px;" class="mobile-padding">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+
+                            <!-- Questions Section -->
+                            <tr>
+                                <td align="center" style="padding-bottom: 20px;">
+                                    <h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 600; color: #1E293B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                                        Questions?
+                                    </h2>
+                                    <p style="margin: 0; font-size: 14px; line-height: 22px; color: #64748B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                                        We're here to help. Reach out anytime!
+                                    </p>
+                                </td>
+                            </tr>
+
+                            <!-- Contact Links -->
+                            <tr>
+                                <td align="center" style="padding-bottom: 30px;">
+                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                                        <tr>
+                                            <td style="padding: 0 10px;">
+                                                <a href="mailto:support@clockra.com" style="font-size: 14px; color: #2563EB; text-decoration: none; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                                                    support@clockra.com
+                                                </a>
+                                            </td>
+                                            <td style="padding: 0 10px; color: #CBD5E1;">|</td>
+                                            <td style="padding: 0 10px;">
+                                                <a href="{{ config('app.url') }}/help" target="_blank" style="font-size: 14px; color: #2563EB; text-decoration: none; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                                                    Help Center
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+
+                            <!-- Social Links -->
+                            <tr>
+                                <td align="center" style="padding-bottom: 30px;">
+                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                                        <tr>
+                                            <td style="padding: 0 8px;">
+                                                <a href="#" target="_blank" style="display: inline-block; width: 36px; height: 36px; background-color: #F1F5F9; border-radius: 50%; text-align: center; line-height: 36px;">
+                                                    <span style="color: #64748B; font-size: 16px;">𝕏</span>
+                                                </a>
+                                            </td>
+                                            <td style="padding: 0 8px;">
+                                                <a href="#" target="_blank" style="display: inline-block; width: 36px; height: 36px; background-color: #F1F5F9; border-radius: 50%; text-align: center; line-height: 36px;">
+                                                    <span style="color: #64748B; font-size: 16px;">in</span>
+                                                </a>
+                                            </td>
+                                            <td style="padding: 0 8px;">
+                                                <a href="#" target="_blank" style="display: inline-block; width: 36px; height: 36px; background-color: #F1F5F9; border-radius: 50%; text-align: center; line-height: 36px;">
+                                                    <span style="color: #64748B; font-size: 16px;">f</span>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+
+                            <!-- Small Logo -->
+                            <tr>
+                                <td align="center" style="padding-bottom: 20px;">
+                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                                        <tr>
+                                            <td style="vertical-align: middle; padding-right: 6px;">
+                                                <div style="width: 28px; height: 28px; background-color: #2563EB; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;">
+                                                    <svg width="16" height="16" viewBox="0 0 40 42" xmlns="http://www.w3.org/2000/svg" style="fill: #FFFFFF; display: block;">
+                                                        <path fill-rule="evenodd" clip-rule="evenodd" d="M17.2 5.63325L8.6 0.855469L0 5.63325V32.1434L16.2 41.1434L32.4 32.1434V23.699L40 19.4767V9.85547L31.4 5.07769L22.8 9.85547V18.2999L17.2 21.411V5.63325ZM38 18.2999L32.4 21.411V15.2545L38 12.1434V18.2999ZM36.9409 10.4439L31.4 13.5221L25.8591 10.4439L31.4 7.36561L36.9409 10.4439ZM24.8 18.2999V12.1434L30.4 15.2545V21.411L24.8 18.2999ZM23.8 20.0323L29.3409 23.1105L16.2 30.411L10.6591 27.3328L23.8 20.0323ZM7.6 27.9212L15.2 32.1434V38.2999L2 30.9666V7.92116L7.6 11.0323V27.9212ZM8.6 9.29991L3.05913 6.22165L8.6 3.14339L14.1409 6.22165L8.6 9.29991ZM30.4 24.8101L17.2 32.1434V38.2999L30.4 30.9666V24.8101ZM9.6 11.0323L15.2 7.92117V22.5221L9.6 25.6333V11.0323Z"/>
+                                                    </svg>
+                                                </div>
+                                            </td>
+                                            <td style="vertical-align: middle;">
+                                                <span style="font-size: 14px; font-weight: 600; color: #64748B; letter-spacing: 0.05em;">Clockra</span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+
+                            <!-- Copyright & Links -->
+                            <tr>
+                                <td align="center">
+                                    <p style="margin: 0 0 8px 0; font-size: 12px; line-height: 18px; color: #94A3B8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                                        © 2026 Clockra. All rights reserved.
+                                    </p>
+                                    <p style="margin: 0; font-size: 12px; line-height: 18px; color: #94A3B8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                                        <a href="{{ config('app.url') }}/privacy" target="_blank" style="color: #94A3B8; text-decoration: underline;">Privacy Policy</a> •
+                                        <a href="{{ config('app.url') }}/terms" target="_blank" style="color: #94A3B8; text-decoration: underline;">Terms of Service</a> •
+                                        <a href="{{ config('app.url') }}/unsubscribe" target="_blank" style="color: #94A3B8; text-decoration: underline;">Unsubscribe</a>
+                                    </p>
+                                </td>
+                            </tr>
+
+                        </table>
+                    </td>
+                </tr>
+
+            </table>
+            <!-- End Main Container -->
+
+        </td>
+    </tr>
+</table>
+<!-- End Wrapper -->
 </body>
-
 </html>
