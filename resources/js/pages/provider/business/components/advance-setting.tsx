@@ -4,7 +4,24 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertTriangle, Settings } from 'lucide-react';
 
-const AdvancedSettings = ({ settings, onSettingsChange }) => {
+interface AdvancedSettingsProps {
+    settings: {
+        bufferTime?: string;
+        advanceBooking?: string;
+        minNotice?: string | number;
+        maxDaily?: string | number;
+        allowSameDay?: boolean;
+        enableWaitlist?: boolean;
+        autoConfirm?: boolean;
+        sendReminders?: boolean;
+        max_bookings_per_week?: string | number;
+        max_bookings_per_month?: string | number;
+        [key: string]: any;
+    };
+    onSettingsChange: (field: string, value: any) => void;
+}
+
+const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps) => {
     const bufferOptions = [
         { value: '0', label: 'No buffer' },
         { value: '5', label: '5 minutes' },
@@ -35,19 +52,20 @@ const AdvancedSettings = ({ settings, onSettingsChange }) => {
                 </div>
             </div>
             <div className="space-y-6">
+                {/* General Time Settings */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Select
                         label="Buffer Time Between Appointments"
                         description="Time gap between consecutive bookings"
                         options={bufferOptions}
-                        value={settings?.bufferTime}
+                        value={settings?.bufferTime || '0'}
                         onChange={(value) => onSettingsChange('bufferTime', value)}
                     />
                     <Select
                         label="Advance Booking Window"
                         description="How far ahead customers can book"
                         options={advanceBookingOptions}
-                        value={settings?.advanceBooking}
+                        value={settings?.advanceBooking || '30'}
                         onChange={(value) => onSettingsChange('advanceBooking', value)}
                     />
                 </div>
@@ -57,64 +75,70 @@ const AdvancedSettings = ({ settings, onSettingsChange }) => {
                         label="Minimum Notice Period (hours)"
                         type="number"
                         description="Minimum time before appointment"
-                        value={settings?.minNotice}
-                        onChange={(e) => onSettingsChange('minNotice', e?.target?.value)}
+                        value={settings?.minNotice ?? ''}
+                        onChange={(e) => onSettingsChange('minNotice', e.target.value)}
                         min="0"
                     />
                     <Input
                         label="Maximum Daily Appointments"
                         type="number"
                         description="Limit bookings per day"
-                        value={settings?.maxDaily}
-                        onChange={(e) => onSettingsChange('maxDaily', e?.target?.value)}
+                        value={settings?.maxDaily ?? ''}
+                        onChange={(e) => onSettingsChange('maxDaily', e.target.value)}
                         min="1"
                     />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                        label="Max Bookings per Week (per user)"
-                        type="number"
-                        description="How many times a client can book you in a week"
-                        value={settings?.max_bookings_per_week}
-                        onChange={(e) => onSettingsChange('max_bookings_per_week', e?.target?.value)}
-                        min="1"
-                    />
-                    <Input
-                        label="Max Bookings per Month (per user)"
-                        type="number"
-                        description="How many times a client can book you in a month"
-                        value={settings?.max_bookings_per_month}
-                        onChange={(e) => onSettingsChange('max_bookings_per_month', e?.target?.value)}
-                        min="1"
-                    />
+                {/* Booking Frequency Limits */}
+                <div className="pt-4 border-t border-border space-y-4">
+                     <h4 className="text-sm font-medium text-foreground">Booking Frequency Limits</h4>
+                     <p className="text-xs text-muted-foreground -mt-3">Restrict how often the same client can book you.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Input
+                            label="Max Bookings per Week (per user)"
+                            type="number"
+                            description="Validation: per client, per week"
+                            value={settings?.max_bookings_per_week ?? ''}
+                            onChange={(e) => onSettingsChange('max_bookings_per_week', e.target.value)}
+                            min="1"
+                        />
+                        <Input
+                            label="Max Bookings per Month (per user)"
+                            type="number"
+                            description="Validation: per client, per month"
+                            value={settings?.max_bookings_per_month ?? ''}
+                            onChange={(e) => onSettingsChange('max_bookings_per_month', e.target.value)}
+                            min="1"
+                        />
+                    </div>
                 </div>
 
+                {/* Preferences */}
                 <div className="pt-4 border-t border-border space-y-4">
                     <h4 className="text-sm font-medium text-foreground">Booking Preferences</h4>
                     <div className="space-y-3">
                         <Checkbox
                             label="Allow same-day bookings"
                             description="Customers can book appointments for today"
-                            checked={settings?.allowSameDay}
+                            checked={settings?.allowSameDay ?? false}
                             onChange={(e) => onSettingsChange('allowSameDay', e?.target?.checked)}
                         />
                         <Checkbox
                             label="Enable waitlist for fully booked slots"
                             description="Let customers join waitlist when no slots available"
-                            checked={settings?.enableWaitlist}
+                            checked={settings?.enableWaitlist ?? false}
                             onChange={(e) => onSettingsChange('enableWaitlist', e?.target?.checked)}
                         />
                         <Checkbox
                             label="Auto-confirm bookings"
                             description="Automatically confirm without manual approval"
-                            checked={settings?.autoConfirm}
+                            checked={settings?.autoConfirm ?? false}
                             onChange={(e) => onSettingsChange('autoConfirm', e?.target?.checked)}
                         />
                         <Checkbox
                             label="Send reminder notifications"
                             description="Email/SMS reminders before appointments"
-                            checked={settings?.sendReminders}
+                            checked={settings?.sendReminders ?? false}
                             onChange={(e) => onSettingsChange('sendReminders', e?.target?.checked)}
                         />
                     </div>

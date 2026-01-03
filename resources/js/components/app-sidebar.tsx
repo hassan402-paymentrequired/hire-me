@@ -73,7 +73,7 @@ const mainNavItems: NavItem[] = [
             {
                 title: 'Settings',
                 href: business.settings(),
-                icon: Settings,
+                icon: Notebook,
             }
         ]
     }
