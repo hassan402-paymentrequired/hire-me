@@ -119,7 +119,8 @@ export default function Welcome({ providers, categories, filters }: Props) {
                     router.get('/', {
                         ...filters,
                         lat: position.coords.latitude,
-                        lng: position.coords.longitude
+                        lng: position.coords.longitude,
+                        sort: 'distance_asc' // Auto-sort by distance
                     }, {
                         preserveState: true,
                         replace: true,
@@ -134,6 +135,13 @@ export default function Welcome({ providers, categories, filters }: Props) {
             console.error("Geolocation is not supported by this browser.");
         }
     };
+
+    useEffect(() => {
+        // Auto-detect location if not already filtered by location
+        if (!filters.lat || !filters.lng) {
+            requestLocation();
+        }
+    }, [filters.lat, filters.lng]);
 
     return (
         <>
