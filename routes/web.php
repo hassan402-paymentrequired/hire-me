@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['provider.setup'])->group(function () {
+Route::middleware([ 'provider.setup'])->group(function () {
     Route::get('/', [\App\Http\Controllers\Guest\GuestController::class, 'welcome'])->name('home');
     Route::get('/provider/{slug}', [\App\Http\Controllers\Client\MarketplaceController::class, 'show'])->name('provider.show');
     Route::get('/provider/{slug}/book', [\App\Http\Controllers\Client\MarketplaceController::class, 'booking'])->name('marketplace.booking');

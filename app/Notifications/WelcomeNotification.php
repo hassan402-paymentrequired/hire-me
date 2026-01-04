@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Enum\UserRoleEnum;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -34,7 +35,7 @@ class WelcomeNotification extends Notification implements ShouldQueue
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $mail = $notifiable->role === 'provider' ? 'emails.provider.welcome-notification' : 'emails.client.welcome-notification';
+        $mail = $notifiable->role === UserRoleEnum::PROVIDER ? 'emails.provider.welcome-notification' : 'emails.client.welcome-notification';
         return (new MailMessage)
             ->subject('Welcome to '. config('app.name'))
             ->markdown($mail, ['user' => $notifiable]);

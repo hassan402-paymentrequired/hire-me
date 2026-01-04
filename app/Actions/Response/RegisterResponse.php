@@ -16,7 +16,8 @@ class RegisterResponse implements RegisterResponseContract
         if ($request->user()->role === UserRoleEnum::PROVIDER) {
             return redirect()->route('onboarding.index');
         }
-
-        return redirect()->route('home')->with('success-toast', 'Your account has been created!');
+        
+        return redirect()->intended(route('home'))
+            ->with('success-toast', 'Registration successful!');
     }
 }

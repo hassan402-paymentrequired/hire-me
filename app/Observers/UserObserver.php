@@ -10,20 +10,16 @@ class UserObserver
     /**
      * Handle the User "created" event.
      */
-    public function created(User $user): void
-    {
-        
-    }
+    public function created(User $user): void {}
 
     /**
      * Handle the User "updated" event.
      */
     public function updated(User $user): void
     {
-        if ($user->email_verified_at !== null)
-        {
+        if ($user->email_verified_at !== null) {
 
-        $user->notify(new WelcomeNotification());
+            $user->notify(new WelcomeNotification());
         }
     }
 

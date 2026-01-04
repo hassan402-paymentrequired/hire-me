@@ -6,11 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="x-apple-disable-message-reformatting">
     <title>@yield('title', 'Clockra')</title>
-    <!--[if mso]>
-    <style type="text/css">
-        body, table, td, a { font-family: Arial, sans-serif !important; }
-    </style>
-    <![endif]-->
+
     <style type="text/css">
         /* Reset styles */
         body {
@@ -36,7 +32,8 @@
             mso-line-height-rule: exactly;
         }
         .button:hover {
-            background-color: #1D4ED8 !important;
+            background: linear-gradient(135deg, #1E40AF 0%, #1E3A8A 100%) !important;
+            box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3) !important;
         }
 
         /* Responsive */
@@ -56,44 +53,55 @@
                 text-align: center !important;
             }
             h1 {
-                font-size: 28px !important;
-                line-height: 36px !important;
+                font-size: 26px !important;
+                line-height: 34px !important;
             }
             .mobile-hide {
                 display: none !important;
             }
+            .social-icon {
+                width: 32px !important;
+                height: 32px !important;
+                line-height: 32px !important;
+            }
         }
     </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+<body style="margin: 0; padding: 0; background-color: #F1F5F9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+
+<!-- Preheader (hidden) -->
+<div style="display: none; max-height: 0px; overflow: hidden;">
+    @yield('preheader', 'Welcome to Clockra - Your time management solution')
+</div>
+
 <!-- Wrapper -->
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #F8FAFC;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #F1F5F9;">
     <tr>
         <td align="center" style="padding: 40px 20px;">
 
             <!-- Main Container -->
-            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="wrapper" style="background-color: #FFFFFF; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="wrapper" style="background-color: #FFFFFF; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);">
 
-                <!-- Header -->
+                <!-- Header with Pattern -->
                 <tr>
-                    <td style="background: linear-gradient(135deg, #2563EB 0%, #1E40AF 100%); padding: 30px 40px;" class="mobile-padding">
-                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                    <td style="background: linear-gradient(135deg, #2563EB 0%, #1E40AF 100%); padding: 40px 40px 50px 40px; position: relative;" class="mobile-padding">
+                        <!-- Decorative circles -->
+                        <div style="position: absolute; top: -20px; right: -20px; width: 120px; height: 120px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
+                        <div style="position: absolute; bottom: -30px; left: -30px; width: 150px; height: 150px; background: rgba(255,255,255,0.08); border-radius: 50%;"></div>
+                        
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="position: relative; z-index: 1;">
                             <tr>
                                 <td>
                                     <!-- Logo -->
                                     <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                                         <tr>
-                                            <td style="vertical-align: middle; padding-right: 8px;">
-                                                <!-- Logo Icon Box -->
-                                                <div style="width: 40px; height: 40px; background-color: rgba(255, 255, 255, 0.2); border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;">
-                                                    <!-- SVG Logo Icon -->
-                                                    <svg width="24" height="24" viewBox="0 0 40 42" xmlns="http://www.w3.org/2000/svg" style="fill: #FFFFFF; display: block;">
-                                                        <path fill-rule="evenodd" clip-rule="evenodd" d="M17.2 5.63325L8.6 0.855469L0 5.63325V32.1434L16.2 41.1434L32.4 32.1434V23.699L40 19.4767V9.85547L31.4 5.07769L22.8 9.85547V18.2999L17.2 21.411V5.63325ZM38 18.2999L32.4 21.411V15.2545L38 12.1434V18.2999ZM36.9409 10.4439L31.4 13.5221L25.8591 10.4439L31.4 7.36561L36.9409 10.4439ZM24.8 18.2999V12.1434L30.4 15.2545V21.411L24.8 18.2999ZM23.8 20.0323L29.3409 23.1105L16.2 30.411L10.6591 27.3328L23.8 20.0323ZM7.6 27.9212L15.2 32.1434V38.2999L2 30.9666V7.92116L7.6 11.0323V27.9212ZM8.6 9.29991L3.05913 6.22165L8.6 3.14339L14.1409 6.22165L8.6 9.29991ZM30.4 24.8101L17.2 32.1434V38.2999L30.4 30.9666V24.8101ZM9.6 11.0323L15.2 7.92117V22.5221L9.6 25.6333V11.0323Z"/>
-                                                    </svg>
+                                            <td style="vertical-align: middle; padding-right: 12px;">
+                                                <div style="width: 48px; height: 48px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px);">
+                                                   <img src="{{ config('app.url') }}/logo.png" alt="Clockra Logo" style="width: 32px; height: 32px; object-fit: contain; display: block;"/>
                                                 </div>
                                             </td>
                                             <td style="vertical-align: middle;">
-                                                <span style="font-size: 22px; font-weight: 600; color: #FFFFFF; letter-spacing: 0.05em; font-family: 'Sekuya', -apple-system, BlinkMacSystemFont, sans-serif;">Clockra</span>
+                                                <span style="font-size: 26px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.02em; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">Clockra</span>
                                             </td>
                                         </tr>
                                     </table>
@@ -105,14 +113,14 @@
 
                 <!-- Content -->
                 <tr>
-                    <td style="padding: 50px 40px;" class="mobile-padding">
+                    <td style="padding: 50px 40px 40px 40px;" class="mobile-padding">
                         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
 
                             @hasSection('hero_image')
-                                <!-- Hero Image -->
+                                <!-- Hero Image with rounded corners and shadow -->
                                 <tr>
-                                    <td align="center" style="padding-bottom: 30px;">
-                                        <img src="@yield('hero_image')" alt="" width="520" style="max-width: 100%; height: auto; display: block; border-radius: 8px;">
+                                    <td align="center" style="padding-bottom: 35px;">
+                                        <img src="@yield('hero_image')" alt="" width="520" style="max-width: 100%; height: auto; display: block; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
                                     </td>
                                 </tr>
                             @endif
@@ -120,30 +128,37 @@
                             <!-- Heading -->
                             <tr>
                                 <td>
-                                    <h1 style="margin: 0 0 20px 0; font-size: 32px; line-height: 40px; font-weight: 700; color: #1E293B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                                    <h1 style="margin: 0 0 16px 0; font-size: 32px; line-height: 42px; font-weight: 700; color: #0F172A; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; letter-spacing: -0.02em;">
                                         @yield('heading')
                                     </h1>
                                 </td>
                             </tr>
 
+                            <!-- Accent Line -->
+                            <tr>
+                                <td style="padding-bottom: 24px;">
+                                    <div style="width: 60px; height: 4px; background: linear-gradient(90deg, #2563EB 0%, #60A5FA 100%); border-radius: 2px;"></div>
+                                </td>
+                            </tr>
+
                             <!-- Content -->
                             <tr>
-                                <td style="padding-bottom: 30px;">
-                                    <div style="font-size: 16px; line-height: 26px; color: #475569; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                                <td style="padding-bottom: 35px;">
+                                    <div style="font-size: 16px; line-height: 28px; color: #475569; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                                         @yield('content')
                                     </div>
                                 </td>
                             </tr>
 
                             @hasSection('cta_url')
-                                <!-- CTA Button -->
+                                <!-- CTA Button with enhanced styling -->
                                 <tr>
-                                    <td align="center" style="padding: 20px 0;">
+                                    <td align="center" style="padding: 25px 0 10px 0;">
                                         <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                                             <tr>
-                                                <td align="center" style="border-radius: 8px; background: linear-gradient(135deg, #2563EB 0%, #1E40AF 100%);">
-                                                    <a href="@yield('cta_url')" target="_blank" class="button" style="display: inline-block; padding: 16px 32px; font-size: 16px; font-weight: 600; color: #FFFFFF; text-decoration: none; border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                                                        @yield('cta_text', 'View Details')
+                                                <td align="center" style="border-radius: 10px; background: linear-gradient(135deg, #2563EB 0%, #1E40AF 100%); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);">
+                                                    <a href="@yield('cta_url')" target="_blank" class="button" style="display: inline-block; padding: 18px 40px; font-size: 16px; font-weight: 600; color: #FFFFFF; text-decoration: none; border-radius: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; letter-spacing: 0.01em;">
+                                                        @yield('cta_text', 'Get Started')
                                                     </a>
                                                 </td>
                                             </tr>
@@ -156,12 +171,14 @@
                     </td>
                 </tr>
 
-                <!-- Divider -->
+                <!-- Decorative Divider -->
                 <tr>
                     <td style="padding: 0 40px;">
                         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                             <tr>
-                                <td style="border-top: 1px solid #E2E8F0;"></td>
+                                <td style="padding: 10px 0;">
+                                    <div style="height: 1px; background: linear-gradient(90deg, transparent 0%, #E2E8F0 20%, #E2E8F0 80%, transparent 100%);"></div>
+                                </td>
                             </tr>
                         </table>
                     </td>
@@ -169,18 +186,24 @@
 
                 <!-- Footer -->
                 <tr>
-                    <td style="padding: 40px;" class="mobile-padding">
+                    <td style="padding: 45px 40px 40px 40px; background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);" class="mobile-padding">
                         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
 
                             <!-- Questions Section -->
                             <tr>
-                                <td align="center" style="padding-bottom: 20px;">
-                                    <h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 600; color: #1E293B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                                        Questions?
-                                    </h2>
-                                    <p style="margin: 0; font-size: 14px; line-height: 22px; color: #64748B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                                        We're here to help. Reach out anytime!
-                                    </p>
+                                <td align="center" style="padding-bottom: 25px;">
+                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" >
+                                        <tr>
+                                            <td align="center">
+                                                <h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 700; color: #1E293B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                                                    Need Help?
+                                                </h2>
+                                                <p style="margin: 0; font-size: 14px; line-height: 22px; color: #64748B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                                                    Our support team is ready to assist you
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    </table>
                                 </td>
                             </tr>
 
@@ -189,15 +212,15 @@
                                 <td align="center" style="padding-bottom: 30px;">
                                     <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                                         <tr>
-                                            <td style="padding: 0 10px;">
-                                                <a href="mailto:support@clockra.com" style="font-size: 14px; color: #2563EB; text-decoration: none; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                                                    support@clockra.com
+                                            <td style="padding: 0 15px;">
+                                                <a href="mailto:support@clockra.com" style="font-size: 14px; color: #2563EB; text-decoration: none; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                                                    📧 support@clockra.com
                                                 </a>
                                             </td>
-                                            <td style="padding: 0 10px; color: #CBD5E1;">|</td>
-                                            <td style="padding: 0 10px;">
-                                                <a href="{{ config('app.url') }}/help" target="_blank" style="font-size: 14px; color: #2563EB; text-decoration: none; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                                                    Help Center
+                                            <td style="padding: 0 10px; color: #CBD5E1; font-weight: 300;">|</td>
+                                            <td style="padding: 0 15px;">
+                                                <a href="{{ config('app.url') }}/help" target="_blank" style="font-size: 14px; color: #2563EB; text-decoration: none; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                                                    📚 Help Center
                                                 </a>
                                             </td>
                                         </tr>
@@ -210,19 +233,19 @@
                                 <td align="center" style="padding-bottom: 30px;">
                                     <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                                         <tr>
-                                            <td style="padding: 0 8px;">
-                                                <a href="#" target="_blank" style="display: inline-block; width: 36px; height: 36px; background-color: #F1F5F9; border-radius: 50%; text-align: center; line-height: 36px;">
-                                                    <span style="color: #64748B; font-size: 16px;">𝕏</span>
+                                            <td style="padding: 0 6px;">
+                                                <a href="#" target="_blank" class="social-icon" style="display: inline-block; width: 40px; height: 40px; background: linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%); border-radius: 50%; text-align: center; line-height: 40px; text-decoration: none; transition: all 0.3s;">
+                                                    <span style="color: #475569; font-size: 18px; font-weight: 600;">𝕏</span>
                                                 </a>
                                             </td>
-                                            <td style="padding: 0 8px;">
-                                                <a href="#" target="_blank" style="display: inline-block; width: 36px; height: 36px; background-color: #F1F5F9; border-radius: 50%; text-align: center; line-height: 36px;">
-                                                    <span style="color: #64748B; font-size: 16px;">in</span>
+                                            <td style="padding: 0 6px;">
+                                                <a href="#" target="_blank" class="social-icon" style="display: inline-block; width: 40px; height: 40px; background: linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%); border-radius: 50%; text-align: center; line-height: 40px; text-decoration: none;">
+                                                    <span style="color: #475569; font-size: 18px; font-weight: 600;">in</span>
                                                 </a>
                                             </td>
-                                            <td style="padding: 0 8px;">
-                                                <a href="#" target="_blank" style="display: inline-block; width: 36px; height: 36px; background-color: #F1F5F9; border-radius: 50%; text-align: center; line-height: 36px;">
-                                                    <span style="color: #64748B; font-size: 16px;">f</span>
+                                            <td style="padding: 0 6px;">
+                                                <a href="#" target="_blank" class="social-icon" style="display: inline-block; width: 40px; height: 40px; background: linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%); border-radius: 50%; text-align: center; line-height: 40px; text-decoration: none;">
+                                                    <span style="color: #475569; font-size: 18px; font-weight: 600;">f</span>
                                                 </a>
                                             </td>
                                         </tr>
@@ -235,15 +258,13 @@
                                 <td align="center" style="padding-bottom: 20px;">
                                     <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                                         <tr>
-                                            <td style="vertical-align: middle; padding-right: 6px;">
-                                                <div style="width: 28px; height: 28px; background-color: #2563EB; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;">
-                                                    <svg width="16" height="16" viewBox="0 0 40 42" xmlns="http://www.w3.org/2000/svg" style="fill: #FFFFFF; display: block;">
-                                                        <path fill-rule="evenodd" clip-rule="evenodd" d="M17.2 5.63325L8.6 0.855469L0 5.63325V32.1434L16.2 41.1434L32.4 32.1434V23.699L40 19.4767V9.85547L31.4 5.07769L22.8 9.85547V18.2999L17.2 21.411V5.63325ZM38 18.2999L32.4 21.411V15.2545L38 12.1434V18.2999ZM36.9409 10.4439L31.4 13.5221L25.8591 10.4439L31.4 7.36561L36.9409 10.4439ZM24.8 18.2999V12.1434L30.4 15.2545V21.411L24.8 18.2999ZM23.8 20.0323L29.3409 23.1105L16.2 30.411L10.6591 27.3328L23.8 20.0323ZM7.6 27.9212L15.2 32.1434V38.2999L2 30.9666V7.92116L7.6 11.0323V27.9212ZM8.6 9.29991L3.05913 6.22165L8.6 3.14339L14.1409 6.22165L8.6 9.29991ZM30.4 24.8101L17.2 32.1434V38.2999L30.4 30.9666V24.8101ZM9.6 11.0323L15.2 7.92117V22.5221L9.6 25.6333V11.0323Z"/>
-                                                    </svg>
+                                            <td style="vertical-align: middle; padding-right: 8px;">
+                                                <div style="width: 32px; height: 32px; opacity: 0.7;">
+                                                   <img src="{{ config('app.url') }}/logo.png" alt="Clockra" style="width: 100%; height: 100%; object-fit: contain; display: block;"/>
                                                 </div>
                                             </td>
                                             <td style="vertical-align: middle;">
-                                                <span style="font-size: 14px; font-weight: 600; color: #64748B; letter-spacing: 0.05em;">Clockra</span>
+                                                <span style="font-size: 16px; font-weight: 700; color: #64748B; letter-spacing: 0.02em;">Clockra</span>
                                             </td>
                                         </tr>
                                     </table>
@@ -253,13 +274,15 @@
                             <!-- Copyright & Links -->
                             <tr>
                                 <td align="center">
-                                    <p style="margin: 0 0 8px 0; font-size: 12px; line-height: 18px; color: #94A3B8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                                    <p style="margin: 0 0 12px 0; font-size: 13px; line-height: 20px; color: #94A3B8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                                         © 2026 Clockra. All rights reserved.
                                     </p>
-                                    <p style="margin: 0; font-size: 12px; line-height: 18px; color: #94A3B8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                                        <a href="{{ config('app.url') }}/privacy" target="_blank" style="color: #94A3B8; text-decoration: underline;">Privacy Policy</a> •
-                                        <a href="{{ config('app.url') }}/terms" target="_blank" style="color: #94A3B8; text-decoration: underline;">Terms of Service</a> •
-                                        <a href="{{ config('app.url') }}/unsubscribe" target="_blank" style="color: #94A3B8; text-decoration: underline;">Unsubscribe</a>
+                                    <p style="margin: 0; font-size: 12px; line-height: 20px; color: #94A3B8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                                        <a href="{{ config('app.url') }}/privacy" target="_blank" style="color: #64748B; text-decoration: none; font-weight: 500;">Privacy Policy</a>
+                                        <span style="margin: 0 8px; color: #CBD5E1;">•</span>
+                                        <a href="{{ config('app.url') }}/terms" target="_blank" style="color: #64748B; text-decoration: none; font-weight: 500;">Terms of Service</a>
+                                        <span style="margin: 0 8px; color: #CBD5E1;">•</span>
+                                        <a href="{{ config('app.url') }}/unsubscribe" target="_blank" style="color: #64748B; text-decoration: none; font-weight: 500;">Unsubscribe</a>
                                     </p>
                                 </td>
                             </tr>
