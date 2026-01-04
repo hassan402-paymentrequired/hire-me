@@ -69,12 +69,12 @@
         <title inertia>{{ $pageTitle ?? config('app.name') . ' - Smart Booking Management for Service Professionals' }}</title>
 
         {{-- Favicons (multiple sizes for all devices) --}}
-        <link rel="icon" href="/favicon.ico" sizes="48x48">
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-        <link rel="manifest" href="/site.webmanifest">
+        <link rel="icon" href="/logo/favicon.ico" sizes="48x48">
+        <link rel="icon" href="/logo/favicon.svg" type="image/svg+xml">
+        <link rel="apple-touch-icon" sizes="180x180" href="/logo/apple-touch-icon.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="/logo/favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="/logo/favicon-16x16.png">
+        <link rel="manifest" href="/logo/site.webmanifest">
         <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#3b82f6">
 
         {{-- Preconnect for performance --}}

@@ -8,7 +8,7 @@ export default function AppLogo() {
             </div>
             <div className="ml-1 grid flex-1 text-left text-sm hidden md:block ">
                 <span className="mb-0.5 truncate leading-tight font-semibold font-['Sekuya'] tracking-widest">
-                    Clockra
+                    Clockra.
                 </span>
             </div>
         </div>
