@@ -12,7 +12,7 @@ class UserObserver
      */
     public function created(User $user): void
     {
-        $user->notify(new WelcomeNotification());
+        
     }
 
     /**
@@ -20,7 +20,11 @@ class UserObserver
      */
     public function updated(User $user): void
     {
-        //
+        if ($user->email_verified_at !== null)
+        {
+
+        $user->notify(new WelcomeNotification());
+        }
     }
 
     /**

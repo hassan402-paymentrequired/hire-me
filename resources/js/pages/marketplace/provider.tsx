@@ -401,7 +401,7 @@ export default function ProviderProfile({ provider, services, workHours, reviews
                         </section>
 
                         {/* Reviews Section */}
-                        <section className="pb-20 md:pb-0">
+                        <section className="pb-10 md:pb-0">
                             <div className="flex items-center justify-between mb-6">
                                 <div className="flex items-center gap-3">
                                     <div className="h-1 w-6 sm:w-12 bg-primary rounded" />
@@ -414,7 +414,7 @@ export default function ProviderProfile({ provider, services, workHours, reviews
                     </div>
 
                     {/* Right Sidebar */}
-                    <aside className="space-y-6">
+                    <aside className="space-y-6 mb-24 sm:mb-0">
                         {/* Working Hours Card */}
                         <div className="bg-card border rounded-lg p-6 sticky top-6 ">
                             <div className="flex items-center gap-3 mb-6">
