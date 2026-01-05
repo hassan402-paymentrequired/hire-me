@@ -7,10 +7,14 @@ use App\Notifications\WelcomeNotification;
 
 class UserObserver
 {
-    /**
-     * Handle the User "created" event.
-     */
-    public function created(User $user): void {}
+    public function created(User $user): void
+    {
+        // Generate unique referral code
+        if (!$user->referral_code) {
+            $user->referral_code = strtoupper(substr(md5(uniqid($user->id, true)), 0, 8));
+            $user->saveQuietly(); // Avoid infinite loop
+        }
+    }
 
     /**
      * Handle the User "updated" event.

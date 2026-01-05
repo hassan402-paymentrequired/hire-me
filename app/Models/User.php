@@ -30,6 +30,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'role',
+        'referral_code',
+        'referred_by',
     ];
 
     public function isProvider(): bool
@@ -82,5 +84,20 @@ class User extends Authenticatable implements MustVerifyEmail
     public function appointmentsAsClient()
     {
         return $this->hasMany(Appointment::class, 'client_id');
+    }
+
+    public function referrer()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'referred_by');
+    }
+
+    public function referredUsers()
+    {
+        return $this->hasMany(\App\Models\User::class, 'referred_by');
+    }
+
+    public function referralEarnings()
+    {
+        return $this->hasMany(\App\Models\ReferralEarning::class, 'user_id');
     }
 }
