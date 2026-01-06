@@ -26,7 +26,7 @@ import { cn, isSameUrl, resolveUrl } from '@/lib/utils';
 import { type BreadcrumbItem, type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import {
-    BookOpen,
+    BookOpen, Briefcase,
     CalendarSync,
     Folder,
     Heart,
@@ -46,12 +46,21 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useLoading } from '@/contexts/loading-context';
+import jobs from '@/routes/jobs';
 
 const mainNavItems = [
     {
         title: 'Marketplace',
         href: home().url,
     },
+    {
+        title: 'My Jobs',
+        href: jobs.index().url,
+    },
+    {
+        title: 'Post a Job',
+        href: jobs.post().url,
+    }
 ];
 
 const rightNavItems = [

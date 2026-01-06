@@ -9,10 +9,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import AppLayout from '@/layouts/app-layout';
+import AppLayout from '@/layouts/guest-layout';
 import { Head, useForm } from '@inertiajs/react';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import jobs from '@/routes/jobs';
 
 export default function PostJob({ categories }: { categories: any[] }) {
     const [step, setStep] = useState(1);
@@ -54,7 +55,7 @@ export default function PostJob({ categories }: { categories: any[] }) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('jobs.store'), {
+        post(jobs.store().url, {
             onSuccess: () => {
                 // Redirect handled by backend
             },
@@ -67,7 +68,7 @@ export default function PostJob({ categories }: { categories: any[] }) {
     return (
         <AppLayout>
             <Head title="Post a Job" />
-            <div className="mx-auto max-w-3xl px-4 py-12">
+            <div className="mx-auto max-w-5xl px-4 py-12 w-full">
                 <Card>
                     <CardHeader>
                         <CardTitle>Post a Job</CardTitle>

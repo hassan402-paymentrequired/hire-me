@@ -1,10 +1,10 @@
-import AppLayout from "@/layouts/app-layout";
+import AppLayout from "@/layouts/guest-layout";
 import { Head, router } from "@inertiajs/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { MapPin, DollarSign, Calendar, User } from "lucide-react";
+import jo from '@/routes/jobs';
 
 interface Job {
     id: number;
@@ -35,20 +35,20 @@ interface Bid {
     };
 }
 
-export default function MyJobs({ jobs }: { jobs: Job[] }) {
+export default function MyJobs({ jobs  }: { jobs: Job[] }) {
     const acceptBid = (bidId: number) => {
         if (confirm("Accept this bid? This will close the job and notify the provider.")) {
-            router.post(route("jobs.bids.accept", bidId));
+            router.post(jo.bids.accept(bidId).url);
         }
     };
 
     return (
         <AppLayout>
             <Head title="My Jobs" />
-            <div className="max-w-6xl mx-auto py-12 px-4">
+            <div className="max-w-7xl mx-auto py-12 px-4 w-full">
                 <div className="flex justify-between items-center mb-8">
                     <h1 className="text-3xl font-bold">My Jobs</h1>
-                    <Button onClick={() => router.visit(route("jobs.post"))}>
+                    <Button onClick={() => router.visit(jo.post().url)}>
                         Post New Job
                     </Button>
                 </div>
@@ -59,7 +59,7 @@ export default function MyJobs({ jobs }: { jobs: Job[] }) {
                             <p className="text-muted-foreground mb-4">
                                 You haven't posted any jobs yet.
                             </p>
-                            <Button onClick={() => router.visit(route("jobs.post"))}>
+                            <Button onClick={() => router.visit(jo.post().url)}>
                                 Post Your First Job
                             </Button>
                         </CardContent>

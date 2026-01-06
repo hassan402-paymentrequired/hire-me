@@ -23,12 +23,12 @@ export default function BookingList({ bookings = [] }: { bookings?: Booking[] })
         <GuestLayout>
             <Head title="My Appointments" />
 
-            <div className="p-4 sm:max-w-6xl mx-auto">
+            <div className="p-4 sm:max-w-7xl mx-auto w-full ">
                 <div className="flex items-center justify-between mb-8">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">My Bookings</h1>
                         <p className="text-muted-foreground mt-1">
-                            Manage and track your appointments Usein one place.
+                            Manage and track your appointments in one place.
                         </p>
                     </div>
                 </div>
@@ -40,7 +40,7 @@ export default function BookingList({ bookings = [] }: { bookings?: Booking[] })
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-20 border rounded-lg bg-muted/10 border-dashed">
+                    <div className="text-center py-20">
                         <div className="flex justify-center mb-4">
                             <div className="p-3 bg-muted rounded-full">
                                 <Calendar className="w-8 h-8 text-muted-foreground" />
