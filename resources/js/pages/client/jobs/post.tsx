@@ -77,7 +77,7 @@ export default function PostJob({ categories }: { categories: any[] }) {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {/* Progress Indicator */}
+                        {/* Progress Indicator here */}
                         <div className="mb-8 flex justify-between">
                             {[1, 2, 3, 4].map((s) => (
                                 <div
@@ -90,7 +90,7 @@ export default function PostJob({ categories }: { categories: any[] }) {
                         </div>
 
                         <form onSubmit={handleSubmit}>
-                            {/* Step 1: Category */}
+                            {/* Step 1: Category picker */}
                             {step === 1 && (
                                 <div className="space-y-4">
                                     <h3 className="text-lg font-semibold">
