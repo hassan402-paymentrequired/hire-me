@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/guest-layout';
 import { Head, useForm } from '@inertiajs/react';
 import { Loader2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import jobs from '@/routes/jobs';
 
 export default function PostJob({ categories }: { categories: any[] }) {
@@ -55,11 +55,7 @@ export default function PostJob({ categories }: { categories: any[] }) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(jobs.store().url, {
-            onSuccess: () => {
-                // Redirect handled by backend
-            },
-        });
+        post(jobs.store().url);
     };
 
     const nextStep = () => setStep(step + 1);
