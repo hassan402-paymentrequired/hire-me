@@ -26,7 +26,7 @@ class JobPostController extends Controller
             ...$validated
         ]);
 
-        // TODO: Fire Event to notify nearby providers
+        // TODO: Fire Event to notify nearby providers the vent goes here
 
         return back()->with('success-toast', 'Job posted successfully! Providers will be notified.');
     }
