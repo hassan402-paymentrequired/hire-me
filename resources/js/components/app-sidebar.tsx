@@ -30,27 +30,7 @@ import AppLogo from './app-logo';
 import schedule from '@/routes/schedule';
 import business, { dashboard } from '@/routes/business';
 
-const mainNavItems: NavSection[] = [ // Changed type to NavSection[]
-    {
-        name: "Home",
-        links: [
-            {
-                title: 'Home',
-                href: '/',
-                icon: Home,
-            },
-            {
-                title: 'Explore',
-                href: '/',
-                icon: Search,
-            },
-            {
-                title: 'Favorites',
-                href: route('favourite.index'),
-                icon: Bookmark,
-            }
-        ]
-    },
+const mainNavItems: NavSection[] = [
     {
         name: "Dashboard",
         links: [
