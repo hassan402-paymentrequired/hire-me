@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class JobPostController extends Controller
 {
@@ -27,18 +28,18 @@ class JobPostController extends Controller
 
         // TODO: Fire Event to notify nearby providers
 
-        return back()->with('success', 'Job posted successfully! Providers will be notified.');
+        return back()->with('success-toast', 'Job posted successfully! Providers will be notified.');
     }
 
     public function create()
     {
         $categories = \App\Models\Category::all();
-        return \Inertia\Inertia::render('client/jobs/post', ['categories' => $categories]);
+        return Inertia::render('client/jobs/post', ['categories' => $categories]);
     }
 
     public function clientIndex()
     {
-        $jobs = \App\Models\JobPost::where('client_id', auth()->id())
+        $jobs = \App\Models\JobPost::query()->where('client_id', auth()->id())
             ->with([
                 'bids' => function ($query) {
                     $query->with('provider.businessProfile')->latest();
@@ -48,7 +49,7 @@ class JobPostController extends Controller
             ->latest()
             ->get();
 
-        return \Inertia\Inertia::render('client/jobs/index', ['jobs' => $jobs]);
+        return Inertia::render('client/jobs/index', ['jobs' => $jobs]);
     }
 
     public function providerBoard(\Illuminate\Http\Request $request)
@@ -61,7 +62,7 @@ class JobPostController extends Controller
         $lng = $profile->longitude;
         $radius = 50; // km
 
-        $jobs = \App\Models\JobPost::select('job_posts.*')
+        $jobs = \App\Models\JobPost::query()->select('job_posts.*')
             ->selectRaw("(6371 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance", [$lat, $lng, $lat])
             ->where('status', 'open')
             ->where('category', $profile->category) // Filter by provider category
@@ -70,6 +71,6 @@ class JobPostController extends Controller
             ->latest()
             ->paginate(12);
 
-        return \Inertia\Inertia::render('provider/jobs/board', ['jobs' => $jobs]);
+        return Inertia::render('provider/jobs/board', ['jobs' => $jobs]);
     }
 }
