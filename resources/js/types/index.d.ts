@@ -42,6 +42,11 @@ export interface User {
     email_verified_at: string | null;
     role: 'client' | 'provider';
     has_provider_setup?: boolean;
+    wallet?: {
+        balance: number;
+        escrow_balance: number;
+        available_balance: number;
+    } | null;
     two_factor_enabled?: boolean;
     created_at: string;
     updated_at: string;

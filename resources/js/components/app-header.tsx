@@ -209,6 +209,26 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
 
                         {auth?.user ? (
                             <div className="flex items-center gap-2">
+                                {/* Wallet Balance Display */}
+                                {auth.user.wallet && (
+                                    <TooltipProvider delayDuration={0}>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Link href="/wallet" prefetch>
+                                                    <Button size="sm" variant="outline" className="shadow-none">
+                                                        <span className="text-xs font-medium">
+                                                            ₦{auth.user.wallet.available_balance.toLocaleString()}
+                                                        </span>
+                                                    </Button>
+                                                </Link>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Wallet Balance (Click to view details)</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                )}
+
                                 <TooltipProvider
                                     delayDuration={0}
                                 >

@@ -10,7 +10,7 @@ import { logout, becomeProvider } from '@/routes';
 import { edit } from '@/routes/profile';
 import { type User } from '@/types';
 import { Link, router } from '@inertiajs/react';
-import { LogOut, Settings, Briefcase } from 'lucide-react';
+import { LogOut, Settings, Briefcase, Wallet } from 'lucide-react';
 import business from '@/routes/business';
 
 interface UserMenuContentProps {
@@ -31,9 +31,31 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                     <UserInfo user={user} showEmail={true} />
                 </div>
+                {user.wallet && (
+                    <div className="px-1 py-1.5 mt-2 border-t border-border">
+                        <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">Wallet Balance</span>
+                            <span className="font-semibold">₦{user.wallet.available_balance.toLocaleString()}</span>
+                        </div>
+                    </div>
+                )}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
+                {user.wallet && (
+                    <DropdownMenuItem asChild>
+                        <Link
+                            className="block w-full"
+                            href="/wallet"
+                            as="button"
+                            prefetch
+                            onClick={cleanup}
+                        >
+                            <Wallet className="mr-2" />
+                            My Wallet
+                        </Link>
+                    </DropdownMenuItem>
+                )}
                 {user.has_provider_setup ? (
                     <DropdownMenuItem asChild>
                         <Link

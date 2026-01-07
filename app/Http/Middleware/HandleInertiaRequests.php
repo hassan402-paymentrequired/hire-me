@@ -43,10 +43,18 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'quote' => ['message' => trim($message), 'author' => trim($author)],
             'auth' => [
-                'user' => $request->user() ? [
-                    ...$request->user()->toArray(),
-                    'has_provider_setup' => $request->user()->hasProviderSetup(),
-                ] : null,
+                'user' => $request->user() ? (function ($user) {
+                    $wallet = \App\Models\Wallet::where('user_id', $user->id)->first();
+                    return [
+                        ...$user->toArray(),
+                        'has_provider_setup' => $user->hasProviderSetup(),
+                        'wallet' => $wallet ? [
+                            'balance' => $wallet->balance,
+                            'escrow_balance' => $wallet->escrow_balance,
+                            'available_balance' => $wallet->available_balance,
+                        ] : null,
+                    ];
+                })($request->user()) : null,
             ],
             'sidebarOpen' => !$request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'flash' => [
