@@ -28,14 +28,13 @@ class CreateNewUser implements CreatesNewUsers
                 Rule::unique(User::class),
             ],
             'password' => $this->passwordRules(),
-            'role' => ['required', 'string', 'in:client,provider'],
         ])->validate();
 
         return User::create([
             'name' => $input['name'],
             'email' => $input['email'],
             'password' => $input['password'],
-            'role' => $input['role'],
+            'role' => 'client', // Default all users to client, they can become providers later
         ]);
     }
 }

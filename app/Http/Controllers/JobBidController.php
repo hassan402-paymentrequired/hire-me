@@ -9,7 +9,7 @@ class JobBidController extends Controller
     public function store(\Illuminate\Http\Request $request, \App\Models\JobPost $jobPost)
     {
         // Check if provider is verified (optional feature for later)
-        if (auth()->user()->role !== 'provider') {
+        if (!auth()->user()->hasProviderSetup()) {
             abort(403, 'Only providers can bid.');
         }
 

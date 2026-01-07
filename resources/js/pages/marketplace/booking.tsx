@@ -37,9 +37,10 @@ interface TimeSlot {
 interface Props {
     provider: Provider;
     services: Service[];
+    walletBalance?: number | null;
 }
 
-export default function Booking({ provider, services }: Props) {
+export default function Booking({ provider, services, walletBalance }: Props) {
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [selectedSlot, setSelectedSlot] = useState('');
     const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
@@ -126,6 +127,15 @@ export default function Booking({ provider, services }: Props) {
 
     const handleBooking = () => {
         if (!selectedDate || !selectedSlot || selectedServiceIds.length === 0) return;
+
+        // Check wallet balance
+        if (walletBalance !== null && walletBalance !== undefined && walletBalance < totalPrice) {
+            const shortfall = totalPrice - walletBalance;
+            if (confirm(`Insufficient wallet balance. You need ₦${shortfall.toLocaleString()} more. Would you like to top up your wallet?`)) {
+                router.visit('/wallet');
+            }
+            return;
+        }
 
         router.post('/appointments', {
             provider_id: provider.id,
@@ -324,6 +334,23 @@ export default function Booking({ provider, services }: Props) {
 
                                     <div className="border-t-2 border-dashed border-muted" />
 
+                                    {/* Wallet Balance Info */}
+                                    {walletBalance !== null && walletBalance !== undefined && (
+                                        <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                                            <div className="flex justify-between items-center text-sm mb-1">
+                                                <span className="text-muted-foreground">Wallet Balance</span>
+                                                <span className={`font-bold ${walletBalance >= totalPrice ? 'text-success' : 'text-destructive'}`}>
+                                                    ₦{walletBalance.toLocaleString()}
+                                                </span>
+                                            </div>
+                                            {walletBalance < totalPrice && (
+                                                <p className="text-xs text-destructive mt-1">
+                                                    Insufficient balance. Top up ₦{(totalPrice - walletBalance).toLocaleString()} more.
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+
                                     {/* Final Price */}
                                     <div className="space-y-4">
                                         <div className="flex justify-between items-center">
@@ -335,7 +362,7 @@ export default function Booking({ provider, services }: Props) {
 
                                         <Button
                                             className="w-full"
-                                            disabled={!selectedSlot || selectedServiceIds.length === 0}
+                                            disabled={!selectedSlot || selectedServiceIds.length === 0 || (walletBalance !== null && walletBalance !== undefined && walletBalance < totalPrice)}
                                             onClick={handleBooking}
                                         >
                                             Continue

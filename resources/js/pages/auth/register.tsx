@@ -16,7 +16,6 @@ export default function Register() {
         email: '',
         password: '',
         password_confirmation: '',
-        role: 'client',
     });
 
     const submit: FormEventHandler = (e) => {
@@ -35,34 +34,6 @@ export default function Register() {
             <Head title="Register" />
 
             <form onSubmit={submit} className="flex flex-col gap-4">
-
-                {/* Role Selection */}
-                <div className="grid grid-cols-2 gap-2 p-1 bg-smoke-50 ">
-                    <button
-                        type="button"
-                        onClick={() => setData('role', 'client')}
-                        className={`py-2 text-sm font-medium  transition-all ${
-                            data.role === 'client'
-                                ? 'bg-smoke-300 text-foreground'
-                                : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                    >
-                        I want to hire
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setData('role', 'provider')}
-                        className={`py-2 text-sm font-medium  transition-all ${
-                            data.role === 'provider'
-                                ? 'bg-smoke-300 text-foreground'
-                                : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                    >
-                        I want to work
-                    </button>
-                </div>
-                <input type="hidden" name="role" value={data.role} />
-
                 <div className="grid gap-1">
                     <Label htmlFor="name">Name</Label>
                     <Input
@@ -142,7 +113,7 @@ export default function Register() {
                     disabled={processing}
                 >
                     {processing && <Spinner className="mr-2" />}
-                    {data.role === 'provider' ? 'Join as Provider' : 'Create account'}
+                    Create account
                 </Button>
 
                 <div className="text-center text-sm text-muted-foreground">

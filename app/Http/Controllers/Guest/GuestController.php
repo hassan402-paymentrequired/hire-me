@@ -20,7 +20,7 @@ class GuestController extends Controller
         $lat = $request->lat ? (float) $request->lat : null;
         $lng = $request->lng ? (float) $request->lng : null;
 
-        $query = User::where('role', 'provider')
+        $query = User::whereHas('businessProfile')
             ->select('users.*')
             ->with([
                 'businessProfile.images',

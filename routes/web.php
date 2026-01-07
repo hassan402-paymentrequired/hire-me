@@ -11,6 +11,10 @@ Route::middleware(['provider.setup'])->group(function () {
 
 Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
 
+    // Become a Provider (available to all authenticated users)
+    Route::get('/become-provider', [\App\Http\Controllers\Provider\BecomeProviderController::class, 'index'])->name('become-provider');
+    Route::post('/become-provider', [\App\Http\Controllers\Provider\BecomeProviderController::class, 'store'])->name('become-provider.store');
+
     Route::middleware('provider')->group(function () {
 
         // Provider Business Management
@@ -41,6 +45,7 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
         Route::prefix('provider/appointments')->name('provider.appointments.')->group(function () {
             Route::post('/{id}/confirm', [\App\Http\Controllers\Provider\Schedule\ScheduleController::class, 'confirmAppointment'])->name('confirm');
             Route::post('/{id}/cancel', [\App\Http\Controllers\Provider\Schedule\ScheduleController::class, 'cancelAppointment'])->name('cancel');
+            Route::post('/{id}/complete', [\App\Http\Controllers\Provider\Schedule\ScheduleController::class, 'completeAppointment'])->name('complete');
             Route::get('/{id}', [\App\Http\Controllers\Provider\Schedule\ScheduleController::class, 'showAppointment'])->name('show');
         });
 
@@ -75,6 +80,22 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
         Route::get('/{id}', [\App\Http\Controllers\Client\AppointmentController::class, 'show'])->name('show');
     });
 
+    // Client Wallet
+    Route::prefix('wallet')->name('wallet.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Client\WalletController::class, 'index'])->name('index');
+        Route::post('/top-up/initialize', [\App\Http\Controllers\Client\WalletController::class, 'initializeTopUp'])->name('top-up.initialize');
+        Route::post('/top-up/verify', [\App\Http\Controllers\Client\WalletController::class, 'verifyTopUp'])->name('top-up.verify');
+    });
+
+    // Provider Withdrawals
+    Route::middleware('provider')->group(function () {
+        Route::prefix('wallet/withdraw')->name('wallet.withdraw.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Provider\WithdrawalController::class, 'index'])->name('index');
+            Route::post('/recipient', [\App\Http\Controllers\Provider\WithdrawalController::class, 'createRecipient'])->name('recipient');
+            Route::post('/', [\App\Http\Controllers\Provider\WithdrawalController::class, 'withdraw'])->name('create');
+        });
+    });
+
     // Job Broadcasting (Client)
     Route::prefix('jobs')->name('jobs.')->group(function () {
         Route::get('/', [\App\Http\Controllers\JobPostController::class, 'clientIndex'])->name('index');
@@ -106,5 +127,9 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
     Route::post('/reviews', [\App\Http\Controllers\Guest\ReviewController::class, 'store'])->name('reviews.store');
 
 });
+
+// Paystack Webhook (no auth required)
+Route::post('/paystack/webhook', [\App\Http\Controllers\PaystackWebhookController::class, 'handleWebhook'])->name('paystack.webhook');
+Route::get('/paystack/callback', [\App\Http\Controllers\PaystackWebhookController::class, 'handleCallback'])->name('paystack.callback');
 
 require __DIR__ . '/settings.php';

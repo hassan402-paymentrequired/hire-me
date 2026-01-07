@@ -13,8 +13,8 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->role === UserRoleEnum::PROVIDER && !$user->businessProfile) {
-            return redirect()->route('onboarding.index')->with('error-toast', 'Please complete your profile before continuing.');
+        if (!$user->hasProviderSetup()) {
+            return redirect()->route('onboarding.index')->with('error-toast', 'Please complete your provider profile before continuing.');
         }
 
 

@@ -36,7 +36,17 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function isProvider(): bool
     {
-        return $this->role === 'provider';
+        return $this->businessProfile !== null;
+    }
+
+    public function isClient(): bool
+    {
+        return true; // All authenticated users can be clients
+    }
+
+    public function hasProviderSetup(): bool
+    {
+        return $this->businessProfile !== null;
     }
 
     /**
@@ -99,5 +109,15 @@ class User extends Authenticatable implements MustVerifyEmail
     public function referralEarnings()
     {
         return $this->hasMany(\App\Models\ReferralEarning::class, 'user_id');
+    }
+
+    public function wallet()
+    {
+        return $this->hasOne(Wallet::class);
+    }
+
+    public function walletTransactions()
+    {
+        return $this->hasMany(WalletTransaction::class);
     }
 }

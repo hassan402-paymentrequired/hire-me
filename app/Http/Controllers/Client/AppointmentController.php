@@ -7,11 +7,13 @@ use App\Models\Appointment;
 use App\Models\Report;
 use App\Models\Service;
 use App\Models\User;
+use App\Models\Wallet;
 use App\Models\WorkHour;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
 use App\Mail\NewBookingMail;
 use App\Mail\AppointmentCancelledMail;
 use App\Mail\AppointmentCompletedMail;
@@ -104,39 +106,77 @@ class AppointmentController extends Controller
         $startTime = Carbon::parse($request->start_time);
         $endTime = $startTime->copy()->addMinutes($totalDuration);
 
-        if ($request->reschedule_id) {
-            $appointment = Appointment::where('client_id', auth()->id())->findOrFail($request->reschedule_id);
-            $appointment->update([
-                'start_time' => $startTime,
-                'end_time' => $endTime,
-                'buffer_time_minutes' => $maxBuffer,
-                'status' => 'pending',
-                'price' => $totalPrice,
-                'notes' => $request->notes,
-            ]);
-            $appointment->services()->sync($request->service_ids);
-            $message = 'Appointment rescheduled successfully!';
-        } else {
-            $appointment = Appointment::create([
-                'client_id' => auth()->id(),
-                'provider_id' => $request->provider_id,
-                'service_id' => $request->service_ids[0],
-                'start_time' => $startTime,
-                'end_time' => $endTime,
-                'buffer_time_minutes' => $maxBuffer,
-                'status' => 'pending',
-                'price' => $totalPrice,
-                'notes' => $request->notes,
-            ]);
-            $appointment->services()->attach($request->service_ids);
-            $message = 'Appointment booked successfully!';
+        // Get or create client wallet
+        $clientWallet = Wallet::firstOrCreate(['user_id' => auth()->id()]);
+
+        // Check wallet balance
+        if (!$clientWallet->hasSufficientBalance($totalPrice)) {
+            return redirect()->route('marketplace.booking', ['slug' => $provider->businessProfile->slug])
+                ->with('error-toast', "Insufficient wallet balance. Please top up your wallet with at least ₦" . number_format($totalPrice, 2) . " to book this appointment.")
+                ->with('insufficient_balance', true)
+                ->with('required_amount', $totalPrice);
         }
 
-        // Send email to provider
-        Mail::to($appointment->provider->email)->send(new NewBookingMail($appointment->load('services')));
+        try {
+            DB::beginTransaction();
 
-        return redirect()->route('client.bookings.show', $appointment->id)
-            ->with('success-toast', $message);
+            if ($request->reschedule_id) {
+                $appointment = Appointment::where('client_id', auth()->id())->findOrFail($request->reschedule_id);
+                
+                // Release old escrow if exists
+                if ($appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
+                    $clientWallet->refundEscrow($appointment->escrow_amount, $appointment, "Escrow refunded due to rescheduling");
+                    $appointment->update([
+                        'escrow_status' => 'refunded',
+                    ]);
+                }
+
+                $appointment->update([
+                    'start_time' => $startTime,
+                    'end_time' => $endTime,
+                    'buffer_time_minutes' => $maxBuffer,
+                    'status' => 'pending',
+                    'price' => $totalPrice,
+                    'notes' => $request->notes,
+                ]);
+                $appointment->services()->sync($request->service_ids);
+                $message = 'Appointment rescheduled successfully!';
+            } else {
+                $appointment = Appointment::create([
+                    'client_id' => auth()->id(),
+                    'provider_id' => $request->provider_id,
+                    'service_id' => $request->service_ids[0],
+                    'start_time' => $startTime,
+                    'end_time' => $endTime,
+                    'buffer_time_minutes' => $maxBuffer,
+                    'status' => 'pending',
+                    'price' => $totalPrice,
+                    'notes' => $request->notes,
+                ]);
+                $appointment->services()->attach($request->service_ids);
+                $message = 'Appointment booked successfully!';
+            }
+
+            // Create escrow hold
+            $escrowTransaction = $clientWallet->holdEscrow($totalPrice, $appointment, "Escrow hold for appointment booking");
+            $appointment->update([
+                'escrow_amount' => $totalPrice,
+                'escrow_status' => 'held',
+                'escrow_transaction_id' => $escrowTransaction->id,
+            ]);
+
+            DB::commit();
+
+            // Send email to provider
+            Mail::to($appointment->provider->email)->send(new NewBookingMail($appointment->load('services')));
+
+            return redirect()->route('client.bookings.show', $appointment->id)
+                ->with('success-toast', $message);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->route('marketplace.booking', ['slug' => $provider->businessProfile->slug])
+                ->with('error-toast', 'Failed to book appointment: ' . $e->getMessage());
+        }
     }
 
     public function cancel($id)
@@ -145,16 +185,55 @@ class AppointmentController extends Controller
             ->where('status', '!=', 'cancelled')
             ->findOrFail($id);
 
-        if (Carbon::now()->addHours(5)->gt($appointment->start_time)) {
+        $hoursUntilAppointment = Carbon::now()->diffInHours($appointment->start_time, false);
+        $isLateCancellation = $hoursUntilAppointment < 5;
+
+        if ($isLateCancellation && $hoursUntilAppointment > 0) {
             return back()->with('error-toast', 'Appointments can only be cancelled 5 hours before the start time.');
         }
 
-        $appointment->update(['status' => 'cancelled', 'cancelled_by' => 'client']);
+        try {
+            DB::beginTransaction();
 
-        // Send email to provider
-        Mail::to($appointment->provider->email)->send(new AppointmentCancelledMail($appointment, 'client'));
+            $appointment->update(['status' => 'cancelled', 'cancelled_by' => 'client']);
 
-        return back()->with('success-toast', 'Appointment cancelled successfully.');
+            // Handle escrow refund/forfeit
+            if ($appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
+                $clientWallet = Wallet::firstOrCreate(['user_id' => auth()->id()]);
+                $providerSettings = $appointment->provider->businessProfile->settings ?? [];
+                
+                // Check if provider has cancellation penalty enabled
+                $cancellationPenaltyPercent = $providerSettings['cancellation_penalty_percent'] ?? 0;
+                
+                if ($isLateCancellation && $cancellationPenaltyPercent > 0) {
+                    // Apply penalty: forfeit percentage to provider, refund rest
+                    $penaltyAmount = ($appointment->escrow_amount * $cancellationPenaltyPercent) / 100;
+                    $refundAmount = $appointment->escrow_amount - $penaltyAmount;
+                    
+                    if ($penaltyAmount > 0) {
+                        $clientWallet->forfeitEscrow($penaltyAmount, $appointment, "Late cancellation penalty");
+                    }
+                    if ($refundAmount > 0) {
+                        $clientWallet->refundEscrow($refundAmount, $appointment, "Partial refund after late cancellation");
+                    }
+                    $appointment->update(['escrow_status' => 'forfeited']);
+                } else {
+                    // Full refund for early cancellation
+                    $clientWallet->refundEscrow($appointment->escrow_amount, $appointment, "Full refund for cancelled appointment");
+                    $appointment->update(['escrow_status' => 'refunded']);
+                }
+            }
+
+            DB::commit();
+
+            // Send email to provider
+            Mail::to($appointment->provider->email)->send(new AppointmentCancelledMail($appointment, 'client'));
+
+            return back()->with('success-toast', 'Appointment cancelled successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error-toast', 'Failed to cancel appointment: ' . $e->getMessage());
+        }
     }
 
     public function complete(Request $request, $id)
@@ -163,22 +242,41 @@ class AppointmentController extends Controller
             ->where('status', 'confirmed')
             ->findOrFail($id);
 
-        $appointment->update(['status' => 'completed']);
+        try {
+            DB::beginTransaction();
 
-        // Optional Review
-        if ($request->has('rating') && $request->has('comment')) {
-            $appointment->review()->create([
-                'client_id' => auth()->id(),
-                'provider_id' => $appointment->provider_id,
-                'rating' => $request->rating,
-                'comment' => $request->comment,
-            ]);
+            $appointment->update(['status' => 'completed']);
+
+            // Release escrow to provider
+            if ($appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
+                $clientWallet = Wallet::firstOrCreate(['user_id' => auth()->id()]);
+                $clientWallet->releaseEscrow($appointment->escrow_amount, $appointment, "Payment released after appointment completion");
+                $appointment->update([
+                    'escrow_status' => 'released',
+                    'payment_released_at' => now(),
+                ]);
+            }
+
+            // Optional Review
+            if ($request->has('rating') && $request->has('comment')) {
+                $appointment->review()->create([
+                    'client_id' => auth()->id(),
+                    'provider_id' => $appointment->provider_id,
+                    'rating' => $request->rating,
+                    'comment' => $request->comment,
+                ]);
+            }
+
+            DB::commit();
+
+            // Send email to client
+            Mail::to($appointment->client->email)->send(new AppointmentCompletedMail($appointment));
+
+            return back()->with('success-toast', 'Appointment marked as completed.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error-toast', 'Failed to complete appointment: ' . $e->getMessage());
         }
-
-        // Send email to client
-        Mail::to($appointment->client->email)->send(new AppointmentCompletedMail($appointment));
-
-        return back()->with('success-toast', 'Appointment marked as completed.');
     }
 
     public function reschedule($id)

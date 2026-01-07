@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Provider\Schedule;
 
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
+use App\Models\Wallet;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
 use App\Mail\AppointmentConfirmedMail;
 use App\Mail\AppointmentCancelledMail;
 
@@ -82,12 +84,35 @@ class ScheduleController extends Controller
             ->where('status', 'pending')
             ->findOrFail($id);
 
-        $appointment->update(['status' => 'confirmed']);
+        try {
+            DB::beginTransaction();
 
-        // Send email to client
-        Mail::to($appointment->client->email)->send(new AppointmentConfirmedMail($appointment));
+            $appointment->update(['status' => 'confirmed']);
 
-        return to_route('provider.appointments.show', ['id' => $appointment->id])->with('success-toast', 'Appointment confirmed successfully.');
+            // Check if provider has auto-release payment enabled
+            $providerSettings = auth()->user()->businessProfile->settings ?? [];
+            $autoReleasePayment = $providerSettings['auto_release_payment'] ?? false;
+
+            // If auto-release is enabled, release escrow immediately upon confirmation
+            if ($autoReleasePayment && $appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
+                $clientWallet = Wallet::firstOrCreate(['user_id' => $appointment->client_id]);
+                $clientWallet->releaseEscrow($appointment->escrow_amount, $appointment, "Payment auto-released upon provider confirmation");
+                $appointment->update([
+                    'escrow_status' => 'released',
+                    'payment_released_at' => now(),
+                ]);
+            }
+
+            DB::commit();
+
+            // Send email to client
+            Mail::to($appointment->client->email)->send(new AppointmentConfirmedMail($appointment));
+
+            return to_route('provider.appointments.show', ['id' => $appointment->id])->with('success-toast', 'Appointment confirmed successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error-toast', 'Failed to confirm appointment: ' . $e->getMessage());
+        }
     }
 
     public function cancelAppointment(Request $request, $id)
@@ -100,16 +125,62 @@ class ScheduleController extends Controller
             ->where('status', '!=', 'cancelled')
             ->findOrFail($id);
 
-        $appointment->update([
-            'status' => 'cancelled',
-            'cancellation_reason' => $request->reason,
-            'cancelled_by' => 'provider',
-        ]);
+        try {
+            DB::beginTransaction();
 
-        // Send email to client
-        Mail::to($appointment->client->email)->send(new AppointmentCancelledMail($appointment, 'provider'));
+            $appointment->update([
+                'status' => 'cancelled',
+                'cancellation_reason' => $request->reason,
+                'cancelled_by' => 'provider',
+            ]);
 
-        return back()->with('success', 'Appointment cancelled successfully.');
+            // Refund escrow fully when provider cancels
+            if ($appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
+                $clientWallet = Wallet::firstOrCreate(['user_id' => $appointment->client_id]);
+                $clientWallet->refundEscrow($appointment->escrow_amount, $appointment, "Full refund - provider cancelled appointment");
+                $appointment->update(['escrow_status' => 'refunded']);
+            }
+
+            DB::commit();
+
+            // Send email to client
+            Mail::to($appointment->client->email)->send(new AppointmentCancelledMail($appointment, 'provider'));
+
+            return back()->with('success', 'Appointment cancelled successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error-toast', 'Failed to cancel appointment: ' . $e->getMessage());
+        }
+    }
+
+    public function completeAppointment($id)
+    {
+        $appointment = Appointment::where('provider_id', auth()->id())
+            ->whereIn('status', ['confirmed', 'pending'])
+            ->findOrFail($id);
+
+        try {
+            DB::beginTransaction();
+
+            $appointment->update(['status' => 'completed']);
+
+            // Release escrow if not already released
+            if ($appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
+                $clientWallet = Wallet::firstOrCreate(['user_id' => $appointment->client_id]);
+                $clientWallet->releaseEscrow($appointment->escrow_amount, $appointment, "Payment released after provider marked appointment as completed");
+                $appointment->update([
+                    'escrow_status' => 'released',
+                    'payment_released_at' => now(),
+                ]);
+            }
+
+            DB::commit();
+
+            return back()->with('success-toast', 'Appointment marked as completed and payment released.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error-toast', 'Failed to complete appointment: ' . $e->getMessage());
+        }
     }
 
     public function showAppointment($id)
@@ -134,6 +205,9 @@ class ScheduleController extends Controller
                 'price' => '₦' . number_format($appointment->price, 2),
                 'notes' => $appointment->notes,
                 'created_at' => $appointment->created_at->format('M d, Y'),
+                'escrow_status' => $appointment->escrow_status,
+                'escrow_amount' => $appointment->escrow_amount,
+                'payment_released_at' => $appointment->payment_released_at?->format('M d, Y g:i A'),
             ],
         ]);
     }

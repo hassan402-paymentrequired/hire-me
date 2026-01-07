@@ -18,8 +18,8 @@ class EnsureSetup
     {
         $user = $request->user();
 
-        // Allow guests, non-providers
-        if (!$user || $user->role !== UserRoleEnum::PROVIDER) {
+        // Allow guests
+        if (!$user) {
             return $next($request);
         }
 
@@ -28,11 +28,19 @@ class EnsureSetup
             return $next($request);
         }
 
-        // Single, authoritative check
-        if (!$user->businessProfile) {
-            return redirect()->route('onboarding.index')->with('error-toast', 'Please complete your profile before continuing.');
+        // If user has started provider setup but hasn't completed it
+        // Only redirect if they're trying to access provider routes
+        if ($request->routeIs('business.*', 'provider.*', 'schedule.*', 'onboarding.*')) {
+            if ($user->hasProviderSetup()) {
+                return $next($request);
+            }
+            
+            // Check if they're trying to access provider routes without setup
+            if ($request->routeIs('business.*', 'provider.*', 'schedule.*')) {
+                return redirect()->route('onboarding.index')
+                    ->with('error-toast', 'Please complete your provider profile before continuing.');
+            }
         }
-
 
         return $next($request);
     }

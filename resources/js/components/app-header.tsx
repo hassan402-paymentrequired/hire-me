@@ -36,7 +36,7 @@ import {
 } from 'lucide-react';
 import AppLogo from './app-logo';
 import AppLogoIcon from './app-logo-icon';
-import { home, login } from '@/routes';
+import { home, login, becomeProvider } from '@/routes';
 import business from '@/routes/business';
 import client from '@/routes/client';
 import {
@@ -214,26 +214,38 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                 >
                                     <Tooltip>
                                         <TooltipTrigger>
-                                <Link
-                                    href={auth.user.role === 'provider' ? business.dashboard() : client.bookings.index()}
-                                    prefetch
-                                >
-                                    {auth.user.role === 'provider' ?
-                                        (
-                                            <Button size="sm" >
-                                                Dashboard
-                                            </Button>
-                                        )
-                                        :
-                                        <Button size="sm" variant="outline" className="shadow-none rounded-full">
-                                            <CalendarSync className="size-3" />
+                                {auth.user.has_provider_setup ? (
+                                    <Link
+                                        href={business.dashboard()}
+                                        prefetch
+                                    >
+                                        <Button size="sm" >
+                                            Dashboard
                                         </Button>
-                                    }
-
-                                </Link>
+                                    </Link>
+                                ) : (
+                                    <>
+                                        <Link
+                                            href={client.bookings.index()}
+                                            prefetch
+                                        >
+                                            <Button size="sm" variant="outline" className="shadow-none rounded-full">
+                                                <CalendarSync className="size-3" />
+                                            </Button>
+                                        </Link>
+                                        <Link
+                                            href={becomeProvider()}
+                                            prefetch
+                                        >
+                                            <Button size="sm" variant="default">
+                                                Become Provider
+                                            </Button>
+                                        </Link>
+                                    </>
+                                )}
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            <p> {auth.user.role === 'provider' ? 'Dashboard' : 'My appointments' }</p>
+                                            <p>{auth.user.has_provider_setup ? 'Dashboard' : 'My appointments'}</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>

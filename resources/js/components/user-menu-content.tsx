@@ -6,11 +6,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { UserInfo } from '@/components/user-info';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
-import { logout } from '@/routes';
+import { logout, becomeProvider } from '@/routes';
 import { edit } from '@/routes/profile';
 import { type User } from '@/types';
 import { Link, router } from '@inertiajs/react';
-import { LogOut, Settings } from 'lucide-react';
+import { LogOut, Settings, Briefcase } from 'lucide-react';
+import business from '@/routes/business';
 
 interface UserMenuContentProps {
     user: User;
@@ -31,11 +32,35 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                     <UserInfo user={user} showEmail={true} />
                 </div>
             </DropdownMenuLabel>
-            {user.role === 'provider' && (
-                <>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-
+                {user.has_provider_setup ? (
+                    <DropdownMenuItem asChild>
+                        <Link
+                            className="block w-full"
+                            href={business.dashboard()}
+                            as="button"
+                            prefetch
+                            onClick={cleanup}
+                        >
+                            <Briefcase className="mr-2" />
+                            Provider Dashboard
+                        </Link>
+                    </DropdownMenuItem>
+                ) : (
+                    <DropdownMenuItem asChild>
+                        <Link
+                            className="block w-full"
+                            href={becomeProvider()}
+                            as="button"
+                            prefetch
+                            onClick={cleanup}
+                        >
+                            <Briefcase className="mr-2" />
+                            Become a Provider
+                        </Link>
+                    </DropdownMenuItem>
+                )}
                 <DropdownMenuItem asChild>
                     <Link
                         className="block w-full"
@@ -49,8 +74,6 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                     </Link>
                 </DropdownMenuItem>
             </DropdownMenuGroup>
-                </>
-            )}
 
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>

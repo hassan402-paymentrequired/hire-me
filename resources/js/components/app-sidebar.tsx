@@ -85,15 +85,10 @@ const mainNavItems: NavSection[] = [
 
 const footerNavItems = [
     {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
+        title: 'Go to marketplace',
+        href: '/',
         icon: Folder,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: Settings,
-    },
+    }
 ];
 
 export function AppSidebar() {
@@ -116,7 +111,7 @@ export function AppSidebar() {
             </SidebarContent>
 
             <SidebarFooter>
-                {/*<NavFooter items={footerNavItems} className="mt-auto" />*/}
+                <NavFooter items={footerNavItems} className="mt-auto" />
                 <NavUser />
             </SidebarFooter>
         </Sidebar>

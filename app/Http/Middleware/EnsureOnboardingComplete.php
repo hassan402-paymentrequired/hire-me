@@ -17,8 +17,8 @@ class EnsureOnboardingComplete
     {
         $user = $request->user();
 
-        // Only apply to providers
-        if (!$user || $user->role !== \App\Enum\UserRoleEnum::PROVIDER) {
+        // Only apply to users who have started provider setup
+        if (!$user || !$user->hasProviderSetup()) {
             return $next($request);
         }
 

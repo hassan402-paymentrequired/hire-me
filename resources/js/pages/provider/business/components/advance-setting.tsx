@@ -16,6 +16,8 @@ interface AdvancedSettingsProps {
         sendReminders?: boolean;
         max_bookings_per_week?: string | number;
         max_bookings_per_month?: string | number;
+        auto_release_payment?: boolean;
+        cancellation_penalty_percent?: string | number;
         [key: string]: any;
     };
     onSettingsChange: (field: string, value: any) => void;
@@ -110,6 +112,36 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
                             onChange={(e) => onSettingsChange('max_bookings_per_month', e.target.value)}
                             min="1"
                         />
+                    </div>
+                </div>
+
+                {/* Payment Settings */}
+                <div className="pt-4 border-t border-border space-y-4">
+                    <h4 className="text-sm font-medium text-foreground">Payment Settings</h4>
+                    <p className="text-xs text-muted-foreground -mt-3">Configure how payments are handled for your appointments.</p>
+                    <div className="space-y-4">
+                        <Checkbox
+                            label="Auto-release payment upon confirmation"
+                            description="Automatically release payment to your wallet when you confirm an appointment (recommended for instant payment)"
+                            checked={settings?.auto_release_payment ?? false}
+                            onChange={(e) => onSettingsChange('auto_release_payment', e?.target?.checked)}
+                        />
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-foreground">
+                                Late Cancellation Penalty (%)
+                            </label>
+                            <Input
+                                type="number"
+                                description="Percentage of payment forfeited if client cancels less than 5 hours before appointment (0-100)"
+                                value={settings?.cancellation_penalty_percent ?? '0'}
+                                onChange={(e) => onSettingsChange('cancellation_penalty_percent', e.target.value)}
+                                min="0"
+                                max="100"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Example: 50% means client forfeits half the payment, you receive ₦500 from a ₦1000 booking if cancelled late.
+                            </p>
+                        </div>
                     </div>
                 </div>
 

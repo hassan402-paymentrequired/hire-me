@@ -7,6 +7,7 @@ use App\Models\FavouriteBusiness;
 use App\Models\User;
 use App\Models\BusinessProfile;
 use App\Models\Appointment;
+use App\Models\Wallet;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
@@ -15,14 +16,13 @@ class MarketplaceController extends Controller
     public function index()
     {
         // Get all providers with their business profiles and services
-        $providers = User::where('role', 'provider')
+        $providers = User::whereHas('businessProfile')
             ->with([
                 'businessProfile',
                 'services' => function ($query) {
                     $query->where('status', 'active');
                 }
             ])
-            ->whereHas('businessProfile')
             ->get()
             ->map(function ($provider) {
                 return [
@@ -143,6 +143,13 @@ class MarketplaceController extends Controller
             ])
             ->firstOrFail();
 
+        // Get client wallet balance if authenticated
+        $walletBalance = null;
+        if (auth()->check()) {
+            $wallet = Wallet::firstOrCreate(['user_id' => auth()->id()]);
+            $walletBalance = $wallet->available_balance;
+        }
+
         return Inertia::render('marketplace/booking', [
             'provider' => [
                 'id' => $provider->id,
@@ -161,6 +168,7 @@ class MarketplaceController extends Controller
                 'duration' => $service->duration_minutes,
                 'price' => $service->price,
             ]),
+            'walletBalance' => $walletBalance,
         ]);
     }
 }
