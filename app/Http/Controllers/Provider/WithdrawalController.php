@@ -37,7 +37,7 @@ class WithdrawalController extends Controller
             'wallet' => [
                 'balance' => $wallet->balance,
                 'escrow_balance' => $wallet->escrow_balance,
-                'available_balance' => $wallet->balance, // Available for withdrawal
+                'available_balance' => $wallet->available_balance, // Available for withdrawal (balance - escrow)
             ],
             'withdrawals' => $withdrawals->through(function ($transaction) {
                 return [

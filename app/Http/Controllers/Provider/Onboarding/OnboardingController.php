@@ -36,16 +36,8 @@ class OnboardingController extends Controller
             return redirect()->route('onboarding.services');
         }
 
-        // 4. Verification (optional but recommended)
-        $hasVerification = \App\Models\ProviderVerification::where('user_id', $user->id)
-            ->whereIn('status', ['pending', 'approved'])
-            ->exists();
-        
-        if (!$hasVerification && !$user->is_verified) {
-            return redirect()->route('onboarding.verification');
-        }
-
-        // All done
+        // All done - verification is no longer part of onboarding
+        // Providers can complete onboarding, but their business won't be visible until verified
         return redirect()->route('business.dashboard');
     }
 
@@ -116,7 +108,7 @@ class OnboardingController extends Controller
 
             DB::commit();
             return redirect()->route('onboarding.index');
-        }catch (\Exception $e) {
+        } catch (\Exception $e) {
             DB::rollBack();
             Log::error("Error creating business profile: {$e->getMessage()}");
             return back()->withErrors(['business_name' => 'Error creating business profile. Please try again.']);
@@ -197,7 +189,10 @@ class OnboardingController extends Controller
 
     public function success()
     {
-        return Inertia::render('provider/onboarding/success');
+        $user = auth()->user();
+        return Inertia::render('provider/onboarding/success', [
+            'is_verified' => $user->is_verified ?? false,
+        ]);
     }
 
     public function verification()
@@ -215,7 +210,7 @@ class OnboardingController extends Controller
                 'rejection_reason' => $existingVerification->rejection_reason,
                 'created_at' => $existingVerification->created_at,
             ] : null,
-            'is_verified' => $user->is_verified,
+            'is_verified' => (bool)$user->is_verified,
         ]);
     }
 
@@ -252,11 +247,15 @@ class OnboardingController extends Controller
             'status' => 'pending',
         ]);
 
-        return redirect()->route('onboarding.index')->with('success-toast', 'Verification request submitted successfully! We will review it shortly.');
+        return redirect()->route('business.dashboard')->with('success-toast', 'Verification request submitted successfully! We will review it shortly.');
     }
 
     public function skip()
     {
+        // Send notification when onboarding is complete (even if verification is skipped)
+        $user = auth()->user();
+        $user->notify(new BusinessSetupCompleteNotification());
+
         return redirect()->route('business.dashboard');
     }
 }

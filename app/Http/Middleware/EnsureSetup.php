@@ -18,7 +18,7 @@ class EnsureSetup
     {
         $user = $request->user();
 
-        // Allow guests
+        // Allow guests - they can access all public routes
         if (!$user) {
             return $next($request);
         }
@@ -28,18 +28,21 @@ class EnsureSetup
             return $next($request);
         }
 
+        // Allow public provider viewing routes (anyone can view provider profiles)
+        if ($request->routeIs('provider.show', 'marketplace.booking', 'slots')) {
+            return $next($request);
+        }
+
         // If user has started provider setup but hasn't completed it
-        // Only redirect if they're trying to access provider routes
-        if ($request->routeIs('business.*', 'provider.*', 'schedule.*', 'onboarding.*')) {
+        // Only redirect if they're trying to access provider management routes
+        if ($request->routeIs('business.*', 'provider.appointments.*', 'schedule.*')) {
             if ($user->hasProviderSetup()) {
                 return $next($request);
             }
             
-            // Check if they're trying to access provider routes without setup
-            if ($request->routeIs('business.*', 'provider.*', 'schedule.*')) {
-                return redirect()->route('onboarding.index')
-                    ->with('error-toast', 'Please complete your provider profile before continuing.');
-            }
+            // Check if they're trying to access provider management routes without setup
+            return redirect()->route('onboarding.index')
+                ->with('error-toast', 'Please complete your provider profile before continuing.');
         }
 
         return $next($request);

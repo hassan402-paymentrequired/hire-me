@@ -3,7 +3,7 @@ import { useForm } from '@inertiajs/react';
 import { LoadScript, Autocomplete } from '@react-google-maps/api';
 import OnboardingLayout from '@/layouts/onboarding-layout';
 import { Button } from '@/components/ui/button';
-import { Building2, Clock, Scissors, Upload } from 'lucide-react';
+import { Building2, Clock, Scissors, Upload, ShieldCheck } from 'lucide-react';
 import { FormSelect } from '@/components/ui/form-select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

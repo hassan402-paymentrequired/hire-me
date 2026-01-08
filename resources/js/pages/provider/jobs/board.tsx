@@ -1,14 +1,14 @@
-import AppLayout from "@/layouts/app-layout";
-import { Head, router, useForm } from "@inertiajs/react";
+import AppLayout from "@/layouts/guest-layout";
+import { Head,  useForm } from "@inertiajs/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { MapPin, DollarSign, Calendar, Loader2 } from "lucide-react";
 import { useState } from "react";
+import jo from "@/routes/jobs";
 
 interface Job {
     id: number;
@@ -32,7 +32,7 @@ export default function JobBoard({ jobs }: { jobs: { data: Job[] } }) {
     const handlePlaceBid = (e: React.FormEvent) => {
         e.preventDefault();
         if (selectedJob) {
-            post(route("jobs.bid", selectedJob.id), {
+            post(jo.bid( selectedJob.id).url, {
                 onSuccess: () => {
                     setSelectedJob(null);
                     reset();
@@ -44,7 +44,7 @@ export default function JobBoard({ jobs }: { jobs: { data: Job[] } }) {
     return (
         <AppLayout>
             <Head title="Job Board" />
-            <div className="max-w-6xl mx-auto py-12 px-4">
+            <div className="max-w-7xl w-full mx-auto py-12 px-4">
                 <h1 className="text-3xl font-bold mb-8">Nearby Jobs</h1>
 
                 {jobs.data.length === 0 ? (

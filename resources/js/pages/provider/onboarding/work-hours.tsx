@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import OnboardingLayout from '@/layouts/onboarding-layout';
 import onboarding from '@/routes/onboarding';
 import { useForm } from '@inertiajs/react';
-import { Building2, Clock, Scissors, AlertCircle } from 'lucide-react';
+import { Building2, Clock, Scissors, AlertCircle, ShieldCheck } from 'lucide-react';
 import React, { useState } from 'react';
 import DayScheduleRow from '@/pages/provider/business/components/day-schedule-row';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';

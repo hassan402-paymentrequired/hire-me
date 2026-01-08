@@ -25,7 +25,12 @@ import {
     Plus,
     Star,
     Users,
+    AlertCircle,
+    ShieldCheck,
+    XCircle,
 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Link } from '@inertiajs/react';
 import { dashboard } from '@/routes/business';
 import {
     Empty,
@@ -64,9 +69,15 @@ interface DashboardProps {
         message: string;
         time: string;
     }>;
+    is_verified?: boolean;
+    verification_status?: {
+        status: string;
+        rejection_reason?: string | null;
+        created_at: string;
+    } | null;
 }
 
-export default function Index({ stats, upcomingAppointments, recentActivity }: DashboardProps) {
+export default function Index({ stats, upcomingAppointments, recentActivity, is_verified, verification_status }: DashboardProps) {
     const auth = usePage().props.auth;
     const statCards = [
         {
@@ -110,6 +121,39 @@ export default function Index({ stats, upcomingAppointments, recentActivity }: D
                         </p>
                     </div>
                 </div>
+
+                {/* Verification Alert */}
+                {!is_verified && (
+                    <Alert className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20 dark:border-yellow-900">
+                        <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                        <AlertTitle className="text-yellow-800 dark:text-yellow-200">
+                            Verification Required
+                        </AlertTitle>
+                        <AlertDescription className="text-yellow-700 w-full dark:text-yellow-300">
+                            <div className="flex items-center justify-between">
+                                <p>
+                                    Your business profile is not visible to clients until you complete verification. 
+                                    {verification_status?.status === 'pending' && (
+                                        <span className="block mt-1 text-sm">
+                                            Your verification request is currently under review.
+                                        </span>
+                                    )}
+                                    {verification_status?.status === 'rejected' && (
+                                        <span className="block mt-1 text-sm">
+                                            Your verification was rejected: {verification_status.rejection_reason || 'Please submit a new document.'}
+                                        </span>
+                                    )}
+                                </p>
+                                <Link href="/onboarding/verification">
+                                    <Button size="sm" variant="default" className="ml-4">
+                                        <ShieldCheck className="mr-2 h-4 w-4" />
+                                        Verify Now
+                                    </Button>
+                                </Link>
+                            </div>
+                        </AlertDescription>
+                    </Alert>
+                )}
 
                 {/* Stats Grid */}
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

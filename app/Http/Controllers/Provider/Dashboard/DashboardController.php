@@ -72,10 +72,26 @@ class DashboardController extends Controller
                 ];
             });
 
+        // Check verification status
+        $verificationStatus = null;
+        $existingVerification = \App\Models\ProviderVerification::where('user_id', $user->id)
+            ->latest()
+            ->first();
+        
+        if ($existingVerification) {
+            $verificationStatus = [
+                'status' => $existingVerification->status,
+                'rejection_reason' => $existingVerification->rejection_reason,
+                'created_at' => $existingVerification->created_at,
+            ];
+        }
+
         return Inertia::render('provider/dashboard/index', [
             'stats' => $stats,
             'upcomingAppointments' => $upcomingAppointments,
             'recentActivity' => $recentActivity,
+            'is_verified' => $user->is_verified,
+            'verification_status' => $verificationStatus,
         ]);
     }
 

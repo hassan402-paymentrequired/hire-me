@@ -326,13 +326,47 @@ class AppointmentController extends Controller
             'reschedule_id' => 'nullable|exists:appointments,id',
         ]);
 
-        $provider = User::findOrFail($request->provider_id);
+        $provider = User::with('businessProfile')->findOrFail($request->provider_id);
         $services = Service::whereIn('id', $request->service_ids)->get();
         $totalDuration = $services->sum('duration_minutes');
         $maxBuffer = $services->max('buffer_time_minutes') ?? 0;
 
         $date = Carbon::parse($request->date);
         $dayOfWeek = $date->format('l');
+
+        // Get provider settings
+        $settings = $provider->businessProfile->settings ?? [];
+        $advanceBooking = (int)($settings['advanceBooking'] ?? 30); // days
+        $minNotice = isset($settings['minNotice']) ? (int)$settings['minNotice'] : null; // hours
+        $allowSameDay = $settings['allowSameDay'] ?? false;
+
+        // Check advance booking window
+        $maxDate = Carbon::now()->addDays($advanceBooking);
+        if ($date->gt($maxDate)) {
+            return response()->json([
+                'slots' => [],
+                'message' => "Bookings can only be made up to {$advanceBooking} days in advance."
+            ]);
+        }
+
+        // Check minimum notice period
+        if ($minNotice !== null) {
+            $minDateTime = Carbon::now()->addHours($minNotice);
+            if ($date->isToday() && Carbon::now()->addHours($minNotice)->gt($date->endOfDay())) {
+                return response()->json([
+                    'slots' => [],
+                    'message' => "Minimum notice period is {$minNotice} hours. Please select a later date."
+                ]);
+            }
+        }
+
+        // Check same-day booking
+        if (!$allowSameDay && $date->isToday()) {
+            return response()->json([
+                'slots' => [],
+                'message' => 'Same-day bookings are not allowed. Please select a future date.'
+            ]);
+        }
 
         // Get work hours for this day
         $workHours = WorkHour::where('provider_id', $provider->id)
@@ -374,11 +408,28 @@ class AppointmentController extends Controller
             $start = Carbon::parse($date->format('Y-m-d') . ' ' . $workHour->start_time);
             $end = Carbon::parse($date->format('Y-m-d') . ' ' . $workHour->end_time);
 
-            // If the date is today, ensure start time is at least now
+            // If the date is today, ensure start time meets minimum notice
             if ($date->isToday()) {
                 $now = Carbon::now();
-                if ($start->lt($now)) {
-                    $start = $now->copy()->ceilMinutes(30); // Start from next 30min block
+                $minStartTime = $now;
+                
+                // Apply minimum notice if set
+                if ($minNotice !== null) {
+                    $minStartTime = $now->copy()->addHours($minNotice)->ceilMinutes(30);
+                } else {
+                    $minStartTime = $now->copy()->ceilMinutes(30); // Start from next 30min block
+                }
+                
+                if ($start->lt($minStartTime)) {
+                    $start = $minStartTime;
+                }
+            }
+            
+            // For future dates, check minimum notice for each slot
+            if (!$date->isToday() && $minNotice !== null) {
+                $minSlotTime = Carbon::now()->addHours($minNotice);
+                if ($start->lt($minSlotTime)) {
+                    $start = $minSlotTime->copy()->ceilMinutes(30);
                 }
             }
 
@@ -387,6 +438,15 @@ class AppointmentController extends Controller
             while ($current->copy()->addMinutes($totalDuration)->lte($end)) {
                 $slotStart = $current->copy();
                 $slotEnd = $current->copy()->addMinutes($totalDuration);
+                
+                // Skip slots that don't meet minimum notice requirement
+                if ($minNotice !== null) {
+                    $minSlotTime = Carbon::now()->addHours($minNotice);
+                    if ($slotStart->lt($minSlotTime)) {
+                        $current->addMinutes(30);
+                        continue;
+                    }
+                }
 
                 // Check if slot is during break
                 $isDuringBreak = false;

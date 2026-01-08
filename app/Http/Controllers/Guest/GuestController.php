@@ -21,6 +21,7 @@ class GuestController extends Controller
         $lng = $request->lng ? (float) $request->lng : null;
 
         $query = User::whereHas('businessProfile')
+            ->where('users.is_verified', true) // Only show verified providers
             ->select('users.*')
             ->with([
                 'businessProfile.images',

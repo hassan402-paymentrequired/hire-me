@@ -25,6 +25,7 @@ import {
     Home, // Imported Home icon
     Search, // Imported Search icon
     Bookmark, // Imported Bookmark icon
+    ArrowDownToLine, // Imported for withdrawals
 } from 'lucide-react';
 import AppLogo from './app-logo';
 import schedule from '@/routes/schedule';
@@ -73,6 +74,11 @@ const mainNavItems: NavSection[] = [
                 title: 'Services',
                 href: business.services(),
                 icon: LayoutGrid,
+            },
+            {
+                title: 'Withdraw Funds',
+                href: '/wallet/withdraw',
+                icon: ArrowDownToLine,
             },
             {
                 title: 'Settings',

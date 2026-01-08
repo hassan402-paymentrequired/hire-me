@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import OnboardingLayout from '@/layouts/onboarding-layout';
 import onboarding from '@/routes/onboarding';
 import { useForm } from '@inertiajs/react';
-import { Building2, Clock, Scissors } from 'lucide-react';
+import { Building2, Clock, Scissors, ShieldCheck } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '@/components/ui/spinner';
 

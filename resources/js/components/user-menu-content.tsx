@@ -6,12 +6,19 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { UserInfo } from '@/components/user-info';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
-import { logout, becomeProvider } from '@/routes';
+import { becomeProvider, logout } from '@/routes';
+import business from '@/routes/business';
+import jobs from '@/routes/jobs';
 import { edit } from '@/routes/profile';
 import { type User } from '@/types';
 import { Link, router } from '@inertiajs/react';
-import { LogOut, Settings, Briefcase, Wallet } from 'lucide-react';
-import business from '@/routes/business';
+import {
+    Briefcase,
+    BriefcaseBusiness,
+    LogOut,
+    Settings,
+    Wallet,
+} from 'lucide-react';
 
 interface UserMenuContentProps {
     user: User;
@@ -32,10 +39,15 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                     <UserInfo user={user} showEmail={true} />
                 </div>
                 {user.wallet && (
-                    <div className="px-1 py-1.5 mt-2 border-t border-border">
+                    <div className="mt-2 border-t border-border px-1 py-1.5">
                         <div className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground">Wallet Balance</span>
-                            <span className="font-semibold">₦{user.wallet.available_balance.toLocaleString()}</span>
+                            <span className="text-muted-foreground">
+                                Wallet Balance
+                            </span>
+                            <span className="font-semibold">
+                                ₦
+                                {user.wallet.available_balance.toLocaleString()}
+                            </span>
                         </div>
                     </div>
                 )}
@@ -56,6 +68,22 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                         </Link>
                     </DropdownMenuItem>
                 )}
+
+                {/* {user.wallet && ( */}
+                <DropdownMenuItem asChild>
+                    <Link
+                        className="block w-full"
+                        href={jobs.post().url}
+                        as="button"
+                        prefetch
+                        onClick={cleanup}
+                    >
+                        <BriefcaseBusiness className="mr-2" />
+                        Post a Job
+                    </Link>
+                </DropdownMenuItem>
+                {/* )} */}
+
                 {user.has_provider_setup ? (
                     <DropdownMenuItem asChild>
                         <Link
@@ -83,18 +111,20 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                         </Link>
                     </DropdownMenuItem>
                 )}
-                <DropdownMenuItem asChild>
-                    <Link
-                        className="block w-full"
-                        href={edit()}
-                        as="button"
-                        prefetch
-                        onClick={cleanup}
-                    >
-                        <Settings className="mr-2" />
-                        Settings
-                    </Link>
-                </DropdownMenuItem>
+                {user.role === 'client' && (
+                    <DropdownMenuItem asChild>
+                        <Link
+                            className="block w-full"
+                            href={edit()}
+                            as="button"
+                            prefetch
+                            onClick={cleanup}
+                        >
+                            <Settings className="mr-2" />
+                            Settings
+                        </Link>
+                    </DropdownMenuItem>
+                )}
             </DropdownMenuGroup>
 
             <DropdownMenuSeparator />

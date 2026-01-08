@@ -15,8 +15,9 @@ class MarketplaceController extends Controller
 {
     public function index()
     {
-        // Get all providers with their business profiles and services
+        // Get all verified providers with their business profiles and services
         $providers = User::whereHas('businessProfile')
+            ->where('is_verified', true) // Only show verified providers
             ->with([
                 'businessProfile',
                 'services' => function ($query) {
@@ -44,6 +45,12 @@ class MarketplaceController extends Controller
     public function show($slug)
     {
         $businessProfile = BusinessProfile::where('slug', $slug)->firstOrFail();
+        
+        // Check if provider is verified
+        if (!$businessProfile->user->is_verified) {
+            abort(404, 'Provider profile not found');
+        }
+        
         $provider = $businessProfile->user()
             ->with([
                 'services' => function ($query) {
@@ -135,6 +142,12 @@ class MarketplaceController extends Controller
     public function booking($slug)
     {
         $businessProfile = BusinessProfile::where('slug', $slug)->firstOrFail();
+        
+        // Check if provider is verified
+        if (!$businessProfile->user->is_verified) {
+            abort(404, 'Provider profile not found');
+        }
+        
         $provider = $businessProfile->user()
             ->with([
                 'services' => function ($query) {
@@ -149,6 +162,9 @@ class MarketplaceController extends Controller
             $wallet = Wallet::firstOrCreate(['user_id' => auth()->id()]);
             $walletBalance = $wallet->available_balance;
         }
+
+        // Get provider settings
+        $settings = $businessProfile->settings ?? [];
 
         return Inertia::render('marketplace/booking', [
             'provider' => [
@@ -169,6 +185,13 @@ class MarketplaceController extends Controller
                 'price' => $service->price,
             ]),
             'walletBalance' => $walletBalance,
+            'settings' => [
+                'advanceBooking' => $settings['advanceBooking'] ?? '30', // days
+                'minNotice' => $settings['minNotice'] ?? null, // hours
+                'allowSameDay' => $settings['allowSameDay'] ?? false,
+                'max_bookings_per_week' => $settings['max_bookings_per_week'] ?? null,
+                'max_bookings_per_month' => $settings['max_bookings_per_month'] ?? null,
+            ],
         ]);
     }
 }

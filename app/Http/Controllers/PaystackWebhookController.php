@@ -26,7 +26,7 @@ class PaystackWebhookController extends Controller
         // Verify webhook signature
         $signature = $request->header('X-Paystack-Signature');
         $payload = $request->getContent();
-        
+
         if (!$this->verifySignature($signature, $payload)) {
             Log::warning('Invalid Paystack webhook signature');
             return response()->json(['error' => 'Invalid signature'], 401);
@@ -85,6 +85,12 @@ class PaystackWebhookController extends Controller
             return;
         }
 
+        // Check if already processed (idempotency)
+        if ($transaction->status === 'completed') {
+            Log::info('Transaction already processed', ['reference' => $reference]);
+            return;
+        }
+
         DB::beginTransaction();
         try {
             $wallet = $transaction->wallet;
@@ -103,8 +109,17 @@ class PaystackWebhookController extends Controller
             ]);
 
             DB::commit();
+            Log::info('Wallet credited via webhook', [
+                'reference' => $reference,
+                'amount' => $amount,
+                'wallet_id' => $wallet->id,
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Webhook wallet credit error', [
+                'reference' => $reference,
+                'error' => $e->getMessage(),
+            ]);
             throw $e;
         }
     }
@@ -115,7 +130,7 @@ class PaystackWebhookController extends Controller
     protected function handleTransferSuccess(array $data)
     {
         $reference = $data['reference'];
-        
+
         $transaction = WalletTransaction::where('reference', $reference)
             ->where('type', 'withdrawal')
             ->where('status', 'pending')
@@ -141,7 +156,7 @@ class PaystackWebhookController extends Controller
     protected function handleTransferFailed(array $data)
     {
         $reference = $data['reference'];
-        
+
         $transaction = WalletTransaction::where('reference', $reference)
             ->where('type', 'withdrawal')
             ->where('status', 'pending')
@@ -190,6 +205,44 @@ class PaystackWebhookController extends Controller
         $verification = $this->paystack->verifyTransaction($reference);
 
         if ($verification['success'] && $verification['status'] === 'success') {
+            // Check if transaction exists and is still pending (webhook might not have processed yet)
+            $transaction = WalletTransaction::where('reference', $reference)
+                ->where('type', 'deposit')
+                ->first();
+
+            if ($transaction && $transaction->status === 'pending') {
+                // Credit wallet as fallback if webhook hasn't processed
+                DB::beginTransaction();
+                try {
+                    $wallet = $transaction->wallet;
+                    $amount = $verification['amount'] / 100; // Convert from kobo
+
+                    // Update wallet balance directly (don't create new transaction)
+                    $balanceBefore = $wallet->balance;
+                    $wallet->balance += $amount;
+                    $wallet->save();
+
+                    // Update existing transaction instead of creating new one
+                    $transaction->update([
+                        'status' => 'completed',
+                        'balance_before' => $balanceBefore,
+                        'balance_after' => $wallet->balance,
+                        'metadata' => array_merge($transaction->metadata ?? [], [
+                            'paystack_reference' => $reference,
+                            'callback' => true,
+                        ]),
+                    ]);
+
+                    DB::commit();
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    Log::error('Callback wallet credit error', [
+                        'reference' => $reference,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
             return redirect()->route('wallet.index')
                 ->with('success-toast', 'Payment successful! Your wallet has been topped up.');
         }

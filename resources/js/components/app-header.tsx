@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { Icon } from '@/components/icon';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -20,48 +21,52 @@ import {
     SheetTitle,
     SheetTrigger,
 } from '@/components/ui/sheet';
-import { UserMenuContent } from '@/components/user-menu-content';
-import { useInitials } from '@/hooks/use-initials';
-import { cn, isSameUrl, resolveUrl } from '@/lib/utils';
-import { type BreadcrumbItem, type NavItem, type SharedData } from '@/types';
-import { Link, usePage } from '@inertiajs/react';
-import {
-    BookOpen, Briefcase,
-    CalendarSync,
-    Folder,
-    Heart,
-    Menu,
-    Notebook,
-    Search,
-} from 'lucide-react';
-import AppLogo from './app-logo';
-import AppLogoIcon from './app-logo-icon';
-import { home, login, becomeProvider } from '@/routes';
-import business from '@/routes/business';
-import client from '@/routes/client';
 import {
     Tooltip,
     TooltipContent,
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { UserMenuContent } from '@/components/user-menu-content';
 import { useLoading } from '@/contexts/loading-context';
+import { useInitials } from '@/hooks/use-initials';
+import { cn, isSameUrl, resolveUrl } from '@/lib/utils';
+import { becomeProvider, home, login } from '@/routes';
+import business from '@/routes/business';
+import client from '@/routes/client';
 import jobs from '@/routes/jobs';
+import { type BreadcrumbItem, type SharedData } from '@/types';
+import { Link, usePage } from '@inertiajs/react';
+import { BookOpen, CalendarSync, Folder, Heart, Menu } from 'lucide-react';
+import AppLogo from './app-logo';
+import AppLogoIcon from './app-logo-icon';
 
-const mainNavItems = [
-    {
-        title: 'Marketplace',
-        href: home().url,
-    },
-    {
-        title: 'My Jobs',
-        href: jobs.index().url,
-    },
-    {
-        title: 'Post a Job',
-        href: jobs.post().url,
+interface NavItem {
+    title: string;
+    href: string;
+    icon?: any;
+}
+
+const mainNavItems = (auth?: any): NavItem[] => {
+    const items: NavItem[] = [
+        {
+            title: 'Marketplace',
+            href: home().url,
+        },
+        {
+            title: 'My Jobs',
+            href: jobs.index().url,
+        },
+    ];
+    // Only display Job Board if user is a provider (has_provider_setup)
+    if (auth?.user?.has_provider_setup) {
+        items.push({
+            title: 'Job Board',
+            href: jobs.board().url,
+        });
     }
-];
+    return items;
+};
 
 const rightNavItems = [
     {
@@ -76,8 +81,7 @@ const rightNavItems = [
     },
 ];
 
-const activeItemStyles =
-    '';
+const activeItemStyles = '';
 
 interface AppHeaderProps {
     breadcrumbs?: BreadcrumbItem[];
@@ -87,7 +91,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
     const page = usePage<SharedData>();
     const { auth } = page.props;
     const getInitials = useInitials();
-    const {  toggleFavoriteSheet } = useLoading();
+    const { toggleFavoriteSheet } = useLoading();
     return (
         <>
             <div className="border-b border-sidebar-border/80">
@@ -117,7 +121,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                 <div className="flex h-full flex-1 flex-col space-y-4 p-4">
                                     <div className="flex h-full flex-col justify-between text-sm">
                                         <div className="flex flex-col space-y-4">
-                                            {mainNavItems.map((item) => (
+                                            {mainNavItems(auth).map((item) => (
                                                 <Link
                                                     key={item.title}
                                                     href={item.href}
@@ -171,7 +175,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                     <div className="ml-6 hidden h-full items-center space-x-6 lg:flex">
                         <NavigationMenu className="flex h-full items-stretch">
                             <NavigationMenuList className="flex h-full items-stretch space-x-2">
-                                {mainNavItems.map((item, index) => (
+                                {mainNavItems(auth).map((item, index) => (
                                     <NavigationMenuItem
                                         key={index}
                                         className="relative flex h-full items-center hover:bg-none"
@@ -184,7 +188,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                                     page.url,
                                                     item.href,
                                                 ) && activeItemStyles,
-                                                'h-9 cursor-pointer px-3 relative',
+                                                'relative h-9 cursor-pointer px-3',
                                             )}
                                             prefetch
                                         >
@@ -197,7 +201,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                             {item.title}
                                         </Link>
                                         {isSameUrl(page.url, item.href) && (
-                                        <div className="absolute bottom-0 left-0 h-0.5 w-full translate-y-px bg-black dark:bg-white"></div>
+                                            <div className="absolute bottom-0 left-0 h-0.5 w-full translate-y-px bg-black dark:bg-white"></div>
                                         )}
                                     </NavigationMenuItem>
                                 ))}
@@ -206,7 +210,6 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                     </div>
 
                     <div className="ml-auto flex items-center space-x-2">
-
                         {auth?.user ? (
                             <div className="flex items-center gap-2">
                                 {/* Wallet Balance Display */}
@@ -215,73 +218,82 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Link href="/wallet" prefetch>
-                                                    <Button size="sm" variant="outline" className="shadow-none rounded-2xl">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="rounded-2xl shadow-none"
+                                                    >
                                                         <span className="text-xs font-medium">
-                                                            ₦{auth.user.wallet.available_balance.toLocaleString()}
+                                                            ₦
+                                                            {auth.user.wallet.available_balance.toLocaleString()}
                                                         </span>
                                                     </Button>
                                                 </Link>
                                             </TooltipTrigger>
                                             <TooltipContent>
-                                                <p>Wallet Balance (Click to view details)</p>
+                                                <p>
+                                                    Wallet Balance (Click to
+                                                    view details)
+                                                </p>
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
                                 )}
 
-
                                 {auth.user.has_provider_setup ? (
-                                    <Link
-                                        href={business.dashboard()}
-                                        prefetch
-                                    >
-                                        <Button size="sm" >
-                                            Dashboard
-                                        </Button>
+                                    <Link href={business.dashboard()} prefetch>
+                                        <Button size="sm">Dashboard</Button>
                                     </Link>
                                 ) : (
                                     <div className="space-x-4">
-                                    <Link
-                                            href={becomeProvider()}
-                                            prefetch
-                                        >
-                                            <Button size="sm" variant="default" className="rounded-2xl">
+                                        <Link href={becomeProvider()} prefetch>
+                                            <Button
+                                                size="sm"
+                                                variant="default"
+                                                className="rounded-2xl"
+                                            >
                                                 Become Provider
                                             </Button>
                                         </Link>
-                                      <TooltipProvider
-                                    delayDuration={0}
-                                >
-                                    <Tooltip>
-                                        <TooltipTrigger>
-                                        <Link
-                                            href={client.bookings.index()}
-                                            prefetch
-                                        >
-                                            <Button size="sm" variant="outline" className="shadow-none rounded-full">
-                                                <CalendarSync className="size-3" />
-                                            </Button>
-                                        </Link>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>{auth.user.has_provider_setup ? 'Dashboard' : 'My appointments'}</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-
-
-
+                                        <TooltipProvider delayDuration={0}>
+                                            <Tooltip>
+                                                <TooltipTrigger>
+                                                    <Link
+                                                        href={client.bookings.index()}
+                                                        prefetch
+                                                    >
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="rounded-full shadow-none"
+                                                        >
+                                                            <CalendarSync className="size-3" />
+                                                        </Button>
+                                                    </Link>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>
+                                                        {auth.user
+                                                            .has_provider_setup
+                                                            ? 'Dashboard'
+                                                            : 'My appointments'}
+                                                    </p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
                                     </div>
                                 )}
 
-
-                                <TooltipProvider
-                                    delayDuration={0}
-                                >
+                                <TooltipProvider delayDuration={0}>
                                     <Tooltip>
                                         <TooltipTrigger>
-                                            <Button size="sm" onClick={toggleFavoriteSheet} variant="outline" className="shadow-none rounded-full">
-                                                    <Heart className="size-3 opacity-80 group-hover:opacity-100" />
+                                            <Button
+                                                size="sm"
+                                                onClick={toggleFavoriteSheet}
+                                                variant="outline"
+                                                className="rounded-full shadow-none"
+                                            >
+                                                <Heart className="size-3 opacity-80 group-hover:opacity-100" />
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent>
@@ -301,23 +313,25 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                                     alt={auth.user.name}
                                                 />
                                                 <AvatarFallback className="rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">
-                                                    {getInitials(auth.user.name)}
+                                                    {getInitials(
+                                                        auth.user.name,
+                                                    )}
                                                 </AvatarFallback>
                                             </Avatar>
                                         </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="w-56" align="end">
+                                    <DropdownMenuContent
+                                        className="w-56"
+                                        align="end"
+                                    >
                                         <UserMenuContent user={auth.user} />
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
-                        ): (
+                        ) : (
                             <>
-                                <Link
-                                    href={login()}
-                                    prefetch
-                                >
-                                    <Button size={"sm"} >Get started</Button>
+                                <Link href={login()} prefetch>
+                                    <Button size={'sm'}>Get started</Button>
                                 </Link>
                             </>
                         )}

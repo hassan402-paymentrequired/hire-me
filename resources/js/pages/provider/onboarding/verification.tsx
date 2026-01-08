@@ -1,45 +1,14 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import OnboardingLayout from '@/layouts/onboarding-layout';
+import VerificationLayout from '@/layouts/verification-layout';
 import onboarding from '@/routes/onboarding';
-import { useForm } from '@inertiajs/react';
-import { Building2, Clock, Scissors, ShieldCheck, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { useForm, router } from '@inertiajs/react';
+import { ShieldCheck, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FormSelect } from '@/components/ui/form-select';
 import { useState } from 'react';
-
-const STEPS = [
-    {
-        id: 'profile',
-        title: 'Business Profile',
-        description: 'Set up your business identity and public details.',
-        icon: Building2,
-        status: 'completed' as const,
-    },
-    {
-        id: 'hours',
-        title: 'Work Hours',
-        description: 'Define when you are available for bookings.',
-        icon: Clock,
-        status: 'completed' as const,
-    },
-    {
-        id: 'services',
-        title: 'Services',
-        description: 'Add the services you offer to clients.',
-        icon: Scissors,
-        status: 'completed' as const,
-    },
-    {
-        id: 'verification',
-        title: 'Verification',
-        description: 'Verify your identity to build trust with clients.',
-        icon: ShieldCheck,
-        status: 'current' as const,
-    },
-];
 
 interface Props {
     existingVerification?: {
@@ -87,7 +56,7 @@ export default function Verification({ existingVerification, is_verified }: Prop
     };
 
     const skip = () => {
-        post(onboarding.skip().url);
+        router.visit('/business/dashboard');
     };
 
     const documentTypeOptions = [
@@ -97,11 +66,7 @@ export default function Verification({ existingVerification, is_verified }: Prop
     ];
 
     return (
-        <OnboardingLayout
-            title="Verify Your Identity"
-            steps={STEPS}
-            currentStepId="verification"
-        >
+        <VerificationLayout title="Verify Your Identity">
             <div className="space-y-6">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">
@@ -265,7 +230,7 @@ export default function Verification({ existingVerification, is_verified }: Prop
                 {(is_verified || (existingVerification?.status === 'pending')) && (
                     <div className="flex justify-end">
                         <Button 
-                            onClick={() => window.location.href = '/business/dashboard'}
+                            onClick={() => router.visit('/business/dashboard')}
                             size="lg"
                         >
                             Continue to Dashboard
@@ -273,6 +238,6 @@ export default function Verification({ existingVerification, is_verified }: Prop
                     </div>
                 )}
             </div>
-        </OnboardingLayout>
+        </VerificationLayout>
     );
 }
