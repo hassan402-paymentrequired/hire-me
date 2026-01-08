@@ -1,6 +1,7 @@
 import React from 'react';
-import { Select } from '@/components/ui/select';
+import { FormSelect } from '@/components/ui/form-select';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertTriangle, Settings } from 'lucide-react';
 
@@ -56,39 +57,59 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
             <div className="space-y-6">
                 {/* General Time Settings */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Select
-                        label="Buffer Time Between Appointments"
-                        description="Time gap between consecutive bookings"
-                        options={bufferOptions}
-                        value={settings?.bufferTime || '0'}
-                        onChange={(value) => onSettingsChange('bufferTime', value)}
-                    />
-                    <Select
-                        label="Advance Booking Window"
-                        description="How far ahead customers can book"
-                        options={advanceBookingOptions}
-                        value={settings?.advanceBooking || '30'}
-                        onChange={(value) => onSettingsChange('advanceBooking', value)}
-                    />
+                    <div className="space-y-2">
+                        <FormSelect
+                            label="Buffer Time Between Appointments"
+                            options={bufferOptions}
+                            value={settings?.bufferTime || '0'}
+                            onChange={(value) => onSettingsChange('bufferTime', value)}
+                            placeholder="Select buffer time"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Time gap between consecutive bookings
+                        </p>
+                    </div>
+                    <div className="space-y-2">
+                        <FormSelect
+                            label="Advance Booking Window"
+                            options={advanceBookingOptions}
+                            value={settings?.advanceBooking || '30'}
+                            onChange={(value) => onSettingsChange('advanceBooking', value)}
+                            placeholder="Select booking window"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            How far ahead customers can book
+                        </p>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                        label="Minimum Notice Period (hours)"
-                        type="number"
-                        description="Minimum time before appointment"
-                        value={settings?.minNotice ?? ''}
-                        onChange={(e) => onSettingsChange('minNotice', e.target.value)}
-                        min="0"
-                    />
-                    <Input
-                        label="Maximum Daily Appointments"
-                        type="number"
-                        description="Limit bookings per day"
-                        value={settings?.maxDaily ?? ''}
-                        onChange={(e) => onSettingsChange('maxDaily', e.target.value)}
-                        min="1"
-                    />
+                    <div className="space-y-2">
+                        <Label htmlFor="minNotice">Minimum Notice Period (hours)</Label>
+                        <Input
+                            id="minNotice"
+                            type="number"
+                            value={settings?.minNotice ?? ''}
+                            onChange={(e) => onSettingsChange('minNotice', e.target.value)}
+                            min="0"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Minimum time before appointment
+                        </p>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="maxDaily">Maximum Daily Appointments</Label>
+                        <Input
+                            id="maxDaily"
+                            type="number"
+                            value={settings?.maxDaily ?? ''}
+                            onChange={(e) => onSettingsChange('maxDaily', e.target.value)}
+                            min="1"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Limit bookings per day
+                        </p>
+                    </div>
                 </div>
 
                 {/* Booking Frequency Limits */}
@@ -96,22 +117,32 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
                      <h4 className="text-sm font-medium text-foreground">Booking Frequency Limits</h4>
                      <p className="text-xs text-muted-foreground -mt-3">Restrict how often the same client can book you.</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input
-                            label="Max Bookings per Week (per user)"
-                            type="number"
-                            description="Validation: per client, per week"
-                            value={settings?.max_bookings_per_week ?? ''}
-                            onChange={(e) => onSettingsChange('max_bookings_per_week', e.target.value)}
-                            min="1"
-                        />
-                        <Input
-                            label="Max Bookings per Month (per user)"
-                            type="number"
-                            description="Validation: per client, per month"
-                            value={settings?.max_bookings_per_month ?? ''}
-                            onChange={(e) => onSettingsChange('max_bookings_per_month', e.target.value)}
-                            min="1"
-                        />
+                        <div className="space-y-2">
+                            <Label htmlFor="max_bookings_per_week">Max Bookings per Week (per user)</Label>
+                            <Input
+                                id="max_bookings_per_week"
+                                type="number"
+                                value={settings?.max_bookings_per_week ?? ''}
+                                onChange={(e) => onSettingsChange('max_bookings_per_week', e.target.value)}
+                                min="1"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Validation: per client, per week
+                            </p>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="max_bookings_per_month">Max Bookings per Month (per user)</Label>
+                            <Input
+                                id="max_bookings_per_month"
+                                type="number"
+                                value={settings?.max_bookings_per_month ?? ''}
+                                onChange={(e) => onSettingsChange('max_bookings_per_month', e.target.value)}
+                                min="1"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Validation: per client, per month
+                            </p>
+                        </div>
                     </div>
                 </div>
 
@@ -120,24 +151,36 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
                     <h4 className="text-sm font-medium text-foreground">Payment Settings</h4>
                     <p className="text-xs text-muted-foreground -mt-3">Configure how payments are handled for your appointments.</p>
                     <div className="space-y-4">
-                        <Checkbox
-                            label="Auto-release payment upon confirmation"
-                            description="Automatically release payment to your wallet when you confirm an appointment (recommended for instant payment)"
-                            checked={settings?.auto_release_payment ?? false}
-                            onChange={(e) => onSettingsChange('auto_release_payment', e?.target?.checked)}
-                        />
+                        <div className="flex items-start gap-3">
+                            <Checkbox
+                                id="auto_release_payment"
+                                checked={settings?.auto_release_payment ?? false}
+                                onCheckedChange={(checked) => onSettingsChange('auto_release_payment', checked)}
+                            />
+                            <div className="space-y-1 flex-1">
+                                <Label htmlFor="auto_release_payment" className="cursor-pointer">
+                                    Auto-release payment upon confirmation
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                    Automatically release payment to your wallet when you confirm an appointment (recommended for instant payment)
+                                </p>
+                            </div>
+                        </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-foreground">
+                            <Label htmlFor="cancellation_penalty_percent">
                                 Late Cancellation Penalty (%)
-                            </label>
+                            </Label>
                             <Input
+                                id="cancellation_penalty_percent"
                                 type="number"
-                                description="Percentage of payment forfeited if client cancels less than 5 hours before appointment (0-100)"
                                 value={settings?.cancellation_penalty_percent ?? '0'}
                                 onChange={(e) => onSettingsChange('cancellation_penalty_percent', e.target.value)}
                                 min="0"
                                 max="100"
                             />
+                            <p className="text-xs text-muted-foreground">
+                                Percentage of payment forfeited if client cancels less than 5 hours before appointment (0-100)
+                            </p>
                             <p className="text-xs text-muted-foreground">
                                 Example: 50% means client forfeits half the payment, you receive ₦500 from a ₦1000 booking if cancelled late.
                             </p>
@@ -148,31 +191,67 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
                 {/* Preferences */}
                 <div className="pt-4 border-t border-border space-y-4">
                     <h4 className="text-sm font-medium text-foreground">Booking Preferences</h4>
-                    <div className="space-y-3">
-                        <Checkbox
-                            label="Allow same-day bookings"
-                            description="Customers can book appointments for today"
-                            checked={settings?.allowSameDay ?? false}
-                            onChange={(e) => onSettingsChange('allowSameDay', e?.target?.checked)}
-                        />
-                        <Checkbox
-                            label="Enable waitlist for fully booked slots"
-                            description="Let customers join waitlist when no slots available"
-                            checked={settings?.enableWaitlist ?? false}
-                            onChange={(e) => onSettingsChange('enableWaitlist', e?.target?.checked)}
-                        />
-                        <Checkbox
-                            label="Auto-confirm bookings"
-                            description="Automatically confirm without manual approval"
-                            checked={settings?.autoConfirm ?? false}
-                            onChange={(e) => onSettingsChange('autoConfirm', e?.target?.checked)}
-                        />
-                        <Checkbox
-                            label="Send reminder notifications"
-                            description="Email/SMS reminders before appointments"
-                            checked={settings?.sendReminders ?? false}
-                            onChange={(e) => onSettingsChange('sendReminders', e?.target?.checked)}
-                        />
+                    <div className="space-y-4">
+                        <div className="flex items-start gap-3">
+                            <Checkbox
+                                id="allowSameDay"
+                                checked={settings?.allowSameDay ?? false}
+                                onCheckedChange={(checked) => onSettingsChange('allowSameDay', checked)}
+                            />
+                            <div className="space-y-1 flex-1">
+                                <Label htmlFor="allowSameDay" className="cursor-pointer">
+                                    Allow same-day bookings
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                    Customers can book appointments for today
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <Checkbox
+                                id="enableWaitlist"
+                                checked={settings?.enableWaitlist ?? false}
+                                onCheckedChange={(checked) => onSettingsChange('enableWaitlist', checked)}
+                            />
+                            <div className="space-y-1 flex-1">
+                                <Label htmlFor="enableWaitlist" className="cursor-pointer">
+                                    Enable waitlist for fully booked slots
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                    Let customers join waitlist when no slots available
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <Checkbox
+                                id="autoConfirm"
+                                checked={settings?.autoConfirm ?? false}
+                                onCheckedChange={(checked) => onSettingsChange('autoConfirm', checked)}
+                            />
+                            <div className="space-y-1 flex-1">
+                                <Label htmlFor="autoConfirm" className="cursor-pointer">
+                                    Auto-confirm bookings
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                    Automatically confirm without manual approval
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <Checkbox
+                                id="sendReminders"
+                                checked={settings?.sendReminders ?? false}
+                                onCheckedChange={(checked) => onSettingsChange('sendReminders', checked)}
+                            />
+                            <div className="space-y-1 flex-1">
+                                <Label htmlFor="sendReminders" className="cursor-pointer">
+                                    Send reminder notifications
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                    Email/SMS reminders before appointments
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
