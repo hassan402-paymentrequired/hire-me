@@ -215,7 +215,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Link href="/wallet" prefetch>
-                                                    <Button size="sm" variant="outline" className="shadow-none">
+                                                    <Button size="sm" variant="outline" className="shadow-none rounded-2xl">
                                                         <span className="text-xs font-medium">
                                                             ₦{auth.user.wallet.available_balance.toLocaleString()}
                                                         </span>
@@ -229,11 +229,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                     </TooltipProvider>
                                 )}
 
-                                <TooltipProvider
-                                    delayDuration={0}
-                                >
-                                    <Tooltip>
-                                        <TooltipTrigger>
+
                                 {auth.user.has_provider_setup ? (
                                     <Link
                                         href={business.dashboard()}
@@ -244,7 +240,20 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                         </Button>
                                     </Link>
                                 ) : (
-                                    <>
+                                    <div className="space-x-4">
+                                    <Link
+                                            href={becomeProvider()}
+                                            prefetch
+                                        >
+                                            <Button size="sm" variant="default" className="rounded-2xl">
+                                                Become Provider
+                                            </Button>
+                                        </Link>
+                                      <TooltipProvider
+                                    delayDuration={0}
+                                >
+                                    <Tooltip>
+                                        <TooltipTrigger>
                                         <Link
                                             href={client.bookings.index()}
                                             prefetch
@@ -253,22 +262,18 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                                 <CalendarSync className="size-3" />
                                             </Button>
                                         </Link>
-                                        <Link
-                                            href={becomeProvider()}
-                                            prefetch
-                                        >
-                                            <Button size="sm" variant="default">
-                                                Become Provider
-                                            </Button>
-                                        </Link>
-                                    </>
-                                )}
                                         </TooltipTrigger>
                                         <TooltipContent>
                                             <p>{auth.user.has_provider_setup ? 'Dashboard' : 'My appointments'}</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
+
+
+
+                                    </div>
+                                )}
+
 
                                 <TooltipProvider
                                     delayDuration={0}

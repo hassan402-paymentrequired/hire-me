@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use Exception;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class JobPostController extends Controller
 {
-    public function store(\Illuminate\Http\Request $request)
+    public function store(Request $request)
     {
         $validated = $request->validate([
             'category' => 'required|string',
@@ -16,19 +19,24 @@ class JobPostController extends Controller
             'budget_min' => 'nullable|numeric|min:0',
             'budget_max' => 'nullable|numeric|gt:budget_min',
             'address' => 'required|string',
-            'latitude' => 'required|numeric',
-            'longitude' => 'required|numeric',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
         ]);
+        try {
 
-        $job = \App\Models\JobPost::create([
-            'client_id' => auth()->id(),
-            'status' => 'open',
-            ...$validated
-        ]);
+            $job = \App\Models\JobPost::create([
+                'client_id' => Auth::id(),
+                'status' => 'open',
+                ...$validated
+            ]);
 
-        // TODO: Fire Event to notify nearby providers the vent goes here
+            // TODO: Fire Event to notify nearby providers the vent goes here
 
-        return back()->with('success-toast', 'Job posted successfully! Providers will be notified.');
+            return back()->with('success-toast', 'Job posted successfully! Providers will be notified.');
+        } catch (Exception $e) {
+            Log::error($e->getMessage());
+            return back()->with('error-toast', ' An error occurred while posting your job');
+        }
     }
 
     public function create()
@@ -39,7 +47,7 @@ class JobPostController extends Controller
 
     public function clientIndex()
     {
-        $jobs = \App\Models\JobPost::query()->where('client_id', auth()->id())
+        $jobs = \App\Models\JobPost::query()->where('client_id', Auth::id())
             ->with([
                 'bids' => function ($query) {
                     $query->with('provider.businessProfile')->latest();
@@ -54,10 +62,25 @@ class JobPostController extends Controller
 
     public function providerBoard(\Illuminate\Http\Request $request)
     {
-        $user = auth()->user();
+        $user = Auth::user();
         $profile = $user->businessProfile;
 
-        // Simple Haversine for nearby jobs
+        if (!$profile) {
+            return Inertia::render('provider/jobs/board', ['jobs' => collect([])]);
+        }
+
+        // If provider doesn't have location, show all jobs in their category (without distance)
+        if (!$profile->latitude || !$profile->longitude) {
+            $jobs = \App\Models\JobPost::query()
+                ->where('status', 'open')
+                ->where('category', $profile->category ?? '')
+                ->latest()
+                ->paginate(12);
+
+            return Inertia::render('provider/jobs/board', ['jobs' => $jobs]);
+        }
+
+        // Simple Haversine for nearby jobs (only for jobs with coordinates)
         $lat = $profile->latitude;
         $lng = $profile->longitude;
         $radius = 50; // km
@@ -66,6 +89,8 @@ class JobPostController extends Controller
             ->selectRaw("(6371 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance", [$lat, $lng, $lat])
             ->where('status', 'open')
             ->where('category', $profile->category) // Filter by provider category
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
             ->having('distance', '<', $radius)
             ->orderBy('distance')
             ->latest()

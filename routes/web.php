@@ -24,6 +24,8 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
         Route::post('/work-hours', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'storeWorkHours'])->name('work-hours.store');
         Route::get('/services', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'services'])->name('services');
         Route::post('/services', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'storeServices'])->name('services.store');
+        Route::get('/verification', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'verification'])->name('verification');
+        Route::post('/verification', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'storeVerification'])->name('verification.store');
         Route::get('/success', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'success'])->name('success');
         Route::post('/skip', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'skip'])->name('skip');
     });
@@ -61,9 +63,6 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
             Route::post('/{id}/complete', [\App\Http\Controllers\Provider\Schedule\ScheduleController::class, 'completeAppointment'])->name('complete');
             Route::get('/{id}', [\App\Http\Controllers\Provider\Schedule\ScheduleController::class, 'showAppointment'])->name('show');
         });
-
-
-
     });
 
     // Client Appointments
@@ -126,7 +125,6 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
 
     // Reviews
     Route::post('/reviews', [\App\Http\Controllers\Guest\ReviewController::class, 'store'])->name('reviews.store');
-
 });
 
 // Paystack Webhook (no auth required)

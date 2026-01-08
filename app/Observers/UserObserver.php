@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Models\User;
+use App\Models\Wallet;
 use App\Notifications\WelcomeNotification;
 
 class UserObserver
@@ -14,6 +15,13 @@ class UserObserver
             $user->referral_code = strtoupper(substr(md5(uniqid($user->id, true)), 0, 8));
             $user->saveQuietly(); // Avoid infinite loop
         }
+
+        // Create wallet for new user
+        Wallet::create([
+            'user_id' => $user->id,
+            'balance' => 0,
+            'escrow_balance' => 0,
+        ]);
     }
 
     /**

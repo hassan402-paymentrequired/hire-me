@@ -153,7 +153,7 @@ export default function Welcome({ providers, categories, filters }: Props) {
                 />
             </Head>
             <AppLayout>
-                <div className="flex flex-col space-y-6 px-5 box-border overflow-hidden pb-10">
+                <div className="flex flex-col space-y-6 px-5 box-border overflow-hidden pb-10 w-full mx-auto max-w-7xl">
                     {/* Top Filter Bar */}
                     <HeaderFilter
                         categories={categories}

@@ -100,12 +100,9 @@ class WalletController extends Controller
                 return back()->with('error-toast', $paystackResponse['message'] ?? 'Failed to initialize payment');
             }
 
-            return response()->json([
-                'success' => true,
-                'authorization_url' => $paystackResponse['data']['authorization_url'],
-                'access_code' => $paystackResponse['data']['access_code'],
-                'reference' => $reference,
-            ]);
+
+            return Inertia::location($paystackResponse['data']['authorization_url']);
+
         } catch (\Exception $e) {
             return back()->with('error-toast', 'Failed to initialize payment: ' . $e->getMessage());
         }

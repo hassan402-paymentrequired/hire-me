@@ -36,6 +36,15 @@ class OnboardingController extends Controller
             return redirect()->route('onboarding.services');
         }
 
+        // 4. Verification (optional but recommended)
+        $hasVerification = \App\Models\ProviderVerification::where('user_id', $user->id)
+            ->whereIn('status', ['pending', 'approved'])
+            ->exists();
+        
+        if (!$hasVerification && !$user->is_verified) {
+            return redirect()->route('onboarding.verification');
+        }
+
         // All done
         return redirect()->route('business.dashboard');
     }
@@ -189,6 +198,61 @@ class OnboardingController extends Controller
     public function success()
     {
         return Inertia::render('provider/onboarding/success');
+    }
+
+    public function verification()
+    {
+        $user = auth()->user();
+        $existingVerification = \App\Models\ProviderVerification::where('user_id', $user->id)
+            ->latest()
+            ->first();
+
+        return Inertia::render('provider/onboarding/verification', [
+            'step' => 'verification',
+            'existingVerification' => $existingVerification ? [
+                'status' => $existingVerification->status,
+                'document_type' => $existingVerification->document_type,
+                'rejection_reason' => $existingVerification->rejection_reason,
+                'created_at' => $existingVerification->created_at,
+            ] : null,
+            'is_verified' => $user->is_verified,
+        ]);
+    }
+
+    public function storeVerification(Request $request)
+    {
+        $user = auth()->user();
+
+        // Check if already verified
+        if ($user->is_verified) {
+            return redirect()->route('onboarding.index');
+        }
+
+        // Check for pending verification
+        $existingPending = \App\Models\ProviderVerification::where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->first();
+
+        if ($existingPending) {
+            return back()->withErrors(['document' => 'You already have a pending verification request.']);
+        }
+
+        $validated = $request->validate([
+            'document_type' => 'required|in:passport,national_id,drivers_license',
+            'document' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120', // 5MB
+        ]);
+
+        // Store document securely
+        $path = $request->file('document')->store('verifications', 'private');
+
+        \App\Models\ProviderVerification::create([
+            'user_id' => $user->id,
+            'document_type' => $validated['document_type'],
+            'document_path' => $path,
+            'status' => 'pending',
+        ]);
+
+        return redirect()->route('onboarding.index')->with('success-toast', 'Verification request submitted successfully! We will review it shortly.');
     }
 
     public function skip()

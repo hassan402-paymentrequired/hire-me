@@ -12,11 +12,15 @@ import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/guest-layout';
 import { Head, useForm } from '@inertiajs/react';
 import { Loader2 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { LoadScript, Autocomplete } from '@react-google-maps/api';
 import jobs from '@/routes/jobs';
+
+const libraries: ("places")[] = ["places"];
 
 export default function PostJob({ categories }: { categories: any[] }) {
     const [step, setStep] = useState(1);
+    const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
     const { data, setData, post, processing, errors } = useForm({
         category: '',
         title: '',
@@ -28,30 +32,33 @@ export default function PostJob({ categories }: { categories: any[] }) {
         longitude: null as number | null,
     });
 
-    // Google Maps Autocomplete
-    useEffect(() => {
-        if (step === 4) {
-            const input = document.getElementById(
-                'address',
-            ) as HTMLInputElement;
-            if (input && window.google) {
-                const autocomplete = new window.google.maps.places.Autocomplete(
-                    input,
-                );
-                autocomplete.addListener('place_changed', () => {
-                    const place = autocomplete.getPlace();
-                    if (place.geometry?.location) {
-                        setData({
-                            ...data,
-                            address: place.formatted_address || input.value,
-                            latitude: place.geometry.location.lat(),
-                            longitude: place.geometry.location.lng(),
-                        });
-                    }
+    const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+
+    const onLoad = (autocompleteInstance: google.maps.places.Autocomplete) => {
+        setAutocomplete(autocompleteInstance);
+    };
+
+    const onPlaceChanged = () => {
+        if (autocomplete !== null) {
+            const place = autocomplete.getPlace();
+            if (place.geometry?.location) {
+                setData({
+                    ...data,
+                    address: place.formatted_address || data.address,
+                    latitude: place.geometry.location.lat(),
+                    longitude: place.geometry.location.lng(),
+                });
+            } else {
+                // If Google Places doesn't provide coordinates, just use the address
+                setData({
+                    ...data,
+                    address: place.formatted_address || data.address,
+                    latitude: null,
+                    longitude: null,
                 });
             }
         }
-    }, [step]);
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -227,17 +234,41 @@ export default function PostJob({ categories }: { categories: any[] }) {
                                     </h3>
                                     <div>
                                         <Label htmlFor="address">Address</Label>
-                                        <Input
-                                            id="address"
-                                            value={data.address}
-                                            onChange={(e) =>
-                                                setData(
-                                                    'address',
-                                                    e.target.value,
-                                                )
-                                            }
-                                            placeholder="Start typing your address..."
-                                        />
+                                        {googleMapsApiKey ? (
+                                            <LoadScript googleMapsApiKey={googleMapsApiKey} libraries={libraries}>
+                                                <Autocomplete onLoad={onLoad} onPlaceChanged={onPlaceChanged}>
+                                                    <Input
+                                                        id="address"
+                                                        value={data.address}
+                                                        onChange={(e) =>
+                                                            setData(
+                                                                'address',
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        placeholder="Start typing your address..."
+                                                        autoComplete="off"
+                                                    />
+                                                </Autocomplete>
+                                            </LoadScript>
+                                        ) : (
+                                            <Input
+                                                id="address"
+                                                value={data.address}
+                                                onChange={(e) =>
+                                                    setData(
+                                                        'address',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                placeholder="Enter your address..."
+                                            />
+                                        )}
+                                        <p className="mt-2 text-xs text-muted-foreground">
+                                            {data.latitude && data.longitude 
+                                                ? '✓ Location coordinates detected' 
+                                                : 'You can enter an address manually if location detection is not available'}
+                                        </p>
                                         {errors.address && (
                                             <p className="mt-1 text-sm text-red-500">
                                                 {errors.address}
