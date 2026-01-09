@@ -123,7 +123,7 @@ class ScheduleController extends Controller
                 'cancelled_by' => 'provider',
             ]);
 
-            // Refund escrow fully when provider cancels
+            // Refund held payment fully when provider cancels
             if ($appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
                 $clientWallet = Wallet::firstOrCreate(['user_id' => $appointment->client_id]);
                 $clientWallet->refundEscrow($appointment->escrow_amount, $appointment, "Full refund - provider cancelled appointment");
@@ -145,27 +145,46 @@ class ScheduleController extends Controller
     public function completeAppointment($id)
     {
         $appointment = Appointment::where('provider_id', auth()->id())
-            ->whereIn('status', ['confirmed', 'pending'])
+            ->whereIn('status', ['confirmed', 'pending', 'pending_completion'])
             ->findOrFail($id);
 
         try {
             DB::beginTransaction();
 
-            $appointment->update(['status' => 'completed']);
+            // Mark provider approval
+            $appointment->update([
+                'provider_approved' => true,
+                'provider_approved_at' => now(),
+            ]);
 
-            // Release escrow if not already released
-            if ($appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
-                $clientWallet = Wallet::firstOrCreate(['user_id' => $appointment->client_id]);
-                $clientWallet->releaseEscrow($appointment->escrow_amount, $appointment, "Payment released after provider marked appointment as completed");
-                $appointment->update([
-                    'escrow_status' => 'released',
-                    'payment_released_at' => now(),
-                ]);
+            // Refresh to get latest values
+            $appointment->refresh();
+
+            // Check if both parties have approved - then release payment
+            if ($appointment->client_approved && $appointment->provider_approved) {
+                $appointment->update(['status' => 'completed']);
+                
+                // Release held payment to provider
+                if ($appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
+                    $clientWallet = Wallet::firstOrCreate(['user_id' => $appointment->client_id]);
+                    $clientWallet->releaseHeldPayment($appointment->escrow_amount, $appointment, "Payment released after dual approval");
+                    $appointment->update([
+                        'escrow_status' => 'released',
+                        'payment_released_at' => now(),
+                    ]);
+                }
+            } else {
+                // Only provider approved, waiting for client
+                $appointment->update(['status' => 'pending_completion']);
             }
 
             DB::commit();
 
-            return back()->with('success-toast', 'Appointment marked as completed and payment released.');
+            if ($appointment->client_approved && $appointment->provider_approved) {
+                return back()->with('success-toast', 'Appointment completed and payment released to your wallet.');
+            } else {
+                return back()->with('success-toast', 'Your approval recorded. Waiting for client approval to release payment.');
+            }
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error-toast', 'Failed to complete appointment: ' . $e->getMessage());

@@ -5,12 +5,12 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['provider.setup'])->group(function () {
     Route::get('/', [\App\Http\Controllers\Guest\GuestController::class, 'welcome'])->name('home');
     Route::get('/provider/{slug}', [\App\Http\Controllers\Client\MarketplaceController::class, 'show'])->name('provider.show');
-    Route::get('/provider/{slug}/book', [\App\Http\Controllers\Client\MarketplaceController::class, 'booking'])->name('marketplace.booking');
-    Route::get('/appointments/slots', [\App\Http\Controllers\Client\AppointmentController::class, 'availableSlots'])->name('slots');
 });
 
 Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
 
+    Route::get('/provider/{slug}/book', [\App\Http\Controllers\Client\MarketplaceController::class, 'booking'])->name('marketplace.booking');
+    Route::get('/appointments/slots', [\App\Http\Controllers\Client\AppointmentController::class, 'availableSlots'])->name('slots');
     // Become a Provider (available to all authenticated users)
     Route::get('/become-provider', [\App\Http\Controllers\Provider\BecomeProviderController::class, 'index'])->name('become-provider');
     Route::post('/become-provider', [\App\Http\Controllers\Provider\BecomeProviderController::class, 'store'])->name('become-provider.store');

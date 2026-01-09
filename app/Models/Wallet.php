@@ -216,9 +216,9 @@ class Wallet extends Model
     }
 
     /**
-     * Process upfront payment - transfer from client to provider immediately
+     * Hold payment - charge client but hold in escrow until both parties approve completion
      */
-    public function payUpfront(float $amount, Appointment $appointment, string $description = null): WalletTransaction
+    public function holdPayment(float $amount, Appointment $appointment, string $description = null): WalletTransaction
     {
         if (!$this->hasSufficientBalance($amount)) {
             throw new \Exception('Insufficient balance');
@@ -226,22 +226,49 @@ class Wallet extends Model
 
         $balanceBefore = $this->balance;
         $this->balance -= $amount;
+        $this->escrow_balance += $amount; // Hold in escrow until dual approval
         $this->save();
 
-        // Create transaction for client (deduction)
-        WalletTransaction::create([
+        // Create transaction for client (deduction, held in escrow)
+        return WalletTransaction::create([
             'wallet_id' => $this->id,
             'user_id' => $this->user_id,
             'appointment_id' => $appointment->id,
-            'type' => 'payment',
+            'type' => 'payment_hold',
             'amount' => -$amount,
             'balance_before' => $balanceBefore,
             'balance_after' => $this->balance,
             'status' => 'completed',
-            'description' => $description ?? "Upfront payment for appointment #{$appointment->id}",
+            'description' => $description ?? "Payment held for appointment #{$appointment->id} (pending dual approval)",
+        ]);
+    }
+
+    /**
+     * Release held payment to provider after dual approval
+     */
+    public function releaseHeldPayment(float $amount, Appointment $appointment, string $description = null): WalletTransaction
+    {
+        if ($this->escrow_balance < $amount) {
+            throw new \Exception('Insufficient escrow balance');
+        }
+
+        $this->escrow_balance -= $amount;
+        $this->save();
+
+        // Create transaction for client (escrow release)
+        WalletTransaction::create([
+            'wallet_id' => $this->id,
+            'user_id' => $this->user_id,
+            'appointment_id' => $appointment->id,
+            'type' => 'payment_release',
+            'amount' => -$amount,
+            'balance_before' => $this->balance + $amount,
+            'balance_after' => $this->balance,
+            'status' => 'completed',
+            'description' => $description ?? "Payment released to provider for appointment #{$appointment->id}",
         ]);
 
-        // Credit provider's wallet immediately
+        // Credit provider's wallet
         $providerWallet = Wallet::firstOrCreate(['user_id' => $appointment->provider_id]);
         $providerBalanceBefore = $providerWallet->balance;
         $providerWallet->balance += $amount;
@@ -251,12 +278,12 @@ class Wallet extends Model
             'wallet_id' => $providerWallet->id,
             'user_id' => $appointment->provider_id,
             'appointment_id' => $appointment->id,
-            'type' => 'payment',
+            'type' => 'payment_release',
             'amount' => $amount,
             'balance_before' => $providerBalanceBefore,
             'balance_after' => $providerWallet->balance,
             'status' => 'completed',
-            'description' => $description ?? "Payment received for appointment #{$appointment->id}",
+            'description' => $description ?? "Payment received for appointment #{$appointment->id} (dual approval completed)",
         ]);
 
         return $this->transactions()->latest()->first();

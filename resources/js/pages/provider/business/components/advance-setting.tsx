@@ -3,7 +3,7 @@ import { FormSelect } from '@/components/ui/form-select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { AlertTriangle, Settings } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Settings } from 'lucide-react';
 
 interface AdvancedSettingsProps {
     settings: {
@@ -156,10 +156,10 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
                                 <CheckCircle2 className="mt-0.5 size-4 text-primary" />
                                 <div className="flex-1">
                                     <p className="text-xs font-semibold text-primary">
-                                        Upfront Payment System
+                                        Dual Approval Payment System
                                     </p>
                                     <p className="mt-1 text-xs text-muted-foreground">
-                                        Clients pay immediately when booking. Payment goes directly to your wallet and you can withdraw anytime. This protects both you and your clients from exploitation.
+                                        Clients pay when booking, but payment is held securely until both you and the client confirm the service is completed. This protects both parties from exploitation and ensures service quality.
                                     </p>
                                 </div>
                             </div>

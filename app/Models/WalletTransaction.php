@@ -31,6 +31,8 @@ class WalletTransaction extends Model
     const TYPE_ESCROW_RELEASE = 'escrow_release';
     const TYPE_ESCROW_REFUND = 'escrow_refund';
     const TYPE_ESCROW_FORFEIT = 'escrow_forfeit';
+    const TYPE_PAYMENT_HOLD = 'payment_hold';
+    const TYPE_PAYMENT_RELEASE = 'payment_release';
 
     // Transaction statuses
     const STATUS_PENDING = 'pending';

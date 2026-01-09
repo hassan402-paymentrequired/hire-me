@@ -197,10 +197,10 @@ export default function Booking({
             return;
         }
 
-        // Confirm upfront payment
+        // Confirm payment hold
         if (
             !confirm(
-                `You will be charged ₦${totalPrice.toLocaleString()} upfront for this booking. Payment will be processed immediately. Continue?`,
+                `You will be charged ₦${totalPrice.toLocaleString()} which will be held securely. Payment will be released to the provider only after both you and the provider confirm the service is completed. Continue?`,
             )
         ) {
             return;
@@ -564,7 +564,7 @@ export default function Booking({
                                                 <SelectValue placeholder="Select frequency (optional)" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="">
+                                                <SelectItem value="once">
                                                     One-time booking
                                                 </SelectItem>
                                                 <SelectItem value="weekly">
@@ -764,13 +764,15 @@ export default function Booking({
                                             <CheckCircle2 className="mt-0.5 size-4 text-primary" />
                                             <div className="flex-1">
                                                 <p className="text-xs font-semibold text-primary">
-                                                    Upfront Payment Required
+                                                    Payment Security System
                                                 </p>
                                                 <p className="mt-1 text-xs text-muted-foreground">
-                                                    Payment will be processed
-                                                    immediately upon booking.
-                                                    This protects both you and
-                                                    the provider.
+                                                    Payment will be held
+                                                    securely and released to the
+                                                    provider only after both you
+                                                    and the provider confirm the
+                                                    service is completed. This
+                                                    protects both parties.
                                                 </p>
                                             </div>
                                         </div>
@@ -869,7 +871,7 @@ export default function Booking({
                                             walletBalance !== undefined &&
                                             walletBalance < totalPrice
                                                 ? 'Insufficient Balance'
-                                                : 'Pay & Book Now'}
+                                                : 'Book & Pay Now'}
                                             <CheckCircle2 className="size-6" />
                                         </Button>
                                         {walletBalance !== null &&
@@ -878,7 +880,8 @@ export default function Booking({
                                                 <p className="text-center text-xs text-muted-foreground">
                                                     ₦
                                                     {totalPrice.toLocaleString()}{' '}
-                                                    will be charged immediately
+                                                    will be held until both
+                                                    parties approve completion
                                                 </p>
                                             )}
                                     </div>

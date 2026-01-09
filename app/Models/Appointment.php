@@ -18,6 +18,10 @@ class Appointment extends Model
         'end_time',
         'buffer_time_minutes',
         'status',
+        'client_approved',
+        'provider_approved',
+        'client_approved_at',
+        'provider_approved_at',
         'price',
         'notes',
         'client_name',
@@ -49,6 +53,10 @@ class Appointment extends Model
         'recurrence_end_date' => 'date',
         'original_price' => 'decimal:2',
         'discount_percent' => 'decimal:2',
+        'client_approved' => 'boolean',
+        'provider_approved' => 'boolean',
+        'client_approved_at' => 'datetime',
+        'provider_approved_at' => 'datetime',
     ];
 
     public function provider()
