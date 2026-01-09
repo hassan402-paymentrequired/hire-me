@@ -2,12 +2,15 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import GuestLayout from '@/layouts/guest-layout';
 import { cn } from '@/lib/utils';
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
-import { format } from 'date-fns';
-import { Box, Check, CheckCircle2, Clock } from 'lucide-react';
+import { format, addMonths } from 'date-fns';
+import { Box, Check, CheckCircle2, Clock, Repeat } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 interface Service {
@@ -63,15 +66,9 @@ export default function Booking({
     const [loading, setLoading] = useState(false);
     const [rescheduleId, setRescheduleId] = useState<string | null>(null);
     const [apiMessage, setApiMessage] = useState<string | null>(null);
-
-    // Provider settings with defaults
-    const providerSettings: ProviderSettings = settings || {
-        advanceBooking: 30,
-        minNotice: null,
-        allowSameDay: false,
-        max_bookings_per_week: null,
-        max_bookings_per_month: null,
-    };
+    const [recurrencePattern, setRecurrencePattern] = useState<'weekly' | 'bi_weekly' | 'monthly' | null>(null);
+    const [recurrenceEndDate, setRecurrenceEndDate] = useState<Date | null>(null);
+    const [recurrenceCount, setRecurrenceCount] = useState<number | null>(null);
 
     // Provider settings with defaults
     const providerSettings: ProviderSettings = settings || {
@@ -142,10 +139,15 @@ export default function Booking({
     const selectedServices = services.filter((s) =>
         selectedServiceIds.includes(s.id),
     );
-    const totalPrice = selectedServices.reduce(
+    const originalPrice = selectedServices.reduce(
         (sum, s) => sum + Number(s.price),
         0,
     );
+
+    // Calculate discount for recurring bookings (10% discount)
+    const discountPercent = recurrencePattern ? 10 : 0;
+    const discountAmount = originalPrice * (discountPercent / 100);
+    const totalPrice = originalPrice - discountAmount;
 
     const categorizedSlots = useMemo(() => {
         const categories = {
@@ -168,7 +170,7 @@ export default function Booking({
         if (!selectedDate || !selectedSlot || selectedServiceIds.length === 0)
             return;
 
-        // Check wallet balance
+        // Check wallet balance (for recurring, we need to check if they can afford at least the first one)
         if (
             walletBalance !== null &&
             walletBalance !== undefined &&
@@ -185,13 +187,27 @@ export default function Booking({
             return;
         }
 
-        router.post('/appointments', {
+        const bookingData: any = {
             provider_id: provider.id,
             service_ids: selectedServiceIds,
             start_time: selectedSlot,
             notes: notes,
             reschedule_id: rescheduleId,
-        });
+        };
+
+        // Add recurrence data if selected
+        if (recurrencePattern) {
+            bookingData.recurrence_pattern = recurrencePattern;
+            if (recurrenceEndDate) {
+                bookingData.recurrence_end_date = format(recurrenceEndDate, 'yyyy-MM-dd');
+            }
+            if (recurrenceCount) {
+                bookingData.recurrence_count = recurrenceCount;
+            }
+            bookingData.discount_percent = discountPercent;
+        }
+
+        router.post('/appointments', bookingData);
     };
 
     return (
@@ -488,6 +504,97 @@ export default function Booking({
                                     onChange={(e) => setNotes(e.target.value)}
                                 />
                             </div>
+
+                            {/* Recurring Appointment Options */}
+                            <div className="space-y-4 rounded-lg border border-border bg-muted/30 p-4">
+                                <div className="flex items-center gap-2">
+                                    <Repeat className="size-5 text-primary" />
+                                    <h3 className="text-xl font-black tracking-tight">
+                                        Make This Recurring
+                                    </h3>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                    Book this appointment on a regular schedule and save 10% on each booking.
+                                </p>
+
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label>Repeat Frequency</Label>
+                                        <Select
+                                            value={recurrencePattern || ''}
+                                            onValueChange={(value) => {
+                                                setRecurrencePattern(value as 'weekly' | 'bi_weekly' | 'monthly' | null);
+                                                if (!value) {
+                                                    setRecurrenceEndDate(null);
+                                                    setRecurrenceCount(null);
+                                                }
+                                            }}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select frequency (optional)" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="once">One-time booking</SelectItem>
+                                                <SelectItem value="weekly">Weekly</SelectItem>
+                                                <SelectItem value="bi_weekly">Bi-weekly (Every 2 weeks)</SelectItem>
+                                                <SelectItem value="monthly">Monthly</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    {recurrencePattern && (
+                                        <div className="space-y-4 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="recurrence-end-date">End Date (Optional)</Label>
+                                                <Input
+                                                    id="recurrence-end-date"
+                                                    type="date"
+                                                    min={format(selectedDate, 'yyyy-MM-dd')}
+                                                    max={format(addMonths(selectedDate, 12), 'yyyy-MM-dd')}
+                                                    value={recurrenceEndDate ? format(recurrenceEndDate, 'yyyy-MM-dd') : ''}
+                                                    onChange={(e) => {
+                                                        if (e.target.value) {
+                                                            setRecurrenceEndDate(new Date(e.target.value));
+                                                        } else {
+                                                            setRecurrenceEndDate(null);
+                                                        }
+                                                    }}
+                                                />
+                                                <p className="text-xs text-muted-foreground">
+                                                    Leave empty to continue indefinitely
+                                                </p>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label htmlFor="recurrence-count">Number of Appointments (Optional)</Label>
+                                                <Input
+                                                    id="recurrence-count"
+                                                    type="number"
+                                                    min="2"
+                                                    max="52"
+                                                    placeholder="e.g., 4"
+                                                    value={recurrenceCount || ''}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value ? parseInt(e.target.value) : null;
+                                                        setRecurrenceCount(value && value > 1 ? value : null);
+                                                    }}
+                                                />
+                                                <p className="text-xs text-muted-foreground">
+                                                    Total number of appointments in the series (minimum 2)
+                                                </p>
+                                            </div>
+
+                                            {discountAmount > 0 && (
+                                                <div className="rounded bg-green-50 dark:bg-green-950/20 p-2 text-sm">
+                                                    <p className="font-medium text-green-900 dark:text-green-100">
+                                                        💰 You'll save ₦{discountAmount.toLocaleString()} ({discountPercent}%) on each booking!
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
 
                         {/* Right Content: Sidebar Summary */}
@@ -597,6 +704,26 @@ export default function Booking({
                                                 )}
                                             </div>
                                         )}
+
+                                    {/* Discount Display */}
+                                    {discountAmount > 0 && (
+                                        <>
+                                            <div className="flex items-center justify-between text-sm">
+                                                <span className="text-muted-foreground">Subtotal</span>
+                                                <span className="line-through text-muted-foreground">
+                                                    ₦{originalPrice.toLocaleString()}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-sm">
+                                                <span className="text-green-600 dark:text-green-400 font-medium">
+                                                    Recurring Discount ({discountPercent}%)
+                                                </span>
+                                                <span className="text-green-600 dark:text-green-400 font-medium">
+                                                    -₦{discountAmount.toLocaleString()}
+                                                </span>
+                                            </div>
+                                        </>
+                                    )}
 
                                     {/* Final Price */}
                                     <div className="space-y-4">

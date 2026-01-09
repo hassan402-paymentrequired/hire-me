@@ -382,6 +382,7 @@
 
 - Admin dashboard with analytics
 - User management tools
+- provider management
 - Financial reporting
 - Fraud detection
 - Content moderation

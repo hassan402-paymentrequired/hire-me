@@ -31,6 +31,13 @@ class Appointment extends Model
         'escrow_status',
         'escrow_transaction_id',
         'payment_released_at',
+        'recurrence_pattern',
+        'recurrence_parent_id',
+        'recurrence_end_date',
+        'recurrence_count',
+        'original_price',
+        'discount_percent',
+        'team_member_id',
     ];
 
     protected $casts = [
@@ -39,6 +46,9 @@ class Appointment extends Model
         'price' => 'decimal:2',
         'escrow_amount' => 'decimal:2',
         'payment_released_at' => 'datetime',
+        'recurrence_end_date' => 'date',
+        'original_price' => 'decimal:2',
+        'discount_percent' => 'decimal:2',
     ];
 
     public function provider()
@@ -74,5 +84,64 @@ class Appointment extends Model
     public function escrowTransaction()
     {
         return $this->belongsTo(WalletTransaction::class, 'escrow_transaction_id');
+    }
+
+    /**
+     * Get the team member assigned to this appointment
+     */
+    public function teamMember()
+    {
+        return $this->belongsTo(TeamMember::class);
+    }
+
+    /**
+     * Get the parent appointment if this is a recurring appointment
+     */
+    public function recurrenceParent()
+    {
+        return $this->belongsTo(Appointment::class, 'recurrence_parent_id');
+    }
+
+    /**
+     * Get all child appointments in the recurrence series
+     */
+    public function recurrenceChildren()
+    {
+        return $this->hasMany(Appointment::class, 'recurrence_parent_id')->orderBy('start_time');
+    }
+
+    /**
+     * Check if this appointment is part of a recurrence series
+     */
+    public function isRecurring(): bool
+    {
+        return !is_null($this->recurrence_pattern) || !is_null($this->recurrence_parent_id);
+    }
+
+    /**
+     * Check if this is the parent appointment in a recurrence series
+     */
+    public function isRecurrenceParent(): bool
+    {
+        return !is_null($this->recurrence_pattern) && is_null($this->recurrence_parent_id);
+    }
+
+    /**
+     * Get the next appointment date based on recurrence pattern
+     */
+    public function getNextRecurrenceDate(\Carbon\Carbon $fromDate = null): ?\Carbon\Carbon
+    {
+        if (!$this->recurrence_pattern) {
+            return null;
+        }
+
+        $fromDate = $fromDate ?? $this->start_time;
+
+        return match ($this->recurrence_pattern) {
+            'weekly' => $fromDate->copy()->addWeek(),
+            'bi_weekly' => $fromDate->copy()->addWeeks(2),
+            'monthly' => $fromDate->copy()->addMonth(),
+            default => null,
+        };
     }
 }

@@ -27,6 +27,6 @@ class ProviderVerification extends Model
 
     public function reviewer()
     {
-        return $this->belongsTo(\App\Models\User::class, 'reviewed_by');
+        return $this->belongsTo(\App\Models\Admin::class, 'reviewed_by');
     }
 }

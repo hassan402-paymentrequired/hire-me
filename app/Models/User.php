@@ -32,6 +32,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'role',
         'referral_code',
         'referred_by',
+        'is_verified',
     ];
 
     public function isProvider(): bool
@@ -119,5 +120,53 @@ class User extends Authenticatable implements MustVerifyEmail
     public function walletTransactions()
     {
         return $this->hasMany(WalletTransaction::class);
+    }
+
+    /**
+     * Get team memberships (where this user is a team member)
+     */
+    public function teamMemberships()
+    {
+        return $this->hasMany(TeamMember::class, 'user_id');
+    }
+
+    /**
+     * Get team members (where this user is the provider)
+     */
+    public function teamMembers()
+    {
+        return $this->hasMany(TeamMember::class, 'provider_id');
+    }
+
+    /**
+     * Check if user is a team member of a provider
+     */
+    public function isTeamMemberOf(User $provider): bool
+    {
+        return $this->teamMemberships()
+            ->where('provider_id', $provider->id)
+            ->where('is_active', true)
+            ->whereNotNull('accepted_at')
+            ->exists();
+    }
+
+    /**
+     * Check if user can manage a provider's business (is provider or admin team member)
+     */
+    public function canManageProvider(User $provider): bool
+    {
+        // User is the provider themselves
+        if ($this->id === $provider->id) {
+            return true;
+        }
+
+        // User is an admin team member
+        $teamMember = $this->teamMemberships()
+            ->where('provider_id', $provider->id)
+            ->where('is_active', true)
+            ->whereNotNull('accepted_at')
+            ->first();
+
+        return $teamMember && $teamMember->isAdmin();
     }
 }

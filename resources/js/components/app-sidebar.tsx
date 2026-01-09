@@ -26,6 +26,7 @@ import {
     Search, // Imported Search icon
     Bookmark, // Imported Bookmark icon
     ArrowDownToLine, // Imported for withdrawals
+    Users, // Imported for team management
 } from 'lucide-react';
 import AppLogo from './app-logo';
 import schedule from '@/routes/schedule';
@@ -74,6 +75,11 @@ const mainNavItems: NavSection[] = [
                 title: 'Services',
                 href: business.services(),
                 icon: LayoutGrid,
+            },
+            {
+                title: 'Team Members',
+                href: business.team.index(),
+                icon: Users,
             },
             {
                 title: 'Withdraw Funds',

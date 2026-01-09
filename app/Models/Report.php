@@ -11,6 +11,14 @@ class Report extends Model
         'user_id',
         'reason',
         'description',
+        'resolved_at',
+        'resolved_by',
+        'action_taken',
+        'penalty_applied',
+    ];
+
+    protected $casts = [
+        'resolved_at' => 'datetime',
     ];
 
     public function appointment()
