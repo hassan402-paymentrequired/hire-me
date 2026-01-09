@@ -1,15 +1,21 @@
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import GuestLayout from '@/layouts/guest-layout';
 import { cn } from '@/lib/utils';
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
-import { format, addMonths } from 'date-fns';
+import { addMonths, format } from 'date-fns';
 import { Box, Check, CheckCircle2, Clock, Repeat } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -66,8 +72,12 @@ export default function Booking({
     const [loading, setLoading] = useState(false);
     const [rescheduleId, setRescheduleId] = useState<string | null>(null);
     const [apiMessage, setApiMessage] = useState<string | null>(null);
-    const [recurrencePattern, setRecurrencePattern] = useState<'weekly' | 'bi_weekly' | 'monthly' | null>(null);
-    const [recurrenceEndDate, setRecurrenceEndDate] = useState<Date | null>(null);
+    const [recurrencePattern, setRecurrencePattern] = useState<
+        'weekly' | 'bi_weekly' | 'monthly' | null
+    >(null);
+    const [recurrenceEndDate, setRecurrenceEndDate] = useState<Date | null>(
+        null,
+    );
     const [recurrenceCount, setRecurrenceCount] = useState<number | null>(null);
 
     // Provider settings with defaults
@@ -170,7 +180,7 @@ export default function Booking({
         if (!selectedDate || !selectedSlot || selectedServiceIds.length === 0)
             return;
 
-        // Check wallet balance (for recurring, we need to check if they can afford at least the first one)
+        // Check wallet balance - payment is required upfront (no escrow)
         if (
             walletBalance !== null &&
             walletBalance !== undefined &&
@@ -179,11 +189,20 @@ export default function Booking({
             const shortfall = totalPrice - walletBalance;
             if (
                 confirm(
-                    `Insufficient wallet balance. You need ₦${shortfall.toLocaleString()} more. Would you like to top up your wallet?`,
+                    `Insufficient wallet balance. You need ₦${shortfall.toLocaleString()} more to complete this booking. Payment is required upfront. Would you like to top up your wallet?`,
                 )
             ) {
                 router.visit('/wallet');
             }
+            return;
+        }
+
+        // Confirm upfront payment
+        if (
+            !confirm(
+                `You will be charged ₦${totalPrice.toLocaleString()} upfront for this booking. Payment will be processed immediately. Continue?`,
+            )
+        ) {
             return;
         }
 
@@ -199,7 +218,10 @@ export default function Booking({
         if (recurrencePattern) {
             bookingData.recurrence_pattern = recurrencePattern;
             if (recurrenceEndDate) {
-                bookingData.recurrence_end_date = format(recurrenceEndDate, 'yyyy-MM-dd');
+                bookingData.recurrence_end_date = format(
+                    recurrenceEndDate,
+                    'yyyy-MM-dd',
+                );
             }
             if (recurrenceCount) {
                 bookingData.recurrence_count = recurrenceCount;
@@ -514,7 +536,8 @@ export default function Booking({
                                     </h3>
                                 </div>
                                 <p className="text-sm text-muted-foreground">
-                                    Book this appointment on a regular schedule and save 10% on each booking.
+                                    Book this appointment on a regular schedule
+                                    and save 10% on each booking.
                                 </p>
 
                                 <div className="space-y-4">
@@ -523,7 +546,14 @@ export default function Booking({
                                         <Select
                                             value={recurrencePattern || ''}
                                             onValueChange={(value) => {
-                                                setRecurrencePattern(value as 'weekly' | 'bi_weekly' | 'monthly' | null);
+                                                setRecurrencePattern(
+                                                    value === ''
+                                                        ? null
+                                                        : (value as
+                                                              | 'weekly'
+                                                              | 'bi_weekly'
+                                                              | 'monthly'),
+                                                );
                                                 if (!value) {
                                                     setRecurrenceEndDate(null);
                                                     setRecurrenceCount(null);
@@ -534,10 +564,18 @@ export default function Booking({
                                                 <SelectValue placeholder="Select frequency (optional)" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="once">One-time booking</SelectItem>
-                                                <SelectItem value="weekly">Weekly</SelectItem>
-                                                <SelectItem value="bi_weekly">Bi-weekly (Every 2 weeks)</SelectItem>
-                                                <SelectItem value="monthly">Monthly</SelectItem>
+                                                <SelectItem value="">
+                                                    One-time booking
+                                                </SelectItem>
+                                                <SelectItem value="weekly">
+                                                    Weekly
+                                                </SelectItem>
+                                                <SelectItem value="bi_weekly">
+                                                    Bi-weekly (Every 2 weeks)
+                                                </SelectItem>
+                                                <SelectItem value="monthly">
+                                                    Monthly
+                                                </SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -545,49 +583,93 @@ export default function Booking({
                                     {recurrencePattern && (
                                         <div className="space-y-4 rounded-lg border border-primary/20 bg-primary/5 p-3">
                                             <div className="space-y-2">
-                                                <Label htmlFor="recurrence-end-date">End Date (Optional)</Label>
+                                                <Label htmlFor="recurrence-end-date">
+                                                    End Date (Optional)
+                                                </Label>
                                                 <Input
                                                     id="recurrence-end-date"
                                                     type="date"
-                                                    min={format(selectedDate, 'yyyy-MM-dd')}
-                                                    max={format(addMonths(selectedDate, 12), 'yyyy-MM-dd')}
-                                                    value={recurrenceEndDate ? format(recurrenceEndDate, 'yyyy-MM-dd') : ''}
+                                                    min={format(
+                                                        selectedDate,
+                                                        'yyyy-MM-dd',
+                                                    )}
+                                                    max={format(
+                                                        addMonths(
+                                                            selectedDate,
+                                                            12,
+                                                        ),
+                                                        'yyyy-MM-dd',
+                                                    )}
+                                                    value={
+                                                        recurrenceEndDate
+                                                            ? format(
+                                                                  recurrenceEndDate,
+                                                                  'yyyy-MM-dd',
+                                                              )
+                                                            : ''
+                                                    }
                                                     onChange={(e) => {
                                                         if (e.target.value) {
-                                                            setRecurrenceEndDate(new Date(e.target.value));
+                                                            setRecurrenceEndDate(
+                                                                new Date(
+                                                                    e.target.value,
+                                                                ),
+                                                            );
                                                         } else {
-                                                            setRecurrenceEndDate(null);
+                                                            setRecurrenceEndDate(
+                                                                null,
+                                                            );
                                                         }
                                                     }}
                                                 />
                                                 <p className="text-xs text-muted-foreground">
-                                                    Leave empty to continue indefinitely
+                                                    Leave empty to continue
+                                                    indefinitely
                                                 </p>
                                             </div>
 
                                             <div className="space-y-2">
-                                                <Label htmlFor="recurrence-count">Number of Appointments (Optional)</Label>
+                                                <Label htmlFor="recurrence-count">
+                                                    Number of Appointments
+                                                    (Optional)
+                                                </Label>
                                                 <Input
                                                     id="recurrence-count"
                                                     type="number"
                                                     min="2"
                                                     max="52"
                                                     placeholder="e.g., 4"
-                                                    value={recurrenceCount || ''}
+                                                    value={
+                                                        recurrenceCount || ''
+                                                    }
                                                     onChange={(e) => {
-                                                        const value = e.target.value ? parseInt(e.target.value) : null;
-                                                        setRecurrenceCount(value && value > 1 ? value : null);
+                                                        const value = e.target
+                                                            .value
+                                                            ? parseInt(
+                                                                  e.target
+                                                                      .value,
+                                                              )
+                                                            : null;
+                                                        setRecurrenceCount(
+                                                            value && value > 1
+                                                                ? value
+                                                                : null,
+                                                        );
                                                     }}
                                                 />
                                                 <p className="text-xs text-muted-foreground">
-                                                    Total number of appointments in the series (minimum 2)
+                                                    Total number of appointments
+                                                    in the series (minimum 2)
                                                 </p>
                                             </div>
 
                                             {discountAmount > 0 && (
-                                                <div className="rounded bg-green-50 dark:bg-green-950/20 p-2 text-sm">
+                                                <div className="rounded bg-green-50 p-2 text-sm dark:bg-green-950/20">
                                                     <p className="font-medium text-green-900 dark:text-green-100">
-                                                        💰 You'll save ₦{discountAmount.toLocaleString()} ({discountPercent}%) on each booking!
+                                                        💰 You'll save ₦
+                                                        {discountAmount.toLocaleString()}{' '}
+                                                        ({discountPercent}%) on
+                                                        each booking!
                                                     </p>
                                                 </div>
                                             )}
@@ -676,16 +758,34 @@ export default function Booking({
 
                                     <div className="border-t-2 border-dashed border-muted" />
 
+                                    {/* Payment Info */}
+                                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                                        <div className="mb-2 flex items-start gap-2">
+                                            <CheckCircle2 className="mt-0.5 size-4 text-primary" />
+                                            <div className="flex-1">
+                                                <p className="text-xs font-semibold text-primary">
+                                                    Upfront Payment Required
+                                                </p>
+                                                <p className="mt-1 text-xs text-muted-foreground">
+                                                    Payment will be processed
+                                                    immediately upon booking.
+                                                    This protects both you and
+                                                    the provider.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     {/* Wallet Balance Info */}
                                     {walletBalance !== null &&
                                         walletBalance !== undefined && (
                                             <div className="rounded-lg border border-border bg-muted/30 p-3">
                                                 <div className="mb-1 flex items-center justify-between text-sm">
                                                     <span className="text-muted-foreground">
-                                                        Wallet Balance
+                                                        Your Wallet Balance
                                                     </span>
                                                     <span
-                                                        className={`font-bold ${walletBalance >= totalPrice ? 'text-success' : 'text-destructive'}`}
+                                                        className={`font-bold ${walletBalance >= totalPrice ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}
                                                     >
                                                         ₦
                                                         {walletBalance.toLocaleString()}
@@ -699,7 +799,15 @@ export default function Booking({
                                                             totalPrice -
                                                             walletBalance
                                                         ).toLocaleString()}{' '}
-                                                        more.
+                                                        more to complete
+                                                        booking.
+                                                    </p>
+                                                )}
+                                                {walletBalance >=
+                                                    totalPrice && (
+                                                    <p className="mt-1 text-xs text-green-600 dark:text-green-400">
+                                                        ✓ Sufficient balance for
+                                                        this booking
                                                     </p>
                                                 )}
                                             </div>
@@ -709,17 +817,22 @@ export default function Booking({
                                     {discountAmount > 0 && (
                                         <>
                                             <div className="flex items-center justify-between text-sm">
-                                                <span className="text-muted-foreground">Subtotal</span>
-                                                <span className="line-through text-muted-foreground">
-                                                    ₦{originalPrice.toLocaleString()}
+                                                <span className="text-muted-foreground">
+                                                    Subtotal
+                                                </span>
+                                                <span className="text-muted-foreground line-through">
+                                                    ₦
+                                                    {originalPrice.toLocaleString()}
                                                 </span>
                                             </div>
                                             <div className="flex items-center justify-between text-sm">
-                                                <span className="text-green-600 dark:text-green-400 font-medium">
-                                                    Recurring Discount ({discountPercent}%)
+                                                <span className="font-medium text-green-600 dark:text-green-400">
+                                                    Recurring Discount (
+                                                    {discountPercent}%)
                                                 </span>
-                                                <span className="text-green-600 dark:text-green-400 font-medium">
-                                                    -₦{discountAmount.toLocaleString()}
+                                                <span className="font-medium text-green-600 dark:text-green-400">
+                                                    -₦
+                                                    {discountAmount.toLocaleString()}
                                                 </span>
                                             </div>
                                         </>
@@ -752,9 +865,22 @@ export default function Booking({
                                             }
                                             onClick={handleBooking}
                                         >
-                                            Continue
+                                            {walletBalance !== null &&
+                                            walletBalance !== undefined &&
+                                            walletBalance < totalPrice
+                                                ? 'Insufficient Balance'
+                                                : 'Pay & Book Now'}
                                             <CheckCircle2 className="size-6" />
                                         </Button>
+                                        {walletBalance !== null &&
+                                            walletBalance !== undefined &&
+                                            walletBalance >= totalPrice && (
+                                                <p className="text-center text-xs text-muted-foreground">
+                                                    ₦
+                                                    {totalPrice.toLocaleString()}{' '}
+                                                    will be charged immediately
+                                                </p>
+                                            )}
                                     </div>
                                 </div>
                             </div>

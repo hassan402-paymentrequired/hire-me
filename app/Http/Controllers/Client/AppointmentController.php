@@ -129,12 +129,28 @@ class AppointmentController extends Controller
             if ($request->reschedule_id) {
                 $appointment = Appointment::where('client_id', auth()->id())->findOrFail($request->reschedule_id);
                 
-                // Release old escrow if exists
-                if ($appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
-                    $clientWallet->refundEscrow($appointment->escrow_amount, $appointment, "Escrow refunded due to rescheduling");
-                    $appointment->update([
-                        'escrow_status' => 'refunded',
-                    ]);
+                // For rescheduling with upfront payment system:
+                // If price changed, handle the difference
+                if ($appointment->price != $totalPrice) {
+                    $priceDifference = $totalPrice - $appointment->price;
+                    
+                    if ($priceDifference > 0) {
+                        // Client needs to pay more
+                        if (!$clientWallet->hasSufficientBalance($priceDifference)) {
+                            DB::rollBack();
+                            return redirect()->route('marketplace.booking', ['slug' => $provider->businessProfile->slug])
+                                ->with('error-toast', "Insufficient wallet balance. You need ₦" . number_format($priceDifference, 2) . " more to reschedule this appointment.")
+                                ->with('insufficient_balance', true)
+                                ->with('required_amount', $priceDifference);
+                        }
+                        
+                        // Charge the difference upfront
+                        $clientWallet->payUpfront($priceDifference, $appointment, "Additional payment for rescheduled appointment");
+                    } else {
+                        // Refund the difference
+                        $refundAmount = abs($priceDifference);
+                        $clientWallet->refundUpfrontPayment($refundAmount, $appointment, "Partial refund for rescheduled appointment (price reduction)");
+                    }
                 }
 
                 $appointment->update([
@@ -183,12 +199,10 @@ class AppointmentController extends Controller
                     : 'Appointment booked successfully!';
             }
 
-            // Create escrow hold
-            $escrowTransaction = $clientWallet->holdEscrow($totalPrice, $appointment, "Escrow hold for appointment booking");
+            // Process upfront payment - charge client and credit provider immediately
+            $clientWallet->payUpfront($totalPrice, $appointment, "Upfront payment for appointment booking");
             $appointment->update([
-                'escrow_amount' => $totalPrice,
-                'escrow_status' => 'held',
-                'escrow_transaction_id' => $escrowTransaction->id,
+                'payment_released_at' => now(),
             ]);
 
             DB::commit();
@@ -257,14 +271,15 @@ class AppointmentController extends Controller
     }
 
     /**
-     * Cancel a single appointment and handle escrow
+     * Cancel a single appointment and handle upfront payment refund
      */
     protected function cancelSingleAppointment(Appointment $appointment, bool $isLateCancellation): void
     {
         $appointment->update(['status' => 'cancelled', 'cancelled_by' => 'client']);
 
-        // Handle escrow refund/forfeit
-        if ($appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
+        // Handle upfront payment refund/penalty
+        // Only process if payment was already made (payment_released_at is set)
+        if ($appointment->payment_released_at && $appointment->price > 0) {
             $clientWallet = Wallet::firstOrCreate(['user_id' => auth()->id()]);
             $providerSettings = $appointment->provider->businessProfile->settings ?? [];
             
@@ -272,21 +287,16 @@ class AppointmentController extends Controller
             $cancellationPenaltyPercent = $providerSettings['cancellation_penalty_percent'] ?? 0;
             
             if ($isLateCancellation && $cancellationPenaltyPercent > 0) {
-                // Apply penalty: forfeit percentage to provider, refund rest
-                $penaltyAmount = ($appointment->escrow_amount * $cancellationPenaltyPercent) / 100;
-                $refundAmount = $appointment->escrow_amount - $penaltyAmount;
-                
-                if ($penaltyAmount > 0) {
-                    $clientWallet->forfeitEscrow($penaltyAmount, $appointment, "Late cancellation penalty");
-                }
-                if ($refundAmount > 0) {
-                    $clientWallet->refundEscrow($refundAmount, $appointment, "Partial refund after late cancellation");
-                }
-                $appointment->update(['escrow_status' => 'forfeited']);
+                // Apply penalty: provider keeps percentage, refund rest to client
+                $clientWallet->processCancellationPenalty(
+                    $appointment->price,
+                    $cancellationPenaltyPercent,
+                    $appointment,
+                    "Late cancellation penalty applied"
+                );
             } else {
                 // Full refund for early cancellation
-                $clientWallet->refundEscrow($appointment->escrow_amount, $appointment, "Full refund for cancelled appointment");
-                $appointment->update(['escrow_status' => 'refunded']);
+                $clientWallet->refundUpfrontPayment($appointment->price, $appointment, "Full refund for cancelled appointment");
             }
         }
     }
@@ -302,15 +312,8 @@ class AppointmentController extends Controller
 
             $appointment->update(['status' => 'completed']);
 
-            // Release escrow to provider
-            if ($appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
-                $clientWallet = Wallet::firstOrCreate(['user_id' => auth()->id()]);
-                $clientWallet->releaseEscrow($appointment->escrow_amount, $appointment, "Payment released after appointment completion");
-                $appointment->update([
-                    'escrow_status' => 'released',
-                    'payment_released_at' => now(),
-                ]);
-            }
+            // Payment was already processed upfront when booking was created
+            // No action needed - provider already has the payment in their wallet
 
             // Optional Review
             if ($request->has('rating') && $request->has('comment')) {

@@ -89,19 +89,8 @@ class ScheduleController extends Controller
 
             $appointment->update(['status' => 'confirmed']);
 
-            // Check if provider has auto-release payment enabled
-            $providerSettings = auth()->user()->businessProfile->settings ?? [];
-            $autoReleasePayment = $providerSettings['auto_release_payment'] ?? false;
-
-            // If auto-release is enabled, release escrow immediately upon confirmation
-            if ($autoReleasePayment && $appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
-                $clientWallet = Wallet::firstOrCreate(['user_id' => $appointment->client_id]);
-                $clientWallet->releaseEscrow($appointment->escrow_amount, $appointment, "Payment auto-released upon provider confirmation");
-                $appointment->update([
-                    'escrow_status' => 'released',
-                    'payment_released_at' => now(),
-                ]);
-            }
+            // Payment was already processed upfront when booking was created
+            // Provider already has the payment in their wallet and can withdraw anytime
 
             DB::commit();
 

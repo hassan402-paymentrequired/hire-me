@@ -149,21 +149,19 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
                 {/* Payment Settings */}
                 <div className="pt-4 border-t border-border space-y-4">
                     <h4 className="text-sm font-medium text-foreground">Payment Settings</h4>
-                    <p className="text-xs text-muted-foreground -mt-3">Configure how payments are handled for your appointments.</p>
+                    <p className="text-xs text-muted-foreground -mt-3">Configure payment policies for your appointments.</p>
                     <div className="space-y-4">
-                        <div className="flex items-start gap-3">
-                            <Checkbox
-                                id="auto_release_payment"
-                                checked={settings?.auto_release_payment ?? false}
-                                onCheckedChange={(checked) => onSettingsChange('auto_release_payment', checked)}
-                            />
-                            <div className="space-y-1 flex-1">
-                                <Label htmlFor="auto_release_payment" className="cursor-pointer">
-                                    Auto-release payment upon confirmation
-                                </Label>
-                                <p className="text-xs text-muted-foreground">
-                                    Automatically release payment to your wallet when you confirm an appointment (recommended for instant payment)
-                                </p>
+                        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                            <div className="flex items-start gap-2">
+                                <CheckCircle2 className="mt-0.5 size-4 text-primary" />
+                                <div className="flex-1">
+                                    <p className="text-xs font-semibold text-primary">
+                                        Upfront Payment System
+                                    </p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        Clients pay immediately when booking. Payment goes directly to your wallet and you can withdraw anytime. This protects both you and your clients from exploitation.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                         <div className="space-y-2">
@@ -182,7 +180,7 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
                                 Percentage of payment forfeited if client cancels less than 5 hours before appointment (0-100)
                             </p>
                             <p className="text-xs text-muted-foreground">
-                                Example: 50% means client forfeits half the payment, you receive ₦500 from a ₦1000 booking if cancelled late.
+                                Example: 50% means client forfeits half the payment, you receive ₦500 from a ₦1000 booking if cancelled late. The remaining ₦500 is refunded to the client.
                             </p>
                         </div>
                     </div>
