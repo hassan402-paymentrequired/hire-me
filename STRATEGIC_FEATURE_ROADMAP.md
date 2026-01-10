@@ -95,7 +95,7 @@
 
 ---
 
-### 4. **Recurring Appointments** ⭐⭐
+### 4. **Recurring Appointments** ⭐⭐ (done)
 
 **Impact:** Increases customer lifetime value
 
