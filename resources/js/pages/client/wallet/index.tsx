@@ -70,7 +70,7 @@ export default function WalletIndex({
         try {
             try {
                 router.post('/wallet/top-up/initialize', {
-                    amount: parseFloat(topUpAmount) * 100,
+                    amount: parseFloat(topUpAmount),
                 });
                 setIsProcessing(false);
             } catch (error) {

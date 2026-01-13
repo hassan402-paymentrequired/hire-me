@@ -8,13 +8,11 @@ import { UserInfo } from '@/components/user-info';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
 import { becomeProvider, logout } from '@/routes';
 import business from '@/routes/business';
-import jobs from '@/routes/jobs';
 import { edit } from '@/routes/profile';
 import { type User } from '@/types';
 import { Link, router } from '@inertiajs/react';
 import {
     Briefcase,
-    BriefcaseBusiness,
     LogOut,
     Settings,
     Wallet,
@@ -69,21 +67,6 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                     </DropdownMenuItem>
                 )}
 
-                {/* {user.wallet && ( */}
-                <DropdownMenuItem asChild>
-                    <Link
-                        className="block w-full"
-                        href={jobs.post().url}
-                        as="button"
-                        prefetch
-                        onClick={cleanup}
-                    >
-                        <BriefcaseBusiness className="mr-2" />
-                        Post a Job
-                    </Link>
-                </DropdownMenuItem>
-                {/* )} */}
-
                 {user.has_provider_setup ? (
                     <DropdownMenuItem asChild>
                         <Link
@@ -111,7 +94,7 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                         </Link>
                     </DropdownMenuItem>
                 )}
-                {user.role === 'client' && (
+                
                     <DropdownMenuItem asChild>
                         <Link
                             className="block w-full"
@@ -124,7 +107,7 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                             Settings
                         </Link>
                     </DropdownMenuItem>
-                )}
+                
             </DropdownMenuGroup>
 
             <DropdownMenuSeparator />
