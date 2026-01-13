@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Admin;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -51,6 +52,15 @@ class AdminSeeder extends Seeder
                 'email_verified_at' => now(),
             ]
         );
+
+         User::query()->whereDoesntHave('wallet')->chunk(100, function ($users) {
+            foreach ($users as $user) {
+                $user->wallet()->create([
+                    'balance' => 0,
+                    'escrow_balance' => 0,
+                ]);
+            }
+        });
 
         $this->command->info('Admin users created successfully!');
         $this->command->info('Super Admin: admin@hireme.com / password');
