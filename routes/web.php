@@ -5,12 +5,12 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['provider.setup'])->group(function () {
     Route::get('/', [\App\Http\Controllers\Guest\GuestController::class, 'welcome'])->name('home');
     Route::get('/provider/{slug}', [\App\Http\Controllers\Client\MarketplaceController::class, 'show'])->name('provider.show');
-    Route::get('/provider/{slug}/book', [\App\Http\Controllers\Client\MarketplaceController::class, 'booking'])->name('marketplace.booking');
-    Route::get('/appointments/slots', [\App\Http\Controllers\Client\AppointmentController::class, 'availableSlots'])->name('slots');
 });
 
 Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
 
+    Route::get('/provider/{slug}/book', [\App\Http\Controllers\Client\MarketplaceController::class, 'booking'])->name('marketplace.booking');
+    Route::get('/appointments/slots', [\App\Http\Controllers\Client\AppointmentController::class, 'availableSlots'])->name('slots');
     // Become a Provider (available to all authenticated users)
     Route::get('/become-provider', [\App\Http\Controllers\Provider\BecomeProviderController::class, 'index'])->name('become-provider');
     Route::post('/become-provider', [\App\Http\Controllers\Provider\BecomeProviderController::class, 'store'])->name('become-provider.store');
@@ -49,6 +49,16 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
             Route::get('/analytics', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'analytics'])->name('analytics');
             Route::get('/settings', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'settings'])->name('settings');
             Route::post('/settings', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateSettings'])->name('settings.update');
+
+            // Team Management
+            Route::prefix('team')->name('team.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'index'])->name('index');
+                Route::get('/create', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'create'])->name('create');
+                Route::post('/', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'store'])->name('store');
+                Route::put('/{id}', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'update'])->name('update');
+                Route::delete('/{id}', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'destroy'])->name('destroy');
+                Route::get('/members/list', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'getTeamMembers'])->name('members.list');
+            });
         });
 
         Route::prefix('schedule')->group(function () {
@@ -113,12 +123,7 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
         Route::post('/verification/submit', [\App\Http\Controllers\Provider\VerificationController::class, 'store'])->name('verification.submit');
     });
 
-    // Admin Routes (TODO: Add admin middleware)
-    Route::prefix('admin')->name('admin.')->group(function () {
-        Route::get('/verifications', [\App\Http\Controllers\Admin\VerificationController::class, 'index'])->name('verifications.index');
-        Route::post('/verifications/{verification}/approve', [\App\Http\Controllers\Admin\VerificationController::class, 'approve'])->name('verifications.approve');
-        Route::post('/verifications/{verification}/reject', [\App\Http\Controllers\Admin\VerificationController::class, 'reject'])->name('verifications.reject');
-    });
+    // Admin routes are now in routes/admin.php
 
     Route::post('/mark-as-favourite', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'markFavourites'])->name('favourite.update');
     Route::get('/service/favourite', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'getUserFav'])->name('favourite.index');

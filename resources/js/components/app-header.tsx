@@ -34,7 +34,6 @@ import { cn, isSameUrl, resolveUrl } from '@/lib/utils';
 import { becomeProvider, home, login } from '@/routes';
 import business from '@/routes/business';
 import client from '@/routes/client';
-import jobs from '@/routes/jobs';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import { BookOpen, CalendarSync, Folder, Heart, Menu } from 'lucide-react';
@@ -53,18 +52,7 @@ const mainNavItems = (auth?: any): NavItem[] => {
             title: 'Marketplace',
             href: home().url,
         },
-        {
-            title: 'My Jobs',
-            href: jobs.index().url,
-        },
     ];
-    // Only display Job Board if user is a provider (has_provider_setup)
-    if (auth?.user?.has_provider_setup) {
-        items.push({
-            title: 'Job Board',
-            href: jobs.board().url,
-        });
-    }
     return items;
 };
 
@@ -212,37 +200,11 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                     <div className="ml-auto flex items-center space-x-2">
                         {auth?.user ? (
                             <div className="flex items-center gap-2">
-                                {/* Wallet Balance Display */}
-                                {auth.user.wallet && (
-                                    <TooltipProvider delayDuration={0}>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <Link href="/wallet" prefetch>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        className="rounded-2xl shadow-none"
-                                                    >
-                                                        <span className="text-xs font-medium">
-                                                            ₦
-                                                            {auth.user.wallet.available_balance.toLocaleString()}
-                                                        </span>
-                                                    </Button>
-                                                </Link>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>
-                                                    Wallet Balance (Click to
-                                                    view details)
-                                                </p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                )}
+
 
                                 {auth.user.has_provider_setup ? (
                                     <Link href={business.dashboard()} prefetch>
-                                        <Button size="sm">Dashboard</Button>
+                                        <Button size="sm"  className="rounded-2xl">Dashboard</Button>
                                     </Link>
                                 ) : (
                                     <div className="space-x-4">
@@ -282,6 +244,34 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                             </Tooltip>
                                         </TooltipProvider>
                                     </div>
+                                )}
+
+                                 {/* Wallet Balance Display */}
+                                {auth.user.wallet && (
+                                    <TooltipProvider delayDuration={0}>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Link href="/wallet" prefetch>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="rounded-2xl shadow-none"
+                                                    >
+                                                        <span className="text-xs font-medium">
+                                                            ₦
+                                                            {auth.user.wallet.available_balance.toLocaleString()}
+                                                        </span>
+                                                    </Button>
+                                                </Link>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>
+                                                    Wallet Balance (Click to
+                                                    view details)
+                                                </p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
                                 )}
 
                                 <TooltipProvider delayDuration={0}>

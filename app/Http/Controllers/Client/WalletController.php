@@ -85,7 +85,7 @@ class WalletController extends Controller
             // Initialize Paystack payment
             $paystackResponse = $this->paystack->initializeTransaction([
                 'email' => $user->email,
-                'amount' => $request->amount,
+                'amount' => (int)$request->amount * 100,
                 'reference' => $reference,
                 'callback_url' => route('paystack.callback'),
                 'metadata' => [

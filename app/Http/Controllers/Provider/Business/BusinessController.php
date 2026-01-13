@@ -131,7 +131,7 @@ class BusinessController extends Controller
             ->selectRaw('services.name, COUNT(appointments.id) as bookings')
             ->whereIn('appointments.status', ['confirmed', 'completed'])
             ->groupBy('services.id', 'services.name')
-            ->orderByDesc('bookings')
+            ->orderByRaw('COUNT(appointments.id) DESC')
             ->first();
 
         return Inertia::render('provider/business/services/index', [
@@ -216,70 +216,309 @@ class BusinessController extends Controller
         return back()->with('success-toast', "Service '$name' deleted successfully.");
     }
 
-    public function analytics()
+    public function analytics(\Illuminate\Http\Request $request)
     {
         $user = auth()->user();
+        $range = $request->get('range', 'this_year'); // this_week, this_month, this_year
 
-        // 1. Monthly Revenue (Current Year)
-        $revenueData = $user->appointmentsAsProvider()
-            ->selectRaw('MONTH(start_time) as month, SUM(price) as value')
-            ->whereYear('start_time', date('Y'))
+        // Calculate date range
+        $now = now();
+        $startDate = match($range) {
+            'this_week' => $now->copy()->startOfWeek(),
+            'this_month' => $now->copy()->startOfMonth(),
+            'this_year' => $now->copy()->startOfYear(),
+            default => $now->copy()->startOfYear(),
+        };
+
+        // Helper function to create fresh query instances
+        $baseQuery = function() use ($user, $startDate) {
+            return $user->appointmentsAsProvider()->where('start_time', '>=', $startDate);
+        };
+
+        // 1. Revenue Trends (Daily, Weekly, Monthly based on range) - Create fresh instances
+        $revenueData = match($range) {
+            'this_week' => $this->getDailyRevenue($user->appointmentsAsProvider()->where('start_time', '>=', $startDate), $startDate),
+            'this_month' => $this->getWeeklyRevenue($user->appointmentsAsProvider()->where('start_time', '>=', $startDate), $startDate),
+            'this_year' => $this->getMonthlyRevenue($user->appointmentsAsProvider()->where('start_time', '>=', $startDate), $startDate),
+            default => $this->getMonthlyRevenue($user->appointmentsAsProvider()->where('start_time', '>=', $startDate), $startDate),
+        };
+
+        // 2. Booking Conversion Rates
+        $totalViews = $user->businessProfile?->views ?? 0; // Assuming views are tracked
+        $totalBookings = $user->appointmentsAsProvider()->where('start_time', '>=', $startDate)->count();
+        $confirmedBookings = $user->appointmentsAsProvider()
+            ->where('start_time', '>=', $startDate)
             ->whereIn('status', ['confirmed', 'completed'])
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get()
-            ->map(function ($row) {
-                return [
-                    'month' => date('M', mktime(0, 0, 0, $row->month, 1)),
-                    'value' => (float) $row->value,
-                ];
-            });
+            ->count();
+        $conversionRate = $totalViews > 0 ? ($totalBookings / $totalViews) * 100 : 0;
+        $confirmationRate = $totalBookings > 0 ? ($confirmedBookings / $totalBookings) * 100 : 0;
 
-        // Fill missing months with 0
-        $allMonths = collect(range(1, 12))->map(function ($m) {
-            return date('M', mktime(0, 0, 0, $m, 1));
-        });
-        $revenueData = $allMonths->map(function ($month) use ($revenueData) {
-            $found = $revenueData->firstWhere('month', $month);
-            return $found ?? ['month' => $month, 'value' => 0];
-        });
-
-
-        // 2. Top Services
+        // 3. Popular Services Analysis
         $topServices = $user->appointmentsAsProvider()
             ->join('services', 'appointments.service_id', '=', 'services.id')
-            ->selectRaw('services.name, COUNT(appointments.id) as bookings, SUM(appointments.price) as revenue')
+            ->selectRaw('services.name, COUNT(appointments.id) as bookings, SUM(appointments.price) as revenue, AVG(appointments.price) as avg_price')
+            ->where('appointments.start_time', '>=', $startDate)
             ->whereIn('appointments.status', ['confirmed', 'completed'])
             ->groupBy('services.id', 'services.name')
-            ->orderByDesc('revenue')
-            ->take(5)
+            ->orderByRaw('SUM(appointments.price) DESC')
+            ->take(10)
             ->get()
             ->map(function ($row) {
                 return [
                     'name' => $row->name,
                     'bookings' => $row->bookings,
-                    'revenue' => '₦' . number_format($row->revenue),
+                    'revenue' => (float) $row->revenue,
+                    'revenue_formatted' => '₦' . number_format($row->revenue),
+                    'avg_price' => (float) $row->avg_price,
                 ];
             });
 
-        // 3. Key Metrics
-        $totalRevenue = $user->appointmentsAsProvider()->whereIn('status', ['confirmed', 'completed'])->sum('price');
-        $totalBookings = $user->appointmentsAsProvider()->count();
-        $cancelCount = $user->appointmentsAsProvider()->where('status', 'cancelled')->count();
-        $cancelRate = $totalBookings > 0 ? ($cancelCount / $totalBookings) * 100 : 0;
+        // 4. Peak Hours Identification - Create fresh instance
+        $peakHours = $user->appointmentsAsProvider()
+            ->where('start_time', '>=', $startDate)
+            ->whereIn('status', ['confirmed', 'completed'])
+            ->selectRaw('HOUR(start_time) as hour, COUNT(*) as bookings')
+            ->groupByRaw('HOUR(start_time)')
+            ->orderByRaw('COUNT(*) DESC')
+            ->get()
+            ->map(function ($row) {
+                $hour = (int) $row->hour;
+                return [
+                    'hour' => $hour,
+                    'display' => date('g A', mktime($hour, 0, 0)),
+                    'bookings' => $row->bookings,
+                ];
+            });
+
+        // Fill all 24 hours for chart
+        $allHours = collect(range(0, 23))->map(function ($h) use ($peakHours) {
+            $found = $peakHours->firstWhere('hour', $h);
+            return $found ?? [
+                'hour' => $h,
+                'display' => date('g A', mktime($h, 0, 0)),
+                'bookings' => 0,
+            ];
+        })->sortBy('hour')->values();
+
+        // 5. Customer Retention Metrics
+        // Create fresh query instances to avoid contamination from previous queries
+        $uniqueClients = $user->appointmentsAsProvider()
+            ->where('start_time', '>=', $startDate)
+            ->whereNotNull('client_id')
+            ->distinct('client_id')
+            ->count('client_id');
+        
+        $returningClients = $user->appointmentsAsProvider()
+            ->where('start_time', '>=', $startDate)
+            ->whereNotNull('client_id')
+            ->select('client_id')
+            ->groupBy('client_id')
+            ->havingRaw('COUNT(*) > 1')
+            ->get()
+            ->count();
+        
+        $retentionRate = $uniqueClients > 0 ? ($returningClients / $uniqueClients) * 100 : 0;
+
+        // Calculate repeat customer bookings
+        $repeatBookings = $user->appointmentsAsProvider()
+            ->where('start_time', '>=', $startDate)
+            ->whereNotNull('client_id')
+            ->select('client_id')
+            ->groupBy('client_id')
+            ->havingRaw('COUNT(*) > 1')
+            ->get()
+            ->count();
+
+        // 6. Review Sentiment Analysis
+        $reviews = \App\Models\Review::where('provider_id', $user->id)
+            ->where('created_at', '>=', $startDate)
+            ->get();
+
+        $totalReviews = $reviews->count();
+        $positiveReviews = $reviews->where('rating', '>=', 4)->count();
+        $neutralReviews = $reviews->where('rating', '=', 3)->count();
+        $negativeReviews = $reviews->where('rating', '<=', 2)->count();
+
+        $sentimentData = [
+            'total' => $totalReviews,
+            'positive' => $totalReviews > 0 ? ($positiveReviews / $totalReviews) * 100 : 0,
+            'neutral' => $totalReviews > 0 ? ($neutralReviews / $totalReviews) * 100 : 0,
+            'negative' => $totalReviews > 0 ? ($negativeReviews / $totalReviews) * 100 : 0,
+            'average_rating' => $totalReviews > 0 ? $reviews->avg('rating') : 0,
+        ];
+
+        // 7. Geographic Demand Heatmap (by client location if available, otherwise by appointment address) - Create fresh instance
+        $geographicData = $user->appointmentsAsProvider()
+            ->where('start_time', '>=', $startDate)
+            ->whereIn('status', ['confirmed', 'completed'])
+            ->join('users', 'appointments.client_id', '=', 'users.id')
+            ->leftJoin('business_profiles', 'users.id', '=', 'business_profiles.user_id')
+            ->selectRaw('
+                COALESCE(business_profiles.city, business_profiles.state, "Unknown") as location,
+                COUNT(appointments.id) as bookings,
+                SUM(appointments.price) as revenue
+            ')
+            ->groupBy('location')
+            ->orderByRaw('COUNT(appointments.id) DESC')
+            ->take(10)
+            ->get()
+            ->map(function ($row) {
+                return [
+                    'location' => $row->location,
+                    'bookings' => $row->bookings,
+                    'revenue' => (float) $row->revenue,
+                ];
+            });
+
+        // 8. Key Metrics with real calculations - Create fresh instances
+        $previousPeriodStart = $startDate->copy()->sub($range === 'this_week' ? '1 week' : ($range === 'this_month' ? '1 month' : '1 year'));
+        $previousPeriodEnd = $startDate->copy()->subDay();
+
+        $currentRevenue = $user->appointmentsAsProvider()
+            ->where('start_time', '>=', $startDate)
+            ->whereIn('status', ['confirmed', 'completed'])
+            ->sum('price');
+        $previousRevenue = $user->appointmentsAsProvider()
+            ->whereIn('status', ['confirmed', 'completed'])
+            ->whereBetween('start_time', [$previousPeriodStart, $previousPeriodEnd])
+            ->sum('price');
+
+        $currentBookings = $user->appointmentsAsProvider()
+            ->where('start_time', '>=', $startDate)
+            ->count();
+        $previousBookings = $user->appointmentsAsProvider()
+            ->whereBetween('start_time', [$previousPeriodStart, $previousPeriodEnd])
+            ->count();
+
+        $cancelCount = $user->appointmentsAsProvider()
+            ->where('start_time', '>=', $startDate)
+            ->where('status', 'cancelled')
+            ->count();
+        $previousCancelCount = $user->appointmentsAsProvider()
+            ->where('status', 'cancelled')
+            ->whereBetween('start_time', [$previousPeriodStart, $previousPeriodEnd])
+            ->count();
+
+        $cancelRate = $currentBookings > 0 ? ($cancelCount / $currentBookings) * 100 : 0;
+        $previousCancelRate = $previousBookings > 0 ? ($previousCancelCount / $previousBookings) * 100 : 0;
+
+        $revenueChange = $previousRevenue > 0 ? (($currentRevenue - $previousRevenue) / $previousRevenue) * 100 : 0;
+        $bookingsChange = $previousBookings > 0 ? (($currentBookings - $previousBookings) / $previousBookings) * 100 : 0;
+        $cancelChange = $previousCancelRate > 0 ? ($cancelRate - $previousCancelRate) : 0;
 
         return Inertia::render('provider/business/analytics', [
+            'range' => $range,
             'revenueData' => $revenueData,
             'topServices' => $topServices,
+            'peakHours' => $allHours,
+            'conversionMetrics' => [
+                'conversion_rate' => round($conversionRate, 2),
+                'confirmation_rate' => round($confirmationRate, 2),
+                'total_views' => $totalViews,
+                'total_bookings' => $totalBookings,
+            ],
+            'retentionMetrics' => [
+                'unique_clients' => $uniqueClients,
+                'returning_clients' => $returningClients,
+                'retention_rate' => round($retentionRate, 2),
+                'repeat_bookings' => $repeatBookings,
+            ],
+            'sentimentData' => $sentimentData,
+            'geographicData' => $geographicData,
             'metrics' => [
-                'totalRevenue' => '₦' . number_format($totalRevenue),
-                'revenueChange' => '+20.1%', // Mock
-                'totalBookings' => $totalBookings,
-                'bookingsChange' => '+12%', // Mock
+                'totalRevenue' => '₦' . number_format($currentRevenue),
+                'revenueChange' => ($revenueChange >= 0 ? '+' : '') . number_format($revenueChange, 1) . '%',
+                'totalBookings' => $currentBookings,
+                'bookingsChange' => ($bookingsChange >= 0 ? '+' : '') . number_format($bookingsChange, 1) . '%',
                 'cancelRate' => number_format($cancelRate, 1) . '%',
-                'cancelChange' => '+1.2%', // Mock
+                'cancelChange' => ($cancelChange >= 0 ? '+' : '') . number_format($cancelChange, 1) . '%',
             ]
         ]);
+    }
+
+    private function getDailyRevenue($appointments, $startDate)
+    {
+        $endDate = now();
+        $days = $startDate->diffInDays($endDate) + 1;
+        
+        $revenueData = $appointments
+            ->whereIn('status', ['confirmed', 'completed'])
+            ->selectRaw('DATE(start_time) as date, SUM(price) as value')
+            ->groupByRaw('DATE(start_time)')
+            ->orderByRaw('DATE(start_time)')
+            ->get()
+            ->keyBy(function ($row) {
+                return \Carbon\Carbon::parse($row->date)->format('Y-m-d');
+            });
+
+        return collect(range(0, $days - 1))->map(function ($day) use ($startDate, $revenueData) {
+            $date = $startDate->copy()->addDays($day);
+            $key = $date->format('Y-m-d');
+            $found = $revenueData->get($key);
+            return [
+                'label' => $date->format('M d'),
+                'value' => $found ? (float) $found->value : 0,
+            ];
+        });
+    }
+
+    private function getWeeklyRevenue($appointments, $startDate)
+    {
+        $endDate = now();
+        $weeks = $startDate->diffInWeeks($endDate) + 1;
+        
+        $revenueData = $appointments
+            ->whereIn('status', ['confirmed', 'completed'])
+            ->selectRaw('DATE(DATE_SUB(start_time, INTERVAL WEEKDAY(start_time) DAY)) as week_start, SUM(price) as value')
+            ->groupByRaw('DATE(DATE_SUB(start_time, INTERVAL WEEKDAY(start_time) DAY))')
+            ->orderByRaw('DATE(DATE_SUB(start_time, INTERVAL WEEKDAY(start_time) DAY))')
+            ->get()
+            ->keyBy(function ($row) {
+                return \Carbon\Carbon::parse($row->week_start)->format('Y-m-d');
+            });
+
+        return collect(range(0, $weeks - 1))->map(function ($week) use ($startDate, $revenueData) {
+            $weekStart = $startDate->copy()->addWeeks($week)->startOfWeek();
+            $weekKey = $weekStart->format('Y-m-d');
+            $found = $revenueData->get($weekKey);
+            return [
+                'label' => 'Week ' . ($week + 1) . ' (' . $weekStart->format('M d') . ')',
+                'value' => $found ? (float) $found->value : 0,
+            ];
+        });
+    }
+
+    private function getMonthlyRevenue($appointments, $startDate)
+    {
+        $revenueData = $appointments
+            ->whereIn('status', ['confirmed', 'completed'])
+            ->selectRaw('MONTH(start_time) as month, SUM(price) as value')
+            ->whereYear('start_time', $startDate->year)
+            ->groupByRaw('MONTH(start_time)')
+            ->orderByRaw('MONTH(start_time)')
+            ->get()
+            ->map(function ($row) {
+                return [
+                    'month' => (int) $row->month,
+                    'month_name' => date('M', mktime(0, 0, 0, $row->month, 1)),
+                    'value' => (float) $row->value,
+                ];
+            });
+
+        $allMonths = collect(range(1, 12))->map(function ($m) {
+            return [
+                'number' => $m,
+                'name' => date('M', mktime(0, 0, 0, $m, 1)),
+            ];
+        });
+        
+        return $allMonths->map(function ($month) use ($revenueData) {
+            $found = $revenueData->firstWhere('month', $month['number']);
+            return [
+                'label' => $month['name'],
+                'value' => $found ? $found['value'] : 0,
+            ];
+        });
     }
 
     public function settings()

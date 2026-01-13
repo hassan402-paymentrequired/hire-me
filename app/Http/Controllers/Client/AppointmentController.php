@@ -54,21 +54,11 @@ class AppointmentController extends Controller
             'start_time' => 'required|date',
             'notes' => 'nullable|string|max:500',
             'reschedule_id' => 'nullable|exists:appointments,id',
+            'recurrence_pattern' => 'nullable|in:weekly,bi_weekly,monthly',
+            'recurrence_end_date' => 'nullable|date|after:today',
+            'recurrence_count' => 'nullable|integer|min:2|max:52',
+            'discount_percent' => 'nullable|numeric|min:0|max:100',
         ]);
-
-        // Constraint: One active appointment per provider
-        $existingActive = Appointment::where('client_id', auth()->id())
-            ->where('provider_id', $request->provider_id)
-            ->whereIn('status', ['pending', 'confirmed'])
-            ->when($request->reschedule_id, function ($q) use ($request) {
-                return $q->where('id', '!=', $request->reschedule_id);
-            })
-            ->first();
-
-        if ($existingActive) {
-            return redirect()->route('client.bookings.show', $existingActive->id)
-                ->with('error-toast', 'You already have an active appointment with this provider. Please manage your existing booking.');
-        }
 
         // Frequency Limits check
         $provider = User::with('businessProfile')->findOrFail($request->provider_id);
@@ -99,7 +89,9 @@ class AppointmentController extends Controller
         }
 
         $services = Service::whereIn('id', $request->service_ids)->get();
-        $totalPrice = $services->sum('price');
+        $originalPrice = $services->sum('price');
+        $discountPercent = $request->discount_percent ?? 0;
+        $totalPrice = $originalPrice * (1 - ($discountPercent / 100));
         $totalDuration = $services->sum('duration_minutes');
         $maxBuffer = $services->max('buffer_time_minutes') ?? 0;
 
@@ -123,12 +115,36 @@ class AppointmentController extends Controller
             if ($request->reschedule_id) {
                 $appointment = Appointment::where('client_id', auth()->id())->findOrFail($request->reschedule_id);
                 
-                // Release old escrow if exists
-                if ($appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
-                    $clientWallet->refundEscrow($appointment->escrow_amount, $appointment, "Escrow refunded due to rescheduling");
-                    $appointment->update([
-                        'escrow_status' => 'refunded',
-                    ]);
+                // For rescheduling with payment hold system:
+                // If price changed, handle the difference
+                if ($appointment->price != $totalPrice) {
+                    $priceDifference = $totalPrice - $appointment->price;
+                    
+                    if ($priceDifference > 0) {
+                        // Client needs to pay more
+                        if (!$clientWallet->hasSufficientBalance($priceDifference)) {
+                            DB::rollBack();
+                            return redirect()->route('marketplace.booking', ['slug' => $provider->businessProfile->slug])
+                                ->with('error-toast', "Insufficient wallet balance. You need ₦" . number_format($priceDifference, 2) . " more to reschedule this appointment.")
+                                ->with('insufficient_balance', true)
+                                ->with('required_amount', $priceDifference);
+                        }
+                        
+                        // Hold the additional amount
+                        $clientWallet->holdPayment($priceDifference, $appointment, "Additional payment held for rescheduled appointment");
+                        $appointment->update([
+                            'escrow_amount' => $appointment->escrow_amount + $priceDifference,
+                        ]);
+                    } else {
+                        // Refund the difference
+                        $refundAmount = abs($priceDifference);
+                        if ($appointment->escrow_status === 'held' && $appointment->escrow_amount >= $refundAmount) {
+                            $clientWallet->refundEscrow($refundAmount, $appointment, "Partial refund for rescheduled appointment (price reduction)");
+                            $appointment->update([
+                                'escrow_amount' => $appointment->escrow_amount - $refundAmount,
+                            ]);
+                        }
+                    }
                 }
 
                 $appointment->update([
@@ -142,7 +158,7 @@ class AppointmentController extends Controller
                 $appointment->services()->sync($request->service_ids);
                 $message = 'Appointment rescheduled successfully!';
             } else {
-                $appointment = Appointment::create([
+                $appointmentData = [
                     'client_id' => auth()->id(),
                     'provider_id' => $request->provider_id,
                     'service_id' => $request->service_ids[0],
@@ -152,13 +168,33 @@ class AppointmentController extends Controller
                     'status' => 'pending',
                     'price' => $totalPrice,
                     'notes' => $request->notes,
-                ]);
+                ];
+
+                // Add recurrence data if provided
+                if ($request->recurrence_pattern) {
+                    $appointmentData['recurrence_pattern'] = $request->recurrence_pattern;
+                    $appointmentData['original_price'] = $originalPrice;
+                    $appointmentData['discount_percent'] = $discountPercent;
+                    
+                    if ($request->recurrence_end_date) {
+                        $appointmentData['recurrence_end_date'] = Carbon::parse($request->recurrence_end_date);
+                    }
+                    
+                    if ($request->recurrence_count) {
+                        $appointmentData['recurrence_count'] = $request->recurrence_count;
+                    }
+                }
+
+                $appointment = Appointment::create($appointmentData);
                 $appointment->services()->attach($request->service_ids);
-                $message = 'Appointment booked successfully!';
+                
+                $message = $request->recurrence_pattern 
+                    ? 'Recurring appointment booked successfully! Future appointments will be created automatically.'
+                    : 'Appointment booked successfully!';
             }
 
-            // Create escrow hold
-            $escrowTransaction = $clientWallet->holdEscrow($totalPrice, $appointment, "Escrow hold for appointment booking");
+            // Hold payment - charge client but hold in escrow until both parties approve
+            $escrowTransaction = $clientWallet->holdPayment($totalPrice, $appointment, "Payment held for appointment booking (pending dual approval)");
             $appointment->update([
                 'escrow_amount' => $totalPrice,
                 'escrow_status' => 'held',
@@ -195,33 +231,27 @@ class AppointmentController extends Controller
         try {
             DB::beginTransaction();
 
-            $appointment->update(['status' => 'cancelled', 'cancelled_by' => 'client']);
+            // Get the parent appointment if this is a child
+            $parentAppointment = $appointment->recurrence_parent_id 
+                ? Appointment::find($appointment->recurrence_parent_id)
+                : ($appointment->isRecurrenceParent() ? $appointment : null);
 
-            // Handle escrow refund/forfeit
-            if ($appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
-                $clientWallet = Wallet::firstOrCreate(['user_id' => auth()->id()]);
-                $providerSettings = $appointment->provider->businessProfile->settings ?? [];
-                
-                // Check if provider has cancellation penalty enabled
-                $cancellationPenaltyPercent = $providerSettings['cancellation_penalty_percent'] ?? 0;
-                
-                if ($isLateCancellation && $cancellationPenaltyPercent > 0) {
-                    // Apply penalty: forfeit percentage to provider, refund rest
-                    $penaltyAmount = ($appointment->escrow_amount * $cancellationPenaltyPercent) / 100;
-                    $refundAmount = $appointment->escrow_amount - $penaltyAmount;
-                    
-                    if ($penaltyAmount > 0) {
-                        $clientWallet->forfeitEscrow($penaltyAmount, $appointment, "Late cancellation penalty");
-                    }
-                    if ($refundAmount > 0) {
-                        $clientWallet->refundEscrow($refundAmount, $appointment, "Partial refund after late cancellation");
-                    }
-                    $appointment->update(['escrow_status' => 'forfeited']);
-                } else {
-                    // Full refund for early cancellation
-                    $clientWallet->refundEscrow($appointment->escrow_amount, $appointment, "Full refund for cancelled appointment");
-                    $appointment->update(['escrow_status' => 'refunded']);
+            // Cancel this appointment
+            $this->cancelSingleAppointment($appointment, $isLateCancellation);
+
+            // If this is a parent recurring appointment, cancel all future children
+            if ($parentAppointment && $parentAppointment->id === $appointment->id) {
+                $futureChildren = Appointment::where('recurrence_parent_id', $appointment->id)
+                    ->where('start_time', '>', now())
+                    ->where('status', '!=', 'cancelled')
+                    ->get();
+
+                foreach ($futureChildren as $child) {
+                    $this->cancelSingleAppointment($child, false); // Future appointments are always early cancellation
                 }
+
+                DB::commit();
+                return back()->with('success-toast', 'Recurring appointment series cancelled successfully. All future appointments have been cancelled.');
             }
 
             DB::commit();
@@ -236,25 +266,76 @@ class AppointmentController extends Controller
         }
     }
 
+    /**
+     * Cancel a single appointment and handle upfront payment refund
+     */
+    protected function cancelSingleAppointment(Appointment $appointment, bool $isLateCancellation): void
+    {
+        $appointment->update(['status' => 'cancelled', 'cancelled_by' => 'client']);
+
+        // Handle payment refund/penalty
+        // Only process if payment is held in escrow
+        if ($appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
+            $clientWallet = Wallet::firstOrCreate(['user_id' => auth()->id()]);
+            $providerSettings = $appointment->provider->businessProfile->settings ?? [];
+            
+            // Check if provider has cancellation penalty enabled
+            $cancellationPenaltyPercent = $providerSettings['cancellation_penalty_percent'] ?? 0;
+            
+            if ($isLateCancellation && $cancellationPenaltyPercent > 0) {
+                // Apply penalty: forfeit percentage to provider, refund rest
+                $penaltyAmount = ($appointment->escrow_amount * $cancellationPenaltyPercent) / 100;
+                $refundAmount = $appointment->escrow_amount - $penaltyAmount;
+                
+                if ($penaltyAmount > 0) {
+                    $clientWallet->forfeitEscrow($penaltyAmount, $appointment, "Late cancellation penalty");
+                }
+                if ($refundAmount > 0) {
+                    $clientWallet->refundEscrow($refundAmount, $appointment, "Partial refund after late cancellation");
+                }
+                $appointment->update(['escrow_status' => 'forfeited']);
+            } else {
+                // Full refund for early cancellation
+                $clientWallet->refundEscrow($appointment->escrow_amount, $appointment, "Full refund for cancelled appointment");
+                $appointment->update(['escrow_status' => 'refunded']);
+            }
+        }
+    }
+
     public function complete(Request $request, $id)
     {
         $appointment = Appointment::where('client_id', auth()->id())
-            ->where('status', 'confirmed')
+            ->whereIn('status', ['confirmed', 'pending_completion'])
             ->findOrFail($id);
 
         try {
             DB::beginTransaction();
 
-            $appointment->update(['status' => 'completed']);
+            // Mark client approval
+            $appointment->update([
+                'client_approved' => true,
+                'client_approved_at' => now(),
+            ]);
 
-            // Release escrow to provider
-            if ($appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
-                $clientWallet = Wallet::firstOrCreate(['user_id' => auth()->id()]);
-                $clientWallet->releaseEscrow($appointment->escrow_amount, $appointment, "Payment released after appointment completion");
-                $appointment->update([
-                    'escrow_status' => 'released',
-                    'payment_released_at' => now(),
-                ]);
+            // Refresh to get latest values
+            $appointment->refresh();
+
+            // Check if both parties have approved - then release payment
+            if ($appointment->client_approved && $appointment->provider_approved) {
+                $appointment->update(['status' => 'completed']);
+                
+                // Release held payment to provider
+                if ($appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
+                    $clientWallet = Wallet::firstOrCreate(['user_id' => auth()->id()]);
+                    $clientWallet->releaseHeldPayment($appointment->escrow_amount, $appointment, "Payment released after dual approval");
+                    $appointment->update([
+                        'escrow_status' => 'released',
+                        'payment_released_at' => now(),
+                    ]);
+                }
+            } else {
+                // Only client approved, waiting for provider
+                $appointment->update(['status' => 'pending_completion']);
             }
 
             // Optional Review
@@ -269,10 +350,13 @@ class AppointmentController extends Controller
 
             DB::commit();
 
-            // Send email to client
-            Mail::to($appointment->client->email)->send(new AppointmentCompletedMail($appointment));
-
-            return back()->with('success-toast', 'Appointment marked as completed.');
+            if ($appointment->client_approved && $appointment->provider_approved) {
+                // Send email to client
+                Mail::to($appointment->client->email)->send(new AppointmentCompletedMail($appointment));
+                return back()->with('success-toast', 'Appointment completed and payment released to provider.');
+            } else {
+                return back()->with('success-toast', 'Your approval recorded. Waiting for provider approval to release payment.');
+            }
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error-toast', 'Failed to complete appointment: ' . $e->getMessage());

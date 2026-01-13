@@ -1,0 +1,61 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Admin;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
+
+class AdminSeeder extends Seeder
+{
+    /**
+     * Run the database seeds.
+     */
+    public function run(): void
+    {
+        // Create super admin
+        Admin::firstOrCreate(
+            ['email' => 'admin@hireme.com'],
+            [
+                'name' => 'Super Admin',
+                'email' => 'admin@hireme.com',
+                'password' => Hash::make('password'), // Change this in production!
+                'role' => 'super_admin',
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
+
+        // Create regular admin
+        Admin::firstOrCreate(
+            ['email' => 'admin2@hireme.com'],
+            [
+                'name' => 'Admin User',
+                'email' => 'admin2@hireme.com',
+                'password' => Hash::make('password'), // Change this in production!
+                'role' => 'admin',
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
+
+        // Create moderator
+        Admin::firstOrCreate(
+            ['email' => 'moderator@hireme.com'],
+            [
+                'name' => 'Moderator',
+                'email' => 'moderator@hireme.com',
+                'password' => Hash::make('password'), // Change this in production!
+                'role' => 'moderator',
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
+
+        $this->command->info('Admin users created successfully!');
+        $this->command->info('Super Admin: admin@hireme.com / password');
+        $this->command->info('Admin: admin2@hireme.com / password');
+        $this->command->info('Moderator: moderator@hireme.com / password');
+        $this->command->warn('⚠️  Please change these passwords in production!');
+    }
+}

@@ -19,5 +19,5 @@
     <p>Please log in to your dashboard to accept or decline this request.</p>
 @endsection
 
-@section('cta_url', route('provider.appointments.index'))
+@section('cta_url', route('provider.appointments.show', $appointment->id))
 @section('cta_text', 'View Appointment Details')

@@ -152,7 +152,7 @@ export default function BusinessSettings({ profile, categories }: Props) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <main className="flex flex-col p-4 md:p-6 max-w-5xl mx-auto w-full">
+            <main className="flex flex-col p-4 md:p-6 max-w-7xl mx-auto w-full">
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
                     <div>
                         <h2 className="text-2xl font-bold text-foreground">Business Settings</h2>
