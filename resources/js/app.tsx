@@ -6,6 +6,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { initializeTheme } from './hooks/use-appearance';
 import { LoadingProvider } from '@/contexts/loading-context';
+import { LocationPermissionProvider } from '@/contexts/location-permission-context';
 import { Toaster } from 'sonner';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
@@ -23,8 +24,10 @@ createInertiaApp({
         root.render(
             <StrictMode>
                 <LoadingProvider>
-                    <App {...props} />
-                    <Toaster position="top-right" richColors closeButton />
+                    <LocationPermissionProvider reminderInterval={10 * 60 * 1000}>
+                        <App {...props} />
+                        <Toaster position="top-right" richColors closeButton />
+                    </LocationPermissionProvider>
                 </LoadingProvider>
             </StrictMode>,
         );

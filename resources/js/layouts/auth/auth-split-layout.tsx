@@ -26,9 +26,9 @@ export default function AuthSplitLayout({
     const { name, quote } = usePage<SharedData>().props;
 
     return (
-        <div className="relative m-3 overflow-hidden grid h-screen flex-col box-border items-center justify-center px-8 sm:px-0 lg:max-w-none lg:grid-cols-2 lg:px-0">
+        <div className="relative h-screen w-full overflow-hidden grid flex-col box-border items-center justify-center px-4 sm:px-8 lg:max-w-none lg:grid-cols-2 lg:px-0">
             {/* Left Side - Hero Section */}
-            <div className="relative hidden overflow-hidden h-full flex-col rounded-2xl bg-gradient-to-br from-primary via-primary/95 to-primary/90 p-10 text-white lg:flex">
+            <div className="relative hidden overflow-hidden h-full flex-col bg-gradient-to-br from-primary via-primary/95 to-primary/90 p-8 lg:p-10 text-white lg:flex">
                 {/* Subtle background pattern */}
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDE0YzAtMi4yMSAxLjc5LTQgNC00czQgMS43OSA0IDQtMS43OSA0LTQgNC00LTEuNzktNC00em0wIDQwYzAtMi4yMSAxLjc5LTQgNC00czQgMS43OSA0IDQtMS43OSA0LTQgNC00LTEuNzktNC00ek0xNCAyNmMtMi4yMSAwLTQtMS43OS00LTRzMS43OS00IDQtNCA0IDEuNzkgNCA0LTEuNzkgNC00IDR6bTAgNDBjLTIuMjEgMC00LTEuNzktNC00czEuNzktNCA0LTQgNCAxLjc5IDQgNC0xLjc5IDQtNCA0eiIvPjwvZz48L2c+PC9zdmc+')] opacity-30" />
 
@@ -48,27 +48,27 @@ export default function AuthSplitLayout({
                 </Link>
 
                 {/* Main Content */}
-                <div className="relative z-20 flex flex-col justify-center flex-1 py-8">
+                <div className="relative z-20 flex flex-col justify-center flex-1 min-h-0 py-4 lg:py-8">
                     {/* Hero Text */}
-                    <div className="space-y-6 mb-6">
+                    <div className="space-y-4 lg:space-y-6 mb-4 lg:mb-6">
                         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-sm font-medium">
                             <Sparkles className="w-4 h-4" />
                             <span>Trusted by 10,000+ professionals</span>
                         </div>
 
-                        <h2 className="text-2xl  font-bold leading-tight">
+                        <h2 className="text-2xl lg:text-3xl font-bold leading-tight">
                             Manage appointments
                             <br />
                             <span className="text-white/90">effortlessly</span>
                         </h2>
 
-                        <p className="text-sm text-white/80 max-w-md leading-relaxed">
+                        <p className="text-sm lg:text-base text-white/80 max-w-md leading-relaxed">
                             The all-in-one booking platform that helps service professionals save time and grow their business.
                         </p>
                     </div>
 
                     {/* Feature List */}
-                    <div className="space-y-4">
+                    <div className="space-y-3 lg:space-y-4 overflow-y-auto flex-1 min-h-0">
                         {[
                             {
                                 icon: Calendar,
@@ -102,29 +102,31 @@ export default function AuthSplitLayout({
             </div>
 
             {/* Right Side - Form */}
-            <div className="w-full lg:p-8">
-                <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[400px]">
+            <div className="w-full h-full overflow-y-auto lg:p-8 flex items-center justify-center">
+                <div className="mx-auto flex w-full flex-col justify-center space-y-4 sm:space-y-6 sm:w-[400px] py-4 lg:py-0">
                     {/* Mobile Logo */}
                     <Link
                         href={home()}
-                        className="relative z-20 flex items-center justify-center gap-2 lg:hidden"
+                        className="relative z-20 flex items-center justify-center gap-2 mb-2 lg:hidden"
                     >
                         <AppLogoIcon className="h-10 fill-current text-primary sm:h-12" />
                         <span className="text-xl font-semibold tracking-widest font-['Sekuya']">{name}</span>
                     </Link>
 
                     {/* Title and Description */}
-                    <div className="flex flex-col items-start gap-2 text-left sm:items-center sm:text-center">
-                        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+                    <div className="flex flex-col items-start gap-1.5 text-left sm:items-center sm:text-center mb-2">
+                        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{title}</h1>
                         {description && (
-                            <p className="text-sm text-balance text-muted-foreground max-w-sm">
+                            <p className="text-sm text-balance text-muted-foreground max-w-sm leading-relaxed">
                                 {description}
                             </p>
                         )}
                     </div>
 
                     {/* Form Content */}
-                    {children}
+                    <div className="w-full">
+                        {children}
+                    </div>
                 </div>
             </div>
         </div>
