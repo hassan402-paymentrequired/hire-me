@@ -2,35 +2,12 @@ import { Button } from '@/components/ui/button';
 import OnboardingLayout from '@/layouts/onboarding-layout';
 import onboarding from '@/routes/onboarding';
 import { useForm } from '@inertiajs/react';
-import { Building2, Clock, Scissors, AlertCircle, ShieldCheck } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import React, { useState } from 'react';
 import DayScheduleRow from '@/pages/provider/business/components/day-schedule-row';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
-
-const STEPS = [
-    {
-        id: 'profile',
-        title: 'Business Profile',
-        description: 'Set up your business identity and public details.',
-        icon: Building2,
-        status: 'completed' as const,
-    },
-    {
-        id: 'hours',
-        title: 'Work Hours',
-        description: 'Define when you are available for bookings.',
-        icon: Clock,
-        status: 'current' as const,
-    },
-    {
-        id: 'services',
-        title: 'Services',
-        description: 'Add the services you offer to clients.',
-        icon: Scissors,
-        status: 'upcoming' as const,
-    },
-];
+import { getStepsWithStatus } from './onboarding-steps';
 
 const defaultSchedule = {
     Monday: { isOpen: true, shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
@@ -123,7 +100,7 @@ export default function WorkHours() {
     };
 
     return (
-        <OnboardingLayout title="Work Hours" steps={STEPS} currentStepId="hours">
+        <OnboardingLayout title="Work Hours" steps={getStepsWithStatus('hours')} currentStepId="hours">
             <div className="space-y-4">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">Set your availability</h2>

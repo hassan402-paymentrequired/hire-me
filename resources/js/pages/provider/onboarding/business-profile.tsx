@@ -3,36 +3,13 @@ import { useForm } from '@inertiajs/react';
 import { LoadScript, Autocomplete } from '@react-google-maps/api';
 import OnboardingLayout from '@/layouts/onboarding-layout';
 import { Button } from '@/components/ui/button';
-import { Building2, Clock, Scissors, Upload, ShieldCheck, X } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
 import { FormSelect } from '@/components/ui/form-select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '@/components/ui/spinner';
-
-const STEPS = [
-    {
-        id: 'profile',
-        title: 'Business Profile',
-        description: 'Set up your business identity and public details.',
-        icon: Building2,
-        status: 'current' as const,
-    },
-    {
-        id: 'hours',
-        title: 'Work Hours',
-        description: 'Define when you are available for bookings.',
-        icon: Clock,
-        status: 'upcoming' as const,
-    },
-    {
-        id: 'services',
-        title: 'Services',
-        description: 'Add the services you offer to clients.',
-        icon: Scissors,
-        status: 'upcoming' as const,
-    },
-];
+import { getStepsWithStatus } from './onboarding-steps';
 
 interface BusinessProfileProps {
     categories: { value: string; label: string }[];
@@ -139,7 +116,7 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
     const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
     return (
-        <OnboardingLayout title="Business Profile" steps={STEPS} currentStepId="profile">
+        <OnboardingLayout title="Business Profile" steps={getStepsWithStatus('profile')} currentStepId="profile">
             <div className="space-y-6">
                 <div className="space-y-2">
                     <h2 className="text-2xl font-bold tracking-tight">Tell us about your business</h2>

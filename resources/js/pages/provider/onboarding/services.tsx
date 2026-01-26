@@ -4,33 +4,9 @@ import { Label } from '@/components/ui/label';
 import OnboardingLayout from '@/layouts/onboarding-layout';
 import onboarding from '@/routes/onboarding';
 import { useForm } from '@inertiajs/react';
-import { Building2, Clock, Scissors, ShieldCheck } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '@/components/ui/spinner';
-
-const STEPS = [
-    {
-        id: 'profile',
-        title: 'Business Profile',
-        description: 'Set up your business identity and public details.',
-        icon: Building2,
-        status: 'completed' as const,
-    },
-    {
-        id: 'hours',
-        title: 'Work Hours',
-        description: 'Define when you are available for bookings.',
-        icon: Clock,
-        status: 'completed' as const,
-    },
-    {
-        id: 'services',
-        title: 'Services',
-        description: 'Add the services you offer to clients.',
-        icon: Scissors,
-        status: 'current' as const,
-    },
-];
+import { getStepsWithStatus } from './onboarding-steps';
 
 export default function Services() {
     const { data, setData, post, processing, errors } = useForm({
@@ -52,7 +28,7 @@ export default function Services() {
     return (
         <OnboardingLayout
             title="Add Services"
-            steps={STEPS}
+            steps={getStepsWithStatus('services')}
             currentStepId="services"
         >
             <div className="space-y-6">
