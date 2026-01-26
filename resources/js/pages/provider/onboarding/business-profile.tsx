@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useForm } from '@inertiajs/react';
-import { LoadScript, Autocomplete } from '@react-google-maps/api';
+import { LoadScript } from '@react-google-maps/api';
 import OnboardingLayout from '@/layouts/onboarding-layout';
 import { Button } from '@/components/ui/button';
 import { Upload, X } from 'lucide-react';
@@ -33,47 +33,94 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
         longitude: null as number | null,
     });
 
-    const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
+    const autocompleteRef = React.useRef<google.maps.places.Autocomplete | null>(null);
+    const inputRef = React.useRef<HTMLInputElement | null>(null);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+    const [isScriptLoaded, setIsScriptLoaded] = React.useState(false);
 
-    const onLoad = (autocompleteInstance: google.maps.places.Autocomplete) => {
-        setAutocomplete(autocompleteInstance);
-    };
+    const onLoad = React.useCallback((autocompleteInstance: google.maps.places.Autocomplete) => {
+        autocompleteRef.current = autocompleteInstance;
+    }, []);
 
-    const onPlaceChanged = () => {
-        if (autocomplete !== null) {
-            const place = autocomplete.getPlace();
+    const onPlaceChanged = React.useCallback(() => {
+        if (autocompleteRef.current !== null) {
+            const place = autocompleteRef.current.getPlace();
 
-            if (place.address_components) {
+            if (place.address_components && place.address_components.length > 0) {
                 let city = '';
                 let state = '';
                 let zipCode = '';
 
+                // Extract address components - handle multiple possible types
                 place.address_components.forEach((component) => {
                     const types = component.types;
-                    if (types.includes('locality')) {
-                        city = component.long_name;
+                    
+                    // City can be in different fields depending on location
+                    if (!city) {
+                        if (types.includes('locality')) {
+                            city = component.long_name;
+                        } else if (types.includes('sublocality') || types.includes('sublocality_level_1')) {
+                            city = component.long_name;
+                        } else if (types.includes('administrative_area_level_2')) {
+                            city = component.long_name;
+                        }
                     }
-                    if (types.includes('administrative_area_level_1')) {
-                        state = component.short_name;
+                    
+                    // State/Province
+                    if (!state) {
+                        if (types.includes('administrative_area_level_1')) {
+                            state = component.short_name || component.long_name;
+                        }
                     }
-                    if (types.includes('postal_code')) {
-                        zipCode = component.long_name;
+                    
+                    // Zip Code
+                    if (!zipCode) {
+                        if (types.includes('postal_code')) {
+                            zipCode = component.long_name;
+                        }
                     }
                 });
 
-                setData({
-                    ...data,
-                    address: place.formatted_address || '',
-                    city,
-                    state,
-                    zip_code: zipCode,
-                    latitude: place.geometry?.location?.lat() || null,
-                    longitude: place.geometry?.location?.lng() || null,
-                });
+                // Only update if we got valid data from Google
+                if (place.formatted_address) {
+                    setData({
+                        ...data,
+                        address: place.formatted_address,
+                        city: city || data.city, // Keep existing if Google didn't provide
+                        state: state || data.state, // Keep existing if Google didn't provide
+                        zip_code: zipCode || data.zip_code, // Keep existing if Google didn't provide
+                        latitude: place.geometry?.location?.lat() || null,
+                        longitude: place.geometry?.location?.lng() || null,
+                    });
+                }
             }
         }
-    };
+    }, [data, setData]);
+
+    // Initialize Autocomplete when script loads and input is available
+    React.useEffect(() => {
+        if (isScriptLoaded && inputRef.current && !autocompleteRef.current && window.google?.maps?.places) {
+            const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
+                types: ['address'],
+                componentRestrictions: undefined, // Allow all countries
+                fields: ['address_components', 'formatted_address', 'geometry'],
+            });
+            
+            // Add place_changed listener
+            autocomplete.addListener('place_changed', () => {
+                onPlaceChanged();
+            });
+            
+            autocompleteRef.current = autocomplete;
+        }
+
+        return () => {
+            if (autocompleteRef.current) {
+                window.google?.maps?.event?.clearInstanceListeners?.(autocompleteRef.current);
+                autocompleteRef.current = null;
+            }
+        };
+    }, [isScriptLoaded, onPlaceChanged]);
 
     const handleImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
@@ -227,18 +274,21 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                     {/* Address - Google Maps Autocomplete */}
                     <div className="space-y-1.5">
                         {googleMapsApiKey ? (
-                            <LoadScript googleMapsApiKey={googleMapsApiKey} libraries={libraries}>
+                            <LoadScript 
+                                googleMapsApiKey={googleMapsApiKey} 
+                                libraries={libraries}
+                                onLoad={() => setIsScriptLoaded(true)}
+                            >
                                 <div>
                                     <Label className="text-sm font-medium">Business Address</Label>
-                                    <Autocomplete onLoad={onLoad} onPlaceChanged={onPlaceChanged}>
-                                        <Input
-                                            value={data.address}
-                                            onChange={(e) => setData('address', e.target.value)}
-                                            placeholder="Start typing your address..."
-                                            autoComplete={"off"}
-                                            className="h-10"
-                                        />
-                                    </Autocomplete>
+                                    <Input
+                                        ref={inputRef}
+                                        value={data.address}
+                                        onChange={(e) => setData('address', e.target.value)}
+                                        placeholder="Start typing your address..."
+                                        autoComplete="off"
+                                        className="h-10"
+                                    />
                                     {errors.address && <p className="text-xs text-destructive mt-1">{errors.address}</p>}
                                 </div>
                             </LoadScript>

@@ -23,11 +23,13 @@ interface Props {
 export default function BusinessSettings({ profile, categories }: Props) {
     const { flash } = usePage().props as any;
     const [activeTab, setActiveTab] = useState('general');
-    const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
-    const [logoPreview, setLogoPreview] = useState<string | null>(profile?.images?.find(img => img.is_logo)?.path || null);
+    const autocompleteRef = React.useRef<google.maps.places.Autocomplete | null>(null);
+    const inputRef = React.useRef<HTMLInputElement | null>(null);
+    const [logoPreview, setLogoPreview] = useState<string | null>(profile?.images?.find((img: any) => img.is_logo)?.path || null);
     const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
+    const [isScriptLoaded, setIsScriptLoaded] = React.useState(false);
 
-    const { data, setData, post, processing, errors, transform } = useForm({
+    const { data, setData, post, processing, errors } = useForm({
         business_name: profile?.business_name || '',
         description: profile?.description || '',
         address: profile?.address || '',
@@ -36,13 +38,13 @@ export default function BusinessSettings({ profile, categories }: Props) {
         zip_code: profile?.zip_code || '',
         phone: profile?.phone || '',
         category: profile?.category || '',
-        latitude: profile?.latitude || null,
-        longitude: profile?.longitude || null,
-        settings: profile?.settings || {},
+        latitude: (profile?.latitude ?? null) as number | null,
+        longitude: (profile?.longitude ?? null) as number | null,
+        settings: (profile?.settings || {}) as Record<string, any>,
         logo: null as File | null,
         new_images: [] as File[],
         delete_image_ids: [] as string[],
-    });
+    } as any);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: business.dashboard().url },
@@ -50,37 +52,85 @@ export default function BusinessSettings({ profile, categories }: Props) {
         { title: 'Settings', href: '' },
     ];
 
-    const onLoad = (autocompleteInstance: google.maps.places.Autocomplete) => {
-        setAutocomplete(autocompleteInstance);
-    };
-
-    const onPlaceChanged = () => {
-        if (autocomplete !== null) {
-            const place = autocomplete.getPlace();
-            if (place.address_components) {
+    const onPlaceChanged = React.useCallback(() => {
+        if (autocompleteRef.current !== null) {
+            const place = autocompleteRef.current.getPlace();
+            
+            if (place.address_components && place.address_components.length > 0) {
                 let city = '';
                 let state = '';
                 let zipCode = '';
 
+                // Extract address components - handle multiple possible types
                 place.address_components.forEach((component) => {
                     const types = component.types;
-                    if (types.includes('locality')) city = component.long_name;
-                    if (types.includes('administrative_area_level_1')) state = component.short_name;
-                    if (types.includes('postal_code')) zipCode = component.long_name;
+                    
+                    // City can be in different fields depending on location
+                    if (!city) {
+                        if (types.includes('locality')) {
+                            city = component.long_name;
+                        } else if (types.includes('sublocality') || types.includes('sublocality_level_1')) {
+                            city = component.long_name;
+                        } else if (types.includes('administrative_area_level_2')) {
+                            city = component.long_name;
+                        }
+                    }
+                    
+                    // State/Province
+                    if (!state) {
+                        if (types.includes('administrative_area_level_1')) {
+                            state = component.short_name || component.long_name;
+                        }
+                    }
+                    
+                    // Zip Code
+                    if (!zipCode) {
+                        if (types.includes('postal_code')) {
+                            zipCode = component.long_name;
+                        }
+                    }
                 });
 
-                setData((prev) => ({
-                    ...prev,
-                    address: place.formatted_address || '',
-                    city,
-                    state,
-                    zip_code: zipCode,
-                    latitude: place.geometry?.location?.lat() || null,
-                    longitude: place.geometry?.location?.lng() || null,
-                }));
+                // Only update if we got valid data from Google
+                if (place.formatted_address) {
+                    setData((prev: any) => ({
+                        ...prev,
+                        address: place.formatted_address,
+                        city: city || prev.city, // Keep existing if Google didn't provide
+                        state: state || prev.state, // Keep existing if Google didn't provide
+                        zip_code: zipCode || prev.zip_code, // Keep existing if Google didn't provide
+                        latitude: place.geometry?.location?.lat() || null,
+                        longitude: place.geometry?.location?.lng() || null,
+                    }));
+                }
             }
         }
-    };
+    }, [setData]);
+
+    // Initialize Autocomplete when script loads and input is available
+    React.useEffect(() => {
+        if (isScriptLoaded && inputRef.current && !autocompleteRef.current && window.google?.maps?.places && activeTab === 'location') {
+            const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
+                types: ['address'],
+                componentRestrictions: undefined, // Allow all countries
+                fields: ['address_components', 'formatted_address', 'geometry'],
+            });
+            
+            // Add place_changed listener
+            autocomplete.addListener('place_changed', () => {
+                onPlaceChanged();
+            });
+            
+            autocompleteRef.current = autocomplete;
+        }
+
+        return () => {
+            if (autocompleteRef.current && activeTab !== 'location') {
+                window.google?.maps?.event?.clearInstanceListeners?.(autocompleteRef.current);
+                autocompleteRef.current = null;
+            }
+        };
+    }, [isScriptLoaded, activeTab, onPlaceChanged]);
 
     const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -112,8 +162,8 @@ export default function BusinessSettings({ profile, categories }: Props) {
     };
 
     const removeNewImage = (index: number) => {
-        const newImages = data.new_images.filter((_, i) => i !== index);
-        const newPreviews = newImagePreviews.filter((_, i) => i !== index);
+        const newImages = data.new_images.filter((_: any, i: number) => i !== index);
+        const newPreviews = newImagePreviews.filter((_: any, i: number) => i !== index);
         setData('new_images', newImages);
         setNewImagePreviews(newPreviews);
     };
@@ -127,8 +177,9 @@ export default function BusinessSettings({ profile, categories }: Props) {
     };
 
     const handleSettingsChange = (field: string, value: any) => {
+        const currentSettings = data.settings || {};
         setData('settings', {
-            ...data.settings,
+            ...currentSettings,
             [field]: value
         });
     };
@@ -240,17 +291,20 @@ export default function BusinessSettings({ profile, categories }: Props) {
                     {activeTab === 'location' && (
                         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
                             {googleMapsApiKey ? (
-                                <LoadScript googleMapsApiKey={googleMapsApiKey} libraries={libraries}>
+                                <LoadScript 
+                                    googleMapsApiKey={googleMapsApiKey} 
+                                    libraries={libraries}
+                                    onLoad={() => setIsScriptLoaded(true)}
+                                >
                                     <div className="space-y-2">
                                         <Label>Address</Label>
-                                        <Autocomplete onLoad={onLoad} onPlaceChanged={onPlaceChanged}>
-                                            <Input
-                                                value={data.address}
-                                                onChange={(e) => setData('address', e.target.value)}
-                                                placeholder="Start typing your address..."
-                                                autoComplete="off"
-                                            />
-                                        </Autocomplete>
+                                        <Input
+                                            ref={inputRef}
+                                            value={data.address}
+                                            onChange={(e) => setData('address', e.target.value)}
+                                            placeholder="Start typing your address..."
+                                            autoComplete="off"
+                                        />
                                         {errors.address && <p className="text-xs text-destructive">{errors.address}</p>}
                                     </div>
                                 </LoadScript>
@@ -326,7 +380,7 @@ export default function BusinessSettings({ profile, categories }: Props) {
                                 <Label className="text-lg font-semibold">Business Images</Label>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     {/* Existing Images */}
-                                    {profile?.images?.filter(img => !img.is_logo).map((img : any) => (
+                                    {profile?.images?.filter((img: any) => !img.is_logo).map((img: any) => (
                                         <div key={img.id} className={`relative rounded-lg overflow-hidden h-32 border-2 transition-all ${data.delete_image_ids.includes(img.id) ? 'opacity-50 ring-2 ring-destructive' : 'border-border'}`}>
                                             <img src={Storage.url(img.path)} className="w-full h-full object-cover" alt="Business" />
                                             <button
