@@ -118,9 +118,6 @@ export default function Calendar({ appointments }: CalendarProps) {
                     </div>
                     <div className="flex gap-2">
                         <Button variant="outline" onClick={goToToday}>Today</Button>
-                        <Button>
-                            <Plus className="mr-2 h-4 w-4" /> Add Event
-                        </Button>
                     </div>
                 </div>
 

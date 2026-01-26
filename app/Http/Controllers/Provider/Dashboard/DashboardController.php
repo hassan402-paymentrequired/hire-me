@@ -18,25 +18,91 @@ class DashboardController extends Controller
         }
 
 
+        // Calculate date ranges for comparison
+        $now = now();
+        $currentMonthStart = $now->copy()->startOfMonth();
+        $lastMonthStart = $now->copy()->subMonth()->startOfMonth();
+        $lastMonthEnd = $now->copy()->subMonth()->endOfMonth();
+
+        // Revenue Stats
+        $currentRevenue = $user->appointmentsAsProvider()
+            ->whereIn('status', ['confirmed', 'completed'])
+            ->where('start_time', '>=', $currentMonthStart)
+            ->sum('price');
+        
+        $previousRevenue = $user->appointmentsAsProvider()
+            ->whereIn('status', ['confirmed', 'completed'])
+            ->whereBetween('start_time', [$lastMonthStart, $lastMonthEnd])
+            ->sum('price');
+        
+        $revenueChange = $previousRevenue > 0 
+            ? round((($currentRevenue - $previousRevenue) / $previousRevenue) * 100, 1)
+            : ($currentRevenue > 0 ? 100 : 0);
+
+        // Bookings Stats
+        $currentBookings = $user->appointmentsAsProvider()
+            ->where('start_time', '>=', $currentMonthStart)
+            ->count();
+        
+        $previousBookings = $user->appointmentsAsProvider()
+            ->whereBetween('start_time', [$lastMonthStart, $lastMonthEnd])
+            ->count();
+        
+        $bookingsChange = $previousBookings > 0
+            ? round((($currentBookings - $previousBookings) / $previousBookings) * 100, 1)
+            : ($currentBookings > 0 ? 100 : 0);
+
+        // New Clients Stats (unique client emails)
+        $currentClients = $user->appointmentsAsProvider()
+            ->where('start_time', '>=', $currentMonthStart)
+            ->whereNotNull('client_email')
+            ->distinct('client_email')
+            ->count('client_email');
+        
+        $previousClients = $user->appointmentsAsProvider()
+            ->whereBetween('start_time', [$lastMonthStart, $lastMonthEnd])
+            ->whereNotNull('client_email')
+            ->distinct('client_email')
+            ->count('client_email');
+        
+        $clientsChange = $previousClients > 0
+            ? round((($currentClients - $previousClients) / $previousClients) * 100, 1)
+            : ($currentClients > 0 ? 100 : 0);
+
+        // Rating Stats (from reviews)
+        $currentRating = \App\Models\Review::where('provider_id', $user->id)
+            ->where('created_at', '>=', $currentMonthStart)
+            ->avg('rating') ?? 0;
+        
+        $previousRating = \App\Models\Review::where('provider_id', $user->id)
+            ->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])
+            ->avg('rating') ?? 0;
+        
+        // Overall rating (all time)
+        $overallRating = \App\Models\Review::where('provider_id', $user->id)
+            ->avg('rating') ?? 0;
+        
+        $ratingChange = $previousRating > 0
+            ? round($overallRating - $previousRating, 1)
+            : ($overallRating > 0 ? $overallRating : 0);
+
         // Key Stats
         $stats = [
             'revenue' => [
-                'value' => $user->appointmentsAsProvider()
-                    ->whereIn('status', ['confirmed', 'completed'])
-                    ->sum('price'),
-                'change' => 10, // Mock change % for now
+                'value' => $currentRevenue,
+                'change' => $revenueChange,
             ],
             'bookings' => [
-                'value' => $user->appointmentsAsProvider()->count(),
-                'change' => 5,
+                'value' => $currentBookings,
+                'change' => $bookingsChange,
             ],
             'new_clients' => [
-                'value' => $user->appointmentsAsProvider()->distinct('client_email')->count(),
-                'change' => 2,
+                'value' => $currentClients,
+                'change' => $clientsChange,
             ],
             'rating' => [
-                'value' => 4.9, // Placeholder until reviews implemented
-                'change' => 0.1,
+                'value' => round($overallRating, 1),
+                'change' => $ratingChange,
             ],
         ];
 
@@ -59,18 +125,61 @@ class DashboardController extends Controller
                 ];
             });
 
-        // Recent Activity (Mocked using recent bookings)
-        $recentActivity = $user->appointmentsAsProvider()
+        // Recent Activity - Combine appointments and reviews
+        $recentAppointments = $user->appointmentsAsProvider()
+            ->with('service')
             ->latest()
-            ->take(4)
+            ->take(5)
             ->get()
             ->map(function ($apt) {
                 return [
-                    'id' => $apt->id,
-                    'message' => "New booking from " . ($apt->client_name ?? 'Guest'),
+                    'id' => 'apt_' . $apt->id,
+                    'type' => 'appointment',
+                    'message' => "New booking from " . ($apt->client_name ?? 'Guest') . " - " . ($apt->service->name ?? 'Service'),
                     'time' => $apt->created_at->diffForHumans(),
+                    'timestamp' => $apt->created_at->timestamp,
                 ];
             });
+        
+        // Recent reviews
+        $recentReviews = \App\Models\Review::where('provider_id', $user->id)
+            ->with('client:id,name')
+            ->latest()
+            ->take(5)
+            ->get()
+            ->map(function ($review) {
+                return [
+                    'id' => 'review_' . $review->id,
+                    'type' => 'review',
+                    'message' => "New " . $review->rating . "⭐ review from " . ($review->client->name ?? 'Client'),
+                    'time' => $review->created_at->diffForHumans(),
+                    'timestamp' => $review->created_at->timestamp,
+                ];
+            });
+        
+        // Combine and sort by timestamp (most recent first)
+        $recentActivity = $recentAppointments
+            ->concat($recentReviews)
+            ->sortByDesc('timestamp')
+            ->take(5)
+            ->map(function ($item) {
+                // Remove timestamp before sending to frontend
+                unset($item['timestamp']);
+                return $item;
+            })
+            ->values();
+        
+        // If no activity, show a default message
+        if ($recentActivity->isEmpty()) {
+            $recentActivity = collect([
+                [
+                    'id' => 'empty',
+                    'type' => 'info',
+                    'message' => 'No recent activity. Start by completing your profile!',
+                    'time' => 'Just now',
+                ]
+            ]);
+        }
 
         // Check verification status
         $verificationStatus = null;

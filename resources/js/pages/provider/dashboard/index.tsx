@@ -44,7 +44,7 @@ import {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Dashboard',
-        href: dashboard(),
+        href: dashboard().url,
     },
 ];
 
@@ -78,30 +78,41 @@ interface DashboardProps {
 }
 
 export default function Index({ stats, upcomingAppointments, recentActivity, is_verified, verification_status }: DashboardProps) {
-    const auth = usePage().props.auth;
+    const page = usePage();
+    const auth = (page.props as any).auth;
     const statCards = [
         {
             title: 'Total Revenue',
             value: `₦${stats.revenue.value.toLocaleString()}`,
-            change: `+${stats.revenue.change}% from last month`,
+            change: stats.revenue.change >= 0 
+                ? `+${stats.revenue.change}% from last month`
+                : `${stats.revenue.change}% from last month`,
             icon: CreditCard,
         },
         {
             title: 'Bookings',
             value: stats.bookings.value,
-            change: `+${stats.bookings.change}% from last month`,
+            change: stats.bookings.change >= 0
+                ? `+${stats.bookings.change}% from last month`
+                : `${stats.bookings.change}% from last month`,
             icon: Calendar,
         },
         {
             title: 'New Clients',
             value: stats.new_clients.value,
-            change: `+${stats.new_clients.change}% from last month`,
+            change: stats.new_clients.change >= 0
+                ? `+${stats.new_clients.change}% from last month`
+                : `${stats.new_clients.change}% from last month`,
             icon: Users,
         },
         {
             title: 'Overall Rating',
-            value: stats.rating.value,
-            change: `+${stats.rating.change} from last month`,
+            value: stats.rating.value > 0 ? stats.rating.value.toFixed(1) : 'N/A',
+            change: stats.rating.value > 0
+                ? (stats.rating.change >= 0 
+                    ? `+${stats.rating.change} from last month`
+                    : `${stats.rating.change} from last month`)
+                : 'No reviews yet',
             icon: Star,
         },
     ];
@@ -124,32 +135,63 @@ export default function Index({ stats, upcomingAppointments, recentActivity, is_
 
                 {/* Verification Alert */}
                 {!is_verified && (
-                    <Alert className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20 dark:border-yellow-900">
-                        <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                        <AlertTitle className="text-yellow-800 dark:text-yellow-200">
-                            Verification Required
+                    <Alert className={
+                        verification_status?.status === 'pending'
+                            ? 'border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-900'
+                            : 'border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20 dark:border-yellow-900'
+                    }>
+                        <AlertCircle className={`h-4 w-4 ${
+                            verification_status?.status === 'pending'
+                                ? 'text-blue-600 dark:text-blue-400'
+                                : 'text-yellow-600 dark:text-yellow-400'
+                        }`} />
+                        <AlertTitle className={
+                            verification_status?.status === 'pending'
+                                ? 'text-blue-800 dark:text-blue-200'
+                                : 'text-yellow-800 dark:text-yellow-200'
+                        }>
+                            {verification_status?.status === 'pending' 
+                                ? 'Verification Under Review'
+                                : 'Verification Required'}
                         </AlertTitle>
-                        <AlertDescription className="text-yellow-700 w-full dark:text-yellow-300">
+                        <AlertDescription className={
+                            verification_status?.status === 'pending'
+                                ? 'text-blue-700 w-full dark:text-blue-300'
+                                : 'text-yellow-700 w-full dark:text-yellow-300'
+                        }>
                             <div className="flex items-center justify-between">
                                 <p>
-                                    Your business profile is not visible to clients until you complete verification. 
-                                    {verification_status?.status === 'pending' && (
-                                        <span className="block mt-1 text-sm">
-                                            Your verification request is currently under review.
-                                        </span>
-                                    )}
-                                    {verification_status?.status === 'rejected' && (
-                                        <span className="block mt-1 text-sm">
-                                            Your verification was rejected: {verification_status.rejection_reason || 'Please submit a new document.'}
-                                        </span>
+                                    {verification_status?.status === 'pending' ? (
+                                        <>
+                                            Your verification request is currently under review. 
+                                            <span className="block mt-1 text-sm">
+                                                We'll notify you once it's processed. Your business profile will be visible to clients after approval.
+                                            </span>
+                                        </>
+                                    ) : verification_status?.status === 'rejected' ? (
+                                        <>
+                                            Your business profile is not visible to clients until you complete verification.
+                                            <span className="block mt-1 text-sm">
+                                                Your verification was rejected: {verification_status.rejection_reason || 'Please submit a new document.'}
+                                            </span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            Your business profile is not visible to clients until you complete verification.
+                                            <span className="block mt-1 text-sm">
+                                                Upload a valid document to verify your identity and start receiving bookings.
+                                            </span>
+                                        </>
                                     )}
                                 </p>
-                                <Link href="/onboarding/verification">
-                                    <Button size="sm" variant="default" className="ml-4">
-                                        <ShieldCheck className="mr-2 h-4 w-4" />
-                                        Verify Now
-                                    </Button>
-                                </Link>
+                                {verification_status?.status !== 'pending' && (
+                                    <Link href="/onboarding/verification">
+                                        <Button size="sm" variant="default" className="ml-4">
+                                            <ShieldCheck className="mr-2 h-4 w-4" />
+                                            {verification_status?.status === 'rejected' ? 'Resubmit Verification' : 'Verify Now'}
+                                        </Button>
+                                    </Link>
+                                )}
                             </div>
                         </AlertDescription>
                     </Alert>

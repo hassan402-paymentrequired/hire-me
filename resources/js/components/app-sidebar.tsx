@@ -10,7 +10,6 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { type NavSection } from '@/types'; // Changed NavItem to NavSection based on the new structure
 import { Link, usePage } from '@inertiajs/react'; // Added usePage hook
 import {
     BookOpen,
@@ -26,13 +25,14 @@ import {
     Search, // Imported Search icon
     Bookmark, // Imported Bookmark icon
     ArrowDownToLine, // Imported for withdrawals
-    Users, // Imported for team management
+    Users,
+    Wallet, // Imported for team management
 } from 'lucide-react';
 import AppLogo from './app-logo';
 import schedule from '@/routes/schedule';
 import business, { dashboard } from '@/routes/business';
 
-const mainNavItems: NavSection[] = [
+    const mainNavItems: any[] = [
     {
         name: "Dashboard",
         links: [
@@ -82,20 +82,15 @@ const mainNavItems: NavSection[] = [
                 icon: Users,
             },
             {
-                title: 'Withdraw Funds',
-                href: '/wallet/withdraw',
-                icon: ArrowDownToLine,
+                title: 'Wallet',
+                href: '/wallet',
+                icon: Wallet,
             },
-            {
-                title: 'Settings',
-                href: business.settings(),
-                icon: Notebook,
-            }
         ]
     }
 ];
 
-const footerNavItems = [
+const footerNavItems: any[] = [
     {
         title: 'Go to marketplace',
         href: '/',
