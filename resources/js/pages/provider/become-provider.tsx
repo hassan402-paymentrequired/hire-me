@@ -1,9 +1,11 @@
 import { Head, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
-import { Briefcase, CheckCircle2, Users, Calendar, DollarSign, TrendingUp, ArrowRight } from 'lucide-react';
+import { CheckCircle2, ArrowRight } from 'lucide-react';
 import GuestLayout from '@/layouts/guest-layout';
 import becomeProviderRoute from '@/routes/become-provider';
 import onboarding from '@/routes/onboarding';
+import { UsersIcon, CalendarIcon, CurrencyDollarIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/solid'
+
 
 interface Props {
     hasStartedOnboarding?: boolean;
@@ -16,22 +18,22 @@ export default function BecomeProvider({ hasStartedOnboarding }: Props) {
 
     const benefits = [
         {
-            icon: Users,
+            icon: UsersIcon,
             title: 'Reach More Clients',
             description: 'Get discovered by customers looking for your services in your area.',
         },
         {
-            icon: Calendar,
+            icon: CalendarIcon,
             title: 'Manage Your Schedule',
             description: 'Control your availability and let clients book appointments that work for you.',
         },
         {
-            icon: DollarSign,
+            icon: CurrencyDollarIcon,
             title: 'Earn More Income',
             description: 'Grow your business with a steady stream of bookings and payments.',
         },
         {
-            icon: TrendingUp,
+            icon: ArrowTrendingUpIcon,
             title: 'Build Your Reputation',
             description: 'Collect reviews and ratings to build trust with potential clients.',
         },
@@ -45,8 +47,11 @@ export default function BecomeProvider({ hasStartedOnboarding }: Props) {
                 <div className="max-w-5xl mx-auto px-4 py-12 md:py-20">
                     {/* Header */}
                     <div className="text-center mb-12">
-                        <div className="inline-flex items-center justify-center size-16 bg-primary/10 rounded-full mb-6">
-                            <Briefcase className="size-8 text-primary" />
+                        <div className="inline-flex items-center justify-center  mb-6">
+                        <img 
+            src="/assets/gifs/statistics.gif" 
+            alt="Statistics" 
+            className="size-16 object-contain" />
                         </div>
                         <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
                             Start Offering Your Services
