@@ -59,23 +59,32 @@ class MarketplaceController extends Controller
             ])
             ->firstOrFail();
 
-        // Get work hours
-        $workHours = \App\Models\WorkHour::where('provider_id', $provider->id)
+        // Get work hours - day_of_week is stored as string (e.g., "Monday", "Tuesday")
+        // Ensure all 7 days are included, even if not set (default to closed)
+        $dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        $workHoursData = \App\Models\WorkHour::where('provider_id', $provider->id)
             ->get()
-            ->groupBy('day_of_week')
-            ->map(function ($hours, $day) {
-                $openHours = $hours->where('is_closed', false);
-                if ($openHours->isEmpty()) {
-                    return ['isOpen' => false];
-                }
-                return [
+            ->groupBy('day_of_week');
+        
+        $workHours = collect($dayNames)->mapWithKeys(function ($dayName) use ($workHoursData) {
+            // Access by day name string, not numeric index
+            $hours = $workHoursData->get($dayName, collect());
+            $openHours = $hours->where('is_closed', false);
+            
+            if ($openHours->isEmpty()) {
+                return [$dayName => ['isOpen' => false]];
+            }
+            
+            return [
+                $dayName => [
                     'isOpen' => true,
                     'hours' => $openHours->map(fn($h) => [
                         'start' => \Carbon\Carbon::parse($h->start_time)->format('g:i A'),
                         'end' => \Carbon\Carbon::parse($h->end_time)->format('g:i A'),
                     ])->values()->toArray()
-                ];
-            });
+                ]
+            ];
+        });
 
         // Get reviews
         $reviews = \App\Models\Review::where('provider_id', $provider->id)
@@ -95,6 +104,14 @@ class MarketplaceController extends Controller
         }
 
 
+        // Calculate years in business from business profile creation date
+        $yearsInBusiness = $businessProfile->created_at 
+            ? round($businessProfile->created_at->diffInYears(now()), 1)
+            : 0;
+        
+        // Calculate total service hours
+        $totalServiceHours = $provider->services->sum('duration_minutes') / 60;
+
         return Inertia::render('marketplace/provider', [
             'provider' => [
                 'id' => $provider->id,
@@ -108,7 +125,7 @@ class MarketplaceController extends Controller
                     'url' => \App\Services\FileUploadService::url($img->image_path, 'public'),
                     'isLogo' => $img->is_logo
                 ]),
-                'rating' => $reviews->avg('rating') ?: 0,
+                'rating' => $reviews->avg('rating') ? round($reviews->avg('rating'), 1) : 0,
                 'reviews_count' => $reviews->count(),
                 'can_review' => $canReview,
                 'latitude' => $businessProfile->latitude,
@@ -117,7 +134,9 @@ class MarketplaceController extends Controller
                     ->where('provider_id', $provider->id)
                     ->where('status', 'completed')
                     ->whereDoesntHave('review')
-                    ->first()->id : null,
+                    ->first()?->id : null,
+                'years_in_business' => $yearsInBusiness,
+                'total_service_hours' => round($totalServiceHours, 1),
             ],
             'services' => $provider->services->map(fn($service) => [
                 'id' => $service->id,
@@ -129,7 +148,7 @@ class MarketplaceController extends Controller
             'workHours' => $workHours,
             'reviews' => $reviews->map(fn($r) => [
                 'id' => $r->id,
-                'client_name' => $r->client->name,
+                'client_name' => $r->client->name ?? 'Anonymous',
                 'rating' => $r->rating,
                 'comment' => $r->comment,
                 'created_at' => $r->created_at->diffForHumans(),

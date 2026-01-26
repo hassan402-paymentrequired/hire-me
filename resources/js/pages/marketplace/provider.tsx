@@ -14,13 +14,15 @@ import {
     Calendar,
     Award,
     TrendingUp,
-    CheckCircle2
+    CheckCircle2,
+    MessageSquare
 } from 'lucide-react';
 import { ReviewSection } from '@/components/reviews/review-section';
 import { router, Link } from '@inertiajs/react';
 import { Badge } from '@/components/ui/badge';
 import ReviewDrawal from '@/pages/marketplace/components/review-drawal';
 import favourite from '@/routes/favourite';
+import { ChatBubbleBottomCenterTextIcon, FireIcon, ClockIcon   } from '@heroicons/react/24/solid'
 
 interface Service {
     id: string;
@@ -45,6 +47,8 @@ interface Provider {
     longitude: number | null;
     address: string;
     pending_appointment_id: string | null;
+    years_in_business?: number;
+    total_service_hours?: number;
 }
 
 interface WorkHours {
@@ -92,7 +96,8 @@ export default function ProviderProfile({ provider, services, workHours, reviews
     const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [distance, setDistance] = useState<number | null>(null);
     const [currentSlide, setCurrentSlide] = useState(0);
-    const [isFavorite, setIsFavorite] = useState(false);
+    const [isFavorite, setIsFavorite] = useState(isFavourite);
+    const isAuthenticated = canEdit; // canEdit is true when user is authenticated
 
     useEffect(() => {
         if ("geolocation" in navigator) {
@@ -116,8 +121,8 @@ export default function ProviderProfile({ provider, services, workHours, reviews
         }
     }, [provider.latitude, provider.longitude]);
 
-    const logo = provider.images.find(img => img.isLogo) || provider.images[0];
-    const otherImages = provider.images.filter(img => img !== logo);
+    const logo = provider.images?.find(img => img.isLogo) || provider.images?.[0];
+    const otherImages = provider.images?.filter(img => img !== logo) || [];
     const allImages = logo ? [logo, ...otherImages] : otherImages;
 
     const nextSlide = () => {
@@ -135,24 +140,45 @@ export default function ProviderProfile({ provider, services, workHours, reviews
 
     const handleShare = async () => {
         if (navigator.share) {
-            await navigator.share({
-                title: provider.businessName,
-                text: `Check out ${provider.businessName}`,
-                url: window.location.href,
-            });
+            try {
+                await navigator.share({
+                    title: provider.businessName,
+                    text: `Check out ${provider.businessName}${provider.description ? ` - ${provider.description.substring(0, 100)}...` : ''}`,
+                    url: window.location.href,
+                });
+            } catch (error) {
+                // User cancelled or error occurred - silently fail
+                console.log('Share cancelled or failed');
+            }
+        } else {
+            // Fallback: Copy to clipboard
+            try {
+                await navigator.clipboard.writeText(window.location.href);
+                // You could show a toast notification here
+            } catch (error) {
+                console.error('Failed to copy URL to clipboard');
+            }
         }
     };
 
+    // Get today's day name (e.g., "Monday", "Tuesday")
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
     const todayHours = workHours[today];
-    const isOpenNow = todayHours?.isOpen;
+    const isOpenNow = todayHours?.isOpen ?? false;
 
     const handleFavourite = () => {
-        setIsFavorite(!isFavorite)
+        const newFavoriteState = !isFavorite;
+        setIsFavorite(newFavoriteState);
         router.post(favourite.update().url, {
             id: provider.businessId,
-        })
-    }
+        }, {
+            preserveScroll: true,
+            onError: () => {
+                // Revert on error
+                setIsFavorite(!newFavoriteState);
+            }
+        });
+    };
 
     return (
         <GuestLayout>
@@ -162,10 +188,33 @@ export default function ProviderProfile({ provider, services, workHours, reviews
                     <>
                         <div className="relative w-full h-full">
                             <img
-                                src={allImages[currentSlide].url}
-                                alt={currentSlide === 0 && logo ? 'Business logo' : `Gallery ${currentSlide}`}
+                                src={allImages[currentSlide]?.url}
+                                alt={currentSlide === 0 && logo ? `${provider.businessName} logo` : `${provider.businessName} - Image ${currentSlide + 1}`}
                                 className="w-full h-full object-cover transition-transform duration-700"
+                                loading="eager"
+                                onError={(e) => {
+                                    // Fallback to next image or placeholder
+                                    const target = e.target as HTMLImageElement;
+                                    const nextIndex = (currentSlide + 1) % allImages.length;
+                                    if (nextIndex !== currentSlide && allImages[nextIndex]?.url) {
+                                        target.src = allImages[nextIndex].url;
+                                    } else {
+                                        // Hide broken image and show placeholder
+                                        target.style.display = 'none';
+                                        const placeholder = target.parentElement?.querySelector('.image-placeholder');
+                                        if (placeholder) {
+                                            (placeholder as HTMLElement).style.display = 'flex';
+                                        }
+                                    }
+                                }}
                             />
+                            {/* Placeholder for broken images */}
+                            <div className="image-placeholder hidden absolute inset-0 bg-muted items-center justify-center">
+                                <div className="text-center">
+                                    <ImageIcon className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                                    <p className="text-muted-foreground">Image unavailable</p>
+                                </div>
+                            </div>
 
                             {/* Gradient Overlays */}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
@@ -207,17 +256,19 @@ export default function ProviderProfile({ provider, services, workHours, reviews
 
                         {/* Top Actions */}
                         <div className="absolute top-6 right-6 flex gap-2">
-                            {canEdit && (
-                            <button
-                                onClick={handleFavourite}
-                                className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 text-white flex items-center justify-center transition-all hover:scale-110"
-                            >
-                                <Heart className={`w-5 h-5 ${isFavourite ? 'fill-red-500 text-red-500' : ''}`} />
-                            </button>
+                            {isAuthenticated && (
+                                <button
+                                    onClick={handleFavourite}
+                                    className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 text-white flex items-center justify-center transition-all hover:scale-110"
+                                    aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                                >
+                                    <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} />
+                                </button>
                             )}
                             <button
                                 onClick={handleShare}
                                 className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 text-white flex items-center justify-center transition-all hover:scale-110"
+                                aria-label="Share provider profile"
                             >
                                 <Share2 className="w-5 h-5" />
                             </button>
@@ -232,7 +283,7 @@ export default function ProviderProfile({ provider, services, workHours, reviews
                                             <h1 className="text-3xl md:text-5xl font-black text-white drop-shadow-lg">
                                                 {provider.businessName}
                                             </h1>
-                                            {isOpenNow !== undefined && (
+                                            {todayHours !== undefined && (
                                                 <Badge
                                                     className={`${isOpenNow ? 'bg-green-500/90' : 'bg-red-500/90'} backdrop-blur-sm text-white border-none px-3 py-1`}
                                                 >
@@ -244,8 +295,8 @@ export default function ProviderProfile({ provider, services, workHours, reviews
                                         <div className="flex flex-wrap items-center gap-4 text-white">
                                             <div className="flex items-center gap-2 bg-white/20 backdrop-blur-md rounded-full px-4 py-2">
                                                 <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                                <span className="font-bold">{provider.rating.toFixed(1)}</span>
-                                                <span className="text-sm opacity-90">({provider.reviews_count})</span>
+                                                <span className="font-bold">{(provider.rating ?? 0).toFixed(1)}</span>
+                                                <span className="text-sm opacity-90">({provider.reviews_count || 0})</span>
                                             </div>
 
                                             {distance && (
@@ -293,7 +344,7 @@ export default function ProviderProfile({ provider, services, workHours, reviews
             </div>
 
             {/* Main Content */}
-            <div className="max-w-7xl mx-auto px-4 md:px-6 py-2 md:py-12">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 py-2 md:py-12 w-full">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
                     {/* Left Column */}
                     <div className="lg:col-span-2 space-y-10">
@@ -316,12 +367,12 @@ export default function ProviderProfile({ provider, services, workHours, reviews
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                                 <div className="bg-card border rounded-lg p-4 text-center">
                                     <Award className="w-6 h-6 text-primary mx-auto mb-2" />
-                                    <p className="text-2xl font-bold">{provider.rating.toFixed(1)}</p>
+                                    <p className="text-2xl font-bold">{(provider.rating ?? 0).toFixed(1)}</p>
                                     <p className="text-xs text-muted-foreground">Rating</p>
                                 </div>
                                 <div className="bg-card border rounded-lg p-4 text-center">
                                     <Star className="w-6 h-6 text-primary mx-auto mb-2" />
-                                    <p className="text-2xl font-bold">{provider.reviews_count}</p>
+                                    <p className="text-2xl font-bold">{provider.reviews_count || 0}</p>
                                     <p className="text-xs text-muted-foreground">Reviews</p>
                                 </div>
                                 <div className="bg-card border rounded-lg p-4 text-center">
@@ -329,11 +380,23 @@ export default function ProviderProfile({ provider, services, workHours, reviews
                                     <p className="text-2xl font-bold">{services.length}</p>
                                     <p className="text-xs text-muted-foreground">Services</p>
                                 </div>
-                                <div className="bg-card border rounded-lg p-4 text-center">
-                                    <TrendingUp className="w-6 h-6 text-primary mx-auto mb-2" />
-                                    <p className="text-2xl font-bold">4.5yr</p>
-                                    <p className="text-xs text-muted-foreground">Experience</p>
-                                </div>
+                                {provider.years_in_business && provider.years_in_business > 0 ? (
+                                    <div className="bg-card border rounded-lg p-4 text-center">
+                                        <TrendingUp className="w-6 h-6 text-primary mx-auto mb-2" />
+                                        <p className="text-2xl font-bold">{provider.years_in_business}</p>
+                                        <p className="text-xs text-muted-foreground">Years in Business</p>
+                                    </div>
+                                ) : (
+                                    <div className="bg-card border rounded-lg p-4 text-center">
+                                        <ClockIcon className="w-6 h-6 text-primary mx-auto mb-2" />
+                                        <p className="text-2xl font-bold">
+                                            {services.length > 0 
+                                                ? Math.round(services.reduce((sum, s) => sum + (s.duration || 0), 0) / 60)
+                                                : 0}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">Total Hours</p>
+                                    </div>
+                                )}
                             </div>
                         </section>
 
@@ -379,7 +442,7 @@ export default function ProviderProfile({ provider, services, workHours, reviews
 
                                                         <div className="flex items-center gap-4 text-sm">
                                                             <div className="flex items-center gap-1.5 text-muted-foreground">
-                                                                <Clock className="w-4 h-4" />
+                                                                <ClockIcon className="w-4 h-4" />
                                                                 <span className="font-medium">{service.duration} min</span>
                                                             </div>
                                                         </div>
@@ -390,7 +453,7 @@ export default function ProviderProfile({ provider, services, workHours, reviews
                                                 <div className="text-left sm:text-right flex-shrink-0">
                                                     <p className="text-sm text-muted-foreground mb-1">Price</p>
                                                     <p className="text-base sm:text-xl font-bold text-primary">
-                                                        ₦{service.price.toLocaleString()}
+                                                        ₦{(service.price || 0).toLocaleString()}
                                                     </p>
                                                 </div>
                                             </div>
@@ -407,9 +470,20 @@ export default function ProviderProfile({ provider, services, workHours, reviews
                                     <div className="h-1 w-6 sm:w-12 bg-primary rounded" />
                                     <h2 className="text-lg sm:text-2xl font-bold">Customer Reviews</h2>
                                 </div>
-                                <ReviewDrawal reviews={reviews} />
+                                {reviews.length > 3 && <ReviewDrawal reviews={reviews} />}
                             </div>
-                            <ReviewSection reviews={reviews.slice(0, 3)} canReview={false} />
+                            {reviews.length === 0 ? (
+                                <div className="bg-muted/30 rounded-xl border-2 border-dashed p-12 text-center">
+                                    <ChatBubbleBottomCenterTextIcon className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                                    <p className="text-muted-foreground">No reviews yet. Be the first to review!</p>
+                                </div>
+                            ) : (
+                                <ReviewSection 
+                                    reviews={reviews.slice(0, 3)} 
+                                    canReview={provider.can_review} 
+                                    pendingAppointmentId={provider.pending_appointment_id}
+                                />
+                            )}
                         </section>
                     </div>
 
@@ -418,34 +492,40 @@ export default function ProviderProfile({ provider, services, workHours, reviews
                         {/* Working Hours Card */}
                         <div className="bg-card border rounded-lg p-6 sticky top-6 ">
                             <div className="flex items-center gap-3 mb-6">
-                                <Clock className="w-6 h-6 text-primary" />
+                                <FireIcon className="w-6 h-6 text-primary" />
                                 <h3 className="text-xl font-bold">Working Hours</h3>
                             </div>
 
                             <div className="space-y-3">
-                                {Object.entries(workHours).map(([day, hours]) => {
-                                    const isToday = day === today;
-                                    return (
-                                        <div
-                                            key={day}
-                                            className={`flex justify-between items-center p-3 rounded-lg transition-colors ${
-                                                isToday ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted/50'
-                                            }`}
-                                        >
-                                            <span className={`font-semibold ${isToday ? 'text-primary' : ''}`}>
-                                                {day}
-                                                {isToday && <span className="ml-2 text-xs">(Today)</span>}
-                                            </span>
-                                            {hours.isOpen ? (
-                                                <span className="text-sm text-muted-foreground font-medium">
-                                                    {hours.hours?.map(h => `${h.start} - ${h.end}`).join(', ')}
+                                {Object.entries(workHours)
+                                    .sort(([dayA], [dayB]) => {
+                                        // Sort days starting from Sunday (0) to Saturday (6)
+                                        const dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                                        return dayOrder.indexOf(dayA) - dayOrder.indexOf(dayB);
+                                    })
+                                    .map(([day, hours]) => {
+                                        const isToday = day === today;
+                                        return (
+                                            <div
+                                                key={day}
+                                                className={`flex justify-between items-center p-3 rounded-lg transition-colors ${
+                                                    isToday ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted/50'
+                                                }`}
+                                            >
+                                                <span className={`font-semibold ${isToday ? 'text-primary' : ''}`}>
+                                                    {day}
+                                                    {isToday && <span className="ml-2 text-xs">(Today)</span>}
                                                 </span>
-                                            ) : (
-                                                <Badge variant="outline" className="bg-muted">Closed</Badge>
-                                            )}
-                                        </div>
-                                    );
-                                })}
+                                                {hours.isOpen ? (
+                                                    <span className="text-sm text-muted-foreground font-medium">
+                                                        {hours.hours?.map(h => `${h.start} - ${h.end}`).join(', ') || 'Open'}
+                                                    </span>
+                                                ) : (
+                                                    <Badge variant="outline" className="bg-muted">Closed</Badge>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                             </div>
 
                             {provider.latitude && provider.longitude && (
