@@ -4,7 +4,7 @@ import { LoadScript, Autocomplete } from '@react-google-maps/api';
 import OnboardingLayout from '@/layouts/onboarding-layout';
 import { Button } from '@/components/ui/button';
 import { Upload, X } from 'lucide-react';
-import { FormSelect } from '@/components/ui/form-select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -199,15 +199,16 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                         </div>
 
                         <div className="space-y-1.5">
-                            <FormSelect
+                            <SearchableSelect
                                 required={true}
                                 label="Business Category"
                                 options={categories}
                                 value={data.category}
-                                onChange={(value) => setData('category', value)}
+                                onChange={(value: string) => setData('category', value)}
                                 placeholder="Select a category"
+                                searchPlaceholder="Search categories..."
+                                error={errors.category}
                             />
-                            {errors.category && <p className="text-xs text-destructive mt-1">{errors.category}</p>}
                         </div>
                     </div>
                     {/* Description */}
