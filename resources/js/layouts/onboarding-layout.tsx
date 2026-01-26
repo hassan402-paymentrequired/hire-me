@@ -24,11 +24,11 @@ export default function OnboardingLayout({ title, steps, currentStepId, children
     const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
     return (
-        <div className="min-h-screen bg-background flex">
+        <div className="h-screen bg-background flex overflow-hidden">
             <Head title={title} />
 
             {/* Sidebar / Left Panel */}
-            <div className="hidden lg:flex flex-col w-[400px] border-r bg-smoke-900 p-8 space-y-8">
+            <div className="hidden lg:flex flex-col w-[400px] border-r bg-smoke-900 p-8 space-y-8 overflow-y-auto">
                 <div className="mb-8">
                     {/* Brand Logo */}
                     <Link
@@ -45,14 +45,11 @@ export default function OnboardingLayout({ title, steps, currentStepId, children
 
                 <div className="flex-1 space-y-8">
                     <div>
-                        <div className="text-sm font-medium text-smoke-50 mb-6 uppercase tracking-wide">
+                        <div className="text-sm font-medium text-white mb-6 uppercase tracking-wide">
                             Get Started
                         </div>
 
-                        <div className="space-y-0 relative">
-                            {/* Connector Line */}
-                            <div className="absolute left-4 top-2 bottom-6 w-px bg-muted-foreground/20 -z-10" />
-
+                        <div className="space-y-6">
                             {steps.map((step, index) => {
                                 const isCompleted = step.status === 'completed';
                                 const isCurrent = step.status === 'current';
@@ -61,38 +58,32 @@ export default function OnboardingLayout({ title, steps, currentStepId, children
                                 return (
                                     <div
                                         key={step.id}
-                                        className={`relative flex gap-4 pb-8 last:pb-0 transition-opacity duration-200 ${
-                                            isUpcoming ? 'opacity-60' : ''
-                                        }`}
+                                        className="flex gap-4"
                                     >
                                         <div className={`
-                                            flex-shrink-0 size-9 rounded border-2 flex items-center justify-center bg-smoke-500 transition-all duration-200
-                                            ${isCompleted ? 'border-primary text-smoke-50 shadow-lg shadow-primary/20' : ''}
-                                            ${isCurrent ? 'border-smoke-400 text-smoke-900 ring-2 ring-smoke-500/10 scale-110' : ''}
-                                            ${isUpcoming ? 'border-smoke-500/30 text-smoke-50' : ''}
+                                            flex-shrink-0 size-10 rounded-lg flex items-center justify-center transition-all duration-200
+                                            ${isCurrent 
+                                                ? 'bg-primary  text-white border border-secondary/60' 
+                                                : 'bg-primary text-white'
+                                            }
                                         `}>
-                                            {isCompleted ? (
-                                                <CheckCircle2 className="w-5 h-5" />
-                                            ) : isCurrent ? (
-                                                <step.icon className="w-4 h-4" />
+                                            {isCurrent ? (
+                                                <step.icon className="w-5 h-5" />
                                             ) : (
-                                                <span className="text-xs font-bold">{index + 1}</span>
+                                                <span className="text-sm font-bold">{index + 1}</span>
                                             )}
                                         </div>
-                                        <div className="pt-1 flex-1">
+                                        <div className="pt-0.5 flex-1">
                                             <div className={`font-semibold text-sm mb-1 ${
-                                                isUpcoming ? 'text-smoke-50' : 'text-smoke-100'
+                                                isCurrent ? 'text-white' : 'text-white/60'
                                             }`}>
                                                 {step.title}
                                             </div>
-                                            <div className="text-xs text-smoke-200 leading-relaxed max-w-[240px]">
+                                            <div className={`text-xs leading-relaxed ${
+                                                isCurrent ? 'text-white/70' : 'text-white/50'
+                                            }`}>
                                                 {step.description}
                                             </div>
-                                            {isCompleted && (
-                                                <div className="mt-2 inline-block text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-medium">
-                                                    Completed
-                                                </div>
-                                            )}
                                         </div>
                                     </div>
                                 );
@@ -103,16 +94,16 @@ export default function OnboardingLayout({ title, steps, currentStepId, children
                     {/* Progress Summary */}
                     <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 space-y-3">
                         <div className="flex items-center justify-between text-sm">
-                            <span className="text-smoke-100 font-medium">Progress</span>
+                            <span className="text-white font-medium">Progress</span>
                             <span className="text-white font-bold">{Math.round(progress)}%</span>
                         </div>
                         <div className="h-2 bg-white/10 rounded-full overflow-hidden">
                             <div
-                                className="h-full bg-primary rounded-full transition-all duration-500"
+                                className="h-full bg-white/40 rounded-full transition-all duration-500"
                                 style={{ width: `${progress}%` }}
                             />
                         </div>
-                        <p className="text-xs text-smoke-200">
+                        <p className="text-xs text-white/70">
                             {currentStepIndex + 1} of {steps.length} steps completed
                         </p>
                     </div>
@@ -120,23 +111,15 @@ export default function OnboardingLayout({ title, steps, currentStepId, children
 
                 {/* Footer */}
                 <div className="space-y-3">
-                    {/*<div className="flex items-center gap-2 text-smoke-100 text-sm bg-white/5 backdrop-blur-sm rounded-lg p-3 hover:bg-white/10 transition-colors cursor-pointer">*/}
-                    {/*    <HelpCircle className="w-4 h-4 flex-shrink-0" />*/}
-                    {/*    <span>Need help?</span>*/}
-                    {/*    <a href="#" className="ml-auto text-white font-medium hover:underline">*/}
-                    {/*        Contact Support*/}
-                    {/*    </a>*/}
-                    {/*</div>*/}
-
-                    <div className="text-xs text-smoke-200/60 text-center">
-                        © 2026 Clockra. All rights reserved.
+                    <div className="text-xs text-white/60 text-center">
+                        © {new Date().getFullYear()} Clockra. All rights reserved.
                     </div>
                 </div>
             </div>
 
             {/* Main Content / Right Panel */}
-            <div className="flex-1 flex flex-col">
-                <main className="flex-1 flex flex-col justify-center max-w-4xl mx-auto w-full p-8 md:p-6 lg:p-8">
+            <div className="flex-1 flex flex-col overflow-hidden">
+                <main className="flex-1 overflow-y-auto max-w-4xl mx-auto w-full p-6 md:p-8 lg:p-10">
                     {/* Step Indicator for Mobile */}
                     <div className="lg:hidden mb-8">
                         <div className="flex items-center justify-between mb-3">
@@ -155,37 +138,12 @@ export default function OnboardingLayout({ title, steps, currentStepId, children
                         </div>
                     </div>
 
-                    {/* Back Button */}
-                    {/*{currentStepIndex > 0 && (*/}
-                    {/*    <div className="mb-6">*/}
-                    {/*        <button*/}
-                    {/*            onClick={() => window.history.back()}*/}
-                    {/*            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"*/}
-                    {/*        >*/}
-                    {/*            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />*/}
-                    {/*            Back to previous step*/}
-                    {/*        </button>*/}
-                    {/*    </div>*/}
-                    {/*)}*/}
+                   
 
                     {/* Content */}
-                    <div className="space-y-6 ">
+                    <div className="space-y-6 pb-8">
                         {children}
                     </div>
-
-                    {/* Help Footer */}
-                    {/*<div className="mt-8 text-center">*/}
-                    {/*    <p className="text-sm text-muted-foreground">*/}
-                    {/*        Questions? Check out our{' '}*/}
-                    {/*        <a href="#" className="text-primary hover:underline font-medium">*/}
-                    {/*            setup guide*/}
-                    {/*        </a>{' '}*/}
-                    {/*        or{' '}*/}
-                    {/*        <a href="#" className="text-primary hover:underline font-medium">*/}
-                    {/*            contact support*/}
-                    {/*        </a>*/}
-                    {/*    </p>*/}
-                    {/*</div>*/}
 
                     <ToastNotification />
                 </main>

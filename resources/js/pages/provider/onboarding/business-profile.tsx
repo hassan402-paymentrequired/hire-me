@@ -3,7 +3,7 @@ import { useForm } from '@inertiajs/react';
 import { LoadScript, Autocomplete } from '@react-google-maps/api';
 import OnboardingLayout from '@/layouts/onboarding-layout';
 import { Button } from '@/components/ui/button';
-import { Building2, Clock, Scissors, Upload, ShieldCheck } from 'lucide-react';
+import { Building2, Clock, Scissors, Upload, ShieldCheck, X } from 'lucide-react';
 import { FormSelect } from '@/components/ui/form-select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -141,18 +141,20 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
     return (
         <OnboardingLayout title="Business Profile" steps={STEPS} currentStepId="profile">
             <div className="space-y-6">
-                <div>
+                <div className="space-y-2">
                     <h2 className="text-2xl font-bold tracking-tight">Tell us about your business</h2>
-                    <p className="text-muted-foreground ">
+                    <p className="text-sm text-muted-foreground">
                         This information will be visible to clients on your public profile.
                     </p>
                 </div>
 
-                <form onSubmit={submit} className="space-y-4">
+                <form onSubmit={submit} className="space-y-6">
                     {/* Images Upload */}
-                    <div className="space-y-4">
-                        <Label className="text-base">Business Images (Min 2, Max 3)</Label>
-                        <p className="text-sm text-muted-foreground">Upload at least 2 images. Select one to use as your business logo.</p>
+                    <div className="space-y-3">
+                        <div>
+                            <Label className="text-sm font-medium">Business Images (Min 2, Max 3)</Label>
+                            <p className="text-xs text-muted-foreground mt-1">Upload at least 2 images. Select one to use as your business logo.</p>
+                        </div>
 
                         <div className="grid grid-cols-3 gap-4">
                             {imagePreviews.map((preview, index) => (
@@ -170,9 +172,10 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                                         <button
                                             type="button"
                                             onClick={() => removeImage(index)}
-                                            className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90"
+                                            className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 transition-colors"
+                                            aria-label="Remove image"
                                         >
-                                            <Upload className="w-3 h-3 rotate-45" />
+                                            <X className="w-3 h-3" />
                                         </button>
                                     </div>
                                     {data.logo_index === index && (
@@ -201,121 +204,128 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                         {errors.logo_index && <p className="text-sm text-destructive mt-1">{errors.logo_index}</p>}
                     </div>
 
-                    {/* Business Name */}
-                    <div className="grid sm:grid-cols-2 gap-3">
-                    <div>
-                        <Label >Business Name <span className="text-destructive">*</span></Label>
-                        <Input
-                            type="text"
-                            value={data.business_name}
-                            onChange={(e) => setData('business_name', e.target.value)}
-                            placeholder="What's your business name?"
-                            required
-                        />
-                        {errors.business_name && <p className="text-sm text-destructive mt-1">{errors.business_name}</p>}
-                    </div>
+                    {/* Business Name & Category */}
+                    <div className="grid sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <Label className="text-sm font-medium">
+                                Business Name <span className="text-destructive">*</span>
+                            </Label>
+                            <Input
+                                type="text"
+                                value={data.business_name}
+                                onChange={(e) => setData('business_name', e.target.value)}
+                                placeholder="What's your business name?"
+                                required
+                                className="h-10"
+                            />
+                            {errors.business_name && <p className="text-xs text-destructive mt-1">{errors.business_name}</p>}
+                        </div>
 
-                    {/* Category */}
-                    <FormSelect
-                        required={true}
-                        label="Business Category"
-                        options={categories}
-                        value={data.category}
-                        onChange={(value) => setData('category', value)}
-                        placeholder="Select a category"
-                    />
+                        <div className="space-y-1.5">
+                            <FormSelect
+                                required={true}
+                                label="Business Category"
+                                options={categories}
+                                value={data.category}
+                                onChange={(value) => setData('category', value)}
+                                placeholder="Select a category"
+                            />
+                            {errors.category && <p className="text-xs text-destructive mt-1">{errors.category}</p>}
+                        </div>
                     </div>
                     {/* Description */}
-                    <div>
-                        <Label>
-                            Description
-                        </Label>
+                    <div className="space-y-1.5">
+                        <Label className="text-sm font-medium">Description</Label>
                         <Textarea
                             value={data.description}
                             onChange={(e) => setData('description', e.target.value)}
-                            rows={6}
+                            rows={4}
                             placeholder="Tell clients about your business..."
+                            className="resize-none"
                         />
-                        {errors.description && <p className="text-sm text-destructive mt-1">{errors.description}</p>}
+                        {errors.description && <p className="text-xs text-destructive mt-1">{errors.description}</p>}
                     </div>
 
                     {/* Address - Google Maps Autocomplete */}
-                    {googleMapsApiKey ? (
-                        <LoadScript googleMapsApiKey={googleMapsApiKey} libraries={libraries}>
+                    <div className="space-y-1.5">
+                        {googleMapsApiKey ? (
+                            <LoadScript googleMapsApiKey={googleMapsApiKey} libraries={libraries}>
+                                <div>
+                                    <Label className="text-sm font-medium">Business Address</Label>
+                                    <Autocomplete onLoad={onLoad} onPlaceChanged={onPlaceChanged}>
+                                        <Input
+                                            value={data.address}
+                                            onChange={(e) => setData('address', e.target.value)}
+                                            placeholder="Start typing your address..."
+                                            autoComplete={"off"}
+                                            className="h-10"
+                                        />
+                                    </Autocomplete>
+                                    {errors.address && <p className="text-xs text-destructive mt-1">{errors.address}</p>}
+                                </div>
+                            </LoadScript>
+                        ) : (
                             <div>
-                                <Label>
-                                    Business Address
-                                </Label>
-                                <Autocomplete onLoad={onLoad} onPlaceChanged={onPlaceChanged}>
-                                    <Input
-                                        value={data.address}
-                                        onChange={(e) => setData('address', e.target.value)}
-                                        placeholder="Start typing your address..."
-                                        autoComplete={"off"}
-                                    />
-                                </Autocomplete>
-                                {errors.address && <p className="text-sm text-destructive mt-1">{errors.address}</p>}
+                                <Label className="text-sm font-medium">Business Address</Label>
+                                <Input
+                                    value={data.address}
+                                    onChange={(e) => setData('address', e.target.value)}
+                                    placeholder="Enter your address"
+                                    className="h-10"
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">Google Maps API key not configured</p>
                             </div>
-                        </LoadScript>
-                    ) : (
-                        <div>
-                            <Label>
-                                Business Address
-                            </Label>
-                            <Input
-                                value={data.address}
-                                onChange={(e) => setData('address', e.target.value)}
-                                placeholder="Enter your address"
-                            />
-                            <p className="text-xs text-warning mt-1">Google Maps API key not configured</p>
-                        </div>
-                    )}
+                        )}
+                    </div>
 
                     {/* City, State, Zip (Auto-filled from Google Maps or manual) */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <Label>City</Label>
+                        <div className="space-y-1.5">
+                            <Label className="text-sm font-medium">City</Label>
                             <Input
                                 value={data.city}
                                 onChange={(e) => setData('city', e.target.value)}
                                 placeholder="Type here..."
+                                className="h-10"
                             />
                         </div>
-                        <div>
-                            <Label>State</Label>
+                        <div className="space-y-1.5">
+                            <Label className="text-sm font-medium">State</Label>
                             <Input
                                 value={data.state}
                                 onChange={(e) => setData('state', e.target.value)}
                                 placeholder="Type here..."
+                                className="h-10"
                             />
                         </div>
-                        <div>
-                            <Label>Zip Code</Label>
+                        <div className="space-y-1.5">
+                            <Label className="text-sm font-medium">Zip Code</Label>
                             <Input
                                 value={data.zip_code}
                                 onChange={(e) => setData('zip_code', e.target.value)}
                                 placeholder="Type here..."
+                                className="h-10"
                             />
                         </div>
                     </div>
 
                     {/* Phone */}
-                    <div>
-                        <Label>
-                            Business Phone
-                        </Label>
+                    <div className="space-y-1.5">
+                        <Label className="text-sm font-medium">Business Phone</Label>
                         <Input
                             type="tel"
                             value={data.phone}
                             onChange={(e) => setData('phone', e.target.value)}
                             placeholder="(+234) 123-4567..."
+                            className="h-10"
                         />
-                        {errors.phone && <p className="text-sm text-destructive mt-1">{errors.phone}</p>}
+                        {errors.phone && <p className="text-xs text-destructive mt-1">{errors.phone}</p>}
                     </div>
 
-                    <div className="flex items-center justify-end gap-4">
-                        <Button type="submit" size="lg" disabled={processing} className="w-full md:w-auto">
-                            {processing && <Spinner />}  Continue
+                    <div className="flex items-center justify-end gap-4 pt-4">
+                        <Button type="submit" size="lg" disabled={processing} className="w-full sm:w-auto min-w-[120px]">
+                            {processing && <Spinner className="mr-2" />}
+                            Continue
                         </Button>
                     </div>
                 </form>
