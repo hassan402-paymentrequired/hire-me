@@ -246,7 +246,7 @@ class OnboardingController extends Controller
         }
 
         $validated = $request->validate([
-            'document_type' => 'required|in:passport,national_id,drivers_license',
+            'document_type' => 'required|in:voters_card,utility_bill,bank_statement,drivers_license,national_id,passport,cac_registration,tax_certificate,business_license',
             'document' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120', // 5MB
         ]);
 

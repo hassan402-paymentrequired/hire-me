@@ -60,9 +60,20 @@ export default function Verification({ existingVerification, is_verified }: Prop
     };
 
     const documentTypeOptions = [
-        { value: 'passport', label: 'Passport' },
-        { value: 'national_id', label: 'National ID Card' },
-        { value: 'drivers_license', label: "Driver's License" },
+        // Most Common - Easy to obtain
+        { value: 'voters_card', label: "Voter's Card (PVC)", description: 'Most common ID in Nigeria' },
+        { value: 'utility_bill', label: 'Utility Bill', description: 'PHCN/NEPA, Water, or Internet bill (last 3 months)' },
+        { value: 'bank_statement', label: 'Bank Statement', description: 'Last 3 months (redact sensitive info)' },
+        
+        // Government Issued IDs
+        { value: 'drivers_license', label: "Driver's License", description: 'Valid driver\'s license' },
+        { value: 'national_id', label: 'National ID Card (NIN Slip)', description: 'NIN enrollment slip or National ID' },
+        { value: 'passport', label: 'International Passport', description: 'Valid passport data page' },
+        
+        // Business Documents (if available)
+        { value: 'cac_registration', label: 'CAC Registration Document', description: 'Corporate Affairs Commission certificate' },
+        { value: 'tax_certificate', label: 'Tax Certificate (TIN)', description: 'Tax Identification Number certificate' },
+        { value: 'business_license', label: 'Business License', description: 'Local government or state business license' },
     ];
 
     return (
@@ -73,8 +84,9 @@ export default function Verification({ existingVerification, is_verified }: Prop
                         Verify your identity
                     </h2>
                     <p className="mt-2 text-muted-foreground">
-                        Upload a government-issued ID to verify your identity. This helps build trust with clients and may be required for certain features.
+                        Upload a valid document to verify your identity. This helps build trust with clients and ensures a safe marketplace.
                     </p>
+                   
                 </div>
 
                 {/* Show existing verification status */}
@@ -142,17 +154,18 @@ export default function Verification({ existingVerification, is_verified }: Prop
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <div className="space-y-2">
-                                    <Label htmlFor="document_type">Document Type</Label>
                                     <FormSelect
-                                        id="document_type"
+                                        label="Document Type"
                                         value={data.document_type}
                                         onChange={(value) => setData('document_type', value)}
-                                        options={documentTypeOptions}
+                                        options={documentTypeOptions.map(opt => ({ value: opt.value, label: opt.label }))}
                                         placeholder="Select document type"
+                                        required
+                                        error={errors.document_type}
                                     />
-                                    {errors.document_type && (
-                                        <p className="text-sm text-destructive">
-                                            {errors.document_type}
+                                    {data.document_type && (
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            {documentTypeOptions.find(opt => opt.value === data.document_type)?.description}
                                         </p>
                                     )}
                                 </div>
@@ -197,10 +210,23 @@ export default function Verification({ existingVerification, is_verified }: Prop
                                     </div>
                                 </div>
 
-                                <div className="rounded-lg bg-blue-50 dark:bg-blue-950/20 p-4 border border-blue-200">
-                                    <p className="text-sm text-blue-900 dark:text-blue-100">
-                                        <strong>Security Note:</strong> Your document will be stored securely and only used for verification purposes. It will be reviewed by our admin team.
-                                    </p>
+                                <div className="space-y-3">
+                                    <div className="rounded-lg bg-blue-50 dark:bg-blue-950/20 p-4 border border-blue-200">
+                                        <p className="text-sm text-blue-900 dark:text-blue-100 mb-2">
+                                            <strong>🔒 Security Note:</strong> Your document will be stored securely and encrypted. It will only be used for verification purposes and reviewed by our admin team.
+                                        </p>
+                                        <p className="text-xs text-blue-800 dark:text-blue-200">
+                                            <strong>Important:</strong> Never share your NIN or BVN. We do not require or store these sensitive numbers.
+                                        </p>
+                                    </div>
+                                    
+                                    {data.document_type === 'bank_statement' && (
+                                        <div className="rounded-lg bg-amber-50 dark:bg-amber-950/20 p-4 border border-amber-200">
+                                            <p className="text-sm text-amber-900 dark:text-amber-100">
+                                                <strong>⚠️ For Bank Statements:</strong> Please redact (black out) sensitive information like account numbers, transaction details, and balances. Only show your name, address, and bank name.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
