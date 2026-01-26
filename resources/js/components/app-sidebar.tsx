@@ -12,34 +12,24 @@ import {
 } from '@/components/ui/sidebar';
 import { Link, usePage } from '@inertiajs/react'; // Added usePage hook
 import {
-    BookOpen,
-    Calendar,
     ChartArea,
     Clock,
     Folder,
-    LayoutGrid,
-    Notebook,
-    Settings,
-    Briefcase, // Imported Briefcase icon
-    Home, // Imported Home icon
-    Search, // Imported Search icon
-    Bookmark, // Imported Bookmark icon
-    ArrowDownToLine, // Imported for withdrawals
-    Users,
-    Wallet, // Imported for team management
 } from 'lucide-react';
 import AppLogo from './app-logo';
 import schedule from '@/routes/schedule';
 import business, { dashboard } from '@/routes/business';
+import { ArchiveBoxIcon, CalendarDaysIcon, RectangleStackIcon, UserGroupIcon, WalletIcon, Cog6ToothIcon, FireIcon, ChartBarIcon, ChartBarSquareIcon } from '@heroicons/react/24/solid'
 
-    const mainNavItems: any[] = [
+
+const mainNavItems: any[] = [
     {
         name: "Dashboard",
         links: [
             {
                 title: 'Dashboard',
                 href: dashboard(),
-                icon: LayoutGrid,
+                icon: ChartBarIcon,
             }
         ],
     },
@@ -49,12 +39,12 @@ import business, { dashboard } from '@/routes/business';
             {
                 title: 'Calender',
                 href: schedule.calender.index(),
-                icon: Calendar,
+                icon: CalendarDaysIcon,
             },
             {
                 title: 'Appointments',
                 href: schedule.appointments.index(),
-                icon: Notebook,
+                icon: ArchiveBoxIcon,
             }
         ]
     },
@@ -64,7 +54,7 @@ import business, { dashboard } from '@/routes/business';
             {
                 title: 'Business hours',
                 href: business.hours(),
-                icon: Clock,
+                icon: FireIcon,
             },
             {
                 title: 'Analytics',
@@ -74,18 +64,23 @@ import business, { dashboard } from '@/routes/business';
             {
                 title: 'Services',
                 href: business.services(),
-                icon: LayoutGrid,
+                icon: RectangleStackIcon,
             },
             {
                 title: 'Team Members',
                 href: business.team.index(),
-                icon: Users,
+                icon: UserGroupIcon,
             },
             {
-                title: 'Wallet',
-                href: '/wallet',
-                icon: Wallet,
+                title: 'Withdraw Funds',
+                href: '/wallet/withdraw',
+                icon: WalletIcon,
             },
+            {
+                title: 'Settings',
+                href: business.settings(),
+                icon: Cog6ToothIcon,
+            }
         ]
     }
 ];
