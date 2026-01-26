@@ -255,8 +255,8 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                         )}
                     </div>
 
-                    {/* City, State, Zip (Auto-filled from Google Maps or manual) */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* City, State (Auto-filled from Google Maps or manual) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                             <Label className="text-sm font-medium">City</Label>
                             <Input
@@ -271,15 +271,6 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                             <Input
                                 value={data.state}
                                 onChange={(e) => setData('state', e.target.value)}
-                                placeholder="Type here..."
-                                className="h-10"
-                            />
-                        </div>
-                        <div className="space-y-1.5">
-                            <Label className="text-sm font-medium">Zip Code</Label>
-                            <Input
-                                value={data.zip_code}
-                                onChange={(e) => setData('zip_code', e.target.value)}
                                 placeholder="Type here..."
                                 className="h-10"
                             />
