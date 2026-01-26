@@ -15,28 +15,55 @@ use App\Mail\AppointmentCancelledMail;
 
 class ScheduleController extends Controller
 {
-    public function calender()
+    public function calender(Request $request)
     {
         $user = auth()->user();
+        
+        // Get date range from request or default to current week
+        $startDate = $request->input('start_date') 
+            ? \Carbon\Carbon::parse($request->input('start_date'))
+            : now()->startOfWeek();
+        
+        $endDate = $startDate->copy()->endOfWeek();
+        
         $appointments = $user->appointmentsAsProvider()
             ->with(['service'])
+            ->whereBetween('start_time', [$startDate, $endDate])
+            ->orderBy('start_time', 'asc')
             ->get()
             ->map(function ($apt) {
+                // Determine color based on status
+                $colorMap = [
+                    'pending' => 'bg-yellow-100 border-yellow-300 text-yellow-800',
+                    'confirmed' => 'bg-blue-100 border-blue-300 text-blue-800',
+                    'completed' => 'bg-green-100 border-green-300 text-green-800',
+                    'cancelled' => 'bg-red-100 border-red-300 text-red-800',
+                ];
+                
+                $color = $colorMap[$apt->status] ?? 'bg-gray-100 border-gray-300 text-gray-800';
+                
+                // Calculate duration in minutes
+                $durationMinutes = $apt->start_time->diffInMinutes($apt->end_time);
+                
                 return [
                     'id' => $apt->id,
-                    'service' => $apt->service->name,
+                    'service' => $apt->service->name ?? 'Service',
                     'client' => $apt->client_name ?? 'Guest',
-                    'start_time' => $apt->start_time,
-                    'end_time' => $apt->end_time,
-                    'duration' => $apt->start_time->diffInHours($apt->end_time),
-                    'day' => $apt->start_time->format('D'), // Mon, Tue...
-                    'hour' => (int) $apt->start_time->format('H'),
-                    'color' => 'bg-blue-100 border-blue-200 text-blue-700', // Dynamic coloring later
+                    'start_time' => $apt->start_time->toIso8601String(),
+                    'end_time' => $apt->end_time->toIso8601String(),
+                    'duration' => $durationMinutes,
+                    'status' => $apt->status,
+                    'date' => $apt->start_time->format('Y-m-d'),
+                    'day_of_week' => $apt->start_time->format('w'), // 0 = Sunday, 1 = Monday, etc.
+                    'start_hour' => $apt->start_time->format('H'),
+                    'start_minute' => $apt->start_time->format('i'),
+                    'color' => $color,
                 ];
             });
 
         return Inertia::render('provider/schedule/calendar', [
-            'appointments' => $appointments
+            'appointments' => $appointments,
+            'currentWeekStart' => $startDate->toIso8601String(),
         ]);
     }
 

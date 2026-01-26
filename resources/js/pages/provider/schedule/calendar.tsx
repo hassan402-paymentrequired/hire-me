@@ -1,11 +1,9 @@
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/react';
-import { ChevronLeft, ChevronRight, Clock, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { Head, router } from '@inertiajs/react';
+import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { useState, useMemo } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -19,31 +17,43 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 interface Appointment {
-    id: number;
-    day: string;
+    id: string;
+    date: string; // YYYY-MM-DD
+    day_of_week: number; // 0 = Sunday, 1 = Monday, etc.
     start_time: string; // ISO string
-    end_time: string;
-    duration: number;
+    end_time: string; // ISO string
+    duration: number; // in minutes
     client: string;
     service: string;
     color: string;
-    hour: number;
+    status: string;
+    start_hour: string;
+    start_minute: string;
 }
 
 interface CalendarProps {
     appointments: Appointment[];
+    currentWeekStart?: string;
 }
 
-export default function Calendar({ appointments }: CalendarProps) {
+export default function Calendar({ appointments, currentWeekStart }: CalendarProps) {
     const [view, setView] = useState<'week' | 'day'>('week');
-    const [currentDate, setCurrentDate] = useState(new Date());
+    
+    // Initialize currentDate from prop or use today
+    const initialDate = currentWeekStart 
+        ? new Date(currentWeekStart)
+        : new Date();
+    
+    const [currentDate, setCurrentDate] = useState(initialDate);
 
-    // Calculate week dates based on current date
+    // Calculate week dates based on current date (Monday to Sunday)
     const getWeekDates = () => {
         const start = new Date(currentDate);
         const day = start.getDay();
-        const diff = start.getDate() - day + (day === 0 ? -6 : 1); // Adjust to Monday
+        // Adjust to Monday (1) - if Sunday (0), go back 6 days
+        const diff = start.getDate() - day + (day === 0 ? -6 : 1);
         start.setDate(diff);
+        start.setHours(0, 0, 0, 0);
 
         const dates = [];
         for (let i = 0; i < 7; i++) {
@@ -54,28 +64,112 @@ export default function Calendar({ appointments }: CalendarProps) {
         return dates;
     };
 
-    const weekDates = getWeekDates();
+    const weekDates = useMemo(() => getWeekDates(), [currentDate]);
     const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const timeSlots = Array.from({ length: 11 }, (_, i) => i + 9); // 9 AM to 7 PM
+    // Extended time slots from 6 AM to 10 PM (16 hours)
+    const timeSlots = Array.from({ length: 16 }, (_, i) => i + 6);
 
     const goToPreviousWeek = () => {
         const newDate = new Date(currentDate);
         newDate.setDate(newDate.getDate() - 7);
         setCurrentDate(newDate);
+        // Reload appointments for new week
+        const weekStart = new Date(newDate);
+        const day = weekStart.getDay();
+        const diff = weekStart.getDate() - day + (day === 0 ? -6 : 1);
+        weekStart.setDate(diff);
+        router.reload({
+            data: { start_date: weekStart.toISOString().split('T')[0] },
+            only: ['appointments', 'currentWeekStart'],
+        });
     };
 
     const goToNextWeek = () => {
         const newDate = new Date(currentDate);
         newDate.setDate(newDate.getDate() + 7);
         setCurrentDate(newDate);
+        // Reload appointments for new week
+        const weekStart = new Date(newDate);
+        const day = weekStart.getDay();
+        const diff = weekStart.getDate() - day + (day === 0 ? -6 : 1);
+        weekStart.setDate(diff);
+        router.reload({
+            data: { start_date: weekStart.toISOString().split('T')[0] },
+            only: ['appointments', 'currentWeekStart'],
+        });
     };
 
     const goToToday = () => {
-        setCurrentDate(new Date());
+        const today = new Date();
+        setCurrentDate(today);
+        // Reload appointments for current week
+        const weekStart = new Date(today);
+        const day = weekStart.getDay();
+        const diff = weekStart.getDate() - day + (day === 0 ? -6 : 1);
+        weekStart.setDate(diff);
+        router.reload({
+            data: { start_date: weekStart.toISOString().split('T')[0] },
+            only: ['appointments', 'currentWeekStart'],
+        });
     };
 
     const monthYear = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     const today = new Date();
+    
+    // Calculate current time position for the red line
+    const getCurrentTimePosition = () => {
+        const now = new Date();
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        const minutesFromStart = (currentHour - timeSlots[0]) * 60 + currentMinute;
+        return (minutesFromStart / 60) * 80; // 80px per hour
+    };
+
+    // Filter appointments for the current week
+    const weekAppointments = useMemo(() => {
+        return appointments.filter(apt => {
+            const aptDate = new Date(apt.date);
+            return weekDates.some(weekDate => 
+                aptDate.toDateString() === weekDate.toDateString()
+            );
+        });
+    }, [appointments, weekDates]);
+
+    // Calculate appointment position
+    const getAppointmentPosition = (apt: Appointment) => {
+        const startTime = new Date(apt.start_time);
+        const endTime = new Date(apt.end_time);
+        
+        // Find which day of the week this appointment is on
+        const aptDate = new Date(apt.date);
+        const dayIndex = weekDates.findIndex(weekDate => 
+            aptDate.toDateString() === weekDate.toDateString()
+        );
+        
+        if (dayIndex === -1) return null;
+        
+        // Calculate top position based on start time
+        const startHour = startTime.getHours();
+        const startMinute = startTime.getMinutes();
+        const minutesFromDayStart = (startHour - timeSlots[0]) * 60 + startMinute;
+        const topOffset = (minutesFromDayStart / 60) * 80; // 80px per hour
+        
+        // Calculate height based on duration
+        const durationMinutes = apt.duration;
+        const height = (durationMinutes / 60) * 80; // 80px per hour
+        
+        // Calculate left position
+        const widthPercent = 100 / 7;
+        const leftPercent = dayIndex * widthPercent;
+        
+        return {
+            top: topOffset,
+            height: Math.max(height, 40), // Minimum height of 40px
+            left: leftPercent,
+            width: widthPercent,
+            dayIndex,
+        };
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -93,7 +187,7 @@ export default function Calendar({ appointments }: CalendarProps) {
                         <Button variant="outline" size="icon" onClick={goToNextWeek}>
                             <ChevronRight className="h-4 w-4" />
                         </Button>
-                        <div className="ml-4 flex items-center rounded-lg border bg-muted p-1">
+                        {/* <div className="ml-4 flex items-center rounded-lg border bg-muted p-1">
                             <button
                                 onClick={() => setView('day')}
                                 className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
@@ -114,7 +208,7 @@ export default function Calendar({ appointments }: CalendarProps) {
                             >
                                 Week
                             </button>
-                        </div>
+                        </div> */}
                     </div>
                     <div className="flex gap-2">
                         <Button variant="outline" onClick={goToToday}>Today</Button>
@@ -187,48 +281,62 @@ export default function Calendar({ appointments }: CalendarProps) {
                             ))}
 
                             {/* Appointments overlay */}
-                            {appointments.map((apt) => {
-                                const dayIndex = weekDays.indexOf(apt.day);
-                                if (dayIndex === -1) return null;
+                            {weekAppointments.map((apt) => {
+                                const position = getAppointmentPosition(apt);
+                                if (!position) return null;
 
-                                const topOffset =
-                                    (apt.hour - timeSlots[0]) * 80; // Simplification: using start hour
-                                const height = apt.duration * 80;
-                                const widthPercent = 100 / 7;
-                                const leftPercent = dayIndex * widthPercent;
+                                const startTime = new Date(apt.start_time);
+                                const endTime = new Date(apt.end_time);
+                                const timeStr = `${startTime.toLocaleTimeString('en-US', { 
+                                    hour: 'numeric', 
+                                    minute: '2-digit',
+                                    hour12: true 
+                                })} - ${endTime.toLocaleTimeString('en-US', { 
+                                    hour: 'numeric', 
+                                    minute: '2-digit',
+                                    hour12: true 
+                                })}`;
 
                                 return (
                                     <div
                                         key={apt.id}
-                                        className={`absolute mx-1 rounded-md border p-2 text-xs shadow-sm cursor-pointer hover:opacity-90 ${apt.color}`}
+                                        className={`absolute mx-1 rounded-md border-l-4 p-2 text-xs shadow-sm cursor-pointer hover:shadow-md transition-shadow ${apt.color}`}
                                         style={{
-                                            top: `${topOffset}px`,
-                                            height: `${height}px`,
-                                            left: `${leftPercent}%`,
-                                            width: `calc(${widthPercent}% - 8px)`,
+                                            top: `${position.top}px`,
+                                            height: `${position.height}px`,
+                                            left: `${position.left}%`,
+                                            width: `calc(${position.width}% - 8px)`,
+                                            minHeight: '40px',
                                         }}
+                                        onClick={() => router.visit(`/provider/appointments/${apt.id}`)}
+                                        title={`${apt.service} - ${apt.client} (${timeStr})`}
                                     >
                                         <div className="font-semibold truncate">
                                             {apt.service}
                                         </div>
-                                        <div className="truncate">
+                                        <div className="truncate text-[10px] mt-0.5">
                                             {apt.client}
                                         </div>
                                         <div className="mt-1 flex items-center gap-1 text-[10px] opacity-80">
                                             <Clock className="w-3 h-3" />
-                                            {apt.duration}h
+                                            {apt.duration >= 60 
+                                                ? `${Math.floor(apt.duration / 60)}h ${apt.duration % 60}m`
+                                                : `${apt.duration}m`
+                                            }
                                         </div>
                                     </div>
                                 );
                             })}
 
-                            {/* Current Time Line Mockup */}
-                             <div
-                                className="absolute left-0 w-full border-t-2 border-red-500 z-10 pointer-events-none"
-                                style={{ top: '150px' }} // 10:50ish mockup
-                             >
-                                <div className="absolute -left-2 -top-1.5 w-3 h-3 rounded-full bg-red-500"></div>
-                             </div>
+                            {/* Current Time Line - Only show if viewing current week and today */}
+                            {weekDates.some(date => date.toDateString() === today.toDateString()) && (
+                                <div
+                                    className="absolute left-0 w-full border-t-2 border-red-500 z-20 pointer-events-none"
+                                    style={{ top: `${getCurrentTimePosition()}px` }}
+                                >
+                                    <div className="absolute -left-2 -top-1.5 w-3 h-3 rounded-full bg-red-500"></div>
+                                </div>
+                            )}
 
                         </div>
                     </div>
