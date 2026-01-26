@@ -6,14 +6,20 @@ import onboarding from '@/routes/onboarding';
 import { useForm } from '@inertiajs/react';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '@/components/ui/spinner';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { getStepsWithStatus } from './onboarding-steps';
 
-export default function Services() {
+interface ServicesProps {
+    categories: { value: string; label: string }[];
+}
+
+export default function Services({ categories }: ServicesProps) {
     const { data, setData, post, processing, errors } = useForm({
         name: '',
         price: '',
         duration_minutes: '60',
-        description: ''
+        description: '',
+        category_id: '',
     });
 
     const submit = (e: React.FormEvent) => {
@@ -42,10 +48,12 @@ export default function Services() {
                     </p>
                 </div>
 
-                <form onSubmit={submit} className="space-y-8">
+                <form onSubmit={submit} className="space-y-6">
                     <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Service Name</Label>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="name" className="text-sm font-medium">
+                                Service Name <span className="text-destructive">*</span>
+                            </Label>
                             <Input
                                 id="name"
                                 value={data.name}
@@ -54,16 +62,30 @@ export default function Services() {
                                 }
                                 placeholder="e.g. Standard Haircut"
                                 required
+                                className="h-10"
                             />
                             {errors.name && (
-                                <p className="text-sm text-red-500">
+                                <p className="text-xs text-destructive mt-1">
                                     {errors.name}
                                 </p>
                             )}
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="description">
+                        <div className="space-y-1.5">
+                            <SearchableSelect
+                                required={true}
+                                label="Category"
+                                options={categories}
+                                value={data.category_id}
+                                onChange={(value: string) => setData('category_id', value)}
+                                placeholder="Select a category"
+                                searchPlaceholder="Search categories..."
+                                error={errors.category_id}
+                            />
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label htmlFor="description" className="text-sm font-medium">
                                 Service Description
                             </Label>
                             <Textarea
@@ -72,19 +94,22 @@ export default function Services() {
                                 onChange={(e) =>
                                     setData('description', e.target.value)
                                 }
-                                placeholder={'Tell users about ' + data.name}
-                                required
+                                placeholder={data.name ? `Tell users about ${data.name}` : 'Describe your service...'}
+                                rows={4}
+                                className="resize-none"
                             />
-                            {errors.name && (
-                                <p className="text-sm text-red-500">
-                                    {errors.name}
+                            {errors.description && (
+                                <p className="text-xs text-destructive mt-1">
+                                    {errors.description}
                                 </p>
                             )}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <Label htmlFor="price">Price (₦)</Label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <Label htmlFor="price" className="text-sm font-medium">
+                                    Price (₦) <span className="text-destructive">*</span>
+                                </Label>
                                 <Input
                                     id="price"
                                     type="number"
@@ -92,18 +117,21 @@ export default function Services() {
                                     onChange={(e) =>
                                         setData('price', e.target.value)
                                     }
-                                    placeholder={'How much is ' + data.name}
+                                    placeholder="0.00"
                                     required
+                                    className="h-10"
+                                    min="0"
+                                    step="0.01"
                                 />
                                 {errors.price && (
-                                    <p className="text-sm text-red-500">
+                                    <p className="text-xs text-destructive mt-1">
                                         {errors.price}
                                     </p>
                                 )}
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="duration">
-                                    Duration (mins)
+                            <div className="space-y-1.5">
+                                <Label htmlFor="duration" className="text-sm font-medium">
+                                    Duration (minutes) <span className="text-destructive">*</span>
                                 </Label>
                                 <Input
                                     id="duration"
@@ -115,11 +143,14 @@ export default function Services() {
                                             e.target.value,
                                         )
                                     }
-                                    placeholder={'how many minutes does it take to complete ' + data.name }
+                                    placeholder="60"
                                     required
+                                    className="h-10"
+                                    min="15"
+                                    step="15"
                                 />
                                 {errors.duration_minutes && (
-                                    <p className="text-sm text-red-500">
+                                    <p className="text-xs text-destructive mt-1">
                                         {errors.duration_minutes}
                                     </p>
                                 )}
@@ -127,14 +158,15 @@ export default function Services() {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-end gap-4 pt-4">
                         <Button
                             type="submit"
                             size="lg"
                             disabled={processing}
-                            className="w-full md:w-auto"
+                            className="w-full sm:w-auto min-w-[120px]"
                         >
-                            {processing && <Spinner />} Save & Finish
+                            {processing && <Spinner className="mr-2" />}
+                            Save & Finish
                         </Button>
                         <Button type="button" variant="ghost" onClick={skip}>
                             Skip for now

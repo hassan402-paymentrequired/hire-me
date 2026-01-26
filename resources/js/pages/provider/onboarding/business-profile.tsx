@@ -246,9 +246,13 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                         </div>
 
                         <div className="space-y-1.5">
+                            <div>
+                                <Label className="text-sm font-medium">
+                                    Business Category <span className="text-destructive">*</span>
+                                </Label>
+                            </div>
                             <SearchableSelect
                                 required={true}
-                                label="Business Category"
                                 options={categories}
                                 value={data.category}
                                 onChange={(value: string) => setData('category', value)}
@@ -280,7 +284,9 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                                 onLoad={() => setIsScriptLoaded(true)}
                             >
                                 <div>
-                                    <Label className="text-sm font-medium">Business Address</Label>
+                                    <Label className="text-sm font-medium">
+                                        Business Address <span className="text-destructive">*</span>
+                                    </Label>
                                     <Input
                                         ref={inputRef}
                                         value={data.address}
@@ -288,19 +294,24 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                                         placeholder="Start typing your address..."
                                         autoComplete="off"
                                         className="h-10"
+                                        required
                                     />
                                     {errors.address && <p className="text-xs text-destructive mt-1">{errors.address}</p>}
                                 </div>
                             </LoadScript>
                         ) : (
                             <div>
-                                <Label className="text-sm font-medium">Business Address</Label>
+                                <Label className="text-sm font-medium">
+                                    Business Address <span className="text-destructive">*</span>
+                                </Label>
                                 <Input
                                     value={data.address}
                                     onChange={(e) => setData('address', e.target.value)}
                                     placeholder="Enter your address"
                                     className="h-10"
+                                    required
                                 />
+                                {errors.address && <p className="text-xs text-destructive mt-1">{errors.address}</p>}
                                 <p className="text-xs text-muted-foreground mt-1">Google Maps API key not configured</p>
                             </div>
                         )}

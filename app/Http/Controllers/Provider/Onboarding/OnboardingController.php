@@ -64,12 +64,12 @@ class OnboardingController extends Controller
             'images' => 'required|array|min:2|max:3',
             'images.*' => 'image|max:5120',
             'logo_index' => 'required|integer|min:0|max:2',
-            'address' => 'nullable|string|max:500',
+            'address' => 'required|string|max:500',
             'city' => 'nullable|string|max:100',
             'state' => 'nullable|string|max:100',
             'zip_code' => 'nullable|string|max:20',
             'phone' => 'nullable|string|max:20',
-            'category' => 'nullable|string|max:50',
+            'category' => 'required|string|exists:categories,slug',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
         ]);
@@ -160,7 +160,17 @@ class OnboardingController extends Controller
 
     public function services()
     {
-        return Inertia::render('provider/onboarding/services', ['step' => 'services']);
+        $categories = Category::orderBy('name')->get()->map(function ($category) {
+            return [
+                'value' => $category->id,
+                'label' => $category->name,
+            ];
+        });
+
+        return Inertia::render('provider/onboarding/services', [
+            'step' => 'services',
+            'categories' => $categories
+        ]);
     }
 
     public function storeServices(Request $request)
@@ -169,12 +179,15 @@ class OnboardingController extends Controller
             'name' => 'required|string|max:255',
             'price' => 'required|numeric',
             'duration_minutes' => 'required|integer',
+            'category_id' => 'required|exists:categories,id',
+            'description' => 'nullable|string',
         ]);
 
         $user = auth()->user();
 
         Service::create([
             'provider_id' => $user->id,
+            'category_id' => $request->category_id,
             'name' => $request->name,
             'description' => $request->description,
             'duration_minutes' => $request->duration_minutes,

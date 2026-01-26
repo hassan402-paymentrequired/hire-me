@@ -12,7 +12,7 @@ import { Search, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface SearchableSelectProps {
-  label?: string
+  label?: string | React.ReactNode
   options: Array<{ value: string; label: string }>
   value?: string
   defaultValue?: string
@@ -85,8 +85,14 @@ export function SearchableSelect({
     <div className={className}>
       {label && (
         <Label className={cn("text-sm font-medium", error && "text-destructive")}>
-          {label}
-          {required && <span className="text-destructive ml-1">*</span>}
+          {typeof label === 'string' ? (
+            <>
+              {label}
+              {required && <span className="text-destructive ml-1">*</span>}
+            </>
+          ) : (
+            label
+          )}
         </Label>
       )}
       <Select
