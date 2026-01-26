@@ -180,4 +180,63 @@ class VerificationController extends Controller
 
         return back()->with('success-toast', 'Verification rejected.');
     }
+
+    /**
+     * Serve verification document securely
+     * Only admins can access verification documents
+     */
+    public function viewDocument(\App\Models\ProviderVerification $verification)
+    {
+        // Ensure user is admin (already checked by middleware, but double-check)
+        if (!auth_user('admin') || !is_admin('admin')) {
+            abort(403, 'Unauthorized access. you are not authorized to view this document');
+        }
+
+        // Check if file exists
+        if (!$verification->document_path) {
+            abort(404, 'Document not found');
+        }
+
+        // Determine storage disk
+        $disk = \App\Services\FileUploadService::getDisk('private');
+        
+        // Check if file exists
+        if (!\Illuminate\Support\Facades\Storage::disk($disk)->exists($verification->document_path)) {
+            abort(404, 'Document file not found');
+        }
+
+        // For S3, generate a temporary signed URL
+        if ($disk === 's3') {
+            try {
+                $url = \Illuminate\Support\Facades\Storage::disk($disk)->temporaryUrl(
+                    $verification->document_path,
+                    now()->addMinutes(15) // URL expires in 15 minutes
+                );
+                return redirect($url);
+            } catch (\Exception $e) {
+                abort(500, 'Failed to generate document URL: ' . $e->getMessage());
+            }
+        }
+
+        // For local private storage, serve the file directly
+        try {
+            $filePath = \Illuminate\Support\Facades\Storage::disk($disk)->path($verification->document_path);
+            
+            if (!file_exists($filePath)) {
+                abort(404, 'Document file not found');
+            }
+
+            $mimeType = \Illuminate\Support\Facades\Storage::disk($disk)->mimeType($verification->document_path) 
+                ?? mime_content_type($filePath)
+                ?? 'application/octet-stream';
+            
+            return response()->file($filePath, [
+                'Content-Type' => $mimeType,
+                'Content-Disposition' => 'inline; filename="' . basename($verification->document_path) . '"',
+                'Cache-Control' => 'private, max-age=3600',
+            ]);
+        } catch (\Exception $e) {
+            abort(500, 'Failed to serve document: ' . $e->getMessage());
+        }
+    }
 }

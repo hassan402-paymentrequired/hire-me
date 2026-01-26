@@ -324,7 +324,7 @@ export default function VerificationShow({
                                     variant="outline"
                                     onClick={() => {
                                         window.open(
-                                            `/storage/${verification.document_path}`,
+                                            `/admin/verifications/${verification.id}/document`,
                                             '_blank'
                                         );
                                     }}

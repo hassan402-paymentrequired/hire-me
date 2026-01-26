@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use App\Enum\UserRoleEnum;
 
 class Admin extends Authenticatable
 {
@@ -51,6 +52,7 @@ class Admin extends Authenticatable
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',
+            'role' => UserRoleEnum::class
         ];
     }
 

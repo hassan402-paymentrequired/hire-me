@@ -187,28 +187,7 @@ export default function Calendar({ appointments, currentWeekStart }: CalendarPro
                         <Button variant="outline" size="icon" onClick={goToNextWeek}>
                             <ChevronRight className="h-4 w-4" />
                         </Button>
-                        {/* <div className="ml-4 flex items-center rounded-lg border bg-muted p-1">
-                            <button
-                                onClick={() => setView('day')}
-                                className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
-                                    view === 'day'
-                                        ? 'bg-background shadow-sm'
-                                        : 'text-muted-foreground hover:text-foreground'
-                                }`}
-                            >
-                                Day
-                            </button>
-                            <button
-                                onClick={() => setView('week')}
-                                className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
-                                    view === 'week'
-                                        ? 'bg-background shadow-sm'
-                                        : 'text-muted-foreground hover:text-foreground'
-                                }`}
-                            >
-                                Week
-                            </button>
-                        </div> */}
+                      
                     </div>
                     <div className="flex gap-2">
                         <Button variant="outline" onClick={goToToday}>Today</Button>

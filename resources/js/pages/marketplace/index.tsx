@@ -1,8 +1,8 @@
 import React from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
-import { Link } from '@inertiajs/react';
-import { Clock, MapPin, Star } from 'lucide-react';
+import { Head, Link } from '@inertiajs/react';
+import { Clock } from 'lucide-react';
 
 interface Provider {
     id: string;
@@ -19,8 +19,9 @@ interface Props {
 }
 
 export default function MarketplaceIndex({ providers }: Props) {
-    return (
-        <AppLayout title="Find a Service Provider">
+            return (        
+                <AppLayout>
+                    <Head title="Find a Service Provider" />
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-foreground">Find a Service Provider</h1>

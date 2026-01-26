@@ -275,7 +275,7 @@ export default function VerificationsIndex({ verifications }: Props) {
                                                                 size="sm"
                                                                 onClick={() => {
                                                                     window.open(
-                                                                        `/storage/${verification.document_path}`,
+                                                                        `/admin/verifications/${verification.id}/document`,
                                                                         '_blank'
                                                                     );
                                                                 }}

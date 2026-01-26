@@ -56,6 +56,7 @@ Route::middleware(['admin'])->group(function () {
     Route::prefix('verifications')->name('admin.verifications.')->group(function () {
         Route::get('/', [VerificationController::class, 'index'])->name('index');
         Route::get('/{verification}', [VerificationController::class, 'show'])->name('show');
+        Route::get('/{verification}/document', [VerificationController::class, 'viewDocument'])->name('document');
         Route::post('/{verification}/approve', [VerificationController::class, 'approve'])->name('approve');
         Route::post('/{verification}/reject', [VerificationController::class, 'reject'])->name('reject');
     });

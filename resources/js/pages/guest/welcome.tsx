@@ -9,10 +9,10 @@ interface Provider {
     name: string;
     businessName: string;
     slug: string;
-    description: string;
+    description?: string;
     servicesCount: number;
     services: string[];
-    distance?: number;
+    distance?: number | null;
     logo?: string | null;
     rating: number;
     reviewsCount: number;
@@ -145,13 +145,22 @@ export default function Welcome({ providers, categories, filters }: Props) {
 
     return (
         <>
-            <Head title="Find Services Providers Near You | HireMe">
+            <Head
+                title="Find Services Providers Near You | Clockra">
+                <meta name="description" content="Discover local service providers near your location with Clockra. Browse trusted professionals, view service offerings, ratings, and book your next appointment with ease. Find the right expert for your needs quickly and securely." />
+                <meta name="keywords" content="service providers, local providers, find providers, hire providers, book appointments, find services, hire services, book services, find professionals, hire professionals, book professionals, find experts, hire experts, book experts" />
+                <meta name="author" content="Clockra" />
+                <meta name="robots" content="index, follow" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <meta property="og:title" content="Find Services Providers Near You | Clockra" />
+                <meta property="og:description" content="Discover local service providers near your location with Clockra. Browse trusted professionals, view service offerings, ratings, and book your next appointment with ease. Find the right expert for your needs quickly and securely." />
+                <meta property="og:image" content="/logo/site.webmanifest" />
+            </Head>
                 <link rel="preconnect" href="https://fonts.bunny.net" />
                 <link
                     href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600"
                     rel="stylesheet"
                 />
-            </Head>
             <AppLayout>
                 <div className="flex flex-col space-y-6 px-5 box-border overflow-hidden pb-10 w-full mx-auto max-w-7xl">
                     {/* Top Filter Bar */}

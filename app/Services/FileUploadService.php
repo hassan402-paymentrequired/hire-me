@@ -112,13 +112,61 @@ class FileUploadService
             $disk = self::isS3Configured() ? 's3' : 'public';
         }
 
-        // For private files on local storage, we might need a different approach
-        // For now, we'll try to get the URL anyway (might work if file is accessible)
-        // In production with S3, this will work correctly
-
         try {
-            return Storage::disk($disk)->url($path);
+            // For S3, use the url() method which returns the full S3 URL
+            if ($disk === 's3') {
+                $url = Storage::disk($disk)->url($path);
+                return $url;
+            }
+
+            // For local public storage, use Storage::url() which handles the storage link
+            if ($disk === 'public') {
+                // Check if file exists first
+                if (!Storage::disk($disk)->exists($path)) {
+                    \Log::warning('File not found in public storage', [
+                        'path' => $path, 
+                        'disk' => $disk,
+                        'full_path' => Storage::disk($disk)->path($path)
+                    ]);
+                    return null;
+                }
+                
+                // Generate URL using Storage::url()
+                // According to filesystems.php config: 'url' => env('APP_URL').'/storage'
+                // Storage::url() should return: APP_URL/storage/path/to/file
+                $url = Storage::disk($disk)->url($path);
+                
+                // Laravel's Storage::url() uses the 'url' config which should already include APP_URL
+                // But let's ensure it's absolute (some Laravel versions return relative)
+                if ($url) {
+                    // If already absolute URL, return as is
+                    if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+                        return $url;
+                    }
+                    
+                    // If relative (starts with /), prepend APP_URL
+                    if (str_starts_with($url, '/')) {
+                        $baseUrl = rtrim(config('app.url'), '/');
+                        return $baseUrl . $url;
+                    }
+                    
+                    // Otherwise prepend APP_URL with /
+                    $baseUrl = rtrim(config('app.url'), '/');
+                    return $baseUrl . '/' . $url;
+                }
+                
+                return null;
+            }
+
+            // For private storage, we can't generate a public URL
+            // Return null - caller should use a secure route instead
+            return null;
         } catch (\Exception $e) {
+            \Log::warning('Failed to generate file URL', [
+                'path' => $path,
+                'disk' => $disk,
+                'error' => $e->getMessage()
+            ]);
             return null;
         }
     }

@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\BusinessProfile;
 use App\Models\Category;
+use App\Http\Resources\ProviderResource;
 
 class GuestController extends Controller
 {
@@ -96,24 +97,15 @@ class GuestController extends Controller
                 break;
         }
 
-        $providers = $query->simplePaginate(12)->through(function ($provider) {
-            return [
-                'id' => $provider->id,
-                'name' => $provider->name,
-                'businessName' => $provider->businessProfile->business_name,
-                'slug' => $provider->businessProfile->slug,
-                'logo' => $provider->businessProfile->images->where('is_logo', true)->first()?->image_path
-                    ? \App\Services\FileUploadService::url($provider->businessProfile->images->where('is_logo', true)->first()->image_path, 'public')
-                    : null,
-                'address' => $provider->businessProfile->address,
-                'servicesCount' => $provider->services->count(),
-                'services' => $provider->services->take(3)->map(fn($s) => $s->name),
-                'distance' => isset($provider->distance) ? round($provider->distance, 1) : null,
-                'rating' => isset($provider->avg_rating) ? round($provider->avg_rating, 1) : 0,
-                'reviewsCount' => $provider->reviews_count ?? 0,
-                'minPrice' => $provider->min_price,
-            ];
+        $providers = $query->paginate(12)->withQueryString();
+        
+        // Transform paginated results using ProviderResource
+        // Map each item individually and resolve to array to avoid 'data' wrapper
+        $transformedItems = $providers->getCollection()->map(function ($provider) {
+            return (new ProviderResource($provider))->resolve();
         });
+        
+        $providers->setCollection($transformedItems);
 
         $categories = Category::orderBy('name')->get(['name', 'slug']);
 

@@ -1,39 +1,57 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from '@inertiajs/react';
 import { MapPin, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
-interface Props {
+interface ProviderProps {
     id: string;
     name: string;
     address: string;
     businessName: string;
     slug: string;
-    logo: string;
-    distance: number;
+    logo?: string | null;
+    distance?: number | null;
     servicesCount: number;
     rating: number;
     reviewsCount: number;
     minPrice: number | string;
-    [key: string]: string | number | boolean | null | undefined | (string | number | boolean | null | undefined)
+    description?: string;
+    services?: string[];
 }
 
-const BusinessCard = ({provider}: {provider: Props}) => {
+const BusinessCard = ({provider}: {provider: ProviderProps}) => {
+    const [imageError, setImageError] = useState(false);
+    const [imageLoaded, setImageLoaded] = useState(false);
+    console.log(provider)
+
+    const showImage = provider.logo && !imageError;
+
     return (
         <Link
-            key={provider.id}
             href={`/provider/${provider.slug}`}
             className="group flex flex-col space-y-1.5 transition-all"
             prefetch
         >
             {/* Card Image/Placeholder */}
             <div className="relative aspect-[4/3] overflow-hidden rounded bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                {provider.logo ? (
-                    <img
-                        src={provider.logo}
-                        alt={provider.businessName}
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
+                {showImage ? (
+                    <>
+                        {!imageLoaded && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                            </div>
+                        )}
+                        <img
+                            src={provider.logo || undefined}
+                            alt={provider.businessName}
+                            className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-110 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                            onError={() => {
+                                setImageError(true);
+                                setImageLoaded(false);
+                            }}
+                            onLoad={() => setImageLoaded(true)}
+                        />
+                    </>
                 ) : (
                     <div className="text-center p-6">
                         <h3 className="text-2xl font-bold text-foreground mb-2">
@@ -81,8 +99,8 @@ const BusinessCard = ({provider}: {provider: Props}) => {
 
                 <div className="flex items-center gap-1 text-sm font-medium">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span>{provider.rating.toFixed(2) }</span>
-                        <span className="text-muted-foreground text-xs">({provider.reviewsCount})</span>
+                    <span>{provider.rating ? provider.rating.toFixed(2) : '0.00'}</span>
+                    <span className="text-muted-foreground text-xs">({provider.reviewsCount || 0})</span>
                 </div>
             </div>
         </Link>
