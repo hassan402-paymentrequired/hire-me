@@ -548,7 +548,7 @@ class BusinessController extends Controller
                 'settings' => $profile->settings ?? [],
                 'images' => $profile->images->map(fn($img) => [
                     'id' => $img->id,
-                    'path' => Storage::url($img->image_path),
+                    'path' => \App\Services\FileUploadService::url($img->image_path, 'public'),
                     'is_logo' => $img->is_logo,
                 ]),
             ] : null,
@@ -602,11 +602,15 @@ class BusinessController extends Controller
                 // Delete old logo
                 $oldLogo = $profile->images()->where('is_logo', true)->first();
                 if ($oldLogo) {
-                    Storage::disk('public')->delete($oldLogo->image_path);
+                    \App\Services\FileUploadService::delete($oldLogo->image_path, 'public');
                     $oldLogo->delete();
                 }
 
-                $path = $request->file('logo')->store('business-logos', 'public');
+                $path = \App\Services\FileUploadService::upload(
+                    $request->file('logo'),
+                    'business-logos',
+                    'public'
+                );
                 $profile->images()->create([
                     'image_path' => $path,
                     'is_logo' => true,
@@ -616,7 +620,11 @@ class BusinessController extends Controller
             // Handle New Images
             if ($request->hasFile('new_images')) {
                 foreach ($request->file('new_images') as $image) {
-                    $path = $image->store('business-images', 'public');
+                    $path = \App\Services\FileUploadService::upload(
+                        $image,
+                        'business-images',
+                        'public'
+                    );
                     $profile->images()->create([
                         'image_path' => $path,
                         'is_logo' => false,
@@ -632,7 +640,7 @@ class BusinessController extends Controller
                     ->get();
 
                 foreach ($imagesToDelete as $img) {
-                    Storage::disk('public')->delete($img->image_path);
+                    \App\Services\FileUploadService::delete($img->image_path, 'public');
                     $img->delete();
                 }
             }

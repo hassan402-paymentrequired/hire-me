@@ -98,7 +98,11 @@ class OnboardingController extends Controller
             // Handle images upload
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $index => $image) {
-                    $path = $image->store('business-images', 'public');
+                    $path = \App\Services\FileUploadService::upload(
+                        $image,
+                        'business-images',
+                        'public'
+                    );
                     $businessProfile->images()->create([
                         'image_path' => $path,
                         'is_logo' => $index == $request->logo_index,
@@ -250,8 +254,12 @@ class OnboardingController extends Controller
             'document' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120', // 5MB
         ]);
 
-        // Store document securely
-        $path = $request->file('document')->store('verifications', 'private');
+        // Store document securely using FileUploadService
+        $path = \App\Services\FileUploadService::upload(
+            $request->file('document'),
+            'verifications',
+            'private'
+        );
 
         \App\Models\ProviderVerification::create([
             'user_id' => $user->id,

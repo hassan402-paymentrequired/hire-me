@@ -105,7 +105,7 @@ class MarketplaceController extends Controller
                 'slug' => $businessProfile->slug,
                 'description' => $businessProfile->description,
                 'images' => $businessProfile->images->map(fn($img) => [
-                    'url' => \Illuminate\Support\Facades\Storage::url($img->image_path),
+                    'url' => \App\Services\FileUploadService::url($img->image_path, 'public'),
                     'isLogo' => $img->is_logo
                 ]),
                 'rating' => $reviews->avg('rating') ?: 0,
@@ -174,7 +174,7 @@ class MarketplaceController extends Controller
                 'address' => $businessProfile->address,
                 'slug' => $businessProfile->slug,
                 'logo' => $businessProfile->images->where('is_logo', true)->first()?->image_path
-                    ? \Illuminate\Support\Facades\Storage::url($businessProfile->images->where('is_logo', true)->first()->image_path)
+                    ? \App\Services\FileUploadService::url($businessProfile->images->where('is_logo', true)->first()->image_path, 'public')
                     : null,
             ],
             'services' => $provider->services->map(fn($service) => [

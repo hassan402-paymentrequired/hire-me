@@ -56,7 +56,7 @@ export default function Verification({ existingVerification, is_verified }: Prop
     };
 
     const skip = () => {
-        router.visit('/business/dashboard');
+        router.post(onboarding.skip().url);
     };
 
     const documentTypeOptions = [

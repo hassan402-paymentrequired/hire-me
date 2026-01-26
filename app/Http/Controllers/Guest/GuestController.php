@@ -103,7 +103,7 @@ class GuestController extends Controller
                 'businessName' => $provider->businessProfile->business_name,
                 'slug' => $provider->businessProfile->slug,
                 'logo' => $provider->businessProfile->images->where('is_logo', true)->first()?->image_path
-                    ? \Illuminate\Support\Facades\Storage::url($provider->businessProfile->images->where('is_logo', true)->first()->image_path)
+                    ? \App\Services\FileUploadService::url($provider->businessProfile->images->where('is_logo', true)->first()->image_path, 'public')
                     : null,
                 'address' => $provider->businessProfile->address,
                 'servicesCount' => $provider->services->count(),
