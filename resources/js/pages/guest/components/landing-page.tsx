@@ -1,10 +1,42 @@
 import { Button } from '@/components/ui/button';
 import { ArrowDownIcon } from '@heroicons/react/24/solid';
 import Cubes from './cube';
+import { useState, useEffect } from 'react';
 
 export default function Landing() {
+    const [imageOpacity, setImageOpacity] = useState(1);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const marketplaceElement = document.getElementById('marketplace');
+            if (!marketplaceElement) return;
+
+            const marketplaceTop = marketplaceElement.getBoundingClientRect().top;
+            const windowHeight = window.innerHeight;
+
+            // Calculate opacity based on distance to marketplace
+            // When marketplace is at window bottom (75% down), start fading
+            const fadeStartDistance = windowHeight * 0.75;
+            const fadeEndDistance = windowHeight * 0.25;
+
+            if (marketplaceTop > fadeStartDistance) {
+                setImageOpacity(1);
+            } else if (marketplaceTop < fadeEndDistance) {
+                setImageOpacity(0);
+            } else {
+                const range = fadeStartDistance - fadeEndDistance;
+                const distance = marketplaceTop - fadeEndDistance;
+                const opacity = Math.max(0, Math.min(1, distance / range));
+                setImageOpacity(opacity);
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
     return (
-        <div className="relative isolate flex min-h-[calc(90vh-3rem)] items-center overflow-hidden">
+        <div className="relative isolate flex min-h-[calc(100vh-3rem)] items-center overflow-hidden">
             <div className="relative z-10 mx-auto max-w-7xl px-6 py-8 lg:px-8">
                 <div className="mx-auto max-w-2xl text-center">
                     <div className='relative h-[10px]'>
@@ -49,7 +81,7 @@ export default function Landing() {
                     <div className="mt-6 flex items-center justify-center gap-x-6">
                         <a href="#marketplace">
                             <Button>
-                                Get started <ArrowDownIcon />
+                                Get started <ArrowDownIcon className='animate-bounce'/>
                             </Button>
                         </a>
                     </div>
@@ -60,7 +92,8 @@ export default function Landing() {
                 alt="hero image"
                 src="assets/illustrations/group.svg"
                 aria-hidden="true"
-                className="pointer-events-none absolute bottom-0 left-1/2 z-0 min-w-screen -translate-x-1/2"
+                className="pointer-events-none fixed bottom-0 left-1/2 -translate-x-1/2 z-0 min-w-screen transition-opacity duration-300"
+                style={{ opacity: imageOpacity }}
             />
 
 

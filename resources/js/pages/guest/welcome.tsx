@@ -185,7 +185,7 @@ export default function Welcome({ providers, categories, filters }: Props) {
                     <Landing />
 
                     {/* market place */}
-                    <div id="marketplace">
+                    <div id="marketplace" className="min-h-[calc(98vh-3rem)]">
                         <HeaderFilter
                             categories={categories}
                             filters={filters}
@@ -194,7 +194,7 @@ export default function Welcome({ providers, categories, filters }: Props) {
                         />
 
                         {/* Main Content Grid */}
-                        <div className="min-h-[calc(100vh-3rem)]">
+                        <div >
                             <div className="px-1 py-4">
                                 {allProviders.length === 0 && !loading ? (
                                     <div className="py-12 text-center">
