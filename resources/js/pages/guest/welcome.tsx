@@ -1,9 +1,12 @@
 import AppLayout from '@/layouts/guest-layout';
 import BusinessCard from '@/pages/guest/components/business-card';
 import { HeaderFilter } from '@/pages/guest/components/filter';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Landing from './components/landing-page';
+import { MiniLoginForm } from './mini-login-form';
+
+const PROVIDERS_BEFORE_LOGIN = 8; // 2 rows × 4 cols (xl)
 
 interface Provider {
     id: string;
@@ -44,14 +47,25 @@ interface Props {
     canRegister: boolean;
 }
 
-export default function Welcome({ providers, categories, filters }: Props) {
+export default function Welcome({ providers, categories, filters, canRegister }: Props) {
+    const { auth } = usePage().props as { auth?: { user?: unknown } };
+    const isGuest = !auth?.user;
     const [allProviders, setAllProviders] = useState(providers.data);
     const [loading, setLoading] = useState(false);
     const loadMoreRef = useRef<HTMLDivElement>(null);
     const isLoadingRef = useRef(false); // Prevent multiple simultaneous requests
 
+    const displayProviders = isGuest
+        ? allProviders.slice(0, PROVIDERS_BEFORE_LOGIN)
+        : allProviders;
+
     const loadMore = useCallback(() => {
-        if (!providers.next_page_url || isLoadingRef.current) return;
+        if (
+            isGuest ||
+            !providers.next_page_url ||
+            isLoadingRef.current
+        )
+            return;
 
         isLoadingRef.current = true;
         setLoading(true);
@@ -73,7 +87,7 @@ export default function Welcome({ providers, categories, filters }: Props) {
                 },
             },
         );
-    }, [providers.next_page_url]);
+    }, [isGuest, providers.next_page_url]);
 
     useEffect(() => {
         if (providers.current_page === 1) {
@@ -185,7 +199,7 @@ export default function Welcome({ providers, categories, filters }: Props) {
                     <Landing />
 
                     {/* market place */}
-                    <div id="marketplace" className="min-h-[calc(98vh-3rem)]">
+                    <div id="marketplace" className="min-h-[calc(98vh-3rem)] z-100">
                         <HeaderFilter
                             categories={categories}
                             filters={filters}
@@ -206,7 +220,7 @@ export default function Welcome({ providers, categories, filters }: Props) {
                                 ) : (
                                     <>
                                         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                            {allProviders.map((provider) => (
+                                            {displayProviders.map((provider) => (
                                                 <BusinessCard
                                                     provider={provider}
                                                     key={provider.id}
@@ -214,20 +228,31 @@ export default function Welcome({ providers, categories, filters }: Props) {
                                             ))}
                                         </div>
 
-                                        {/* Infinite Scroll Trigger */}
-                                        {providers.next_page_url && (
-                                            <div
-                                                ref={loadMoreRef}
-                                                className="mt-8 flex h-10 items-center justify-center"
-                                            >
-                                                {loading && (
-                                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                                        Loading more...
-                                                    </div>
-                                                )}
+                                        {/* Guest gate: login to continue viewing more providers */}
+                                        {isGuest && (
+                                            <div className="mt-10">
+                                                <MiniLoginForm
+                                                    gate
+                                                    canRegister={canRegister}
+                                                />
                                             </div>
                                         )}
+
+                                        {/* Infinite Scroll Trigger — only when authenticated */}
+                                        {!isGuest &&
+                                            providers.next_page_url && (
+                                                <div
+                                                    ref={loadMoreRef}
+                                                    className="mt-8 flex h-10 items-center justify-center"
+                                                >
+                                                    {loading && (
+                                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                                            Loading more...
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                     </>
                                 )}
                             </div>
