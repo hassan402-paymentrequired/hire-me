@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
 import AppLayout from '@/layouts/guest-layout';
-import { Head, router } from '@inertiajs/react';
-import { HeaderFilter } from '@/pages/guest/components/filter';
 import BusinessCard from '@/pages/guest/components/business-card';
+import { HeaderFilter } from '@/pages/guest/components/filter';
+import { Head, router } from '@inertiajs/react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import Landing from './components/landing-page';
 
 interface Provider {
     id: string;
@@ -69,25 +70,23 @@ export default function Welcome({ providers, categories, filters }: Props) {
                 onError: () => {
                     setLoading(false);
                     isLoadingRef.current = false;
-                }
-            }
+                },
+            },
         );
     }, [providers.next_page_url]);
-
 
     useEffect(() => {
         if (providers.current_page === 1) {
             setAllProviders(providers.data);
         } else {
-            setAllProviders(prev => {
+            setAllProviders((prev) => {
                 const newProviders = providers.data.filter(
-                    p => !prev.some(existing => existing.id === p.id)
+                    (p) => !prev.some((existing) => existing.id === p.id),
                 );
                 return [...prev, ...newProviders];
             });
         }
     }, [providers.data, providers.current_page]);
-
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -96,7 +95,7 @@ export default function Welcome({ providers, categories, filters }: Props) {
                     loadMore();
                 }
             },
-            { threshold: 0.5, rootMargin: '100px' } // Trigger earlier for better UX
+            { threshold: 0.5, rootMargin: '100px' }, // Trigger earlier for better UX
         );
 
         const currentRef = loadMoreRef.current;
@@ -113,26 +112,30 @@ export default function Welcome({ providers, categories, filters }: Props) {
     }, [loadMore]);
 
     const requestLocation = () => {
-        if ("geolocation" in navigator) {
+        if ('geolocation' in navigator) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    router.get('/', {
-                        ...filters,
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude,
-                        sort: 'distance_asc' // Auto-sort by distance
-                    }, {
-                        preserveState: true,
-                        replace: true,
-                        preserveScroll: true
-                    });
+                    router.get(
+                        '/',
+                        {
+                            ...filters,
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude,
+                            sort: 'distance_asc', // Auto-sort by distance
+                        },
+                        {
+                            preserveState: true,
+                            replace: true,
+                            preserveScroll: true,
+                        },
+                    );
                 },
                 (error) => {
-                    console.error("Error getting location:", error);
-                }
+                    console.error('Error getting location:', error);
+                },
             );
         } else {
-            console.error("Geolocation is not supported by this browser.");
+            console.error('Geolocation is not supported by this browser.');
         }
     };
 
@@ -145,59 +148,90 @@ export default function Welcome({ providers, categories, filters }: Props) {
 
     return (
         <>
-            <Head
-                title="Find Services Providers Near You | Clockra">
-                <meta name="description" content="Discover local service providers near your location with Clockra. Browse trusted professionals, view service offerings, ratings, and book your next appointment with ease. Find the right expert for your needs quickly and securely." />
-                <meta name="keywords" content="service providers, local providers, find providers, hire providers, book appointments, find services, hire services, book services, find professionals, hire professionals, book professionals, find experts, hire experts, book experts" />
+            <Head title="Find Services Providers Near You | Clockra">
+                <meta
+                    name="description"
+                    content="Discover local service providers near your location with Clockra. Browse trusted professionals, view service offerings, ratings, and book your next appointment with ease. Find the right expert for your needs quickly and securely."
+                />
+                <meta
+                    name="keywords"
+                    content="service providers, local providers, find providers, hire providers, book appointments, find services, hire services, book services, find professionals, hire professionals, book professionals, find experts, hire experts, book experts"
+                />
                 <meta name="author" content="Clockra" />
                 <meta name="robots" content="index, follow" />
-                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                <meta property="og:title" content="Find Services Providers Near You | Clockra" />
-                <meta property="og:description" content="Discover local service providers near your location with Clockra. Browse trusted professionals, view service offerings, ratings, and book your next appointment with ease. Find the right expert for your needs quickly and securely." />
+                <meta
+                    name="viewport"
+                    content="width=device-width, initial-scale=1.0"
+                />
+                <meta
+                    property="og:title"
+                    content="Find Services Providers Near You | Clockra"
+                />
+                <meta
+                    property="og:description"
+                    content="Discover local service providers near your location with Clockra. Browse trusted professionals, view service offerings, ratings, and book your next appointment with ease. Find the right expert for your needs quickly and securely."
+                />
                 <meta property="og:image" content="/logo/site.webmanifest" />
             </Head>
-                <link rel="preconnect" href="https://fonts.bunny.net" />
-                <link
-                    href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600"
-                    rel="stylesheet"
-                />
+            <link rel="preconnect" href="https://fonts.bunny.net" />
+            <link
+                href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600"
+                rel="stylesheet"
+            />
             <AppLayout>
-                <div className="flex flex-col space-y-6 px-5 box-border overflow-hidden pb-10 w-full mx-auto max-w-7xl">
+                <div className="mx-auto box-border flex w-full max-w-7xl flex-col space-y-6 overflow-visible px-5 ">
                     {/* Top Filter Bar */}
-                    <HeaderFilter
-                        categories={categories}
-                        filters={filters}
-                        onLocationRequest={requestLocation}
-                        hasLocation={!!filters.lat}
-                    />
 
-                    {/* Main Content Grid */}
-                    <div className="px-1 py-4">
-                        {allProviders.length === 0 && !loading ? (
-                            <div className="text-center py-12">
-                                <p className="text-muted-foreground">No providers available at the moment.</p>
-                            </div>
-                        ) : (
-                            <>
-                                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                    {allProviders.map((provider) => (
-                                        <BusinessCard provider={provider} key={provider.id} />
-                                    ))}
-                                </div>
+                    <Landing />
 
-                                {/* Infinite Scroll Trigger */}
-                                {providers.next_page_url && (
-                                    <div ref={loadMoreRef} className="h-10 mt-8 flex items-center justify-center">
-                                        {loading && (
-                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                                Loading more...
+                    {/* market place */}
+                    <div id="marketplace">
+                        <HeaderFilter
+                            categories={categories}
+                            filters={filters}
+                            onLocationRequest={requestLocation}
+                            hasLocation={!!filters.lat}
+                        />
+
+                        {/* Main Content Grid */}
+                        <div className="min-h-[calc(100vh-3rem)]">
+                            <div className="px-1 py-4">
+                                {allProviders.length === 0 && !loading ? (
+                                    <div className="py-12 text-center">
+                                        <p className="text-muted-foreground">
+                                            No providers available at the
+                                            moment.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                            {allProviders.map((provider) => (
+                                                <BusinessCard
+                                                    provider={provider}
+                                                    key={provider.id}
+                                                />
+                                            ))}
+                                        </div>
+
+                                        {/* Infinite Scroll Trigger */}
+                                        {providers.next_page_url && (
+                                            <div
+                                                ref={loadMoreRef}
+                                                className="mt-8 flex h-10 items-center justify-center"
+                                            >
+                                                {loading && (
+                                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                                        Loading more...
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
-                                    </div>
+                                    </>
                                 )}
-                            </>
-                        )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </AppLayout>

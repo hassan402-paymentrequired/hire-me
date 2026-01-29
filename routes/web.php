@@ -95,6 +95,9 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
         Route::get('/', [\App\Http\Controllers\Client\WalletController::class, 'index'])->name('index');
         Route::post('/top-up/initialize', [\App\Http\Controllers\Client\WalletController::class, 'initializeTopUp'])->name('top-up.initialize');
         Route::post('/top-up/verify', [\App\Http\Controllers\Client\WalletController::class, 'verifyTopUp'])->name('top-up.verify');
+        // Client withdrawal routes - use different paths to avoid collision with provider routes
+        Route::post('/client/withdraw/recipient', [\App\Http\Controllers\Client\WalletController::class, 'createRecipient'])->name('client.withdraw.recipient');
+        Route::post('/client/withdraw', [\App\Http\Controllers\Client\WalletController::class, 'withdraw'])->name('client.withdraw');
     });
 
     // Provider Withdrawals

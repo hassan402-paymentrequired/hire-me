@@ -82,7 +82,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
     const { toggleFavoriteSheet } = useLoading();
     return (
         <>
-            <div className="border-b border-sidebar-border/80">
+            <div className="fixed top-0 right-0 left-0 z-30 border-b border-sidebar-border/80 bg-background">
                 <div className="mx-auto flex h-12 items-center px-4 md:max-w-7xl">
                     {/* Mobile Menu */}
                     <div className="hidden">
@@ -200,11 +200,14 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                     <div className="ml-auto flex items-center space-x-2">
                         {auth?.user ? (
                             <div className="flex items-center gap-2">
-
-
                                 {auth.user.has_provider_setup ? (
                                     <Link href={business.dashboard()} prefetch>
-                                        <Button size="sm"  className="rounded-2xl">Dashboard</Button>
+                                        <Button
+                                            size="sm"
+                                            className="rounded-2xl"
+                                        >
+                                            Dashboard
+                                        </Button>
                                     </Link>
                                 ) : (
                                     <div className="space-x-4">
@@ -246,7 +249,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                     </div>
                                 )}
 
-                                 {/* Wallet Balance Display */}
+                                {/* Wallet Balance Display */}
                                 {auth.user.wallet && (
                                     <TooltipProvider delayDuration={0}>
                                         <Tooltip>
@@ -329,7 +332,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                 </div>
             </div>
             {breadcrumbs.length > 1 && (
-                <div className="flex w-full border-b border-sidebar-border/70">
+                <div className="mt-12 flex w-full border-b border-sidebar-border/70">
                     <div className="mx-auto flex h-12 w-full items-center justify-start px-4 text-neutral-500 md:max-w-7xl">
                         <Breadcrumbs breadcrumbs={breadcrumbs} />
                     </div>
