@@ -129,7 +129,9 @@ class Wallet extends Model
             throw new \Exception('Insufficient escrow balance');
         }
 
+        $balanceBefore = $this->balance;
         $this->escrow_balance -= $amount;
+        $this->balance += $amount;
         $this->save();
 
         return WalletTransaction::create([
@@ -138,7 +140,7 @@ class Wallet extends Model
             'appointment_id' => $appointment->id,
             'type' => 'escrow_refund',
             'amount' => $amount,
-            'balance_before' => $this->balance,
+            'balance_before' => $balanceBefore,
             'balance_after' => $this->balance,
             'status' => 'completed',
             'description' => $description ?? "Escrow refunded for cancelled appointment #{$appointment->id}",

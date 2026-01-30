@@ -17,8 +17,9 @@ import { Head, router } from '@inertiajs/react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { addMonths, format } from 'date-fns';
-import { Box, Check, CheckCircle2, Clock, Repeat } from 'lucide-react';
+import { Box, Check, CheckCircle2, Clock, Repeat, Wallet, ShieldCheck } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { CustomAlertDialog } from '@/components/ui/custom-alert-dialog';
 
 interface Service {
     id: string;
@@ -80,6 +81,9 @@ export default function Booking({
         null,
     );
     const [recurrenceCount, setRecurrenceCount] = useState<number | null>(null);
+    const [insufficientBalanceDialogOpen, setInsufficientBalanceDialogOpen] = useState(false);
+    const [paymentConfirmDialogOpen, setPaymentConfirmDialogOpen] = useState(false);
+    const [pendingShortfall, setPendingShortfall] = useState<number>(0);
 
     // Provider settings with defaults
     const providerSettings: ProviderSettings = settings || {
@@ -184,32 +188,22 @@ export default function Booking({
         if (!selectedDate || !selectedSlot || selectedServiceIds.length === 0)
             return;
 
-        // Check wallet balance - payment is required upfront (no escrow)
+        // Check wallet balance - payment is required upfront
         if (
             walletBalance !== null &&
             walletBalance !== undefined &&
             walletBalance < totalPrice
         ) {
-            const shortfall = totalPrice - walletBalance;
-            if (
-                confirm(
-                    `Insufficient wallet balance. You need ₦${shortfall.toLocaleString()} more to complete this booking. Payment is required upfront. Would you like to top up your wallet?`,
-                )
-            ) {
-                router.visit('/wallet');
-            }
+            setPendingShortfall(totalPrice - walletBalance);
+            setInsufficientBalanceDialogOpen(true);
             return;
         }
 
-        // Confirm payment hold
-        if (
-            !confirm(
-                `You will be charged ₦${totalPrice.toLocaleString()} which will be held securely. Payment will be released to the provider only after both you and the provider confirm the service is completed. Continue?`,
-            )
-        ) {
-            return;
-        }
+        // Show payment confirmation
+        setPaymentConfirmDialogOpen(true);
+    };
 
+    const submitBooking = () => {
         const bookingData: any = {
             provider_id: provider.id,
             service_ids: selectedServiceIds,
@@ -218,7 +212,6 @@ export default function Booking({
             reschedule_id: rescheduleId,
         };
 
-        // Add recurrence data if selected
         if (recurrencePattern) {
             bookingData.recurrence_pattern = recurrencePattern;
             if (recurrenceEndDate) {
@@ -244,6 +237,30 @@ export default function Booking({
     return (
         <GuestLayout>
             <Head title={`Book with ${provider.businessName}`} />
+
+            {/* Insufficient balance dialog */}
+            <CustomAlertDialog
+                open={insufficientBalanceDialogOpen}
+                onOpenChange={setInsufficientBalanceDialogOpen}
+                icon={<Wallet className="size-12 text-amber-500" />}
+                title="Insufficient Wallet Balance"
+                description={`You need ₦${pendingShortfall.toLocaleString()} more to complete this booking. Payment is required upfront. Would you like to top up your wallet?`}
+                acceptLabel="Top Up Wallet"
+                rejectLabel="Cancel"
+                onAccept={() => router.visit('/wallet')}
+            />
+
+            {/* Payment confirmation dialog */}
+            <CustomAlertDialog
+                open={paymentConfirmDialogOpen}
+                onOpenChange={setPaymentConfirmDialogOpen}
+                icon={<ShieldCheck className="size-12 text-primary" />}
+                title="Confirm Payment"
+                description={`You will be charged ₦${totalPrice.toLocaleString()} which will be held securely. Payment will be released to the provider only after both you and the provider confirm the service is completed. Continue?`}
+                acceptLabel="Continue"
+                rejectLabel="Cancel"
+                onAccept={submitBooking}
+            />
 
             <div className="mx-auto min-h-screen max-w-6xl bg-background pb-20">
                 <div className="mx-auto max-w-7xl px-4 py-8">

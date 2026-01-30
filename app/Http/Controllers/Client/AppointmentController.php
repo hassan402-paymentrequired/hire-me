@@ -21,17 +21,47 @@ use App\Mail\AppointmentCompletedMail;
 
 class AppointmentController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = auth()->user();
+        $statusFilter = $request->get('status', 'active');
 
-        $bookings = Appointment::where('client_id', $user->id)
-            ->with(['provider.businessProfile', 'services'])
-            ->orderBy('start_time', 'desc')
-            ->get();
+        $query = Appointment::where('client_id', $user->id)
+            ->with(['provider.businessProfile.images', 'services'])
+            ->orderBy('start_time', 'desc');
+
+        if ($statusFilter === 'active') {
+            $query->whereIn('status', ['pending', 'confirmed', 'pending_completion']);
+        } elseif ($statusFilter === 'cancelled') {
+            $query->where('status', 'cancelled');
+        } elseif ($statusFilter === 'completed') {
+            $query->where('status', 'completed');
+        }
+        // 'all' = no additional filter
+
+        $bookings = $query->get();
+
+        $bookings = $bookings->map(function ($booking) {
+            $data = $booking->toArray();
+            $bp = $booking->provider?->businessProfile;
+            $logoUrl = null;
+            if ($bp) {
+                $logoImage = $bp->images->where('is_logo', true)->first();
+                $path = $logoImage?->image_path ?? $bp->logo_path;
+                if ($path) {
+                    $logoUrl = \App\Services\FileUploadService::url($path, 'public');
+                    if (!$logoUrl) {
+                        $logoUrl = '/storage/' . ltrim($path, '/');
+                    }
+                }
+            }
+            $data['provider_logo_url'] = $logoUrl;
+            return $data;
+        });
 
         return Inertia::render('client/bookings/index', [
             'bookings' => $bookings,
+            'statusFilter' => $statusFilter,
         ]);
     }
 

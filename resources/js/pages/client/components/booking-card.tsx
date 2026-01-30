@@ -11,15 +11,14 @@ import {
     ChevronRight,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import client from '@/routes/client';
 import {
     formatDate,
     formatTime,
     formatStatus,
     formatPrice,
-    getStatusVariant,
 } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 interface BusinessProfile {
     id: string;
@@ -53,7 +52,7 @@ interface Service {
     status: string;
 }
 
-interface Booking {
+export interface BookingCardBooking {
     id: string;
     provider_id: string;
     service_id: string;
@@ -62,7 +61,7 @@ interface Booking {
     client_email: string | null;
     start_time: string;
     end_time: string;
-    status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
+    status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'pending_completion' | 'no_show';
     price: string;
     notes: string | null;
     payment_status?: 'pending' | 'paid' | 'refunded';
@@ -71,18 +70,21 @@ interface Booking {
     service?: Service;
     created_at: string;
     updated_at: string;
+    provider_logo_url?: string | null;
 }
 
-const BookingCard = ({ booking }: { booking: Booking }) => {
+const BookingCard = ({ booking }: { booking: BookingCardBooking }) => {
     const services = booking.services || (booking.service ? [booking.service] : []);
     const hasMultipleServices = services.length > 1;
     const totalDuration = services.reduce((sum, service) => sum + (service.duration_minutes || 0), 0);
     const primaryService = services[0];
 
-    // Fix: Check if logo_path exists before constructing URL
-    const businessImage = booking.provider?.business_profile?.logo_path
-        ? `/storage/${booking.provider.business_profile.logo_path}`
-        : null;
+    // Prefer provider_logo_url from backend, fallback to business_profile logo
+    const businessImage =
+        booking.provider_logo_url ??
+        (booking.provider?.business_profile?.logo_path
+            ? `/storage/${booking.provider.business_profile.logo_path}`
+            : null);
     const businessName = booking.provider?.business_profile?.business_name || 'Business';
 
     // Check if appointment is upcoming, past, or today
@@ -115,27 +117,35 @@ const BookingCard = ({ booking }: { booking: Booking }) => {
                         <ImageIcon className="w-16 h-16 text-muted-foreground/30" />
                     </div>
 
-                    {/* Status Badge Overlay */}
-                    <div className="absolute -top-1 right-0">
-                        <Badge
-                            variant={getStatusVariant(booking.status)}
-                            className="rounded-none rounded-bl-lg shadow-lg"
+                    {/* Status Badge Overlay - z-10 above gradient, solid bg for visibility */}
+                    <div className="absolute top-3 right-3 z-10">
+                        <span
+                            className={cn(
+                                'inline-flex items-center rounded-lg px-3 py-1 text-xs font-semibold shadow-md',
+                                booking.status === 'confirmed' && 'bg-green-600 text-white',
+                                booking.status === 'pending' && 'bg-amber-500 text-white',
+                                booking.status === 'cancelled' && 'bg-red-600 text-white',
+                                booking.status === 'completed' && 'bg-slate-600 text-white',
+                                booking.status === 'no_show' && 'bg-red-600 text-white',
+                                !['confirmed', 'pending', 'cancelled', 'completed', 'pending_completion', 'no_show'].includes(booking.status) &&
+                                    'bg-white/95 text-foreground',
+                            )}
                         >
                             {formatStatus(booking.status)}
-                        </Badge>
+                        </span>
                     </div>
 
                     {/* Today/Upcoming Indicator */}
-                    {isToday && booking.status !== 'cancelled' && booking.status !== 'completed' && (
-                        <div className="absolute top-3 left-3">
-                            <Badge className="bg-orange-500 hover:bg-orange-600 shadow-lg animate-pulse">
+                    {isToday && !['cancelled', 'completed'].includes(booking.status) && (
+                        <div className="absolute top-3 left-3 z-10">
+                            <span className="inline-flex items-center rounded-lg bg-orange-500 px-3 py-1 text-xs font-semibold text-white shadow-md">
                                 Today
-                            </Badge>
+                            </span>
                         </div>
                     )}
 
-                    {/* Gradient Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+                    {/* Gradient Overlay - below badges */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent pointer-events-none" />
 
                     {/* Business Name Overlay */}
                     <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-2">

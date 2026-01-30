@@ -76,6 +76,8 @@ interface Booking {
     status: string;
     price: string;
     notes: string | null;
+    cancelled_by: string | null;
+    cancellation_reason: string | null;
     provider: Provider;
     service: Service;
     services: Service[];
@@ -243,7 +245,7 @@ export default function BookingDetails({
         <GuestLayout>
             <Head title={`Booking - ${booking.services?.length > 0 ? booking.services[0].name : (booking.service?.name || 'Appointment')}`} />
 
-            <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 w-full">
                 {/* Header */}
                 <div className="mb-8">
                     <div className="flex items-start justify-between gap-4">
@@ -391,9 +393,54 @@ export default function BookingDetails({
                                             {booking.provider?.business_profile?.address}
                                         </p>
                                     </div>
+                                   
+                                    {/* Location */}
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                                            <Phone className="w-4 h-4" />
+                                            <span className="font-medium">Contact</span>
+                                        </div>
+                                        <p className="text-sm font-medium leading-relaxed">
+                                            {booking.provider.business_profile.phone}
+                                        </p>
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
+
+                        {/* Cancellation Details (if cancelled) */}
+                        {booking.status === 'cancelled' && (booking.cancelled_by || booking.cancellation_reason) && (
+                            <Card className="border-destructive/50">
+                                <CardHeader>
+                                    <CardTitle className="text-base flex items-center gap-2 text-destructive">
+                                        <XCircle className="w-4 h-4" />
+                                        Cancellation Details
+                                    </CardTitle>
+                                </CardHeader>
+                                <Separator />
+                                <CardContent className="pt-4">
+                                    <div className="space-y-3 text-sm">
+                                        {booking.cancelled_by && (
+                                            <div>
+                                                <span className="text-muted-foreground">Cancelled by: </span>
+                                                <span className="font-medium capitalize">{booking.cancelled_by}</span>
+                                            </div>
+                                        )}
+                                        {booking.cancellation_reason && (
+                                            <div>
+                                                <span className="text-muted-foreground block mb-1">Reason:</span>
+                                                <p className="bg-muted/50 rounded-lg p-3 text-foreground">
+                                                    {booking.cancellation_reason}
+                                                </p>
+                                            </div>
+                                        )}
+                                        <p className="text-xs text-muted-foreground">
+                                            Your payment has been refunded to your wallet if it was held in escrow.
+                                        </p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {/* Notes Card (if exists) */}
                         {booking.notes && (
