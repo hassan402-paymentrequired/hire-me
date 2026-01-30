@@ -102,7 +102,8 @@ export default function BookingDetails({
     const startTime = new Date(booking.start_time);
     const now = new Date();
     const fiveHoursFromNow = new Date(now.getTime() + 5 * 60 * 60 * 1000);
-    const canCancel = startTime > fiveHoursFromNow && booking.status !== 'cancelled' && booking.status !== 'completed';
+    const isLateCancellation = startTime > now && startTime <= fiveHoursFromNow;
+    const canCancel = startTime > now && booking.status !== 'cancelled' && booking.status !== 'completed';
 
     // Calculate total duration from all services
     const totalDuration = booking.services?.reduce((sum, s) => sum + s.duration_minutes, 0)
@@ -116,14 +117,15 @@ export default function BookingDetails({
     const handleCancelBooking = () => {
         if (!canCancel) return;
 
-        if (confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
+        const confirmMsg = isLateCancellation
+            ? 'Cancelling less than 5 hours before your appointment will result in a 10% late cancellation fee. The rest will be refunded. Continue?'
+            : 'Are you sure you want to cancel this booking? You will receive a full refund.';
+
+        if (confirm(confirmMsg)) {
             setIsProcessing(true);
             router.post(`/appointments/${booking.id}/cancel`, {}, {
-                onSuccess: () => {
-                    toast.success('Booking cancelled successfully');
-                },
                 onError: (errors) => {
-                    toast.error(errors?.message || 'Failed to cancel booking');
+                    toast.error(typeof errors === 'object' ? Object.values(errors)[0] as string : 'Failed to cancel. Please try again.');
                 },
                 onFinish: () => setIsProcessing(false),
             });
@@ -436,7 +438,7 @@ export default function BookingDetails({
                                         <CardTitle className="text-base">Manage Booking</CardTitle>
                                         <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-tight text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200 w-fit">
                                             <AlertCircle className="w-3 h-3" />
-                                            5h Cancellation Policy
+                                            Late cancellation (within 5h): 10% fee applies
                                         </div>
                                     </div>
                                 </CardHeader>
@@ -570,7 +572,7 @@ export default function BookingDetails({
                                         </Button>
                                         {!canCancel && booking.status !== 'cancelled' && booking.status !== 'completed' && (
                                             <p className="text-[10px] text-destructive font-medium px-2">
-                                                Cancellation is only available 5+ hours before start time.
+                                                This appointment has already started or passed and cannot be cancelled.
                                             </p>
                                         )}
                                     </div>

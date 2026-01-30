@@ -12,13 +12,10 @@ interface AdvancedSettingsProps {
         minNotice?: string | number;
         maxDaily?: string | number;
         allowSameDay?: boolean;
-        enableWaitlist?: boolean;
         autoConfirm?: boolean;
-        sendReminders?: boolean;
         max_bookings_per_week?: string | number;
         max_bookings_per_month?: string | number;
         auto_release_payment?: boolean;
-        cancellation_penalty_percent?: string | number;
         [key: string]: any;
     };
     onSettingsChange: (field: string, value: any) => void;
@@ -150,38 +147,20 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
                 <div className="pt-4 border-t border-border space-y-4">
                     <h4 className="text-sm font-medium text-foreground">Payment Settings</h4>
                     <p className="text-xs text-muted-foreground -mt-3">Configure payment policies for your appointments.</p>
-                    <div className="space-y-4">
-                        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-                            <div className="flex items-start gap-2">
-                                <CheckCircle2 className="mt-0.5 size-4 text-primary" />
-                                <div className="flex-1">
-                                    <p className="text-xs font-semibold text-primary">
-                                        Dual Approval Payment System
-                                    </p>
-                                    <p className="mt-1 text-xs text-muted-foreground">
-                                        Clients pay when booking, but payment is held securely until both you and the client confirm the service is completed. This protects both parties from exploitation and ensures service quality.
-                                    </p>
-                                </div>
+                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                        <div className="flex items-start gap-2">
+                            <CheckCircle2 className="mt-0.5 size-4 text-primary" />
+                            <div className="flex-1">
+                                <p className="text-xs font-semibold text-primary">
+                                    Dual Approval Payment System
+                                </p>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    Clients pay when booking, but payment is held securely until both you and the client confirm the service is completed. This protects both parties from exploitation and ensures service quality.
+                                </p>
+                                <p className="mt-2 text-xs text-muted-foreground">
+                                    <strong>Late cancellation policy:</strong> If a client cancels less than 5 hours before the appointment, 10% of the held payment is forfeited to you. The system handles this automatically.
+                                </p>
                             </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="cancellation_penalty_percent">
-                                Late Cancellation Penalty (%)
-                            </Label>
-                            <Input
-                                id="cancellation_penalty_percent"
-                                type="number"
-                                value={settings?.cancellation_penalty_percent ?? '0'}
-                                onChange={(e) => onSettingsChange('cancellation_penalty_percent', e.target.value)}
-                                min="0"
-                                max="100"
-                            />
-                            <p className="text-xs text-muted-foreground">
-                                Percentage of payment forfeited if client cancels less than 5 hours before appointment (0-100)
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                                Example: 50% means client forfeits half the payment, you receive ₦500 from a ₦1000 booking if cancelled late. The remaining ₦500 is refunded to the client.
-                            </p>
                         </div>
                     </div>
                 </div>
@@ -207,21 +186,6 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
                         </div>
                         <div className="flex items-start gap-3">
                             <Checkbox
-                                id="enableWaitlist"
-                                checked={settings?.enableWaitlist ?? false}
-                                onCheckedChange={(checked) => onSettingsChange('enableWaitlist', checked)}
-                            />
-                            <div className="space-y-1 flex-1">
-                                <Label htmlFor="enableWaitlist" className="cursor-pointer">
-                                    Enable waitlist for fully booked slots
-                                </Label>
-                                <p className="text-xs text-muted-foreground">
-                                    Let customers join waitlist when no slots available
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                            <Checkbox
                                 id="autoConfirm"
                                 checked={settings?.autoConfirm ?? false}
                                 onCheckedChange={(checked) => onSettingsChange('autoConfirm', checked)}
@@ -232,21 +196,6 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
                                 </Label>
                                 <p className="text-xs text-muted-foreground">
                                     Automatically confirm without manual approval
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                            <Checkbox
-                                id="sendReminders"
-                                checked={settings?.sendReminders ?? false}
-                                onCheckedChange={(checked) => onSettingsChange('sendReminders', checked)}
-                            />
-                            <div className="space-y-1 flex-1">
-                                <Label htmlFor="sendReminders" className="cursor-pointer">
-                                    Send reminder notifications
-                                </Label>
-                                <p className="text-xs text-muted-foreground">
-                                    Email/SMS reminders before appointments
                                 </p>
                             </div>
                         </div>

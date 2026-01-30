@@ -12,8 +12,9 @@ use App\Models\WorkHour;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use App\Mail\NewBookingMail;
 use App\Mail\AppointmentCancelledMail;
 use App\Mail\AppointmentCompletedMail;
@@ -70,6 +71,13 @@ class AppointmentController extends Controller
             'recurrence_end_date' => 'nullable|date|after:today',
             'recurrence_count' => 'nullable|integer|min:2|max:52',
             'discount_percent' => 'nullable|numeric|min:0|max:100',
+        ], [
+            'provider_id.required' => 'Please select a provider.',
+            'provider_id.exists' => 'The selected provider is no longer available.',
+            'service_ids.required' => 'Please select at least one service to book.',
+            'service_ids.*.exists' => 'One or more selected services are no longer available. Please refresh and try again.',
+            'start_time.required' => 'Please select a date and time for your appointment.',
+            'start_time.date' => 'The selected time is invalid. Please choose another slot.',
         ]);
 
         // Frequency Limits check
@@ -222,8 +230,27 @@ class AppointmentController extends Controller
                 ->with('success-toast', $message);
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->route('marketplace.booking', ['slug' => $provider->businessProfile->slug])
-                ->with('error-toast', 'Failed to book appointment: ' . $e->getMessage());
+            Log::error('Appointment booking failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+
+            $userMessage = match (true) {
+                str_contains($e->getMessage(), 'Insufficient balance') => 'Your wallet balance is too low to complete this booking. Please top up your wallet and try again.',
+                str_contains($e->getMessage(), 'integrity constraint') => 'This time slot may have just been booked by someone else. Please select a different slot and try again.',
+                str_contains($e->getMessage(), 'Connection') => 'We could not process your booking right now due to a connection issue. Please try again in a moment.',
+                default => 'We could not complete your booking. Please check your wallet balance, ensure you have selected a valid time slot, and try again. If the problem persists, contact support.',
+            };
+
+            $redirectParams = ['slug' => $provider->businessProfile->slug];
+            if (!empty($request->service_ids)) {
+                $redirectParams['service_ids'] = is_array($request->service_ids)
+                    ? implode(',', $request->service_ids)
+                    : $request->service_ids;
+            }
+            if ($request->reschedule_id) {
+                $redirectParams['reschedule_id'] = $request->reschedule_id;
+            }
+
+            return redirect()->route('marketplace.booking', $redirectParams)
+                ->with('error-toast', $userMessage);
         }
     }
 
@@ -234,11 +261,7 @@ class AppointmentController extends Controller
             ->findOrFail($id);
 
         $hoursUntilAppointment = Carbon::now()->diffInHours($appointment->start_time, false);
-        $isLateCancellation = $hoursUntilAppointment < 5;
-
-        if ($isLateCancellation && $hoursUntilAppointment > 0) {
-            return back()->with('error-toast', 'Appointments can only be cancelled 5 hours before the start time.');
-        }
+        $isLateCancellation = $hoursUntilAppointment < 5 && $hoursUntilAppointment > 0;
 
         try {
             DB::beginTransaction();
@@ -271,7 +294,11 @@ class AppointmentController extends Controller
             // Send email to provider
             Mail::to($appointment->provider->email)->send(new AppointmentCancelledMail($appointment, 'client'));
 
-            return back()->with('success-toast', 'Appointment cancelled successfully.');
+            $message = $isLateCancellation && $appointment->escrow_status === 'forfeited'
+                ? 'Appointment cancelled. Because you cancelled less than 5 hours before the appointment, a 10% late cancellation fee was applied. The remainder has been refunded to your wallet.'
+                : 'Appointment cancelled successfully. Your refund has been processed.';
+
+            return back()->with('success-toast', $message);
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error-toast', 'Failed to cancel appointment: ' . $e->getMessage());
@@ -332,11 +359,10 @@ class AppointmentController extends Controller
         // Only process if payment is held in escrow
         if ($appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
             $clientWallet = Wallet::firstOrCreate(['user_id' => auth()->id()]);
-            $providerSettings = $appointment->provider->businessProfile->settings ?? [];
-            
-            // Check if provider has cancellation penalty enabled
-            $cancellationPenaltyPercent = $providerSettings['cancellation_penalty_percent'] ?? 0;
-            
+
+            // System policy: 10% forfeited if cancelled less than 5 hours before
+            $cancellationPenaltyPercent = 10;
+
             if ($isLateCancellation && $cancellationPenaltyPercent > 0) {
                 // Apply penalty: forfeit percentage to provider, refund rest
                 $penaltyAmount = ($appointment->escrow_amount * $cancellationPenaltyPercent) / 100;

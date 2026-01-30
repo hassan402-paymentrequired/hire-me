@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import GuestLayout from '@/layouts/guest-layout';
 import { cn } from '@/lib/utils';
 import { Head, router } from '@inertiajs/react';
+import { toast } from 'sonner';
 import axios from 'axios';
 import { addMonths, format } from 'date-fns';
 import { Box, Check, CheckCircle2, Clock, Repeat } from 'lucide-react';
@@ -128,10 +129,13 @@ export default function Booking({
             });
             setAvailableSlots(response.data.slots || []);
             setApiMessage(response.data.message || null);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to fetch slots:', error);
             setAvailableSlots([]);
-            setApiMessage('An error occurred while fetching available slots.');
+            const msg = error?.response?.data?.message;
+            setApiMessage(
+                msg || 'We could not load available slots. Please check your connection and try again, or select a different date.',
+            );
         } finally {
             setLoading(false);
         }
@@ -229,7 +233,12 @@ export default function Booking({
             bookingData.discount_percent = discountPercent;
         }
 
-        router.post('/appointments', bookingData);
+        router.post('/appointments', bookingData, {
+            onError: (errors) => {
+                const firstError = Object.values(errors)[0];
+                toast.error(typeof firstError === 'string' ? firstError : 'Please check your selection and try again.');
+            },
+        });
     };
 
     return (
