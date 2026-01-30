@@ -6,6 +6,8 @@ import {
 import { Button } from '@/components/ui/button';
 import GuestLayout from '@/layouts/guest-layout';
 import BookingCard from '@/pages/client/components/booking-card';
+import { EmptyCard } from '@/components/ui/empty-card';
+import { CalendarIcon } from '@heroicons/react/24/solid';
 
 interface Booking {
     id: string;
@@ -43,7 +45,7 @@ export default function BookingList({ bookings = [] }: { bookings?: Booking[] })
                     <div className="text-center py-20">
                         <div className="flex justify-center mb-4">
                             <div className="p-3 bg-muted rounded-full">
-                                <Calendar className="w-8 h-8 text-muted-foreground" />
+                                <CalendarIcon className="w-8 h-8 text-muted-foreground" />
                             </div>
                         </div>
                         <h3 className="text-lg font-semibold">No bookings yet</h3>

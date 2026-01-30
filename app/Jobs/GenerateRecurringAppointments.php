@@ -5,6 +5,10 @@ namespace App\Jobs;
 use App\Models\Appointment;
 use App\Models\Service;
 use App\Models\Wallet;
+use App\Notifications\RecurringAppointmentInsufficientBalanceNotification;
+use App\Notifications\RecurringAppointmentRescheduledNotification;
+use App\Notifications\RecurringAppointmentSlotTakenNotification;
+use App\Services\SlotAvailabilityService;
 use Carbon\Carbon;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -15,9 +19,6 @@ class GenerateRecurringAppointments implements ShouldQueue
 {
     use Queueable;
 
-    /**
-     * Create a new job instance.
-     */
     public function __construct()
     {
         //
@@ -25,19 +26,17 @@ class GenerateRecurringAppointments implements ShouldQueue
 
     /**
      * Execute the job.
-     * 
+     *
      * This job finds parent recurring appointments and creates the next appointment
      * in the series if needed.
      */
     public function handle(): void
     {
-        // Find all parent recurring appointments that are confirmed or completed
-        // and haven't reached their end date or count limit
         $parentAppointments = Appointment::whereNotNull('recurrence_pattern')
             ->whereNull('recurrence_parent_id')
+            ->whereNull('recurrence_stopped_at')
             ->whereIn('status', ['confirmed', 'completed'])
             ->where(function ($query) {
-                // Either no end date, or end date hasn't passed
                 $query->whereNull('recurrence_end_date')
                     ->orWhere('recurrence_end_date', '>=', now());
             })
@@ -62,8 +61,9 @@ class GenerateRecurringAppointments implements ShouldQueue
      */
     protected function createNextAppointment(Appointment $parent): void
     {
-        // Get the last appointment in the series (or use parent if no children yet)
+        // Get the last non-cancelled appointment in the series (or use parent if no children yet)
         $lastAppointment = $parent->recurrenceChildren()
+            ->where('status', '!=', 'cancelled')
             ->orderBy('start_time', 'desc')
             ->first() ?? $parent;
 
@@ -92,7 +92,7 @@ class GenerateRecurringAppointments implements ShouldQueue
             ->first();
 
         if ($existing) {
-            return; // Already exists
+            return;
         }
 
         // Calculate end time based on service duration
@@ -100,6 +100,44 @@ class GenerateRecurringAppointments implements ShouldQueue
         $totalDuration = $services->sum('duration_minutes');
         $maxBuffer = $services->max('buffer_time_minutes') ?? 0;
         $endTime = $nextDate->copy()->addMinutes($totalDuration);
+
+        // Check if slot is already booked by another client (time conflict)
+        $existingAppointments = Appointment::where('provider_id', $parent->provider_id)
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->whereDate('start_time', $nextDate->format('Y-m-d'))
+            ->get();
+
+        $slotEndWithBuffer = $endTime->copy()->addMinutes($maxBuffer);
+        $slotOverlaps = $existingAppointments->contains(function ($apt) use ($nextDate, $slotEndWithBuffer, $maxBuffer) {
+            $aptEndWithBuffer = $apt->end_time->copy()->addMinutes($apt->buffer_time_minutes ?? 0);
+            return $nextDate->lt($aptEndWithBuffer) && $slotEndWithBuffer->gt($apt->start_time);
+        });
+
+        $originalProposedTime = $nextDate->copy();
+        $usedAlternativeSlot = false;
+
+        if ($slotOverlaps) {
+            $slotService = app(SlotAvailabilityService::class);
+            $alternativeSlot = $slotService->findFirstAvailableSlot(
+                $parent->provider_id,
+                $services,
+                $nextDate
+            );
+
+            if (!$alternativeSlot) {
+                Log::warning('Recurring appointment: no alternative slot found', [
+                    'parent_appointment_id' => $parent->id,
+                    'provider_id' => $parent->provider_id,
+                    'proposed_start' => $originalProposedTime->toIso8601String(),
+                ]);
+                $parent->client->notify(new RecurringAppointmentSlotTakenNotification($parent, $originalProposedTime));
+                return;
+            }
+
+            $nextDate = $alternativeSlot;
+            $endTime = $nextDate->copy()->addMinutes($totalDuration);
+            $usedAlternativeSlot = true;
+        }
 
         // Get the client wallet
         $clientWallet = Wallet::firstOrCreate(['user_id' => $parent->client_id]);
@@ -117,6 +155,11 @@ class GenerateRecurringAppointments implements ShouldQueue
                 'required_amount' => $discountedPrice,
                 'available_balance' => $clientWallet->balance,
             ]);
+            $parent->client->notify(new RecurringAppointmentInsufficientBalanceNotification(
+                $parent,
+                $discountedPrice,
+                (float) $clientWallet->available_balance
+            ));
             return;
         }
 
@@ -157,11 +200,19 @@ class GenerateRecurringAppointments implements ShouldQueue
 
             DB::commit();
 
+            if ($usedAlternativeSlot) {
+                $appointment->client->notify(new RecurringAppointmentRescheduledNotification(
+                    $appointment->fresh(),
+                    $originalProposedTime
+                ));
+            }
+
             Log::info('Recurring appointment created', [
                 'parent_appointment_id' => $parent->id,
                 'new_appointment_id' => $appointment->id,
                 'next_date' => $nextDate->toDateString(),
                 'price' => $discountedPrice,
+                'used_alternative_slot' => $usedAlternativeSlot,
             ]);
 
         } catch (\Exception $e) {

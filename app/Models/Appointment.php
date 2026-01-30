@@ -41,6 +41,7 @@ class Appointment extends Model
         'recurrence_count',
         'original_price',
         'discount_percent',
+        'recurrence_stopped_at',
         'team_member_id',
     ];
 
@@ -51,6 +52,7 @@ class Appointment extends Model
         'escrow_amount' => 'decimal:2',
         'payment_released_at' => 'datetime',
         'recurrence_end_date' => 'date',
+        'recurrence_stopped_at' => 'datetime',
         'original_price' => 'decimal:2',
         'discount_percent' => 'decimal:2',
         'client_approved' => 'boolean',

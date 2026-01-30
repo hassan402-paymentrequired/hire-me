@@ -32,7 +32,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import React, { useState } from 'react';
-import { toast } from 'sonner'; // Assuming you have a toast library
+import { toast } from 'sonner';
 
 interface BusinessProfile {
     id: string;
@@ -84,7 +84,13 @@ interface Booking {
     review?: any[];
 }
 
-export default function BookingDetails({ booking }: { booking: Booking }) {
+export default function BookingDetails({
+    booking,
+    hasFutureRecurrences = false,
+}: {
+    booking: Booking;
+    hasFutureRecurrences?: boolean;
+}) {
     const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [rating, setRating] = useState(5);
@@ -118,6 +124,23 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
                 },
                 onError: (errors) => {
                     toast.error(errors?.message || 'Failed to cancel booking');
+                },
+                onFinish: () => setIsProcessing(false),
+            });
+        }
+    };
+
+    const handleCancelRemainingRecurrences = () => {
+        if (!hasFutureRecurrences) return;
+
+        if (confirm('Cancel all future appointments in this series? You will keep completed appointments and receive refunds for any that haven’t happened yet.')) {
+            setIsProcessing(true);
+            router.post(`/appointments/${booking.id}/cancel-remaining-recurrences`, {}, {
+                onSuccess: () => {
+                    toast.success('Remaining appointments cancelled. Refunds will be processed.');
+                },
+                onError: (errors) => {
+                    toast.error(errors?.message || 'Failed to cancel remaining');
                 },
                 onFinish: () => setIsProcessing(false),
             });
@@ -510,6 +533,23 @@ export default function BookingDetails({ booking }: { booking: Booking }) {
                                         >
                                             <Calendar className="w-4 h-4 mr-2" />
                                             Reschedule Appointment
+                                        </Button>
+                                    )}
+
+                                    {/* Cancel Remaining Recurrences - for recurring series with future appointments */}
+                                    {hasFutureRecurrences && (
+                                        <Button
+                                            variant="outline"
+                                            className="w-full justify-start text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+                                            onClick={handleCancelRemainingRecurrences}
+                                            disabled={isProcessing}
+                                        >
+                                            {isProcessing ? (
+                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            ) : (
+                                                <XCircle className="w-4 h-4 mr-2" />
+                                            )}
+                                            Cancel Remaining Recurrences
                                         </Button>
                                     )}
 

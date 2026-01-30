@@ -40,8 +40,20 @@ class AppointmentController extends Controller
             ->with(['provider.businessProfile', 'services', 'review'])
             ->findOrFail($id);
 
+        $parent = $appointment->recurrence_parent_id
+            ? Appointment::find($appointment->recurrence_parent_id)
+            : ($appointment->isRecurrenceParent() ? $appointment : null);
+
+        $hasFutureRecurrences = $parent && !$parent->recurrence_stopped_at
+            ? Appointment::where('recurrence_parent_id', $parent->id)
+                ->where('start_time', '>', now())
+                ->where('status', '!=', 'cancelled')
+                ->exists()
+            : false;
+
         return Inertia::render('client/bookings/show', [
             'booking' => $appointment,
+            'hasFutureRecurrences' => $hasFutureRecurrences,
         ]);
     }
 
@@ -263,6 +275,49 @@ class AppointmentController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error-toast', 'Failed to cancel appointment: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Cancel remaining future recurrences in a series (keeps completed/past appointments intact)
+     */
+    public function cancelRemainingRecurrences($id)
+    {
+        $appointment = Appointment::where('client_id', auth()->id())
+            ->findOrFail($id);
+
+        $parent = $appointment->recurrence_parent_id
+            ? Appointment::where('client_id', auth()->id())->find($appointment->recurrence_parent_id)
+            : ($appointment->isRecurrenceParent() ? $appointment : null);
+
+        if (!$parent) {
+            return back()->with('error-toast', 'This is not a recurring appointment.');
+        }
+
+        $futureChildren = Appointment::where('recurrence_parent_id', $parent->id)
+            ->where('start_time', '>', now())
+            ->where('status', '!=', 'cancelled')
+            ->get();
+
+        if ($futureChildren->isEmpty()) {
+            return back()->with('success-toast', 'No future appointments to cancel in this series.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            foreach ($futureChildren as $child) {
+                $this->cancelSingleAppointment($child, false);
+            }
+
+            $parent->update(['recurrence_stopped_at' => now()]);
+
+            DB::commit();
+
+            return back()->with('success-toast', 'Remaining recurring appointments have been cancelled. You will receive a refund for each.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error-toast', 'Failed to cancel: ' . $e->getMessage());
         }
     }
 

@@ -267,7 +267,7 @@ export default function Booking({
                                     </li>
                                 )}
                                 {!providerSettings.allowSameDay && (
-                                    <li>• Same-day bookings are not allowed</li>
+                                    <li>• Same-day bookings are not allowed </li>
                                 )}
                                 {providerSettings.max_bookings_per_week && (
                                     <li>
