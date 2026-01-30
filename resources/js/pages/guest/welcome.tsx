@@ -5,6 +5,7 @@ import { Head, router, usePage } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Landing from './components/landing-page';
 import { MiniLoginForm } from './mini-login-form';
+import { EmptyCard } from '@/components/ui/empty-card';
 
 const PROVIDERS_BEFORE_LOGIN = 8; // 2 rows × 4 cols (xl)
 
@@ -199,7 +200,7 @@ export default function Welcome({ providers, categories, filters, canRegister }:
                     <Landing />
 
                     {/* market place */}
-                    <div id="marketplace" className="min-h-[calc(98vh-3rem)] z-100">
+                    <div id="marketplace" className="min-h-[calc(98vh-3rem)] ">
                         <HeaderFilter
                             categories={categories}
                             filters={filters}
@@ -211,12 +212,13 @@ export default function Welcome({ providers, categories, filters, canRegister }:
                         <div >
                             <div className="px-1 py-4">
                                 {allProviders.length === 0 && !loading ? (
-                                    <div className="py-12 text-center">
-                                        <p className="text-muted-foreground">
-                                            No providers available at the
-                                            moment.
-                                        </p>
-                                    </div>
+                                        <EmptyCard
+                                            title="No providers available at the moment."
+                                            description="No providers available at the moment."
+                                            image="assets/icons/empty.png"
+                                            buttonText='View All Providers'
+                                            buttonOnClick={() => router.get('/marketplace')}
+                                        />  
                                 ) : (
                                     <>
                                         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

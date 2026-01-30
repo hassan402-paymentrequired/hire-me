@@ -52,6 +52,7 @@ export function useLocationPermission(options: UseLocationPermissionOptions = {}
         error: null,
         lastChecked: null,
     })
+    const [hasCheckedPermission, setHasCheckedPermission] = useState(false)
 
     const reminderTimerRef = useRef<NodeJS.Timeout | null>(null)
     const lastReminderTimeRef = useRef<Date | null>(null)
@@ -64,28 +65,37 @@ export function useLocationPermission(options: UseLocationPermissionOptions = {}
     }, [])
 
     /**
-     * Check current permission status
+     * Query browser for actual permission status (async)
      */
-    const checkPermission = useCallback((): LocationPermissionStatus => {
+    const queryPermissionStatus = useCallback((): Promise<LocationPermissionStatus> => {
         if (!isGeolocationAvailable()) {
-            return 'unavailable'
+            return Promise.resolve('unavailable')
         }
 
-        // Note: The Permissions API might not be available in all browsers
-        // We'll use a try-catch approach
         try {
-            // Check using Permissions API if available
             if ('permissions' in navigator) {
-                // This is async, but we'll handle it in requestLocation
-                return 'prompt'
+                return navigator.permissions
+                    .query({ name: 'geolocation' as PermissionName })
+                    .then((result) => {
+                        if (result.state === 'granted') return 'granted'
+                        if (result.state === 'denied') return 'denied'
+                        return 'prompt'
+                    })
+                    .catch(() => 'prompt')
             }
-        } catch (e) {
+        } catch {
             // Permissions API not available
         }
 
-        // Default to prompt if we can't determine
-        return 'prompt'
+        return Promise.resolve('prompt')
     }, [isGeolocationAvailable])
+
+    /**
+     * Get current permission status from state (sync)
+     */
+    const checkPermission = useCallback((): LocationPermissionStatus => {
+        return state.status
+    }, [state.status])
 
     /**
      * Request location permission and get position
@@ -158,6 +168,11 @@ export function useLocationPermission(options: UseLocationPermissionOptions = {}
      * Check if we should show a reminder
      */
     const shouldShowReminder = useCallback((): boolean => {
+        // Don't show until we've completed initial permission check
+        if (!hasCheckedPermission) {
+            return false
+        }
+
         // Don't show if already granted
         if (state.status === 'granted') {
             return false
@@ -168,6 +183,11 @@ export function useLocationPermission(options: UseLocationPermissionOptions = {}
             return false
         }
 
+        // Don't show if user denied
+        if (state.status === 'denied') {
+            return false
+        }
+
         // Show if we haven't checked recently or never checked
         if (!lastReminderTimeRef.current) {
             return true
@@ -175,9 +195,9 @@ export function useLocationPermission(options: UseLocationPermissionOptions = {}
 
         const now = new Date()
         const timeSinceLastReminder = now.getTime() - lastReminderTimeRef.current.getTime()
-        
+
         return timeSinceLastReminder >= reminderInterval
-    }, [state.status, reminderInterval])
+    }, [hasCheckedPermission, state.status, reminderInterval])
 
     /**
      * Start reminder interval
@@ -209,35 +229,41 @@ export function useLocationPermission(options: UseLocationPermissionOptions = {}
         }
     }, [])
 
-    // Initialize on mount
+    // Initialize on mount - async check for existing permission
     useEffect(() => {
         if (!isGeolocationAvailable()) {
             setState(prev => ({
                 ...prev,
                 status: 'unavailable',
             }))
+            setHasCheckedPermission(true)
             return
         }
 
-        // Check initial permission
-        const initialStatus = checkPermission()
-        setState(prev => ({
-            ...prev,
-            status: initialStatus,
-        }))
+        let cancelled = false
 
-        // Auto request if enabled
-        if (autoRequest && initialStatus === 'prompt') {
-            requestLocation().catch(() => {
-                // Silently handle error, user will be prompted
-            })
-        }
+        queryPermissionStatus().then((initialStatus) => {
+            if (cancelled) return
+            setState(prev => ({
+                ...prev,
+                status: initialStatus,
+            }))
+            setHasCheckedPermission(true)
 
-        // Start reminder interval
+            // Auto request if enabled and permission not yet granted
+            if (autoRequest && initialStatus === 'prompt') {
+                requestLocation().catch(() => {
+                    // Silently handle error, user will be prompted
+                })
+            }
+        })
+
+        // Start reminder interval (will be updated when status resolves)
         startReminderInterval()
 
         // Cleanup
         return () => {
+            cancelled = true
             stopReminderInterval()
         }
     }, []) // Only run on mount
