@@ -217,7 +217,7 @@ export default function Welcome({ providers, categories, filters, canRegister }:
                                             description="No providers available at the moment."
                                             image="assets/icons/empty.png"
                                             buttonText='View All Providers'
-                                            buttonOnClick={() => router.get('/marketplace')}
+                                            buttonOnClick={() => router.get('/')}
                                         />  
                                 ) : (
                                     <>

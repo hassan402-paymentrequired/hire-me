@@ -10,25 +10,25 @@ import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
 
-const sidebarNavItems: NavItem[] = [
+const sidebarNavItems: Array<{ title: string; href: string; icon: React.ReactNode | null }> = [
     {
         title: 'Profile',
-        href: edit(),
+        href: edit().url,
         icon: null,
     },
     {
         title: 'Password',
-        href: editPassword(),
+        href: editPassword().url,
         icon: null,
     },
     {
         title: 'Two-Factor Auth',
-        href: show(),
+        href: show().url,
         icon: null,
     },
     {
         title: 'Appearance',
-        href: editAppearance(),
+        href: editAppearance().url,
         icon: null,
     },
 ];
@@ -57,7 +57,7 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
                                 size="sm"
                                 variant="ghost"
                                 asChild
-                                className={cn('w-full justify-start', {
+                                className={cn('w-full   shadow-none ', {
                                     'bg-muted': isSameUrl(
                                         currentPath,
                                         item.href,

@@ -11,7 +11,7 @@ import {
 
 interface EmptyCardProps {
   title: string;
-  description: string;
+  description?: string;
   image: string;
   buttonText?: string;
   buttonOnClick?: () => void;
@@ -25,13 +25,17 @@ export function EmptyCard({ title, description, image, buttonText, buttonOnClick
           <img src={image} alt={title} width={100} height={100} />
         </EmptyMedia>
         <EmptyTitle>{title}</EmptyTitle>
-        <EmptyDescription>
-          {description}
-        </EmptyDescription>
+        {description && (
+          <EmptyDescription>
+            {description}
+          </EmptyDescription>
+        )}
       </EmptyHeader>
+      {buttonText && (
       <EmptyContent>
-        <Button size="sm" onClick={buttonOnClick}>{buttonText}</Button>
+        <Button size="sm" onClick={buttonOnClick} className="rounded">{buttonText}</Button>
       </EmptyContent>
+      )}
     </Empty>
   )
 }

@@ -23,6 +23,7 @@ import { ArrowDownUp, Loader2, Plus, Wallet, ArrowDown, Building2 } from 'lucide
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { FormSelect } from '@/components/ui/form-select';
+import { EmptyCard } from '@/components/ui/empty-card';
 
 interface WalletData {
     balance: number;
@@ -572,12 +573,10 @@ export default function WalletIndex({
                     </CardHeader>
                     <CardContent>
                         {transactions.data.length === 0 ? (
-                            <div className="py-12 text-center">
-                                <Wallet className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                                <p className="text-muted-foreground">
-                                    No transactions yet
-                                </p>
-                            </div>
+                            <EmptyCard
+                                title="No transactions yet"
+                                image="assets/icons/empty.png"
+                            />
                         ) : (
                             <div className="overflow-x-auto">
                                 <Table>
