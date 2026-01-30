@@ -92,6 +92,42 @@ function deg2rad(deg: number) {
     return deg * (Math.PI / 180);
 }
 
+/** Parse time string like "9:00 AM", "5:30 PM", "09:00" to minutes since midnight */
+function parseTimeToMinutes(timeStr: string): number {
+    const str = timeStr.trim();
+    const match12h = str.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/i);
+    if (match12h) {
+        let hours = parseInt(match12h[1], 10);
+        const minutes = parseInt(match12h[2] || '0', 10);
+        const period = match12h[3].toUpperCase();
+        if (period === 'PM' && hours !== 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
+        return hours * 60 + minutes;
+    }
+    const match24h = str.match(/^(\d{1,2})(?::(\d{2}))?$/);
+    if (match24h) {
+        const hours = parseInt(match24h[1], 10);
+        const minutes = parseInt(match24h[2] || '0', 10);
+        return hours * 60 + minutes;
+    }
+    return 0;
+}
+
+function isWithinHours(now: Date, hoursRanges: Array<{ start: string; end: string }>): boolean {
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    for (const range of hoursRanges) {
+        const startMinutes = parseTimeToMinutes(range.start);
+        const endMinutes = parseTimeToMinutes(range.end);
+        if (startMinutes <= endMinutes) {
+            if (nowMinutes >= startMinutes && nowMinutes < endMinutes) return true;
+        } else {
+            // Overnight range (e.g. 10 PM - 2 AM)
+            if (nowMinutes >= startMinutes || nowMinutes < endMinutes) return true;
+        }
+    }
+    return false;
+}
+
 export default function ProviderProfile({ provider, services, workHours, reviews, canEdit, isFavourite }: Props) {
     const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [distance, setDistance] = useState<number | null>(null);
@@ -162,9 +198,14 @@ export default function ProviderProfile({ provider, services, workHours, reviews
     };
 
     // Get today's day name (e.g., "Monday", "Tuesday")
-    const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+    const now = new Date();
+    const today = now.toLocaleDateString('en-US', { weekday: 'long' });
     const todayHours = workHours[today];
-    const isOpenNow = todayHours?.isOpen ?? false;
+    const isOpenNow =
+        (todayHours?.isOpen ?? false) &&
+        (todayHours?.hours?.length
+            ? isWithinHours(now, todayHours.hours)
+            : true);
 
     const handleFavourite = () => {
         const newFavoriteState = !isFavorite;

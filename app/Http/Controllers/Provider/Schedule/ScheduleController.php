@@ -221,21 +221,26 @@ class ScheduleController extends Controller
     public function showAppointment($id)
     {
         $appointment = Appointment::where('provider_id', auth()->id())
-            ->with(['client', 'services'])
+            ->with(['client', 'services', 'provider.businessProfile'])
             ->findOrFail($id);
+
+        $provider = $appointment->provider;
+        $bp = $provider?->businessProfile;
 
         return Inertia::render('provider/schedule/appointment-details', [
             'appointment' => [
                 'id' => $appointment->id,
-                'client_name' => $appointment->client->name,
-                'email' => $appointment->client->email,
-                'services' => $appointment->services->map(fn($s) => [
+                'client_name' => $appointment->client?->name ?? $appointment->client_name ?? 'Guest',
+                'email' => $appointment->client?->email ?? $appointment->client_email ?? null,
+                'services' => $appointment->services->map(fn ($s) => [
                     'id' => $s->id,
                     'name' => $s->name,
-                    'price' => $s->price,
+                    'price' => '₦' . number_format($s->price, 0),
+                    'duration_minutes' => $s->duration_minutes,
                 ]),
                 'start_time' => $appointment->start_time->format('M d, Y g:i A'),
-                'end_time' => $appointment->end_time->format('g:i A'),
+                'end_time' => $appointment->end_time->format('M d, Y g:i A'),
+                'total_duration_minutes' => $appointment->services->sum('duration_minutes'),
                 'status' => $appointment->status,
                 'price' => '₦' . number_format($appointment->price, 2),
                 'notes' => $appointment->notes,
@@ -243,6 +248,10 @@ class ScheduleController extends Controller
                 'escrow_status' => $appointment->escrow_status,
                 'escrow_amount' => $appointment->escrow_amount,
                 'payment_released_at' => $appointment->payment_released_at?->format('M d, Y g:i A'),
+                'cancelled_by' => $appointment->cancelled_by,
+                'cancellation_reason' => $appointment->cancellation_reason,
+                'location' => $bp?->address ? trim("{$bp->address}, {$bp->city}, {$bp->state} {$bp->zip_code}") : null,
+                'location_phone' => $bp?->phone,
             ],
         ]);
     }

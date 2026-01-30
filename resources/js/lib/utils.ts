@@ -65,6 +65,7 @@ export function formatStatus(status: string): string {
     const statusMap: Record<string, string> = {
         'confirmed': 'Confirmed',
         'pending': 'Pending',
+        'pending_completion': 'Pending Completion',
         'cancelled': 'Cancelled',
         'completed': 'Completed',
         'no_show': 'No Show',
@@ -87,6 +88,7 @@ export function getStatusVariant(status: string): "default" | "secondary" | "des
         case 'completed':
             return 'outline'; // Gray/Muted
         case 'rescheduled':
+        case 'pending_completion':
             return 'secondary';
         default:
             return 'default';
