@@ -194,7 +194,7 @@ export default function Welcome({ providers, categories, filters, canRegister }:
                 rel="stylesheet"
             />
             <AppLayout>
-                <div className="mx-auto box-border flex w-full max-w-7xl flex-col space-y-6 overflow-visible px-5 ">
+                <div className="m box-border flex w-full  flex-col space-y-6 overflow-visible px-5 ">
                     {/* Top Filter Bar */}
 
                     <Landing />
