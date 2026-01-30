@@ -5,6 +5,13 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['provider.setup'])->group(function () {
     Route::get('/', [\App\Http\Controllers\Guest\GuestController::class, 'welcome'])->name('home');
     Route::get('/provider/{slug}', [\App\Http\Controllers\Client\MarketplaceController::class, 'show'])->name('provider.show');
+
+    // Static pages
+    Route::get('/about', [\App\Http\Controllers\Guest\StaticPageController::class, 'about'])->name('about');
+    Route::get('/history', [\App\Http\Controllers\Guest\StaticPageController::class, 'history'])->name('history');
+    Route::get('/our-team', [\App\Http\Controllers\Guest\StaticPageController::class, 'ourTeam'])->name('our-team');
+    Route::get('/faqs', [\App\Http\Controllers\Guest\StaticPageController::class, 'faqs'])->name('faqs');
+    Route::get('/contact', [\App\Http\Controllers\Guest\StaticPageController::class, 'contact'])->name('contact');
 });
 
 Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
