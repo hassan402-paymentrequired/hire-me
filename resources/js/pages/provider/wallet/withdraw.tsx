@@ -15,6 +15,14 @@ interface WalletData {
     balance: number;
     escrow_balance: number;
     available_balance: number;
+    pending_earnings: number;
+}
+
+interface BankAccount {
+    recipient_code: string;
+    bank_name: string;
+    account_name: string;
+    account_number_masked: string | null;
 }
 
 interface Withdrawal {
@@ -34,6 +42,7 @@ interface Bank {
 
 interface Props {
     wallet: WalletData;
+    bankAccount: BankAccount | null;
     withdrawals: {
         data: Withdrawal[];
         links: any;
@@ -47,56 +56,50 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Withdrawals', href: '/provider/withdrawals' },
 ];
 
-export default function Withdraw({ wallet, withdrawals, banks }: Props) {
+export default function Withdraw({ wallet, bankAccount = null, withdrawals, banks }: Props) {
     const [showAddBank, setShowAddBank] = useState(false);
-    const [selectedBank, setSelectedBank] = useState('');
-    const [accountNumber, setAccountNumber] = useState('');
-    const [accountName, setAccountName] = useState('');
-    const [recipientCode, setRecipientCode] = useState('');
+    const hasBankAccount = !!bankAccount;
 
-    const { data: withdrawalData, setData: setWithdrawalData, post: postWithdrawal, processing: processingWithdrawal, errors: withdrawalErrors } = useForm({
+    const { data: withdrawalData, setData: setWithdrawalData, post: postWithdrawal, transform: transformWithdrawal, processing: processingWithdrawal, errors: withdrawalErrors } = useForm({
         amount: '',
-        recipient_code: '',
+        recipient_code: bankAccount?.recipient_code ?? '',
+        account_name: bankAccount?.account_name ?? '',
+        bank_name: bankAccount?.bank_name ?? '',
+    });
+
+    const { data: bankData, setData: setBankData, post: postBank, transform: transformBank, processing: processingBank, errors: bankErrors } = useForm({
+        account_number: '',
+        bank_code: '',
         account_name: '',
         bank_name: '',
     });
 
-    const { data: bankData, setData: setBankData, post: postBank, processing: processingBank, errors: bankErrors } = useForm({
-        account_number: '',
-        bank_code: '',
-        account_name: '',
-    });
-
-    const handleAddBank = async (e: React.FormEvent) => {
+    const handleAddOrUpdateBank = (e: React.FormEvent) => {
         e.preventDefault();
+        const bankName = banks.find((b) => b.code === bankData.bank_code)?.name ?? '';
+        if (!bankName) return;
+        transformBank((data) => ({ ...data, bank_name: bankName }));
         postBank('/wallet/withdraw/recipient', {
-            onSuccess: (page) => {
-                const recipientCode = (page.props as any).recipient_code;
-                if (recipientCode) {
-                    setRecipientCode(recipientCode);
-                    setShowAddBank(false);
-                    // Pre-fill withdrawal form
-                    setWithdrawalData({
-                        ...withdrawalData,
-                        recipient_code: recipientCode,
-                        account_name: bankData.account_name,
-                        bank_name: banks.find(b => b.code === bankData.bank_code)?.name || '',
-                    });
-                }
+            onSuccess: () => {
+                setShowAddBank(false);
+                setBankData({ account_number: '', bank_code: '', account_name: '', bank_name: '' });
             },
         });
     };
 
     const handleWithdraw = (e: React.FormEvent) => {
         e.preventDefault();
+        if (bankAccount) {
+            transformWithdrawal((data) => ({
+                ...data,
+                recipient_code: bankAccount.recipient_code,
+                account_name: bankAccount.account_name,
+                bank_name: bankAccount.bank_name,
+            }));
+        }
         postWithdrawal('/wallet/withdraw', {
             onSuccess: () => {
-                setWithdrawalData({
-                    amount: '',
-                    recipient_code: '',
-                    account_name: '',
-                    bank_name: '',
-                });
+                setWithdrawalData((prev) => ({ ...prev, amount: '' }));
             },
         });
     };
@@ -163,14 +166,14 @@ export default function Withdraw({ wallet, withdrawals, banks }: Props) {
 
                     <Card>
                         <CardHeader className="pb-3">
-                            <CardDescription>Escrow Balance</CardDescription>
+                            <CardDescription>Pending Earnings</CardDescription>
                             <CardTitle className="text-3xl font-bold">
-                                ₦{wallet.escrow_balance.toLocaleString()}
+                                ₦{(wallet.pending_earnings ?? 0).toLocaleString()}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
                             <p className="text-xs text-muted-foreground">
-                                Held for active appointments
+                                Held by clients for active appointments; released when completed
                             </p>
                         </CardContent>
                     </Card>
@@ -189,7 +192,7 @@ export default function Withdraw({ wallet, withdrawals, banks }: Props) {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {!recipientCode && !showAddBank && (
+                            {!hasBankAccount && !showAddBank && (
                                 <div className="space-y-4">
                                     <p className="text-sm text-muted-foreground">
                                         You need to add a bank account first to withdraw funds.
@@ -206,11 +209,10 @@ export default function Withdraw({ wallet, withdrawals, banks }: Props) {
                             )}
 
                             {showAddBank && (
-                                <form onSubmit={handleAddBank} className="space-y-4">
+                                <form onSubmit={handleAddOrUpdateBank} className="space-y-4">
                                     <div>
                                         <Label htmlFor="bank_code">Bank</Label>
                                         <FormSelect
-                                            id="bank_code"
                                             value={bankData.bank_code}
                                             onChange={(value) => setBankData('bank_code', value)}
                                             options={bankOptions}
@@ -265,7 +267,7 @@ export default function Withdraw({ wallet, withdrawals, banks }: Props) {
                                             {processingBank && (
                                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                             )}
-                                            Add Bank Account
+                                            {hasBankAccount ? 'Update Bank Account' : 'Add Bank Account'}
                                         </Button>
                                         <Button
                                             type="button"
@@ -276,6 +278,7 @@ export default function Withdraw({ wallet, withdrawals, banks }: Props) {
                                                     account_number: '',
                                                     bank_code: '',
                                                     account_name: '',
+                                                    bank_name: '',
                                                 });
                                             }}
                                         >
@@ -285,7 +288,7 @@ export default function Withdraw({ wallet, withdrawals, banks }: Props) {
                                 </form>
                             )}
 
-                            {recipientCode && !showAddBank && (
+                            {hasBankAccount && !showAddBank && (
                                 <form onSubmit={handleWithdraw} className="space-y-4">
                                     <div>
                                         <Label htmlFor="amount">Amount (₦)</Label>
@@ -313,7 +316,10 @@ export default function Withdraw({ wallet, withdrawals, banks }: Props) {
                                     <div className="rounded-lg bg-blue-50 dark:bg-blue-950/20 p-4 border border-blue-200">
                                         <p className="text-sm font-medium mb-1">Bank Account</p>
                                         <p className="text-sm text-muted-foreground">
-                                            {withdrawalData.bank_name} - {withdrawalData.account_name}
+                                            {bankAccount?.bank_name} - {bankAccount?.account_name}
+                                            {bankAccount?.account_number_masked && (
+                                                <span className="ml-1">({bankAccount.account_number_masked})</span>
+                                            )}
                                         </p>
                                     </div>
 
@@ -338,18 +344,10 @@ export default function Withdraw({ wallet, withdrawals, banks }: Props) {
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        onClick={() => {
-                                            setRecipientCode('');
-                                            setWithdrawalData({
-                                                amount: '',
-                                                recipient_code: '',
-                                                account_name: '',
-                                                bank_name: '',
-                                            });
-                                        }}
+                                        onClick={() => setShowAddBank(true)}
                                         className="w-full"
                                     >
-                                        Change Bank Account
+                                        Update Bank Account
                                     </Button>
                                 </form>
                             )}

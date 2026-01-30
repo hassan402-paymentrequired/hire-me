@@ -208,6 +208,7 @@ class MarketplaceController extends Controller
                 'advanceBooking' => $settings['advanceBooking'] ?? '30', // days
                 'minNotice' => $settings['minNotice'] ?? null, // hours
                 'allowSameDay' => $settings['allowSameDay'] ?? false,
+                'autoConfirm' => $settings['autoConfirm'] ?? $settings['auto_confirm'] ?? false,
                 'max_bookings_per_week' => $settings['max_bookings_per_week'] ?? null,
                 'max_bookings_per_month' => $settings['max_bookings_per_month'] ?? null,
             ],

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Provider;
 
 use App\Http\Controllers\Controller;
+use App\Models\Appointment;
+use App\Models\ProviderBankAccount;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use App\Services\PaystackService;
@@ -24,6 +26,14 @@ class WithdrawalController extends Controller
         $user = auth()->user();
         $wallet = Wallet::firstOrCreate(['user_id' => $user->id]);
 
+        // Pending earnings = money held by clients for this provider's active appointments
+        $pendingEarnings = (float) Appointment::where('provider_id', $user->id)
+            ->whereIn('status', ['pending', 'confirmed', 'pending_completion'])
+            ->where('escrow_status', 'held')
+            ->sum('escrow_amount');
+
+        $bankAccount = ProviderBankAccount::where('user_id', $user->id)->first();
+
         $withdrawals = WalletTransaction::where('user_id', $user->id)
             ->where('type', 'withdrawal')
             ->latest()
@@ -35,10 +45,17 @@ class WithdrawalController extends Controller
 
         return Inertia::render('provider/wallet/withdraw', [
             'wallet' => [
-                'balance' => $wallet->balance,
-                'escrow_balance' => $wallet->escrow_balance,
-                'available_balance' => $wallet->available_balance, // Available for withdrawal (balance - escrow)
+                'balance' => (float) $wallet->balance,
+                'escrow_balance' => (float) $wallet->escrow_balance,
+                'available_balance' => (float) $wallet->available_balance,
+                'pending_earnings' => $pendingEarnings,
             ],
+            'bankAccount' => $bankAccount ? [
+                'recipient_code' => $bankAccount->recipient_code,
+                'bank_name' => $bankAccount->bank_name,
+                'account_name' => $bankAccount->account_name,
+                'account_number_masked' => strlen($bankAccount->account_number) >= 4 ? '****' . substr($bankAccount->account_number, -4) : null,
+            ] : null,
             'withdrawals' => $withdrawals->through(function ($transaction) {
                 return [
                     'id' => $transaction->id,
@@ -60,6 +77,7 @@ class WithdrawalController extends Controller
             'account_number' => 'required|string|size:10',
             'bank_code' => 'required|string',
             'account_name' => 'required|string|max:255',
+            'bank_name' => 'required|string|max:255',
         ]);
 
         $user = auth()->user();
@@ -77,12 +95,21 @@ class WithdrawalController extends Controller
                 return back()->with('error-toast', $response['message'] ?? 'Failed to create recipient');
             }
 
-            // Store recipient code in user metadata or create a separate table
-            // For now, we'll store it in the user's metadata or create a bank_accounts table
-            // This is a simplified version - you might want to create a BankAccount model
+            $recipientCode = $response['data']['recipient_code'];
 
-            return back()->with('success-toast', 'Bank account added successfully')
-                ->with('recipient_code', $response['data']['recipient_code']);
+            ProviderBankAccount::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'recipient_code' => $recipientCode,
+                    'bank_code' => $request->bank_code,
+                    'bank_name' => $request->bank_name,
+                    'account_number' => $request->account_number,
+                    'account_name' => $request->account_name,
+                ]
+            );
+
+            return redirect()->route('wallet.withdraw.index')
+                ->with('success-toast', 'Bank account saved successfully');
         } catch (\Exception $e) {
             return back()->with('error-toast', 'Failed to add bank account: ' . $e->getMessage());
         }

@@ -197,17 +197,21 @@ class AppointmentController extends Controller
                     }
                 }
 
+                $autoConfirm = ($settings['autoConfirm'] ?? $settings['auto_confirm'] ?? false);
                 $appointment->update([
                     'start_time' => $startTime,
                     'end_time' => $endTime,
                     'buffer_time_minutes' => $maxBuffer,
-                    'status' => 'pending',
+                    'status' => $autoConfirm ? 'confirmed' : 'pending',
                     'price' => $totalPrice,
                     'notes' => $request->notes,
+                    'provider_approved' => $autoConfirm,
+                    'provider_approved_at' => $autoConfirm ? now() : null,
                 ]);
                 $appointment->services()->sync($request->service_ids);
                 $message = 'Appointment rescheduled successfully!';
             } else {
+                $autoConfirm = ($settings['autoConfirm'] ?? $settings['auto_confirm'] ?? false);
                 $appointmentData = [
                     'client_id' => auth()->id(),
                     'provider_id' => $request->provider_id,
@@ -215,9 +219,11 @@ class AppointmentController extends Controller
                     'start_time' => $startTime,
                     'end_time' => $endTime,
                     'buffer_time_minutes' => $maxBuffer,
-                    'status' => 'pending',
+                    'status' => $autoConfirm ? 'confirmed' : 'pending',
                     'price' => $totalPrice,
                     'notes' => $request->notes,
+                    'provider_approved' => $autoConfirm,
+                    'provider_approved_at' => $autoConfirm ? now() : null,
                 ];
 
                 // Add recurrence data if provided

@@ -21,15 +21,23 @@ class AutoCancelUnconfirmedAppointmentJob implements ShouldQueue
      */
     protected const HOURS_BEFORE_START = 1;
 
+    /**
+     * Minimum time (minutes) the provider must have had to respond before we auto-cancel.
+     * Prevents cancelling appointments that were just booked (e.g. 1 hour before closing).
+     */
+    protected const MIN_GRACE_PERIOD_MINUTES = 60;
+
     public function handle(): void
     {
         $threshold = now()->addHours(self::HOURS_BEFORE_START);
+        $graceCutoff = now()->subMinutes(self::MIN_GRACE_PERIOD_MINUTES);
 
         Appointment::query()
             ->with(['provider.businessProfile', 'client', 'services', 'service'])
             ->where('status', 'pending')
             ->where('start_time', '>', now())
             ->where('start_time', '<=', $threshold)
+            ->where('created_at', '<=', $graceCutoff) // Provider has had at least 1 hour to confirm
             ->chunk(100, function ($appointments) {
                 $appointments->each(function (Appointment $appointment) {
                     try {

@@ -163,6 +163,10 @@ class GenerateRecurringAppointments implements ShouldQueue
             return;
         }
 
+        $provider = $parent->provider;
+        $settings = $provider?->businessProfile?->settings ?? [];
+        $autoConfirm = $settings['autoConfirm'] ?? $settings['auto_confirm'] ?? false;
+
         DB::beginTransaction();
         try {
             // Create the new appointment
@@ -173,7 +177,7 @@ class GenerateRecurringAppointments implements ShouldQueue
                 'start_time' => $nextDate,
                 'end_time' => $endTime,
                 'buffer_time_minutes' => $maxBuffer,
-                'status' => 'pending', // New appointments start as pending
+                'status' => $autoConfirm ? 'confirmed' : 'pending',
                 'price' => $discountedPrice,
                 'original_price' => $originalPrice,
                 'discount_percent' => $discountPercent,
@@ -184,6 +188,8 @@ class GenerateRecurringAppointments implements ShouldQueue
                 'recurrence_parent_id' => $parent->id,
                 'recurrence_end_date' => $parent->recurrence_end_date,
                 'recurrence_count' => $parent->recurrence_count,
+                'provider_approved' => $autoConfirm,
+                'provider_approved_at' => $autoConfirm ? now() : null,
             ]);
 
             // Attach services

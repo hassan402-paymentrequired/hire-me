@@ -49,6 +49,7 @@ interface ProviderSettings {
     advanceBooking: string | number; // days
     minNotice: string | number | null; // hours
     allowSameDay: boolean;
+    autoConfirm?: boolean;
     max_bookings_per_week: string | number | null;
     max_bookings_per_month: string | number | null;
 }
@@ -90,6 +91,7 @@ export default function Booking({
         advanceBooking: 30,
         minNotice: null,
         allowSameDay: false,
+        autoConfirm: false,
         max_bookings_per_week: null,
         max_bookings_per_month: null,
     };
@@ -880,6 +882,11 @@ export default function Booking({
                                             </div>
                                         </div>
 
+                                        {providerSettings.autoConfirm && (
+                                            <p className="rounded-lg bg-green-50 dark:bg-green-950/20 px-3 py-2 text-xs text-green-700 dark:text-green-400 border border-green-200 dark:border-green-900/50">
+                                                This provider auto-confirms bookings – no need to wait for approval.
+                                            </p>
+                                        )}
                                         <Button
                                             className="w-full"
                                             disabled={
