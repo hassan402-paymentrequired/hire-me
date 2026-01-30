@@ -12,6 +12,8 @@ Route::middleware(['provider.setup'])->group(function () {
     Route::get('/our-team', [\App\Http\Controllers\Guest\StaticPageController::class, 'ourTeam'])->name('our-team');
     Route::get('/faqs', [\App\Http\Controllers\Guest\StaticPageController::class, 'faqs'])->name('faqs');
     Route::get('/contact', [\App\Http\Controllers\Guest\StaticPageController::class, 'contact'])->name('contact');
+    Route::get('/privacy-policy', [\App\Http\Controllers\Guest\StaticPageController::class, 'privacyPolicy'])->name('privacy-policy');
+    Route::get('/terms', [\App\Http\Controllers\Guest\StaticPageController::class, 'termsAndConditions'])->name('terms');
 });
 
 Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {

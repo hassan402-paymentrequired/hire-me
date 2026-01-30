@@ -83,7 +83,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
     return (
         <>
             <div className="fixed top-0 right-0 left-0 z-30 border-b border-sidebar-border/80 bg-background">
-                <div className="mx-auto flex h-12 items-center px-4 md:max-w-7xl">
+                <div className="flex h-12 items-center px-4 ">
                     {/* Mobile Menu */}
                     <div className="hidden">
                         <Sheet>
@@ -324,7 +324,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                         ) : (
                             <>
                                 <Link href={login()} prefetch>
-                                    <Button size={'sm'}>Get started</Button>
+                                    <Button size={'sm'} className='rounded'>Get started</Button>
                                 </Link>
                             </>
                         )}

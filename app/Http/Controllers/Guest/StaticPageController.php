@@ -41,4 +41,18 @@ class StaticPageController extends Controller
             'title' => 'Contact Us',
         ]);
     }
+
+    public function privacyPolicy()
+    {
+        return Inertia::render('guest/pages/privacy-policy', [
+            'title' => 'Privacy Policy',
+        ]);
+    }
+
+    public function termsAndConditions()
+    {
+        return Inertia::render('guest/pages/terms', [
+            'title' => 'Terms and Conditions',
+        ]);
+    }
 }

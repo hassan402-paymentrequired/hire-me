@@ -143,7 +143,7 @@ const Footer = () => {
                     </div>
 
                     {/* Column 2: Link groups */}
-                    <div className="grid grid-cols-2 gap-8 text-center sm:text-left">
+                    <div className="grid grid-cols-2 gap-8 text-center sm:grid-cols-3 sm:text-left">
                         <div>
                             <strong className=" text-lg font-heading font-bold text-gray-900 dark:text-white">
                                 Clockra
@@ -195,6 +195,29 @@ const Footer = () => {
                                         className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
                                     >
                                         Contact
+                                    </Link>
+                                </li>
+                            </ul>
+                        </div>
+                        <div>
+                            <strong className="font-medium text-gray-900 dark:text-white">
+                                Legal
+                            </strong>
+                            <ul className="mt-6 space-y-3">
+                                <li>
+                                    <Link
+                                        href="/privacy-policy"
+                                        className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
+                                    >
+                                        Privacy Policy
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link
+                                        href="/terms"
+                                        className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
+                                    >
+                                        Terms and Conditions
                                     </Link>
                                 </li>
                             </ul>
