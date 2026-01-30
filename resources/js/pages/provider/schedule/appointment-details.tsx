@@ -11,6 +11,7 @@ import {
     MapPin,
     Phone,
     Loader2,
+    AlertCircle,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -68,6 +69,9 @@ export default function AppointmentDetailsPage({ appointment }: { appointment: A
     const [completeDialogOpen, setCompleteDialogOpen] = React.useState(false);
     const [cancelDialogOpen, setCancelDialogOpen] = React.useState(false);
     const [cancelReason, setCancelReason] = React.useState('');
+    const [reportDialogOpen, setReportDialogOpen] = React.useState(false);
+    const [reportReason, setReportReason] = React.useState('');
+    const [reportDescription, setReportDescription] = React.useState('');
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: business.dashboard().url },
@@ -110,6 +114,23 @@ export default function AppointmentDetailsPage({ appointment }: { appointment: A
                 setIsProcessing(false);
                 setCancelDialogOpen(false);
             },
+        });
+    };
+
+    const handleReport = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!reportReason || !reportDescription.trim() || reportDescription.trim().length < 20) return;
+        setIsProcessing(true);
+        router.post(`/provider/appointments/${appointment.id}/report`, {
+            reason: reportReason,
+            description: reportDescription.trim(),
+        }, {
+            onSuccess: () => {
+                setReportDialogOpen(false);
+                setReportReason('');
+                setReportDescription('');
+            },
+            onFinish: () => setIsProcessing(false),
         });
     };
 
@@ -297,6 +318,16 @@ export default function AppointmentDetailsPage({ appointment }: { appointment: A
                                         {appointment.status === 'pending' ? 'Reject Booking' : 'Cancel Appointment'}
                                     </Button>
                                 )}
+
+                                <Button
+                                    variant="ghost"
+                                    className="w-full justify-start text-muted-foreground hover:text-foreground"
+                                    onClick={() => setReportDialogOpen(true)}
+                                    disabled={isProcessing}
+                                >
+                                    <AlertCircle className="mr-2 h-4 w-4" />
+                                    Report Client
+                                </Button>
                             </CardContent>
                         </Card>
 
@@ -334,6 +365,69 @@ export default function AppointmentDetailsPage({ appointment }: { appointment: A
                 onAccept={submitComplete}
                 acceptVariant="default"
             />
+
+            {/* Report Client Dialog */}
+            <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <form onSubmit={handleReport}>
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <AlertCircle className="h-5 w-5 text-amber-500" />
+                                Report Client
+                            </DialogTitle>
+                            <DialogDescription>
+                                Report an issue with {appointment.client_name}. Our team will review and take appropriate action.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="report-reason">Reason *</Label>
+                                <select
+                                    id="report-reason"
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                    value={reportReason}
+                                    onChange={(e) => setReportReason(e.target.value)}
+                                    required
+                                >
+                                    <option value="">Select a reason</option>
+                                    <option value="no-show">Client did not show up</option>
+                                    <option value="abusive-behavior">Abusive or disrespectful behavior</option>
+                                    <option value="false-claim">False claim or dispute</option>
+                                    <option value="payment-dispute">Payment or refund dispute</option>
+                                    <option value="unprofessional">Unprofessional conduct</option>
+                                    <option value="safety-concern">Safety concern</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="report-description">Details *</Label>
+                                <Textarea
+                                    id="report-description"
+                                    placeholder="Provide details about the issue (minimum 20 characters)..."
+                                    value={reportDescription}
+                                    onChange={(e) => setReportDescription(e.target.value)}
+                                    required
+                                    rows={5}
+                                    minLength={20}
+                                />
+                                <p className="text-xs text-muted-foreground">Minimum 20 characters</p>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setReportDialogOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={!reportReason || !reportDescription.trim() || reportDescription.trim().length < 20 || isProcessing}
+                            >
+                                {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                Submit Report
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
 
             {/* Cancel Appointment Dialog - requires reason */}
             <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>

@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 use App\Mail\AppointmentConfirmedMail;
 use App\Mail\AppointmentCancelledMail;
+use App\Models\Report;
 
 class ScheduleController extends Controller
 {
@@ -254,5 +255,27 @@ class ScheduleController extends Controller
                 'location_phone' => $bp?->phone,
             ],
         ]);
+    }
+
+    public function reportClient(Request $request, $id)
+    {
+        $request->validate([
+            'reason' => 'required|string|max:255',
+            'description' => 'required|string|min:20|max:1000',
+        ], [
+            'description.required' => 'Please provide details about the issue.',
+            'description.min' => 'Please provide at least 20 characters of detail.',
+        ]);
+
+        $appointment = Appointment::where('provider_id', auth()->id())->findOrFail($id);
+
+        Report::create([
+            'appointment_id' => $appointment->id,
+            'user_id' => auth()->id(),
+            'reason' => $request->reason,
+            'description' => $request->description,
+        ]);
+
+        return back()->with('success-toast', 'Report submitted successfully. Our team will look into it.');
     }
 }

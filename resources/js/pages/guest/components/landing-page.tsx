@@ -14,24 +14,23 @@ export default function Landing() {
             const marketplaceTop = marketplaceElement.getBoundingClientRect().top;
             const windowHeight = window.innerHeight;
 
-            // Calculate opacity based on distance to marketplace
-            // When marketplace is at window bottom (75% down), start fading
-            const fadeStartDistance = windowHeight * 0.75;
-            const fadeEndDistance = windowHeight * 0.25;
+            // Fade image as user scrolls: start when marketplace enters view, fully faded when filter header reaches 50% from top
+            const fadeStart = windowHeight * 0.9;
+            const fadeEnd = windowHeight * 0.7;
 
-            if (marketplaceTop > fadeStartDistance) {
+            if (marketplaceTop >= fadeStart) {
                 setImageOpacity(1);
-            } else if (marketplaceTop < fadeEndDistance) {
+            } else if (marketplaceTop <= fadeEnd) {
                 setImageOpacity(0);
             } else {
-                const range = fadeStartDistance - fadeEndDistance;
-                const distance = marketplaceTop - fadeEndDistance;
-                const opacity = Math.max(0, Math.min(1, distance / range));
-                setImageOpacity(opacity);
+                const range = fadeStart - fadeEnd;
+                const opacity = (marketplaceTop - fadeEnd) / range;
+                setImageOpacity(Math.max(0, Math.min(1, opacity)));
             }
         };
 
-        window.addEventListener('scroll', handleScroll);
+        handleScroll(); // Set initial opacity on mount
+        window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
@@ -92,7 +91,7 @@ export default function Landing() {
                 alt="hero image"
                 src="assets/illustrations/group.svg"
                 aria-hidden="true"
-                className="pointer-events-none fixed bottom-0 left-1/2 -translate-x-1/2 z-0 min-w-screen transition-opacity duration-300"
+                className="pointer-events-none fixed bottom-0 left-1/2 -translate-x-1/2 z-0 min-w-screen transition-opacity duration-200 ease-out"
                 style={{ opacity: imageOpacity }}
             />
 

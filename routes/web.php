@@ -80,6 +80,7 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
             Route::post('/{id}/confirm', [\App\Http\Controllers\Provider\Schedule\ScheduleController::class, 'confirmAppointment'])->name('confirm');
             Route::post('/{id}/cancel', [\App\Http\Controllers\Provider\Schedule\ScheduleController::class, 'cancelAppointment'])->name('cancel');
             Route::post('/{id}/complete', [\App\Http\Controllers\Provider\Schedule\ScheduleController::class, 'completeAppointment'])->name('complete');
+            Route::post('/{id}/report', [\App\Http\Controllers\Provider\Schedule\ScheduleController::class, 'reportClient'])->name('report');
             Route::get('/{id}', [\App\Http\Controllers\Provider\Schedule\ScheduleController::class, 'showAppointment'])->name('show');
         });
     });
