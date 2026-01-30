@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
+use App\Models\ClientBankAccount;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use App\Services\PaystackService;
@@ -39,6 +40,9 @@ class WalletController extends Controller
         $banksResponse = $this->paystack->getBanks();
         $banks = $banksResponse['success'] ? $banksResponse['data'] : [];
 
+        // Get user's saved bank account (one per user)
+        $bankAccount = $user->clientBankAccount;
+
         return Inertia::render('client/wallet/index', [
             'wallet' => [
                 'balance' => $wallet->balance,
@@ -71,6 +75,12 @@ class WalletController extends Controller
                 ];
             }),
             'banks' => $banks,
+            'bankAccount' => $bankAccount ? [
+                'recipient_code' => $bankAccount->recipient_code,
+                'bank_name' => $bankAccount->bank_name,
+                'account_name' => $bankAccount->account_name,
+                'account_number_masked' => substr($bankAccount->account_number, -4),
+            ] : null,
             'paystackPublicKey' => $this->paystack->getPublicKey(),
         ]);
     }
@@ -188,6 +198,7 @@ class WalletController extends Controller
             'account_number' => 'required|string|size:10',
             'bank_code' => 'required|string',
             'account_name' => 'required|string|max:255',
+            'bank_name' => 'required|string|max:255',
         ]);
 
         $user = auth()->user();
@@ -205,8 +216,21 @@ class WalletController extends Controller
                 return back()->with('error-toast', $response['message'] ?? 'Failed to create recipient');
             }
 
-            return back()->with('success-toast', 'Bank account added successfully')
-                ->with('recipient_code', $response['data']['recipient_code']);
+            $recipientCode = $response['data']['recipient_code'];
+
+            // Create or update - one bank per user
+            ClientBankAccount::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'recipient_code' => $recipientCode,
+                    'bank_code' => $request->bank_code,
+                    'bank_name' => $request->bank_name,
+                    'account_number' => $request->account_number,
+                    'account_name' => $request->account_name,
+                ]
+            );
+
+            return redirect()->route('wallet.index')->with('success-toast', 'Bank account saved successfully');
         } catch (\Exception $e) {
             return back()->with('error-toast', 'Failed to add bank account: ' . $e->getMessage());
         }

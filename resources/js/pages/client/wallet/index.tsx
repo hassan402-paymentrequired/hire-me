@@ -59,6 +59,13 @@ interface Bank {
     name: string;
 }
 
+interface BankAccount {
+    recipient_code: string;
+    bank_name: string;
+    account_name: string;
+    account_number_masked: string;
+}
+
 interface Props {
     wallet: WalletData;
     transactions: {
@@ -72,6 +79,7 @@ interface Props {
         meta: any;
     };
     banks?: Bank[];
+    bankAccount?: BankAccount | null;
     paystackPublicKey: string;
 }
 
@@ -80,25 +88,28 @@ export default function WalletIndex({
     transactions,
     withdrawals,
     banks = [],
+    bankAccount = null,
     paystackPublicKey,
 }: Props) {
     const [topUpAmount, setTopUpAmount] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [showAddBank, setShowAddBank] = useState(false);
-    const [recipientCode, setRecipientCode] = useState('');
 
-    const { data: withdrawalData, setData: setWithdrawalData, post: postWithdrawal, processing: processingWithdrawal, errors: withdrawalErrors } = useForm({
+    const { data: withdrawalData, setData: setWithdrawalData, post: postWithdrawal, transform: transformWithdrawal, processing: processingWithdrawal, errors: withdrawalErrors } = useForm({
         amount: '',
-        recipient_code: '',
+        recipient_code: bankAccount?.recipient_code ?? '',
+        account_name: bankAccount?.account_name ?? '',
+        bank_name: bankAccount?.bank_name ?? '',
+    });
+
+    const { data: bankData, setData: setBankData, post: postBank, transform: transformBank, processing: processingBank, errors: bankErrors } = useForm({
+        account_number: '',
+        bank_code: '',
         account_name: '',
         bank_name: '',
     });
 
-    const { data: bankData, setData: setBankData, post: postBank, processing: processingBank, errors: bankErrors } = useForm({
-        account_number: '',
-        bank_code: '',
-        account_name: '',
-    });
+    const hasBankAccount = !!bankAccount;
 
     const handleTopUp = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -155,37 +166,35 @@ export default function WalletIndex({
         return labels[type] || type;
     };
 
-    const handleAddBank = async (e: React.FormEvent) => {
+    const handleAddOrUpdateBank = (e: React.FormEvent) => {
         e.preventDefault();
+        const bankName = banks.find((b) => b.code === bankData.bank_code)?.name ?? '';
+        if (!bankName) {
+            toast.error('Please select a valid bank');
+            return;
+        }
+        transformBank((data) => ({ ...data, bank_name: bankName }));
         postBank('/wallet/client/withdraw/recipient', {
-            onSuccess: (page) => {
-                const recipientCode = (page.props as any).recipient_code;
-                if (recipientCode) {
-                    setRecipientCode(recipientCode);
-                    setShowAddBank(false);
-                    // Pre-fill withdrawal form
-                    setWithdrawalData({
-                        ...withdrawalData,
-                        recipient_code: recipientCode,
-                        account_name: bankData.account_name,
-                        bank_name: banks.find(b => b.code === bankData.bank_code)?.name || '',
-                    });
-                }
+            onSuccess: () => {
+                setShowAddBank(false);
+                setBankData({ account_number: '', bank_code: '', account_name: '', bank_name: '' });
             },
         });
     };
 
     const handleWithdraw = (e: React.FormEvent) => {
         e.preventDefault();
+        if (bankAccount) {
+            transformWithdrawal((data) => ({
+                ...data,
+                recipient_code: bankAccount.recipient_code,
+                account_name: bankAccount.account_name,
+                bank_name: bankAccount.bank_name,
+            }));
+        }
         postWithdrawal('/wallet/client/withdraw', {
             onSuccess: () => {
-                setWithdrawalData({
-                    amount: '',
-                    recipient_code: '',
-                    account_name: '',
-                    bank_name: '',
-                });
-                setRecipientCode('');
+                setWithdrawalData((prev) => ({ ...prev, amount: '' }));
             },
         });
     };
@@ -345,7 +354,7 @@ export default function WalletIndex({
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {!recipientCode && !showAddBank && (
+                            {!hasBankAccount && !showAddBank && (
                                 <div className="text-center py-4">
                                     <p className="text-sm text-muted-foreground mb-4">
                                         Add a bank account to withdraw funds
@@ -362,11 +371,10 @@ export default function WalletIndex({
                             )}
 
                             {showAddBank && (
-                                <form onSubmit={handleAddBank} className="space-y-4">
+                                <form onSubmit={handleAddOrUpdateBank} className="space-y-4">
                                     <div>
                                         <Label htmlFor="bank_code">Bank</Label>
                                         <FormSelect
-                                            id="bank_code"
                                             value={bankData.bank_code}
                                             onChange={(value) => setBankData('bank_code', value)}
                                             options={bankOptions}
@@ -421,7 +429,7 @@ export default function WalletIndex({
                                             {processingBank && (
                                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                             )}
-                                            Add Bank Account
+                                            {hasBankAccount ? 'Update Bank Account' : 'Add Bank Account'}
                                         </Button>
                                         <Button
                                             type="button"
@@ -441,7 +449,7 @@ export default function WalletIndex({
                                 </form>
                             )}
 
-                            {recipientCode && !showAddBank && (
+                            {hasBankAccount && !showAddBank && (
                                 <form onSubmit={handleWithdraw} className="space-y-4">
                                     <div>
                                         <Label htmlFor="withdraw_amount">Amount (₦)</Label>
@@ -469,7 +477,9 @@ export default function WalletIndex({
                                     <div className="rounded-lg bg-blue-50 dark:bg-blue-950/20 p-4 border border-blue-200 dark:border-blue-900">
                                         <p className="text-sm font-medium mb-1">Bank Account</p>
                                         <p className="text-sm text-muted-foreground">
-                                            {withdrawalData.bank_name} - {withdrawalData.account_name}
+                                            {bankAccount
+                                                ? `${bankAccount.bank_name} - ${bankAccount.account_name} (****${bankAccount.account_number_masked})`
+                                                : `${withdrawalData.bank_name} - ${withdrawalData.account_name}`}
                                         </p>
                                     </div>
 
@@ -494,18 +504,10 @@ export default function WalletIndex({
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        onClick={() => {
-                                            setRecipientCode('');
-                                            setWithdrawalData({
-                                                amount: '',
-                                                recipient_code: '',
-                                                account_name: '',
-                                                bank_name: '',
-                                            });
-                                        }}
+                                        onClick={() => setShowAddBank(true)}
                                         className="w-full"
                                     >
-                                        Change Bank Account
+                                        Update Bank Account
                                     </Button>
                                 </form>
                             )}
