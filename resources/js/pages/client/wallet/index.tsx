@@ -22,7 +22,7 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { ArrowDownUp, Loader2, Plus, Wallet, ArrowDown, Building2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { FormSelect } from '@/components/ui/form-select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { EmptyCard } from '@/components/ui/empty-card';
 
 interface WalletData {
@@ -372,20 +372,15 @@ export default function WalletIndex({
 
                             {showAddBank && (
                                 <form onSubmit={handleAddOrUpdateBank} className="space-y-4">
-                                    <div>
-                                        <Label htmlFor="bank_code">Bank</Label>
-                                        <FormSelect
-                                            value={bankData.bank_code}
-                                            onChange={(value) => setBankData('bank_code', value)}
-                                            options={bankOptions}
-                                            placeholder="Select bank"
-                                        />
-                                        {bankErrors.bank_code && (
-                                            <p className="text-sm text-destructive mt-1">
-                                                {bankErrors.bank_code}
-                                            </p>
-                                        )}
-                                    </div>
+                                    <SearchableSelect
+                                        label="Bank"
+                                        value={bankData.bank_code}
+                                        onChange={(value) => setBankData('bank_code', value)}
+                                        options={bankOptions}
+                                        placeholder="Select bank"
+                                        searchPlaceholder="Search banks..."
+                                        error={bankErrors.bank_code}
+                                    />
 
                                     <div>
                                         <Label htmlFor="account_number">Account Number</Label>
