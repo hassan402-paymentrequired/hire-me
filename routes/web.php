@@ -65,7 +65,8 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
             Route::get('/settings', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'settings'])->name('settings');
             Route::post('/settings', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateSettings'])->name('settings.update');
             
-            // Widget settings (auto-save)
+            // Integration (Widget)
+            Route::get('/integration', [\App\Http\Controllers\Provider\Integration\IntegrationController::class, 'index'])->name('integration.index');
             Route::post('/widget/settings', [\App\Http\Controllers\Provider\Widget\WidgetSettingsController::class, 'update'])->name('widget.settings.update');
 
             // Team Management

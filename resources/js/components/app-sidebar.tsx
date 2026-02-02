@@ -19,7 +19,7 @@ import {
 import AppLogo from './app-logo';
 import schedule from '@/routes/schedule';
 import business, { dashboard } from '@/routes/business';
-import { ArchiveBoxIcon, CalendarDaysIcon, RectangleStackIcon, UserGroupIcon, WalletIcon, Cog6ToothIcon, FireIcon, ChartBarIcon, ChartBarSquareIcon } from '@heroicons/react/24/solid'
+import { ArchiveBoxIcon, CalendarDaysIcon, RectangleStackIcon, UserGroupIcon, WalletIcon, Cog6ToothIcon, FireIcon, ChartBarIcon, ChartBarSquareIcon, PuzzlePieceIcon } from '@heroicons/react/24/solid'
 
 
 const mainNavItems: any[] = [
@@ -80,6 +80,16 @@ const mainNavItems: any[] = [
                 title: 'Settings',
                 href: business.settings(),
                 icon: Cog6ToothIcon,
+            }
+        ]
+    },
+    {
+        name: "Integration",
+        links: [
+            {
+                title: 'Booking Widget',
+                href: business.integration.index(),
+                icon: PuzzlePieceIcon,
             }
         ]
     }
