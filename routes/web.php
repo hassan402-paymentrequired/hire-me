@@ -5,6 +5,12 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['provider.setup'])->group(function () {
     Route::get('/', [\App\Http\Controllers\Guest\GuestController::class, 'welcome'])->name('home');
     Route::get('/provider/{slug}', [\App\Http\Controllers\Client\MarketplaceController::class, 'show'])->name('provider.show');
+    
+    // Widget embed page (public, no auth required)
+    Route::get('/widget/{slug}', [\App\Http\Controllers\Widget\WidgetEmbedController::class, 'embed'])->name('widget.embed');
+    
+    // Widget payment callback (opens in new window, not iframe)
+    Route::get('/widget/{slug}/payment/callback/{reference}', [\App\Http\Controllers\Widget\WidgetPaymentCallbackController::class, 'callback'])->name('widget.payment.callback');
 
     // Static pages
     Route::get('/about', [\App\Http\Controllers\Guest\StaticPageController::class, 'about'])->name('about');
@@ -144,6 +150,15 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
 
     // Reviews
     Route::post('/reviews', [\App\Http\Controllers\Guest\ReviewController::class, 'store'])->name('reviews.store');
+});
+
+// Widget API (public endpoints)
+Route::prefix('api/widget')->name('api.widget.')->group(function () {
+    Route::get('/{slug}/info', [\App\Http\Controllers\Api\WidgetController::class, 'info'])->name('info');
+    Route::get('/{slug}/availability', [\App\Http\Controllers\Api\WidgetController::class, 'availability'])->name('availability');
+    Route::post('/{slug}/check-wallet', [\App\Http\Controllers\Api\WidgetController::class, 'checkWallet'])->name('check-wallet');
+    Route::post('/{slug}/initialize-payment', [\App\Http\Controllers\Api\WidgetController::class, 'initializePayment'])->name('initialize-payment');
+    Route::post('/{slug}/book', [\App\Http\Controllers\Api\WidgetController::class, 'book'])->name('book');
 });
 
 // Paystack Webhook (no auth required)

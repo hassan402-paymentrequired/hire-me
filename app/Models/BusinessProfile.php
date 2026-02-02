@@ -25,10 +25,16 @@ class BusinessProfile extends Model
         'latitude',
         'longitude',
         'settings',
+        'widget_enabled',
+        'widget_settings',
+        'widget_domains',
     ];
 
     protected $casts = [
         'settings' => 'array',
+        'widget_enabled' => 'boolean',
+        'widget_settings' => 'array',
+        'widget_domains' => 'array',
     ];
 
     public function user()

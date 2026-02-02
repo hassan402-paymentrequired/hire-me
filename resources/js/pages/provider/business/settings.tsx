@@ -3,7 +3,7 @@ import AppLayout from '@/layouts/app-layout';
 import { useForm, usePage } from '@inertiajs/react';
 import { LoadScript, Autocomplete } from '@react-google-maps/api';
 import { Button } from '@/components/ui/button';
-import { Building2, Save, Upload, MapPin, Settings as SettingsIcon, Image as ImageIcon, X, Trash2 } from 'lucide-react';
+import { Building2, Save, Upload, MapPin, Settings as SettingsIcon, Image as ImageIcon, X, Trash2, Code, Copy, Check } from 'lucide-react';
 import { FormSelect } from '@/components/ui/form-select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,6 +41,9 @@ export default function BusinessSettings({ profile, categories }: Props) {
         latitude: (profile?.latitude ?? null) as number | null,
         longitude: (profile?.longitude ?? null) as number | null,
         settings: (profile?.settings || {}) as Record<string, any>,
+        widget_enabled: profile?.widget_enabled || false,
+        widget_settings: (profile?.widget_settings || { primaryColor: '#3B82F6', size: 'medium' }) as Record<string, any>,
+        widget_domains: (profile?.widget_domains || []) as string[],
         logo: null as File | null,
         new_images: [] as File[],
         delete_image_ids: [] as string[],
@@ -199,6 +202,7 @@ export default function BusinessSettings({ profile, categories }: Props) {
         { id: 'location', label: 'Location', icon: MapPin },
         { id: 'advanced', label: 'Advanced Settings', icon: SettingsIcon },
         { id: 'appearance', label: 'Images & Logo', icon: ImageIcon },
+        { id: 'widget', label: 'Booking Widget', icon: Code },
     ];
 
     return (
@@ -345,6 +349,154 @@ export default function BusinessSettings({ profile, categories }: Props) {
                         </div>
                     )}
 
+                    {activeTab === 'widget' && (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+                            <div className="rounded-lg border bg-muted/50 p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div>
+                                        <h3 className="text-lg font-semibold">Embeddable Booking Widget</h3>
+                                        <p className="text-sm text-muted-foreground">
+                                            Allow customers to book appointments directly on your website
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            id="widget_enabled"
+                                            checked={data.widget_enabled}
+                                            onChange={(e) => setData('widget_enabled', e.target.checked)}
+                                            className="h-4 w-4 rounded border-gray-300"
+                                        />
+                                        <Label htmlFor="widget_enabled" className="cursor-pointer">
+                                            Enable Widget
+                                        </Label>
+                                    </div>
+                                </div>
+
+                                {data.widget_enabled && (
+                                    <div className="space-y-6 mt-6">
+                                        {/* Widget Customization */}
+                                        <div className="space-y-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="widget_color">Primary Color</Label>
+                                                    <div className="flex items-center gap-2">
+                                                        <Input
+                                                            id="widget_color"
+                                                            type="color"
+                                                            value={data.widget_settings?.primaryColor || '#3B82F6'}
+                                                            onChange={(e) => setData('widget_settings', {
+                                                                ...data.widget_settings,
+                                                                primaryColor: e.target.value
+                                                            })}
+                                                            className="h-10 w-20 p-1"
+                                                        />
+                                                        <Input
+                                                            type="text"
+                                                            value={data.widget_settings?.primaryColor || '#3B82F6'}
+                                                            onChange={(e) => setData('widget_settings', {
+                                                                ...data.widget_settings,
+                                                                primaryColor: e.target.value
+                                                            })}
+                                                            placeholder="#3B82F6"
+                                                            className="flex-1"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="widget_size">Widget Size</Label>
+                                                    <FormSelect
+                                                        options={[
+                                                            { value: 'small', label: 'Small' },
+                                                            { value: 'medium', label: 'Medium' },
+                                                            { value: 'large', label: 'Large' },
+                                                        ]}
+                                                        value={data.widget_settings?.size || 'medium'}
+                                                        onChange={(val) => setData('widget_settings', {
+                                                            ...data.widget_settings,
+                                                            size: val
+                                                        })}
+                                                    />
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Payment Configuration */}
+                                            <div className="rounded-lg border bg-muted/30 p-4">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <div>
+                                                        <Label className="text-sm font-semibold">Payment Requirement</Label>
+                                                        <p className="text-xs text-muted-foreground mt-1">
+                                                            Choose whether customers must pay upfront or can request bookings without payment
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            id="widget_require_payment"
+                                                            checked={data.widget_settings?.requirePayment !== false}
+                                                            onChange={(e) => setData('widget_settings', {
+                                                                ...data.widget_settings,
+                                                                requirePayment: e.target.checked
+                                                            })}
+                                                            className="h-4 w-4 rounded border-gray-300"
+                                                        />
+                                                        <Label htmlFor="widget_require_payment" className="cursor-pointer text-sm">
+                                                            Require Payment
+                                                        </Label>
+                                                    </div>
+                                                </div>
+                                                <div className="text-xs text-muted-foreground space-y-1">
+                                                    <p>• <strong>Enabled:</strong> Customers must have sufficient wallet balance to book</p>
+                                                    <p>• <strong>Disabled:</strong> Customers can request bookings without payment (you'll review and confirm)</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Embed Code */}
+                                        {profile?.slug && (
+                                            <div className="space-y-2">
+                                                <Label>Embed Code</Label>
+                                                <div className="flex items-center gap-2">
+                                                    <Textarea
+                                                        readOnly
+                                                        value={`<script src="${window.location.origin}/js/widget.js" data-slug="${profile.slug}" data-color="${data.widget_settings?.primaryColor || '#3B82F6'}" data-size="${data.widget_settings?.size || 'medium'}"></script>`}
+                                                        className="font-mono text-xs"
+                                                        rows={2}
+                                                    />
+                                                    <CopyEmbedCodeButton 
+                                                        code={`<script src="${window.location.origin}/js/widget.js" data-slug="${profile.slug}" data-color="${data.widget_settings?.primaryColor || '#3B82F6'}" data-size="${data.widget_settings?.size || 'medium'}"></script>`}
+                                                    />
+                                                </div>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Copy this code and paste it into your website's HTML where you want the booking widget to appear.
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        {/* Preview */}
+                                        <div className="space-y-2">
+                                            <Label>Preview</Label>
+                                            {!data.widget_enabled && (
+                                                <div className="mb-2 rounded-lg border border-yellow-200 bg-yellow-50 p-2 dark:bg-yellow-950/20">
+                                                    <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                                                        Preview mode: Enable the widget above to make it live on your website.
+                                                    </p>
+                                                </div>
+                                            )}
+                                            <div className="rounded-lg border p-4 bg-background">
+                                                <iframe
+                                                    src={`${window.location.origin}/widget/${profile?.slug}?color=${encodeURIComponent(data.widget_settings?.primaryColor || '#3B82F6')}&size=${data.widget_settings?.size || 'medium'}`}
+                                                    className="w-full h-[600px] border-0 rounded"
+                                                    title="Widget Preview"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {activeTab === 'appearance' && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
                             {/* Logo Section */}
@@ -436,3 +588,30 @@ export default function BusinessSettings({ profile, categories }: Props) {
 const Storage = {
     url: (path: string) => path.startsWith('http') ? path : `/storage/${path}`
 };
+
+// Copy embed code button component
+function CopyEmbedCodeButton({ code }: { code: string }) {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = async () => {
+        try {
+            await navigator.clipboard.writeText(code);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            console.error('Failed to copy:', err);
+        }
+    };
+
+    return (
+        <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleCopy}
+            className="shrink-0"
+        >
+            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+        </Button>
+    );
+}

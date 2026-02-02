@@ -1,6 +1,8 @@
 # Location Permission System
 
-## Overview
+## Category
+
+This application falls under the category of **Productivity** and **Location-Based Services**. It provides users with tools or features that require access to their device location, commonly found in service marketplaces, delivery platforms, and applications where proximity or mapping is essential.
 
 This document describes the custom location permission popup system that reminds users to enable location services at configurable intervals.
 

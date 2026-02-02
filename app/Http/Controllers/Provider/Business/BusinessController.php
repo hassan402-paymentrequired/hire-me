@@ -546,6 +546,10 @@ class BusinessController extends Controller
                 'latitude' => $profile->latitude,
                 'longitude' => $profile->longitude,
                 'settings' => $profile->settings ?? [],
+                'widget_enabled' => $profile->widget_enabled ?? false,
+                'widget_settings' => $profile->widget_settings ?? [],
+                'widget_domains' => $profile->widget_domains ?? [],
+                'slug' => $profile->slug,
                 'images' => $profile->images->map(fn($img) => [
                     'id' => $img->id,
                     'path' => \App\Services\FileUploadService::url($img->image_path, 'public'),
@@ -573,6 +577,9 @@ class BusinessController extends Controller
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
             'settings' => 'nullable|array',
+            'widget_enabled' => 'nullable|boolean',
+            'widget_settings' => 'nullable|array',
+            'widget_domains' => 'nullable|array',
             'logo' => 'nullable|image|max:2048',
             'new_images' => 'nullable|array',
             'new_images.*' => 'image|max:5120',
@@ -595,6 +602,9 @@ class BusinessController extends Controller
                 'latitude' => $request->latitude,
                 'longitude' => $request->longitude,
                 'settings' => array_merge($profile->settings ?? [], $request->settings ?? []),
+                'widget_enabled' => $request->has('widget_enabled') ? (bool)$request->widget_enabled : $profile->widget_enabled,
+                'widget_settings' => $request->widget_settings ?? $profile->widget_settings,
+                'widget_domains' => $request->widget_domains ?? $profile->widget_domains,
             ]);
 
             // Handle Logo Upload
