@@ -40,13 +40,49 @@ interface WidgetProps {
     apiBaseUrl?: string;
     primaryColor?: string;
     size?: 'small' | 'medium' | 'large';
+    cardBackground?: string;
+    textColor?: string;
+    borderRadius?: string;
+    padding?: string;
+    borderColor?: string;
+    inputBackground?: string;
+    inputBorderColor?: string;
+    inputTextColor?: string;
+    buttonBorderRadius?: string;
+    buttonFontSize?: string;
+    labelFontSize?: string;
+    labelFontWeight?: string;
+    serviceCardHoverColor?: string;
+    calendarSelectedColor?: string;
+    calendarTodayColor?: string;
+    summaryBackground?: string;
+    boxShadow?: string;
+    fontFamily?: string;
 }
 
 export function BookingWidget({ 
     slug, 
     apiBaseUrl = window.location.origin,
     primaryColor = '#3B82F6',
-    size = 'medium'
+    size = 'medium',
+    cardBackground = '#FFFFFF',
+    textColor = '#000000',
+    borderRadius = '8',
+    padding = '24',
+    borderColor,
+    inputBackground,
+    inputBorderColor,
+    inputTextColor,
+    buttonBorderRadius,
+    buttonFontSize,
+    labelFontSize,
+    labelFontWeight,
+    serviceCardHoverColor,
+    calendarSelectedColor,
+    calendarTodayColor,
+    summaryBackground,
+    boxShadow,
+    fontFamily,
 }: WidgetProps) {
     const [provider, setProvider] = useState<Provider | null>(null);
     const [services, setServices] = useState<Service[]>([]);
@@ -353,7 +389,7 @@ export function BookingWidget({
 
     if (loading && !provider) {
         return (
-            <div className={cn('mx-auto p-6', sizeClasses[size])}>
+            <div className={cn('mx-auto', sizeClasses[size])}>
                 <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin" style={{ color: primaryColor }} />
                 </div>
@@ -363,7 +399,7 @@ export function BookingWidget({
 
     if (error && !provider) {
         return (
-            <div className={cn('mx-auto p-6', sizeClasses[size])}>
+            <div className={cn('mx-auto', sizeClasses[size])}>
                 <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-center dark:bg-red-950/20">
                     <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
                 </div>
@@ -373,7 +409,7 @@ export function BookingWidget({
 
     if (success) {
         return (
-            <div className={cn('mx-auto p-6', sizeClasses[size])}>
+            <div className={cn('mx-auto', sizeClasses[size])}>
                 <div className="rounded-lg border border-green-200 bg-green-50 p-6 text-center dark:bg-green-950/20">
                     <CheckCircle2 className="mx-auto mb-4 h-12 w-12 text-green-600 dark:text-green-400" />
                     <h3 className="mb-2 text-lg font-semibold text-green-900 dark:text-green-100">
@@ -395,8 +431,41 @@ export function BookingWidget({
         ? addMonths(new Date(), settings.advanceBooking)
         : addMonths(new Date(), 30);
 
+    const widgetTextStyle: React.CSSProperties = {
+        color: textColor || undefined,
+        fontFamily: fontFamily || undefined,
+    };
+
+    const labelStyle: React.CSSProperties = {
+        ...widgetTextStyle,
+        fontSize: labelFontSize || undefined,
+        fontWeight: labelFontWeight || undefined,
+    };
+
+    const inputStyle: React.CSSProperties = {
+        backgroundColor: inputBackground || undefined,
+        borderColor: inputBorderColor || borderColor || undefined,
+        color: inputTextColor || textColor || undefined,
+        fontFamily: fontFamily || undefined,
+    };
+
+    const buttonStyle: React.CSSProperties = {
+        borderRadius: buttonBorderRadius ? `${buttonBorderRadius}px` : undefined,
+        fontSize: buttonFontSize || undefined,
+        fontFamily: fontFamily || undefined,
+    };
+
+    const serviceCardStyle: React.CSSProperties = {
+        borderColor: borderColor || undefined,
+    };
+
+    const summaryStyle: React.CSSProperties = {
+        backgroundColor: summaryBackground || undefined,
+        borderColor: borderColor || undefined,
+    };
+
     return (
-        <div className={cn('mx-auto', sizeClasses[size])}>
+        <div className={cn('mx-auto', sizeClasses[size])} style={widgetTextStyle}>
             {/* Header */}
             <div className="mb-6 flex items-center gap-4">
                 {provider.logo && (
@@ -407,21 +476,33 @@ export function BookingWidget({
                     />
                 )}
                 <div>
-                    <h2 className="text-xl font-bold">{provider.businessName}</h2>
+                    <h2 className="text-xl font-bold" style={widgetTextStyle}>{provider.businessName}</h2>
                     {provider.description && (
-                        <p className="text-sm text-muted-foreground">{provider.description}</p>
+                        <p className="text-sm opacity-70" style={widgetTextStyle}>{provider.description}</p>
                     )}
                 </div>
             </div>
 
             {/* Services Selection */}
             <div className="mb-6">
-                <Label className="mb-3 block text-sm font-medium">Select Services</Label>
+                <Label className="mb-3 block text-sm font-medium" style={labelStyle}>Select Services</Label>
                 <div className="space-y-3">
                     {services.map((service) => (
                         <div
                             key={service.id}
-                            className="flex items-start space-x-3 rounded-lg border p-3 hover:bg-accent"
+                            className="flex items-start space-x-3 rounded-lg border p-3 transition-colors"
+                            style={{
+                                ...serviceCardStyle,
+                                borderRadius: `${borderRadius}px`,
+                            }}
+                            onMouseEnter={(e) => {
+                                if (serviceCardHoverColor) {
+                                    e.currentTarget.style.backgroundColor = serviceCardHoverColor;
+                                }
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = '';
+                            }}
                         >
                             <Checkbox
                                 id={service.id}
@@ -432,15 +513,16 @@ export function BookingWidget({
                                 <Label
                                     htmlFor={service.id}
                                     className="cursor-pointer font-medium"
+                                    style={widgetTextStyle}
                                 >
                                     {service.name}
                                 </Label>
                                 {service.description && (
-                                    <p className="text-xs text-muted-foreground">
+                                    <p className="text-xs opacity-70" style={widgetTextStyle}>
                                         {service.description}
                                     </p>
                                 )}
-                                <div className="mt-1 flex items-center gap-4 text-xs text-muted-foreground">
+                                <div className="mt-1 flex items-center gap-4 text-xs opacity-70" style={widgetTextStyle}>
                                     <span>{service.duration} min</span>
                                     <span>₦{Number(service.price).toLocaleString()}</span>
                                 </div>
@@ -452,25 +534,31 @@ export function BookingWidget({
 
             {/* Date Selection */}
             <div className="mb-6">
-                <Label className="mb-3 block text-sm font-medium">Select Date</Label>
-                <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={(date) => {
-                        if (date) {
-                            setSelectedDate(date);
-                            setSelectedSlot('');
-                        }
-                    }}
-                    disabled={(date) => date < new Date() || date > maxDate}
-                    className="rounded-md border"
-                />
+                <Label className="mb-3 block text-sm font-medium" style={labelStyle}>Select Date</Label>
+                <div style={{ backgroundColor: cardBackground || 'transparent' }}>
+                    <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={(date) => {
+                            if (date) {
+                                setSelectedDate(date);
+                                setSelectedSlot('');
+                            }
+                        }}
+                        disabled={(date) => date < new Date() || date > maxDate}
+                        className="rounded-md border bg-transparent"
+                        style={{
+                            borderColor: borderColor || undefined,
+                            borderRadius: `${borderRadius}px`,
+                        }}
+                    />
+                </div>
             </div>
 
             {/* Time Slots */}
             {selectedServiceIds.length > 0 && (
                 <div className="mb-6">
-                    <Label className="mb-3 block text-sm font-medium">Select Time</Label>
+                    <Label className="mb-3 block text-sm font-medium" style={labelStyle}>Select Time</Label>
                     {loadingSlots ? (
                         <div className="flex items-center justify-center py-8">
                             <Loader2 className="h-6 w-6 animate-spin" style={{ color: primaryColor }} />
@@ -484,11 +572,17 @@ export function BookingWidget({
                             No available slots for this date. Please select another date.
                         </div>
                     ) : (
-                        <ScrollArea className="h-64 rounded-md border p-4">
+                        <ScrollArea 
+                            className="h-64 rounded-md border p-4"
+                            style={{
+                                borderColor: borderColor || undefined,
+                                borderRadius: `${borderRadius}px`,
+                            }}
+                        >
                             <div className="space-y-4">
                                 {categorizedSlots.morning.length > 0 && (
                                     <div>
-                                        <h4 className="mb-2 text-xs font-medium text-muted-foreground">Morning</h4>
+                                        <h4 className="mb-2 text-xs font-medium opacity-70" style={labelStyle}>Morning</h4>
                                         <div className="grid grid-cols-3 gap-2">
                                             {categorizedSlots.morning.map((slot) => (
                                                 <Button
@@ -496,11 +590,20 @@ export function BookingWidget({
                                                     variant={selectedSlot === slot.datetime ? 'default' : 'outline'}
                                                     size="sm"
                                                     onClick={() => setSelectedSlot(slot.datetime)}
-                                                    style={
-                                                        selectedSlot === slot.datetime
-                                                            ? { backgroundColor: primaryColor }
-                                                            : {}
-                                                    }
+                                                    style={{
+                                                        ...buttonStyle,
+                                                        ...(selectedSlot === slot.datetime
+                                                            ? { 
+                                                                backgroundColor: primaryColor,
+                                                                color: '#FFFFFF',
+                                                                borderColor: primaryColor
+                                                            }
+                                                            : {
+                                                                color: textColor,
+                                                                borderColor: borderColor || 'currentColor'
+                                                            }
+                                                        )
+                                                    }}
                                                 >
                                                     {slot.display}
                                                 </Button>
@@ -510,7 +613,7 @@ export function BookingWidget({
                                 )}
                                 {categorizedSlots.afternoon.length > 0 && (
                                     <div>
-                                        <h4 className="mb-2 text-xs font-medium text-muted-foreground">Afternoon</h4>
+                                        <h4 className="mb-2 text-xs font-medium opacity-70" style={labelStyle}>Afternoon</h4>
                                         <div className="grid grid-cols-3 gap-2">
                                             {categorizedSlots.afternoon.map((slot) => (
                                                 <Button
@@ -518,11 +621,20 @@ export function BookingWidget({
                                                     variant={selectedSlot === slot.datetime ? 'default' : 'outline'}
                                                     size="sm"
                                                     onClick={() => setSelectedSlot(slot.datetime)}
-                                                    style={
-                                                        selectedSlot === slot.datetime
-                                                            ? { backgroundColor: primaryColor }
-                                                            : {}
-                                                    }
+                                                    style={{
+                                                        ...buttonStyle,
+                                                        ...(selectedSlot === slot.datetime
+                                                            ? { 
+                                                                backgroundColor: primaryColor,
+                                                                color: '#FFFFFF',
+                                                                borderColor: primaryColor
+                                                            }
+                                                            : {
+                                                                color: textColor,
+                                                                borderColor: borderColor || 'currentColor'
+                                                            }
+                                                        )
+                                                    }}
                                                 >
                                                     {slot.display}
                                                 </Button>
@@ -532,7 +644,7 @@ export function BookingWidget({
                                 )}
                                 {categorizedSlots.evening.length > 0 && (
                                     <div>
-                                        <h4 className="mb-2 text-xs font-medium text-muted-foreground">Evening</h4>
+                                        <h4 className="mb-2 text-xs font-medium opacity-70" style={labelStyle}>Evening</h4>
                                         <div className="grid grid-cols-3 gap-2">
                                             {categorizedSlots.evening.map((slot) => (
                                                 <Button
@@ -540,11 +652,20 @@ export function BookingWidget({
                                                     variant={selectedSlot === slot.datetime ? 'default' : 'outline'}
                                                     size="sm"
                                                     onClick={() => setSelectedSlot(slot.datetime)}
-                                                    style={
-                                                        selectedSlot === slot.datetime
-                                                            ? { backgroundColor: primaryColor }
-                                                            : {}
-                                                    }
+                                                    style={{
+                                                        ...buttonStyle,
+                                                        ...(selectedSlot === slot.datetime
+                                                            ? { 
+                                                                backgroundColor: primaryColor,
+                                                                color: '#FFFFFF',
+                                                                borderColor: primaryColor
+                                                            }
+                                                            : {
+                                                                color: textColor,
+                                                                borderColor: borderColor || 'currentColor'
+                                                            }
+                                                        )
+                                                    }}
                                                 >
                                                     {slot.display}
                                                 </Button>
@@ -561,7 +682,7 @@ export function BookingWidget({
             {/* Guest Information */}
             <div className="mb-6 space-y-4">
                 <div>
-                    <Label htmlFor="guest_name" className="mb-2 block text-sm font-medium">
+                    <Label htmlFor="guest_name" className="mb-2 block text-sm font-medium" style={labelStyle}>
                         Your Name <span className="text-red-500">*</span>
                     </Label>
                     <Input
@@ -571,10 +692,12 @@ export function BookingWidget({
                         onChange={(e) => setGuestName(e.target.value)}
                         placeholder="Enter your full name"
                         required
+                        style={inputStyle}
+                        className="rounded-md"
                     />
                 </div>
                 <div>
-                    <Label htmlFor="guest_email" className="mb-2 block text-sm font-medium">
+                    <Label htmlFor="guest_email" className="mb-2 block text-sm font-medium" style={labelStyle}>
                         Email Address <span className="text-red-500">*</span>
                     </Label>
                     <Input
@@ -584,10 +707,12 @@ export function BookingWidget({
                         onChange={(e) => setGuestEmail(e.target.value)}
                         placeholder="your.email@example.com"
                         required
+                        style={inputStyle}
+                        className="rounded-md"
                     />
                 </div>
                 <div>
-                    <Label htmlFor="guest_phone" className="mb-2 block text-sm font-medium">
+                    <Label htmlFor="guest_phone" className="mb-2 block text-sm font-medium" style={labelStyle}>
                         Phone Number (Optional)
                     </Label>
                     <Input
@@ -596,13 +721,15 @@ export function BookingWidget({
                         value={guestPhone}
                         onChange={(e) => setGuestPhone(e.target.value)}
                         placeholder="+234 800 000 0000"
+                        style={inputStyle}
+                        className="rounded-md"
                     />
                 </div>
             </div>
 
             {/* Notes */}
             <div className="mb-6">
-                <Label htmlFor="notes" className="mb-2 block text-sm font-medium">
+                <Label htmlFor="notes" className="mb-2 block text-sm font-medium" style={labelStyle}>
                     Additional Notes (Optional)
                 </Label>
                 <Textarea
@@ -611,31 +738,40 @@ export function BookingWidget({
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="Any special requests or notes..."
                     rows={3}
+                    style={inputStyle}
+                    className="rounded-md"
                 />
             </div>
 
             {/* Summary */}
             {selectedServiceIds.length > 0 && (
-                <div className="mb-6 rounded-lg border bg-muted/50 p-4">
+                <div 
+                    className="mb-6 rounded-lg border p-4"
+                    style={{
+                        ...summaryStyle,
+                        borderRadius: `${borderRadius}px`,
+                        borderColor: borderColor || undefined,
+                    }}
+                >
                     <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Total Duration:</span>
-                        <span className="font-medium">{totalDuration} minutes</span>
+                        <span className="opacity-70" style={widgetTextStyle}>Total Duration:</span>
+                        <span className="font-medium" style={widgetTextStyle}>{totalDuration} minutes</span>
                     </div>
                     <div className="mt-2 flex items-center justify-between">
-                        <span className="font-semibold">Total Price:</span>
-                        <span className="text-lg font-bold">₦{totalPrice.toLocaleString()}</span>
+                        <span className="font-semibold" style={widgetTextStyle}>Total Price:</span>
+                        <span className="text-lg font-bold" style={widgetTextStyle}>₦{totalPrice.toLocaleString()}</span>
                     </div>
                     {widgetConfig?.requirePayment !== false && guestEmail && (
-                        <div className="mt-3 pt-3 border-t border-border">
+                        <div className="mt-3 pt-3 border-t" style={{ borderColor: borderColor || undefined }}>
                             {checkingWallet ? (
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <div className="flex items-center gap-2 text-xs opacity-70" style={widgetTextStyle}>
                                     <Loader2 className="h-3 w-3 animate-spin" />
                                     Checking wallet balance...
                                 </div>
                             ) : walletBalance !== null && (
-                                <div className="text-xs">
-                                    <span className="text-muted-foreground">Wallet Balance: </span>
-                                    <span className={walletBalance >= totalPrice ? 'text-green-600 font-semibold' : 'text-muted-foreground'}>
+                                <div className="text-xs" style={widgetTextStyle}>
+                                    <span className="opacity-70">Wallet Balance: </span>
+                                    <span className={walletBalance >= totalPrice ? 'text-green-600 font-semibold' : 'opacity-70'}>
                                         ₦{walletBalance.toLocaleString()}
                                     </span>
                                     {walletBalance >= totalPrice && (
@@ -663,7 +799,11 @@ export function BookingWidget({
                             onClick={() => handleBooking('wallet')}
                             disabled={!selectedSlot || selectedServiceIds.length === 0 || !guestName.trim() || !guestEmail.trim() || loading}
                             className="w-full"
-                            style={{ backgroundColor: primaryColor }}
+                            style={{
+                                ...buttonStyle,
+                                backgroundColor: primaryColor,
+                                color: '#FFFFFF',
+                            }}
                         >
                             {loading ? (
                                 <>
@@ -680,7 +820,19 @@ export function BookingWidget({
                         disabled={!selectedSlot || selectedServiceIds.length === 0 || !guestName.trim() || !guestEmail.trim() || loading}
                         className="w-full"
                         variant={walletBalance !== null && walletBalance >= totalPrice ? 'outline' : 'default'}
-                        style={walletBalance !== null && walletBalance >= totalPrice ? {} : { backgroundColor: primaryColor }}
+                        style={{
+                            ...buttonStyle,
+                            ...(walletBalance !== null && walletBalance >= totalPrice 
+                                ? { 
+                                    borderColor: borderColor || primaryColor,
+                                    color: textColor,
+                                } 
+                                : { 
+                                    backgroundColor: primaryColor,
+                                    color: '#FFFFFF',
+                                }
+                            )
+                        }}
                     >
                         {loading ? (
                             <>
@@ -697,7 +849,11 @@ export function BookingWidget({
                     onClick={() => handleBooking('wallet')}
                     disabled={!selectedSlot || selectedServiceIds.length === 0 || !guestName.trim() || !guestEmail.trim() || loading}
                     className="w-full"
-                    style={{ backgroundColor: primaryColor }}
+                    style={{
+                        ...buttonStyle,
+                        backgroundColor: primaryColor,
+                        color: '#FFFFFF',
+                    }}
                 >
                     {loading ? (
                         <>
