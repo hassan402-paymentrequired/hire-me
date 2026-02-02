@@ -97,6 +97,12 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Appointment::class, 'client_id');
     }
 
+    /** Reviews received as a provider (provider_id = this user) */
+    public function reviewsReceived()
+    {
+        return $this->hasMany(Review::class, 'provider_id');
+    }
+
     public function referrer()
     {
         return $this->belongsTo(\App\Models\User::class, 'referred_by');

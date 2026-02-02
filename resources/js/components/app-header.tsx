@@ -52,6 +52,10 @@ const mainNavItems = (auth?: any): NavItem[] => {
             title: 'Marketplace',
             href: home().url,
         },
+        {
+            title: 'Find on map',
+            href: '/find-on-map',
+        }
     ];
     return items;
 };

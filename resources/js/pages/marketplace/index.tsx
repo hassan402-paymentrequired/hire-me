@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Head, Link } from '@inertiajs/react';
-import { Clock } from 'lucide-react';
+import { Clock, MapPin, List } from 'lucide-react';
+import MarketplaceMapView from './components/map-view';
 
 interface Provider {
     id: string;
@@ -10,6 +11,9 @@ interface Provider {
     businessName: string;
     slug: string;
     description: string;
+    address?: string;
+    latitude?: number | null;
+    longitude?: number | null;
     servicesCount: number;
     services: string[];
 }
@@ -19,22 +23,45 @@ interface Props {
 }
 
 export default function MarketplaceIndex({ providers }: Props) {
-            return (
-                <AppLayout>
-                    <Head title="Find a Service Provider" />
+    const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+    
+    return (
+        <AppLayout>
+            <Head title="Find a Service Provider" />
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-foreground">Find a Service Provider</h1>
-                    <p className="text-muted-foreground mt-2">Browse and book appointments with local professionals</p>
+                <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold text-foreground">Find a Service Provider</h1>
+                        <p className="text-muted-foreground mt-2">Browse and book appointments with local professionals</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant={viewMode === 'list' ? 'default' : 'outline'}
+                            onClick={() => setViewMode('list')}
+                            className="gap-2"
+                        >
+                            <List className="h-4 w-4" />
+                            List View
+                        </Button>
+                        <Button
+                            variant={viewMode === 'map' ? 'default' : 'outline'}
+                            onClick={() => setViewMode('map')}
+                            className="gap-2"
+                        >
+                            <MapPin className="h-4 w-4" />
+                            Find in Map
+                        </Button>
+                    </div>
                 </div>
 
                 {providers.length === 0 ? (
                     <div className="text-center py-12">
                         <p className="text-muted-foreground">No providers available at the moment.</p>
                     </div>
+                ) : viewMode === 'map' ? (
+                    <MarketplaceMapView providers={providers} />
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        
                         {providers.map((provider) => (
                             <div
                                 key={provider.id}

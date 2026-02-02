@@ -32,6 +32,9 @@ class MarketplaceController extends Controller
                     'businessName' => $provider->businessProfile->business_name,
                     'slug' => $provider->businessProfile->slug,
                     'description' => $provider->businessProfile->description,
+                    'address' => $provider->businessProfile->address,
+                    'latitude' => $provider->businessProfile->latitude,
+                    'longitude' => $provider->businessProfile->longitude,
                     'servicesCount' => $provider->services->count(),
                     'services' => $provider->services->take(3)->map(fn($s) => $s->name),
                 ];

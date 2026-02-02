@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\BusinessProfile;
 use App\Models\Category;
 use App\Http\Resources\ProviderResource;
+use App\Http\Resources\FindOnMapProviderResource;
 
 class GuestController extends Controller
 {
@@ -114,6 +115,27 @@ class GuestController extends Controller
             'providers' => $providers,
             'categories' => $categories,
             'filters' => $request->only(['search', 'category', 'lat', 'lng', 'sort', 'min_rating']),
+        ]);
+    }
+
+    public function findOnMap(Request $request)
+    {
+        $users = User::whereHas('businessProfile')
+            ->where('is_verified', true)
+            ->with([
+                'businessProfile.images',
+                'services' => function ($query) {
+                    $query->where('status', 'active');
+                }
+            ])
+            ->withAvg('reviewsReceived as avg_rating', 'rating')
+            ->withCount('reviewsReceived as reviews_count')
+            ->get();
+
+        $providers = $users->map(fn ($user) => (new FindOnMapProviderResource($user))->resolve());
+
+        return Inertia::render('guest/find-on-map', [
+            'providers' => $providers->values()->all(),
         ]);
     }
 }
