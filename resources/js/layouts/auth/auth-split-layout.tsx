@@ -91,7 +91,6 @@ export default function AuthSplitLayout({
                                 <div className="flex-1">
                                     <h3 className="font-semibold text-sm mb-1 flex items-center gap-2">
                                         {feature.title}
-                                        <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                                     </h3>
                                     <p className="text-xs text-white/70">{feature.description}</p>
                                 </div>

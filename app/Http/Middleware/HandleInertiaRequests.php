@@ -57,6 +57,7 @@ class HandleInertiaRequests extends Middleware
                         ] : null,
                     ];
                 })($request->user()) : null,
+                'vapid_public_key' => $request->user() ? config('webpush.vapid.public_key') : null,
                 'admin' => $admin ? [
                     'id' => $admin->id,
                     'name' => $admin->name,

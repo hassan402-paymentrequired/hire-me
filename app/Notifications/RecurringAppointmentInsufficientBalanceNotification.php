@@ -7,10 +7,12 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\WebPush\WebPushChannel;
+use App\Notifications\Concerns\SendsWebPush;
 
 class RecurringAppointmentInsufficientBalanceNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsWebPush;
 
     public function __construct(
         public Appointment $parentAppointment,
@@ -20,7 +22,7 @@ class RecurringAppointmentInsufficientBalanceNotification extends Notification i
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database', WebPushChannel::class];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -39,6 +41,11 @@ class RecurringAppointmentInsufficientBalanceNotification extends Notification i
 
     public function toArray(object $notifiable): array
     {
-        return [];
+        return [
+            'title' => 'Wallet top-up needed',
+            'message' => 'A recurring appointment was skipped. Top up your wallet to continue.',
+            'action_url' => '/wallet',
+            'type' => 'recurring_insufficient_balance',
+        ];
     }
 }

@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '@/components/ui/spinner';
 import { getStepsWithStatus } from './onboarding-steps';
+import {CloudArrowUpIcon} from '@heroicons/react/24/solid'
 
 interface BusinessProfileProps {
     categories: { value: string; label: string }[];
@@ -54,7 +55,7 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                 // Extract address components - handle multiple possible types
                 place.address_components.forEach((component) => {
                     const types = component.types;
-                    
+
                     // City can be in different fields depending on location
                     if (!city) {
                         if (types.includes('locality')) {
@@ -65,14 +66,14 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                             city = component.long_name;
                         }
                     }
-                    
+
                     // State/Province
                     if (!state) {
                         if (types.includes('administrative_area_level_1')) {
                             state = component.short_name || component.long_name;
                         }
                     }
-                    
+
                     // Zip Code
                     if (!zipCode) {
                         if (types.includes('postal_code')) {
@@ -105,12 +106,12 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                 componentRestrictions: undefined, // Allow all countries
                 fields: ['address_components', 'formatted_address', 'geometry'],
             });
-            
+
             // Add place_changed listener
             autocomplete.addListener('place_changed', () => {
                 onPlaceChanged();
             });
-            
+
             autocompleteRef.current = autocomplete;
         }
 
@@ -172,11 +173,11 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                     </p>
                 </div>
 
-                <form onSubmit={submit} className="space-y-6">
+                <form onSubmit={submit} className="gap-4 grid">
                     {/* Images Upload */}
                     <div className="space-y-3">
                         <div>
-                            <Label className="text-sm font-medium">Business Images (Min 2, Max 3)</Label>
+                            <h6 className="text-base font-medium">Business Images (Min 2, Max 3)</h6>
                             <p className="text-xs text-muted-foreground mt-1">Upload at least 2 images. Select one to use as your business logo.</p>
                         </div>
 
@@ -211,9 +212,9 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                             ))}
 
                             {imagePreviews.length < 3 && (
-                                <label className=" rounded h-[150px] border-2 border-dashed border-border flex flex-col items-center justify-center bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors">
-                                    <Upload className="w-8 h-8 text-muted-foreground mb-2" />
-                                    <span className="text-xs font-medium text-muted-foreground">Add Image</span>
+                                <label className="rounded h-[150px]  border-2 border-dashed border-border flex flex-col items-center justify-center bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors">
+                                    <CloudArrowUpIcon className="w-8 h-8 text-muted-foreground mb-2" />
+                                    <span className="text-xs font-medium font-buttons text-muted-foreground">Add Image</span>
                                     <input
                                         type="file"
                                         accept="image/*"
@@ -227,6 +228,8 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                         {errors.images && <p className="text-sm text-destructive mt-1">{errors.images}</p>}
                         {errors.logo_index && <p className="text-sm text-destructive mt-1">{errors.logo_index}</p>}
                     </div>
+
+
 
                     {/* Business Name & Category */}
                     <div className="grid sm:grid-cols-2 gap-4">
@@ -246,12 +249,8 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                         </div>
 
                         <div className="space-y-1.5">
-                            <div>
-                                <Label className="text-sm font-medium">
-                                    Business Category <span className="text-destructive">*</span>
-                                </Label>
-                            </div>
-                            <SearchableSelect
+                          <SearchableSelect
+                          label="Business Category"
                                 required={true}
                                 options={categories}
                                 value={data.category}
@@ -278,8 +277,8 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                     {/* Address - Google Maps Autocomplete */}
                     <div className="space-y-1.5">
                         {googleMapsApiKey ? (
-                            <LoadScript 
-                                googleMapsApiKey={googleMapsApiKey} 
+                            <LoadScript
+                                googleMapsApiKey={googleMapsApiKey}
                                 libraries={libraries}
                                 onLoad={() => setIsScriptLoaded(true)}
                             >

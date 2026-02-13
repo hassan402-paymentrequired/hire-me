@@ -10,16 +10,15 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { Link, usePage } from '@inertiajs/react'; // Added usePage hook
+import { Link } from '@inertiajs/react'; // Added usePage hook
 import {
     ChartArea,
-    Clock,
     Folder,
 } from 'lucide-react';
 import AppLogo from './app-logo';
 import schedule from '@/routes/schedule';
 import business, { dashboard } from '@/routes/business';
-import { ArchiveBoxIcon, CalendarDaysIcon, RectangleStackIcon, UserGroupIcon, WalletIcon, Cog6ToothIcon, FireIcon, ChartBarIcon, ChartBarSquareIcon, PuzzlePieceIcon } from '@heroicons/react/24/solid'
+import { ArchiveBoxIcon, CalendarDaysIcon, RectangleStackIcon, UserGroupIcon, WalletIcon, Cog6ToothIcon, FireIcon, ChartBarIcon, PuzzlePieceIcon } from '@heroicons/react/24/solid'
 
 
 const mainNavItems: any[] = [

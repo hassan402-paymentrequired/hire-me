@@ -135,12 +135,9 @@ export default function WorkHours() {
                     ))}
 
                     <div className="flex justify-end items-center gap-4 pt-4">
-                        <Button type="submit" size="lg" disabled={processing} className="w-full md:w-auto">
+                        <Button type="submit" size="lg" disabled={processing} className="w-full rounded-lg md:w-auto">
                             {processing && <Spinner />} Continue
                         </Button>
-                        {/*<Button type="button" variant="ghost" onClick={skip}>*/}
-                        {/*    Skip for now*/}
-                        {/*</Button>*/}
                     </div>
                 </form>
             </div>

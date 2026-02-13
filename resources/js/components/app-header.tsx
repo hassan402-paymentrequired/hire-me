@@ -39,6 +39,7 @@ import { Link, usePage } from '@inertiajs/react';
 import { BookOpen, CalendarSync, Folder, Heart, Menu } from 'lucide-react';
 import AppLogo from './app-logo';
 import AppLogoIcon from './app-logo-icon';
+import { NotificationBell } from './notification-bell';
 
 interface NavItem {
     title: string;
@@ -298,6 +299,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
+                                <NotificationBell />
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button

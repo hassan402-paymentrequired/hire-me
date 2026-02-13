@@ -112,6 +112,19 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
         Route::get('/{id}', [\App\Http\Controllers\Client\AppointmentController::class, 'show'])->name('show');
     });
 
+    // Web Push: store/remove browser push subscription
+    Route::prefix('push-subscription')->name('push-subscription.')->group(function () {
+        Route::post('/', [\App\Http\Controllers\PushSubscriptionController::class, 'store'])->name('store');
+        Route::delete('/', [\App\Http\Controllers\PushSubscriptionController::class, 'destroy'])->name('destroy');
+    });
+
+    // In-app notifications (JSON API for notification bell)
+    Route::prefix('notifications')->name('notifications.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\NotificationController::class, 'index'])->name('index');
+        Route::post('/read-all', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('read-all');
+        Route::post('/{id}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('read');
+    });
+
     // Client Wallet
     Route::prefix('wallet')->name('wallet.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Client\WalletController::class, 'index'])->name('index');

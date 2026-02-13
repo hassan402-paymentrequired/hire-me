@@ -8,10 +8,12 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\WebPush\WebPushChannel;
+use App\Notifications\Concerns\SendsWebPush;
 
 class RecurringAppointmentSlotTakenNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsWebPush;
 
     public function __construct(
         public Appointment $parentAppointment,
@@ -20,7 +22,7 @@ class RecurringAppointmentSlotTakenNotification extends Notification implements 
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database', WebPushChannel::class];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -38,6 +40,11 @@ class RecurringAppointmentSlotTakenNotification extends Notification implements 
 
     public function toArray(object $notifiable): array
     {
-        return [];
+        return [
+            'title' => 'Recurring appointment skipped',
+            'message' => 'No alternative slot was found for your recurring appointment.',
+            'action_url' => '/bookings',
+            'type' => 'recurring_slot_taken',
+        ];
     }
 }

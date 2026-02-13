@@ -105,19 +105,19 @@ export default function Landing() {
 
                     {/* CTA - staggered */}
                     <div
-                        className="mt-8 flex flex-col items-center gap-6 animate-fade-in-up"
+                        className="mt-2 flex flex-col items-center gap-6 animate-fade-in-up"
                         style={{ animationDelay: '0.6s' }}
                     >
                         <a href="#marketplace">
-                            <Button
+                            {/* <Button
                                 size="lg"
                                 className="h-12 px-8 text-base font-semibold shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl active:scale-[0.98]"
                             >
-                                Get started
+                                Scroll to explore
                                 <ArrowDownIcon className="ml-2 h-5 w-5 animate-bounce" />
-                            </Button>
+                            </Button> */}
                         </a>
-                        <p className="text-sm text-muted-foreground">Scroll to explore</p>
+                        <p className="text-sm text-muted-foreground flex items-center gap-2">Scroll to explore <ArrowDownIcon className="ml-2 h-5 w-5 animate-bounce" /></p>
                     </div>
                 </div>
             </div>

@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Search, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import {InboxIcon} from '@heroicons/react/24/solid'
 
 interface SearchableSelectProps {
   label?: string | React.ReactNode
@@ -104,10 +105,10 @@ export function SearchableSelect({
         open={open}
         onOpenChange={setOpen}
       >
-        <SelectTrigger 
+        <SelectTrigger
           className={cn(
             "h-10",
-            error && "border-destructive"
+            error && "border-destructive rounded"
           )}
         >
           <SelectValue placeholder={placeholder}>
@@ -158,7 +159,9 @@ export function SearchableSelect({
                 </SelectItem>
               ))
             ) : (
-              <div className="py-6 text-center text-sm text-muted-foreground">
+              <div className="py-6 text-center text-sm flex flex-col text-muted-foreground">
+                <InboxIcon className="mx-auto mb-2 h-6 w-6" />
+
                 {emptyMessage}
               </div>
             )}

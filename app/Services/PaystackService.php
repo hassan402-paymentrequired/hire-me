@@ -180,22 +180,34 @@ class PaystackService
      */
     public function getBanks(): array
     {
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $this->secretKey,
-            'Content-Type' => 'application/json',
-        ])->get("{$this->baseUrl}/bank");
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->secretKey,
+                'Content-Type' => 'application/json',
+            ])->get("{$this->baseUrl}/bank");
 
-        if ($response->successful()) {
+            if ($response->successful()) {
+                return [
+                    'success' => true,
+                    'data' => $response->json()['data'],
+                ];
+            }
+
             return [
-                'success' => true,
-                'data' => $response->json()['data'],
+                'success' => false,
+                'message' => 'Failed to fetch banks',
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error fetching banks from Paystack', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'An error occurred while fetching banks',
+                'data' => [],
             ];
         }
-
-        return [
-            'success' => false,
-            'message' => 'Failed to fetch banks',
-        ];
     }
 
     /**

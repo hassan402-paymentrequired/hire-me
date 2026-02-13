@@ -153,7 +153,7 @@ export const HeaderFilter = ({
             </div>
 
             {/* Category Pills */}
-            <div className="scrollbar-hide mt-3 flex space-x-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="scrollbar-hide mt-5 flex space-x-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <button
                     onClick={() => handleCategoryChange('For You')}
                     className={`rounded px-4 py-2 text-sm font-medium whitespace-nowrap transition-all ${

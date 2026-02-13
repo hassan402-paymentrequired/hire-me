@@ -7,10 +7,12 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\WebPush\WebPushChannel;
+use App\Notifications\Concerns\SendsWebPush;
 
 class TeamMemberInvitationNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsWebPush;
 
     /**
      * Create a new notification instance.
@@ -27,7 +29,7 @@ class TeamMemberInvitationNotification extends Notification implements ShouldQue
      */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database', WebPushChannel::class];
     }
 
     /**
@@ -62,10 +64,13 @@ class TeamMemberInvitationNotification extends Notification implements ShouldQue
      */
     public function toArray(object $notifiable): array
     {
+        $businessName = $this->teamMember->provider?->businessProfile?->business_name ?? 'A business';
         return [
+            'title' => 'Team invitation',
+            'message' => 'You\'ve been invited to join ' . $businessName . ' as a team member.',
+            'action_url' => '/business/team',
+            'type' => 'team_invitation',
             'team_member_id' => $this->teamMember->id,
-            'provider_id' => $this->teamMember->provider_id,
-            'role' => $this->teamMember->role,
         ];
     }
 }

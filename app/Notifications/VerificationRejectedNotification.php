@@ -7,10 +7,12 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\WebPush\WebPushChannel;
+use App\Notifications\Concerns\SendsWebPush;
 
 class VerificationRejectedNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsWebPush;
 
     /**
      * Create a new notification instance.
@@ -27,7 +29,7 @@ class VerificationRejectedNotification extends Notification implements ShouldQue
      */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database', WebPushChannel::class];
     }
 
     /**
@@ -55,9 +57,11 @@ class VerificationRejectedNotification extends Notification implements ShouldQue
     public function toArray(object $notifiable): array
     {
         return [
+            'title' => 'Verification update',
+            'message' => 'Your verification was not approved. You can reapply with updated documents.',
+            'action_url' => '/onboarding/verification',
+            'type' => 'verification_rejected',
             'verification_id' => $this->verification->id,
-            'status' => 'rejected',
-            'rejection_reason' => $this->verification->rejection_reason,
         ];
     }
 }

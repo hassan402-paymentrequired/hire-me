@@ -32,17 +32,9 @@ const DayScheduleRow = ({
 
     return (
         <div className={`p-2 md:p-4 rounded border transition-smooth ${schedule?.isOpen ? 'bg-card border-border' : 'bg-muted/50 border-border/50'}`}>
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
+            <div className={`flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 ${schedule?.isOpen ? ' ' : 'mb-4'}`}>
                 <div className="flex items-start gap-2">
-                    <button
-                        onClick={() => onToggle(day)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-smooth focus-ring ${schedule?.isOpen ? 'bg-primary' : 'bg-muted-foreground/30'}`}
-                        role="switch"
-                        aria-checked={schedule?.isOpen}
-                        type={"button"}
-                    >
-                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-smooth ${schedule?.isOpen ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
+                   
                     <div>
                         <h3 className="text-base md:text-lg font-semibold text-foreground">{day}</h3>
                         <p className="text-xs md:text-sm text-muted-foreground">
@@ -51,18 +43,15 @@ const DayScheduleRow = ({
                     </div>
                 </div>
 
-                {schedule?.isOpen && (
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onAddBreak(day, shiftIndex)}
-                        className="w-full md:w-auto"
+                <button
+                        onClick={() => onToggle(day)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-smooth focus-ring ${schedule?.isOpen ? 'bg-primary' : 'bg-muted-foreground/30'}`}
+                        role="switch"
+                        aria-checked={schedule?.isOpen}
                         type={"button"}
                     >
-                        <Coffee className="size-4" />
-                        Add Break
-                    </Button>
-                )}
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-smooth ${schedule?.isOpen ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
             </div>
 
             {schedule?.isOpen && shift && (
@@ -89,7 +78,6 @@ const DayScheduleRow = ({
                     {shift?.breaks && shift?.breaks?.length > 0 && (
                         <div className="space-y-3">
                             <h5 className="text-sm font-medium text-foreground flex items-center gap-2">
-                                <Coffee size={16} />
                                 Break Times
                             </h5>
                             {shift?.breaks?.map((breakTime, breakIndex) => (
@@ -127,6 +115,19 @@ const DayScheduleRow = ({
                     )}
                 </div>
             )}
+
+{schedule?.isOpen && (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onAddBreak(day, shiftIndex)}
+                        className="w-full md:w-auto mt-3"
+                        type={"button"}
+                    >
+                        <Coffee className="size-4" />
+                        Add Break
+                    </Button>
+                )}
         </div>
     );
 };
