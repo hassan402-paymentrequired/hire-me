@@ -22,7 +22,7 @@ class GuestController extends Controller
         $lat = $request->lat ? (float) $request->lat : null;
         $lng = $request->lng ? (float) $request->lng : null;
 
-        $query = User::whereHas('businessProfile')
+        $query = User::query()->whereHas('businessProfile')
             ->where('users.is_verified', true) // Only show verified providers
             ->select('users.*')
             ->with([
@@ -58,11 +58,12 @@ class GuestController extends Controller
         }
 
         // Filter by search
-        if ($request->search) {
+        if ($request->search) {   
             $query->where(function ($q) use ($request) {
                 $q->where('users.name', 'like', "%{$request->search}%")
                     ->orWhere('business_profiles.business_name', 'like', "%{$request->search}%")
-                    ->orWhere('business_profiles.description', 'like', "%{$request->search}%");
+                    ->orWhere('business_profiles.description', 'like', "%{$request->search}%")
+                    ->orWhere('business_profiles.address', 'like', "%{$request->search}%");
             });
         }
 
@@ -100,14 +101,8 @@ class GuestController extends Controller
 
         $providers = $query->paginate(12)->withQueryString();
         
-        // Transform paginated results using ProviderResource
-        // Map each item individually and resolve to array to avoid 'data' wrapper
-        $transformedItems = $providers->getCollection()->map(function ($provider) {
-            return (new ProviderResource($provider))->resolve();
-        });
+        $providers = ProviderResource::collection($providers);
         
-        $providers->setCollection($transformedItems);
-
         $categories = Category::orderBy('name')->get(['name', 'slug']);
 
         return Inertia::render('guest/welcome', [

@@ -7,23 +7,6 @@ import Landing from './components/landing-page';
 import { MiniLoginForm } from './mini-login-form';
 import { EmptyCard } from '@/components/ui/empty-card';
 
-const PROVIDERS_BEFORE_LOGIN = 8; // 2 rows × 4 cols (xl)
-
-interface Provider {
-    id: string;
-    name: string;
-    businessName: string;
-    slug: string;
-    description?: string;
-    servicesCount: number;
-    services: string[];
-    distance?: number | null;
-    logo?: string | null;
-    rating: number;
-    reviewsCount: number;
-    minPrice: number | string;
-    address: string;
-}
 
 interface Props {
     providers: {
