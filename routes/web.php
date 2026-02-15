@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/team/accept-invite/{link}', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'acceptInvite'])->name('team.invite.accept');
+Route::get('/team/accept-invite/{link}', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'acceptInvite'])->name('business.team.invite.accept');
 
 Route::middleware(['provider.setup'])->group(function () {
     Route::get('/', [\App\Http\Controllers\Guest\GuestController::class, 'welcome'])->name('home');

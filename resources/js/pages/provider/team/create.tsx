@@ -45,9 +45,6 @@ export default function TeamCreate() {
         e.preventDefault();
         router.post(business.team.index().url, data, {
             preserveScroll: true,
-            onSuccess: () => {
-                router.visit(business.team.index().url);
-            },
             onError: (error) => {
                 if (error?.exists) {
                     setInviteModalOpen(true);
@@ -58,7 +55,11 @@ export default function TeamCreate() {
         });
     };
 
-    const handleAccept = () => {};
+    const handleAccept = () => {
+         router.post(business.team.invite.accept().url, data, {
+            preserveScroll: true,
+        });
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
