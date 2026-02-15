@@ -23,14 +23,7 @@
             <li>Update appointment statuses</li>
             <li>Communicate with clients</li>
         @endif
-    </ul>
-
-    <p>Here are the login credentials created for you!</p>
-
-    <p><strong>Email:</strong> {{ $user->email }}</p>
-    <p><strong>Password:</strong> {{ $password }}</p>
-
-    <p><strong>Important:</strong> For security reasons, we recommend changing your password after your first login.</p>
+    </ul
 
     <p>Please note: this invitation expires in 7 days.</p>
 

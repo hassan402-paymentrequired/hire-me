@@ -2,14 +2,18 @@
 
 namespace App\Http\Controllers\Provider\Team;
 
+use App\Enum\UserRoleEnum;
 use App\Http\Controllers\Controller;
 use App\Notifications\TeamMemberInvitationNotification;
 use App\Models\TeamMember;
 use App\Models\User;
+use App\Notifications\InviteUserNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
+use Illuminate\Validation\ValidationException;
+
 
 class TeamMemberController extends Controller
 {
@@ -63,55 +67,64 @@ class TeamMemberController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'email' => 'required|email|exists:users,email',
+            'name' => 'required|string|min:3',
+            'email' => 'required|email',
             'role' => 'required|in:admin,staff',
         ]);
 
         $provider = auth()->user();
-        $user = User::where('email', $request->email)->firstOrFail();
+        $user = User::where('email', $request->email)->first();
 
         // Check if user is trying to add themselves
-        if ($user->id === $provider->id) {
-            return back()->with('error-toast', 'You cannot add yourself as a team member.');
-        }
-
-        // Check if user is already a team member
-        $existing = TeamMember::where('provider_id', $provider->id)
-            ->where('user_id', $user->id)
-            ->first();
-
-        if ($existing) {
-            if ($existing->is_active) {
-                return back()->with('error-toast', 'This user is already a team member.');
-            } else {
-                // Reactivate existing team member
-                $existing->update([
-                    'role' => $request->role,
-                    'is_active' => true,
-                    'invited_by' => $provider->id,
-                    'invited_at' => now(),
-                ]);
-                return back()->with('success-toast', 'Team member reactivated successfully.');
+        if ($user) {
+            if ($user->id === $provider->id) {
+                return back()->with('error-toast', 'You cannot add yourself as a team member.');
             }
+
+            if ($user->isProvider()) {
+                return back()->with('error-toast', 'User already have a business profile.');
+            }
+
+            // Check if user is already a team member
+            $existing = TeamMember::where('provider_id', $provider->id)
+                ->where('user_id', $user->id)
+                ->first();
+
+            if ($existing) {
+                return back()->with('error-toast', 'This user is already a team member.');
+            }
+
+            throw ValidationException::withMessages([
+                'exists' => true,
+            ]);
         }
 
         try {
             DB::beginTransaction();
 
+            $password = generate_random(10);
+
+            $user = User::query()->create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => $password,
+                'role' => UserRoleEnum::PROVIDER->value,
+            ]);
+
             $teamMember = TeamMember::create([
                 'provider_id' => $provider->id,
                 'user_id' => $user->id,
                 'role' => $request->role,
-                'is_active' => true,
+                'is_active' => false,
                 'invited_by' => $provider->id,
                 'invited_at' => now(),
-                'accepted_at' => now(), // Auto-accept for now, can add invitation flow later
+                'invitation_link' => generate_random(30),
+                'invitation_expires_at' => now()->addDays(7),
             ]);
 
             DB::commit();
 
-            // TODO: Send invitation email
-            $user->notify(new TeamMemberInvitationNotification($teamMember));
+            $user->notify(new TeamMemberInvitationNotification($teamMember, $password));
 
             return redirect()->route('business.team.index')
                 ->with('success-toast', 'Team member added successfully.');
@@ -120,6 +133,48 @@ class TeamMemberController extends Controller
             return back()->with('error-toast', 'Failed to add team member: ' . $e->getMessage());
         }
     }
+
+
+    public function inviteUser(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+            'role' => 'required|in:admin,staff',
+        ]);
+
+        try {
+            DB::beginTransaction();
+            $user = User::where('email', $request->email)->first();
+            $provider = auth()->user();
+
+            $teamMember = TeamMember::create([
+                'provider_id' => $provider->id,
+                'user_id' => $user->id,
+                'role' => $request->role,
+                'is_active' => false,
+                'invited_by' => $provider->id,
+                'invited_at' => now(),
+                'invitation_link' => generate_random(30),
+                'invitation_expires_at' => now()->addDays(7),
+            ]);
+
+            $user->notify(new InviteUserNotification($teamMember));
+
+            DB::commit();
+
+            return redirect()->route('business.team.index')
+                ->with('success-toast', 'Team member added successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error-toast', 'Failed to add team member: ' . $e->getMessage());
+        }
+    }
+
+    public function acceptInvite(Request $request)
+    {
+        // logic
+    }
+
 
     /**
      * Update team member role or status

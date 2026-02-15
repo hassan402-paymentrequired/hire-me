@@ -15,7 +15,6 @@ import {
     Award,
     TrendingUp,
     CheckCircle2,
-    MessageSquare
 } from 'lucide-react';
 import { ReviewSection } from '@/components/reviews/review-section';
 import { router, Link } from '@inertiajs/react';
@@ -28,7 +27,7 @@ interface Service {
     id: string;
     name: string;
     description: string;
-    duration: number;
+    duration_minutes: number;
     price: number;
 }
 
@@ -432,7 +431,7 @@ export default function ProviderProfile({ provider, services, workHours, reviews
                                         <ClockIcon className="w-6 h-6 text-primary mx-auto mb-2" />
                                         <p className="text-2xl font-bold">
                                             {services.length > 0 
-                                                ? Math.round(services.reduce((sum, s) => sum + (s.duration || 0), 0) / 60)
+                                                ? Math.round(services.reduce((sum, s) => sum + (s.duration_minutes || 0), 0) / 60)
                                                 : 0}
                                         </p>
                                         <p className="text-xs text-muted-foreground">Total Hours</p>
@@ -484,7 +483,7 @@ export default function ProviderProfile({ provider, services, workHours, reviews
                                                         <div className="flex items-center gap-4 text-sm">
                                                             <div className="flex items-center gap-1.5 text-muted-foreground">
                                                                 <ClockIcon className="w-4 h-4" />
-                                                                <span className="font-medium">{service.duration} min</span>
+                                                                <span className="font-medium">{service.duration_minutes} min</span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -520,7 +519,7 @@ export default function ProviderProfile({ provider, services, workHours, reviews
                                 </div>
                             ) : (
                                 <ReviewSection 
-                                    reviews={reviews.slice(0, 3)} 
+                                    reviews={reviews.slice(0, 5)} 
                                     canReview={provider.can_review} 
                                     pendingAppointmentId={provider.pending_appointment_id}
                                 />
@@ -549,8 +548,8 @@ export default function ProviderProfile({ provider, services, workHours, reviews
                                         return (
                                             <div
                                                 key={day}
-                                                className={`flex justify-between items-center p-3 rounded-lg transition-colors ${
-                                                    isToday ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted/50'
+                                                className={`flex justify-between items-center p-3  transition-colors ${
+                                                    isToday ? 'bg-primary/10 border border-primary/20 rounded skew-3' : 'hover:bg-muted/50'
                                                 }`}
                                             >
                                                 <span className={`font-semibold ${isToday ? 'text-primary' : ''}`}>

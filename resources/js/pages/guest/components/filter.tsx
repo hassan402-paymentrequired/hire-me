@@ -93,7 +93,7 @@ export const HeaderFilter = ({
                             <Search className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 placeholder="Search Service, location..."
-                                className="h-12 rounded-full border-border/60 pr-12 pl-11 focus-visible:bg-background focus-visible:ring-1"
+                                className="h-12 font-heading rounded-full border-border/60 pr-12 pl-11 focus-visible:bg-background focus-visible:ring-1"
                                 value={search}
                                 onChange={(e) => handleSearch(e.target.value)}
                             />

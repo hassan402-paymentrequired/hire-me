@@ -7,17 +7,15 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use NotificationChannels\WebPush\WebPushChannel;
-use App\Notifications\Concerns\SendsWebPush;
 
-class TeamMemberInvitationNotification extends Notification implements ShouldQueue
+class InviteUserNotification extends Notification implements ShouldQueue
 {
-    use Queueable, SendsWebPush;
+    use Queueable;
 
     /**
      * Create a new notification instance.
      */
-    public function __construct(public TeamMember $teamMember, public string $password)
+    public function __construct(public TeamMember $teamMember)
     {
         //
     }
@@ -38,7 +36,7 @@ class TeamMemberInvitationNotification extends Notification implements ShouldQue
     public function toMail(object $notifiable): MailMessage
     {
         $this->teamMember->loadMissing(['provider.businessProfile', 'inviter']);
-        
+
         $provider = $this->teamMember->provider;
         $businessName = $provider->businessProfile?->business_name ?? $provider->name . "'s Business";
         $inviterName = $this->teamMember->inviter?->name ?? $provider->name;
@@ -46,14 +44,13 @@ class TeamMemberInvitationNotification extends Notification implements ShouldQue
 
         return (new MailMessage)
             ->subject('You\'ve been invited to join ' . $businessName . ' - ' . config('app.name'))
-            ->markdown('emails.provider.team-member-invitation', [
+            ->markdown('emails.provider.team-manual-invitation', [
                 'user' => $notifiable,
                 'teamMember' => $this->teamMember,
                 'provider' => $provider,
                 'businessName' => $businessName,
                 'inviterName' => $inviterName,
                 'role' => $role,
-                'password' => $this->password,
             ]);
     }
 

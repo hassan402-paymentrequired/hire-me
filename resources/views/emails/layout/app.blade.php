@@ -144,7 +144,7 @@
                             
                             @hasSection('cta_url')
                                 <div style="text-align: center;">
-                                    <a href="@yield('cta_url')" class="email-button">@yield('cta_text', 'Get Started')</a>
+                                    <a href="@yield('cta_url')" target="_blank" class="email-button">@yield('cta_text', 'Get Started')</a>
                                 </div>
                             @endif
                         </td>

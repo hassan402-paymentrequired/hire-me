@@ -200,7 +200,7 @@ const Footer = () => {
                             </ul>
                         </div>
                         <div>
-                            <strong className="font-medium text-gray-900 dark:text-white">
+                             <strong className="text-lg font-heading font-bold text-gray-900 dark:text-white">
                                 Legal
                             </strong>
                             <ul className="mt-6 space-y-3">

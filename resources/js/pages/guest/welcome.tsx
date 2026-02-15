@@ -6,7 +6,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Landing from './components/landing-page';
 import { MiniLoginForm } from './mini-login-form';
 import { EmptyCard } from '@/components/ui/empty-card';
-
+import {PROVIDERS_BEFORE_LOGIN} from '@/lib/constants';
+import { Provider } from '@/types';
 
 interface Props {
     providers: {
@@ -32,12 +33,13 @@ interface Props {
 }
 
 export default function Welcome({ providers, categories, filters, canRegister }: Props) {
+    console.log(providers)
     const { auth } = usePage().props as { auth?: { user?: unknown } };
     const isGuest = !auth?.user;
     const [allProviders, setAllProviders] = useState(providers.data);
     const [loading, setLoading] = useState(false);
     const loadMoreRef = useRef<HTMLDivElement>(null);
-    const isLoadingRef = useRef(false); // Prevent multiple simultaneous requests
+    const isLoadingRef = useRef(false); 
 
     const displayProviders = isGuest
         ? allProviders.slice(0, PROVIDERS_BEFORE_LOGIN)
@@ -93,7 +95,7 @@ export default function Welcome({ providers, categories, filters, canRegister }:
                     loadMore();
                 }
             },
-            { threshold: 0.5, rootMargin: '100px' }, // Trigger earlier for better UX
+            { threshold: 0.5, rootMargin: '100px' }, 
         );
 
         const currentRef = loadMoreRef.current;
@@ -178,7 +180,6 @@ export default function Welcome({ providers, categories, filters, canRegister }:
             />
             <AppLayout>
                 <div className="m box-border flex w-full  flex-col space-y-6 overflow-visible px-5 ">
-                    {/* Top Filter Bar */}
 
                     <Landing />
 

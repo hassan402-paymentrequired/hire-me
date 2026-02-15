@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 
+Route::get('/team/accept-invite/{link}', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'acceptInvite'])->name('team.invite.accept');
+
 Route::middleware(['provider.setup'])->group(function () {
     Route::get('/', [\App\Http\Controllers\Guest\GuestController::class, 'welcome'])->name('home');
     Route::get('/find-on-map', [\App\Http\Controllers\Guest\GuestController::class, 'findOnMap'])->name('find-on-map');
@@ -75,6 +77,7 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
                 Route::get('/', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'index'])->name('index');
                 Route::get('/create', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'create'])->name('create');
                 Route::post('/', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'store'])->name('store');
+                Route::post('/invite', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'inviteUser'])->name('invite');
                 Route::put('/{id}', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'update'])->name('update');
                 Route::delete('/{id}', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'destroy'])->name('destroy');
                 Route::get('/members/list', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'getTeamMembers'])->name('members.list');
