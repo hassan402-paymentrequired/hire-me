@@ -45,7 +45,7 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
         Route::get('/verification', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'verification'])->name('verification');
         Route::post('/verification', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'storeVerification'])->name('verification.store');
         Route::get('/success', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'success'])->name('success');
-        Route::post('/skip', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'skip'])->name('skip');
+        Route::post('/skip/{stage}', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'skip'])->name('skip');
     });
 
     Route::middleware('provider')->group(function () {

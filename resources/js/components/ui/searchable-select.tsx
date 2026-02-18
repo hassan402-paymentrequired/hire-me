@@ -117,7 +117,7 @@ export function SearchableSelect({
         </SelectTrigger>
         <SelectContent className="p-0">
           {/* Search Input */}
-          <div className="flex items-center border-b px-3 py-2 sticky top-0 bg-background z-10">
+          <div className="flex items-center border shadow-none rounded px-3 py-2 sticky top-0 bg-background z-10">
             <Search className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
             <Input
               ref={searchInputRef}
@@ -160,9 +160,9 @@ export function SearchableSelect({
               ))
             ) : (
               <div className="py-6 text-center text-sm flex flex-col text-muted-foreground">
-                <InboxIcon className="mx-auto mb-2 h-6 w-6" />
+                <InboxIcon className="mx-auto mb-1 h-6 w-6" />
 
-                {emptyMessage}
+                <span className="font-heading">{emptyMessage}</span>
               </div>
             )}
           </div>

@@ -13,10 +13,9 @@ class UserObserver
         // Generate unique referral code
         if (!$user->referral_code) {
             $user->referral_code = strtoupper(substr(md5(uniqid($user->id, true)), 0, 8));
-            $user->saveQuietly(); // Avoid infinite loop
+            $user->saveQuietly();
         }
 
-        // Create wallet for new user
         Wallet::create([
             'user_id' => $user->id,
             'balance' => 0,
@@ -30,7 +29,6 @@ class UserObserver
     public function updated(User $user): void
     {
         if ($user->email_verified_at !== null) {
-
             $user->notify(new WelcomeNotification());
         }
     }

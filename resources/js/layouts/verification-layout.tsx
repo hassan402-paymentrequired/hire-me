@@ -1,7 +1,6 @@
-import AppLogoIcon from '@/components/app-logo-icon';
+import AppLogo from '@/components/app-logo';
 import ToastNotification from '@/components/ui/toast-notification';
-import { home } from '@/routes';
-import { Head, Link } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
 import { ShieldCheck } from 'lucide-react';
 
 interface VerificationLayoutProps {
@@ -20,16 +19,7 @@ export default function VerificationLayout({
             {/* Header */}
             <header className="border-b">
                 <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-                    <Link
-                        href={home()}
-                        className="flex items-center text-lg font-semibold"
-                        prefetch
-                    >
-                        <div className="mr-3 rounded-lg bg-primary/10 p-2">
-                            <AppLogoIcon className="size-6 fill-current text-primary" />
-                        </div>
-                        Clockra
-                    </Link>
+                 <AppLogo />
                 </div>
             </header>
 
@@ -50,7 +40,7 @@ export default function VerificationLayout({
                             to clients
                         </p>
                     </div>
-                    <div className="rounded-lg border bg-card p-6 shadow-sm">
+                    <div className="rounded border bg-card p-6 ">
                         {children}
                     </div>
                 </div>

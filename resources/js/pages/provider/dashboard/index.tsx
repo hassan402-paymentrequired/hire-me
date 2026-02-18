@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
     Avatar,
     AvatarFallback,
@@ -21,21 +22,16 @@ import {
     Calendar,
     Clock,
     CreditCard,
-    MoreHorizontal,
-    Plus,
     Star,
     Users,
     AlertCircle,
     ShieldCheck,
-    XCircle,
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Link } from '@inertiajs/react';
 import { dashboard } from '@/routes/business';
 import {
     Empty,
-    EmptyContent,
-    EmptyDescription,
     EmptyHeader,
     EmptyMedia,
     EmptyTitle,
@@ -159,7 +155,7 @@ export default function Index({ stats, upcomingAppointments, recentActivity, is_
                                 ? 'text-blue-700 w-full dark:text-blue-300'
                                 : 'text-yellow-700 w-full dark:text-yellow-300'
                         }>
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between w-full">
                                 <p>
                                     {verification_status?.status === 'pending' ? (
                                         <>
@@ -178,9 +174,6 @@ export default function Index({ stats, upcomingAppointments, recentActivity, is_
                                     ) : (
                                         <>
                                             Your business profile is not visible to clients until you complete verification.
-                                            <span className="block mt-1 text-sm">
-                                                Upload a valid document to verify your identity and start receiving bookings.
-                                            </span>
                                         </>
                                     )}
                                 </p>

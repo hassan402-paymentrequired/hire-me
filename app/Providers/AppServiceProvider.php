@@ -30,7 +30,6 @@ class AppServiceProvider extends ServiceProvider
         return (new MailMessage)
             ->subject('Verify Email Address')
             ->view('emails.verify-email', ['url' => $url, 'user' => $notifiable]);
-
     });
     }
 }

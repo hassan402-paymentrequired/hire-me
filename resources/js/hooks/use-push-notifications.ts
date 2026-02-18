@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { usePage } from '@inertiajs/react';
+import { usePage, router } from '@inertiajs/react';
 
 /**
  * Convert base64url VAPID key to Uint8Array for pushManager.subscribe().
@@ -60,27 +60,31 @@ export function usePushNotifications() {
             const p256dh = subscription.getKey('p256dh');
             const authKey = subscription.getKey('auth');
             if (!p256dh || !authKey) return;
-            const token = getCsrfToken();
+
+            const payload = {
+                endpoint,
+                keys: {
+                    p256dh: arrayBufferToBase64(p256dh),
+                    auth: arrayBufferToBase64(authKey),
+                },
+                contentEncoding: 'aesgcm',
+            };
+
+            const csrf = getCsrfToken();
+
             await fetch('/push-subscription', {
                 method: 'POST',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    ...(token && { 'X-XSRF-TOKEN': token }),
-                    ...(token && { 'X-CSRF-TOKEN': token }),
+                    'Accept': 'application/json',
+                    ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
                 },
-                body: JSON.stringify({
-                    endpoint,
-                    keys: {
-                        p256dh: arrayBufferToBase64(p256dh),
-                        auth: arrayBufferToBase64(authKey),
-                    },
-                    contentEncoding: 'aesgcm',
-                }),
+                credentials: 'same-origin',
+                body: JSON.stringify(payload),
             });
         } catch {
             // Permission denied, push not supported, or network error – fail silently
+
         }
     }, [user, vapidPublicKey]);
 

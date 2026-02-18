@@ -187,9 +187,10 @@
         font-family: var(--font-buttons);
     }
 
-    p {
+    p , input {
         font-family: var(--font-heading);
     }
+     
 }
 
 /* Add to your global CSS or component styles */

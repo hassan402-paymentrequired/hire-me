@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Provider\Onboarding;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SaveWorkHourJob;
 use App\Models\BusinessProfile;
+use App\Models\Category;
 use App\Models\Service;
 use App\Models\WorkHour;
-use App\Models\Category;
 use App\Notifications\BusinessSetupCompleteNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,25 +20,28 @@ class OnboardingController extends Controller
     public function index()
     {
         $user = auth()->user();
+        $hasService = Service::where('provider_id', $user->id)->exists();
 
         // Determine current step based on what's missing
         // 1. Business Profile
-        if (!$user->businessProfile) {
+        if ($user->businessProfile && $hasService) {
+            return to_route('business.dashboard')->with('error', 'You. already have a business profile.');
+        }
+
+        if (! $user->businessProfile) {
             return redirect()->route('onboarding.business-profile');
         }
 
         // 2. Work Hours (check if any exist)
-        if (!WorkHour::where('provider_id', $user->id)->exists()) {
+        if (! WorkHour::where('provider_id', $user->id)->exists()) {
             return redirect()->route('onboarding.work-hours');
         }
 
         // 3. Services (check if any exist)
-        if (!Service::where('provider_id', $user->id)->exists()) {
+        if (! $hasService) {
             return redirect()->route('onboarding.services');
         }
 
-        // All done - verification is no longer part of onboarding
-        // Providers can complete onboarding, but their business won't be visible until verified
         return redirect()->route('business.dashboard');
     }
 
@@ -52,7 +56,7 @@ class OnboardingController extends Controller
 
         return Inertia::render('provider/onboarding/business-profile', [
             'step' => 'profile',
-            'categories' => $categories
+            'categories' => $categories,
         ]);
     }
 
@@ -81,7 +85,7 @@ class OnboardingController extends Controller
             $data = [
                 'user_id' => $user->id,
                 'business_name' => $request->business_name,
-                'slug' => Str::slug($request->business_name) . '-' . Str::random(6),
+                'slug' => Str::slug($request->business_name).'-'.Str::random(6),
                 'description' => $request->description,
                 'address' => $request->address,
                 'city' => $request->city,
@@ -111,10 +115,12 @@ class OnboardingController extends Controller
             }
 
             DB::commit();
+
             return redirect()->route('onboarding.index');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("Error creating business profile: {$e->getMessage()}");
+
             return back()->withErrors(['business_name' => 'Error creating business profile. Please try again.']);
         }
     }
@@ -136,44 +142,18 @@ class OnboardingController extends Controller
             'schedule.*.shifts.*.breaks.*.start' => 'required|string',
             'schedule.*.shifts.*.breaks.*.end' => 'required|string',
         ]);
-
         $user = auth()->user();
 
-        WorkHour::where('provider_id', $user->id)->delete();
-
-        foreach ($validated['schedule'] as $day => $dayData) {
-            $firstShift = $dayData['shifts'][0] ?? null;
-
-            WorkHour::create([
-                'provider_id' => $user->id,
-                'day_of_week' => $day,
-                'start_time' => !$dayData['isOpen'] || !$firstShift ? null : $firstShift['start'] . ':00',
-                'end_time' => !$dayData['isOpen'] || !$firstShift ? null : $firstShift['end'] . ':00',
-                'breaks' => !$dayData['isOpen'] || !$firstShift ? null : array_map(function ($break) {
-                    return [
-                        'start' => $break['start'],
-                        'end' => $break['end']
-                    ];
-                }, $firstShift['breaks'] ?? []),
-                'is_closed' => !$dayData['isOpen'],
-            ]);
-        }
+        SaveWorkHourJob::dispatch($validated, $user);
 
         return redirect()->route('onboarding.index');
     }
 
     public function services()
     {
-        $categories = Category::orderBy('name')->get()->map(function ($category) {
-            return [
-                'value' => $category->id,
-                'label' => $category->name,
-            ];
-        });
-
         return Inertia::render('provider/onboarding/services', [
             'step' => 'services',
-            'categories' => $categories
+            'categories' => Category::orderBy('name')->select(['id', 'name'])->get(),
         ]);
     }
 
@@ -199,7 +179,7 @@ class OnboardingController extends Controller
             'status' => 'active',
         ]);
 
-        $user->notify(new BusinessSetupCompleteNotification());
+        $user->notify(new BusinessSetupCompleteNotification);
 
         return redirect()->route('onboarding.success');
     }
@@ -207,6 +187,7 @@ class OnboardingController extends Controller
     public function success()
     {
         $user = auth()->user();
+
         return Inertia::render('provider/onboarding/success', [
             'is_verified' => $user->is_verified ?? false,
         ]);
@@ -227,7 +208,7 @@ class OnboardingController extends Controller
                 'rejection_reason' => $existingVerification->rejection_reason,
                 'created_at' => $existingVerification->created_at,
             ] : null,
-            'is_verified' => (bool)$user->is_verified,
+            'is_verified' => (bool) $user->is_verified,
         ]);
     }
 
@@ -271,12 +252,101 @@ class OnboardingController extends Controller
         return redirect()->route('business.dashboard')->with('success-toast', 'Verification request submitted successfully! We will review it shortly.');
     }
 
-    public function skip()
+    public function skip(string $stage)
     {
-        // Send notification when onboarding is complete (even if verification is skipped)
+
+        if (! in_array($stage, ['work-hours', 'services'])) {
+            return redirect()->route('onboarding.index')->with('error', 'Invalid onboarding stage.');
+        }
+
         $user = auth()->user();
-        $user->notify(new BusinessSetupCompleteNotification());
+
+        if ($stage === 'work-hours') {
+            $defaultDays = [
+                'Monday' => [
+                    'isOpen' => true,
+                    'shifts' => [
+                        [
+                            'start' => '09:00',
+                            'end' => '17:00',
+                            'breaks' => [],
+                        ],
+                    ],
+                ],
+                'Tuesday' => [
+                    'isOpen' => true,
+                    'shifts' => [
+                        [
+                            'start' => '09:00',
+                            'end' => '17:00',
+                            'breaks' => [],
+                        ],
+                    ],
+                ],
+                'Wednesday' => [
+                    'isOpen' => true,
+                    'shifts' => [
+                        [
+                            'start' => '09:00',
+                            'end' => '17:00',
+                            'breaks' => [],
+                        ],
+                    ],
+                ],
+                'Thursday' => [
+                    'isOpen' => true,
+                    'shifts' => [
+                        [
+                            'start' => '09:00',
+                            'end' => '17:00',
+                            'breaks' => [],
+                        ],
+                    ],
+                ],
+                'Friday' => [
+                    'isOpen' => true,
+                    'shifts' => [
+                        [
+                            'start' => '09:00',
+                            'end' => '17:00',
+                            'breaks' => [],
+                        ],
+                    ],
+                ],
+                'Saturday' => [
+                    'isOpen' => true,
+                    'shifts' => [
+                        [
+                            'start' => '09:00',
+                            'end' => '17:00',
+                            'breaks' => [],
+                        ],
+                    ],
+                ],
+                'Sunday' => [
+                    'isOpen' => false,
+                    'shifts' => [
+                        [
+                            'start' => '09:00',
+                            'end' => '17:00',
+                            'breaks' => [],
+                        ],
+                    ],
+                ],
+            ];
+
+            SaveWorkHourJob::dispatch($defaultDays, $user);
+
+            return redirect()->route('onboarding.services');
+        }
+
+        $user->businessProfile->update(['has_onboarded' => true]);
+
+        return redirect()->route('onboarding.success');
+
+        $user->notify(new BusinessSetupCompleteNotification);
 
         return redirect()->route('business.dashboard');
+
     }
 }

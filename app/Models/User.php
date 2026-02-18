@@ -21,6 +21,9 @@ class User extends Authenticatable implements MustVerifyEmail
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, HasPushSubscriptions, Notifiable, TwoFactorAuthenticatable, HasUlids;
 
+    // protected $keyType = 'string';
+    // public $incrementing = false;
+
     /**
      * The attributes that are mass assignable.
      *

@@ -1,4 +1,4 @@
-import { LucideIcon, CheckCircle2, HelpCircle, ArrowLeft } from 'lucide-react';
+import { LucideIcon } from 'lucide-react';
 import { Head, Link } from '@inertiajs/react';
 import { PropsWithChildren } from 'react';
 import { home } from '@/routes';
@@ -28,9 +28,8 @@ export default function OnboardingLayout({ title, steps, currentStepId, children
             <Head title={title} />
 
             {/* Sidebar / Left Panel */}
-            <div className="hidden lg:flex flex-col w-[400px] border-r bg-smoke-900 p-8 space-y-8 overflow-y-auto">
+            <div className="hidden lg:flex flex-col w-[400px] border-r bg-primary p-8 space-y-8 overflow-y-auto shrink-0">
                 <div className="mb-8">
-                    {/* Brand Logo */}
                     <Link
                         href={home()}
                         className="relative z-20 flex items-center text-lg font-semibold group tracking-widest font-['Sekuya'] text-white hover:opacity-90 transition-opacity"
@@ -51,19 +50,14 @@ export default function OnboardingLayout({ title, steps, currentStepId, children
 
                         <div className="space-y-6">
                             {steps.map((step, index) => {
-                                const isCompleted = step.status === 'completed';
                                 const isCurrent = step.status === 'current';
-                                const isUpcoming = step.status === 'upcoming';
 
                                 return (
-                                    <div
-                                        key={step.id}
-                                        className="flex gap-4"
-                                    >
+                                    <div key={step.id} className="flex gap-4">
                                         <div className={`
                                             flex-shrink-0 size-10 rounded-lg flex items-center justify-center transition-all duration-200
-                                            ${isCurrent 
-                                                ? 'bg-primary  text-white border border-secondary/60' 
+                                            ${isCurrent
+                                                ? 'bg-primary text-white border border-secondary/60'
                                                 : 'bg-primary text-white'
                                             }
                                         `}>
@@ -97,6 +91,7 @@ export default function OnboardingLayout({ title, steps, currentStepId, children
                             <span className="text-white font-medium">Progress</span>
                             <span className="text-white font-bold">{Math.round(progress)}%</span>
                         </div>
+                        {/* Fixed: removed stray 'w' character */}
                         <div className="h-2 bg-white/10 rounded-full overflow-hidden">
                             <div
                                 className="h-full bg-white/40 rounded-full transition-all duration-500"
@@ -117,35 +112,35 @@ export default function OnboardingLayout({ title, steps, currentStepId, children
                 </div>
             </div>
 
-            {/* Main Content / Right Panel */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-                <main className="flex-1 overflow-y-auto max-w-4xl mx-auto w-full p-6 md:p-8 lg:p-10">
-                    {/* Step Indicator for Mobile */}
-                    <div className="lg:hidden mb-8">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="text-xs font-semibold text-primary uppercase tracking-wider">
-                                Step {currentStepIndex + 1} of {steps.length}
+            {/* Main Content / Right Panel — flex-1 + min-h-0 keeps scroll contained */}
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <main className="flex-1 min-h-0 overflow-y-auto">
+                    <div className="max-w-4xl mx-auto w-full p-6 md:p-8 lg:p-10">
+                        {/* Mobile Step Indicator */}
+                        <div className="lg:hidden mb-8">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="text-xs font-semibold text-primary uppercase tracking-wider">
+                                    Step {currentStepIndex + 1} of {steps.length}
+                                </div>
+                                <div className="text-xs font-medium text-muted-foreground">
+                                    {Math.round(progress)}% Complete
+                                </div>
                             </div>
-                            <div className="text-xs font-medium text-muted-foreground">
-                                {Math.round(progress)}% Complete
+                            <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-primary transition-all duration-500"
+                                    style={{ width: `${progress}%` }}
+                                />
                             </div>
                         </div>
-                        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-primary transition-all duration-500"
-                                style={{ width: `${progress}%` }}
-                            />
+
+                        {/* Page Content */}
+                        <div className="space-y-6 pb-8">
+                            {children}
                         </div>
+
+                        <ToastNotification />
                     </div>
-
-                   
-
-                    {/* Content */}
-                    <div className="space-y-6 pb-8">
-                        {children}
-                    </div>
-
-                    <ToastNotification />
                 </main>
             </div>
         </div>

@@ -53,10 +53,6 @@ const mainNavItems = (auth?: any): NavItem[] => {
             title: 'Marketplace',
             href: home().url,
         },
-        // {
-        //     title: 'Find on map',
-        //     href: '/find-on-map',
-        // }
     ];
     return items;
 };
@@ -185,17 +181,12 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                             )}
                                             prefetch
                                         >
-                                            {item.icon && (
-                                                <Icon
-                                                    iconNode={item.icon}
-                                                    className="mr-2 h-4 w-4"
-                                                />
-                                            )}
                                             {item.title}
                                         </Link>
-                                        {isSameUrl(page.url, item.href) && (
+                                        {/* for now since we have one link it should alway be active */}
+                                        {/* {isSameUrl(page.url, item.href) && ( */} 
                                             <div className="absolute bottom-0 left-0 h-0.5 w-full translate-y-px bg-black dark:bg-white"></div>
-                                        )}
+                                        {/* )} */}
                                     </NavigationMenuItem>
                                 ))}
                             </NavigationMenuList>

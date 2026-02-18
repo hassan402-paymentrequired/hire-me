@@ -28,6 +28,7 @@ class BusinessProfile extends Model
         'widget_enabled',
         'widget_settings',
         'widget_domains',
+        'has_onboarded'
     ];
 
     protected $casts = [

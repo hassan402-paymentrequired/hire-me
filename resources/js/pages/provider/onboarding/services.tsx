@@ -10,7 +10,7 @@ import { SearchableSelect } from '@/components/ui/searchable-select';
 import { getStepsWithStatus } from './onboarding-steps';
 
 interface ServicesProps {
-    categories: { value: string; label: string }[];
+    categories: { id: string; name: string }[];
 }
 
 export default function Services({ categories }: ServicesProps) {
@@ -28,7 +28,7 @@ export default function Services({ categories }: ServicesProps) {
     };
 
     const skip = () => {
-         post(onboarding.skip().url);
+         post(onboarding.skip('services').url);
     };
 
     return (
@@ -75,7 +75,7 @@ export default function Services({ categories }: ServicesProps) {
                             <SearchableSelect
                                 required={true}
                                 label="Category"
-                                options={categories}
+                                options={categories.map(c => ({value: c.id, label: c.name}))}
                                 value={data.category_id}
                                 onChange={(value: string) => setData('category_id', value)}
                                 placeholder="Select a category"

@@ -48,13 +48,18 @@ class GuestController extends Controller
 
         // Distance calculation if coords provided
         if ($lat && $lng) {
-            $query->addSelect(DB::raw("
-                (6371 * acos(cos(radians($lat))
-                * cos(radians(business_profiles.latitude))
-                * cos(radians(business_profiles.longitude) - radians($lng))
-                + sin(radians($lat))
-                * sin(radians(business_profiles.latitude)))) AS distance
-            "));
+            $query
+            ->whereNotNull('business_profiles.latitude')
+            ->whereNotNull('business_profiles.longitude')
+           ->selectRaw("
+                    (6371 * acos(
+                        cos(radians(?))
+                        * cos(radians(business_profiles.latitude))
+                        * cos(radians(business_profiles.longitude) - radians(?))
+                        + sin(radians(?))
+                        * sin(radians(business_profiles.latitude))
+                    )) AS distance
+                ", [$lat, $lng, $lat]);
         }
 
         // Filter by search
