@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Provider\Onboarding;
 
+use App\Enum\UserRoleEnum;
 use App\Http\Controllers\Controller;
 use App\Jobs\SaveWorkHourJob;
 use App\Models\BusinessProfile;
@@ -341,6 +342,7 @@ class OnboardingController extends Controller
         }
 
         $user->businessProfile->update(['has_onboarded' => true]);
+        $user->update(['role' => UserRoleEnum::PROVIDER->value]);
 
         return redirect()->route('onboarding.success');
 

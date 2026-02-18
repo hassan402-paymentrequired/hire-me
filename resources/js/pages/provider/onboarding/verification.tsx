@@ -13,6 +13,7 @@ import { Spinner } from '@/components/ui/spinner';
 import VerificationLayout from '@/layouts/verification-layout';
 import business from '@/routes/business';
 import onboarding from '@/routes/onboarding';
+import verification from '@/routes/verification';
 import { Link, router, useForm } from '@inertiajs/react';
 import { AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
 import { useState } from 'react';
@@ -60,13 +61,9 @@ export default function Verification({
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(onboarding.verification.store().url, {
+        post(verification.submit().url, {
             forceFormData: true,
         });
-    };
-
-    const skip = () => {
-        router.post(business.dashboard().url);
     };
 
     const documentTypeOptions = [
