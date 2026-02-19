@@ -2,15 +2,15 @@
 
 namespace App\Notifications;
 
+use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
-use NotificationChannels\WebPush\WebPushMessage;
 
 class BusinessVerificationSubmittedNotification extends Notification
 {
-    use Queueable;
+    use Queueable, SendsWebPush;
 
     /**
      * Create a new notification instance.
@@ -43,23 +43,6 @@ class BusinessVerificationSubmittedNotification extends Notification
             ]);
     }
 
-      /**
-     * Get the web push representation of the notification.
-     */
-    public function toWebPush(object $notifiable): WebPushMessage
-    {
-        return (new WebPushMessage)
-            ->title('Business Verification Submitted')
-            ->body('Your business verification request has been submitted successfully.')
-            ->action('View Dashboard', 'business_verification_submitted')
-            ->data([
-                'action_url' => route('business.dashboard'),
-                'type' => 'business_verification_submitted',
-            ])
-            ->badge(asset('logo/android-chrome-192x192.png'))
-            ->icon(asset('logo/android-chrome-192x192.png'));
-    }
-
     /**
      * Get the array representation of the notification.
      *
@@ -70,7 +53,7 @@ class BusinessVerificationSubmittedNotification extends Notification
         return [
             'title' => 'Business Verification Submitted',
             'message' => 'Your business verification request has been submitted successfully.',
-            'action_url' => '/business',
+            'action_url' => route('business.dashboard'),
             'type' => 'business_verification_submitted',
         ];
     }

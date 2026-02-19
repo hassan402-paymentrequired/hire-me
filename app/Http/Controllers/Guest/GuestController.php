@@ -23,7 +23,8 @@ class GuestController extends Controller
         $lng = $request->lng ? (float) $request->lng : null;
 
         $query = User::query()->whereHas('businessProfile')
-            ->where('users.is_verified', true) // Only show verified providers
+            ->whereHas('services')
+            ->where('users.is_verified', true)
             ->select('users.*')
             ->with([
                 'businessProfile.images',
@@ -31,7 +32,6 @@ class GuestController extends Controller
                     $sq->where('status', 'active');
                 }
             ])
-            ->whereHas('businessProfile')
             ->leftJoin('business_profiles', 'users.id', '=', 'business_profiles.user_id')
             ->addSelect([
                 'avg_rating' => DB::table('reviews')

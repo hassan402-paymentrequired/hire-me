@@ -26,7 +26,7 @@ class SaveWorkHourJob implements ShouldQueue
     {
          WorkHour::where('provider_id', $this->user->id)->delete();
 
-        foreach ($this->validated['schedule'] as $day => $dayData) {
+        foreach ($this->validated as $day => $dayData) {
             $firstShift = $dayData['shifts'][0] ?? null;
 
             WorkHour::create([

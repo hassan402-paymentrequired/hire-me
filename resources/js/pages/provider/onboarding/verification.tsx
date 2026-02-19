@@ -319,7 +319,7 @@ export default function Verification({
                     existingVerification?.status === 'pending') && (
                     <div className="flex justify-end">
                         <Button
-                            onClick={() => router.visit('/business/dashboard')}
+                            onClick={() => router.visit('/business')}
                             size="lg"
                         >
                             Continue to Dashboard

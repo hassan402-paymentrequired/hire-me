@@ -57,7 +57,7 @@ class VerificationController extends Controller
 
         } catch (Exception $th) {
             DB::rollBack();
-            Log::error("An error occur while sending verification document by {$user->name} : {$user->id} with error: {$th->getMessage()}");
+            Log::error($th);
             return back()->with('error', 'An error occurred while submitting your verification. Please try again later.');  
         }
 

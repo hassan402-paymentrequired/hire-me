@@ -14,6 +14,7 @@ class ProviderVerification extends Model
         'rejection_reason',
         'reviewed_at',
         'reviewed_by',
+        'admin_reviewed_by',
     ];
 
     protected $casts = [

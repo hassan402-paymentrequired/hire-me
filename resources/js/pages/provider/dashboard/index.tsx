@@ -36,6 +36,7 @@ import {
     EmptyMedia,
     EmptyTitle,
 } from "@/components/ui/empty"
+import { formatDate } from '@/lib/utils';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -61,9 +62,10 @@ interface DashboardProps {
         avatar: string;
     }>;
     recentActivity: Array<{
-        id: number;
-        message: string;
-        time: string;
+        id: string;
+        action: string;
+        description: string;
+        created_at: string;
     }>;
     is_verified?: boolean;
     verification_status?: {
@@ -112,6 +114,8 @@ export default function Index({ stats, upcomingAppointments, recentActivity, is_
             icon: Star,
         },
     ];
+
+    // console.log(recentActivity.pendingAttributes)
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -317,19 +321,12 @@ export default function Index({ stats, upcomingAppointments, recentActivity, is_
                                             <span className="relative mr-4 flex h-2 w-2 shrink-0 translate-y-2 rounded-full bg-sky-500" />
                                             <div className="space-y-1">
                                                 <p className="text-sm leading-none font-medium">
-                                                    {activity.message}
+                                                    {activity.action}
                                                 </p>
                                                 <p className="text-xs text-muted-foreground">
-                                                    {activity.time}
+                                                    {formatDate(activity.created_at)}
                                                 </p>
                                             </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="ml-auto h-6 w-6"
-                                            >
-                                                <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-                                            </Button>
                                         </div>
                                     ))
                                 )}

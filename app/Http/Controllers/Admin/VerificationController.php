@@ -149,13 +149,11 @@ class VerificationController extends Controller
             $verification->update([
                 'status' => 'approved',
                 'reviewed_at' => now(),
-                // Note: reviewed_by is constrained to users table, so we leave it null for admin reviews
-                // If you need to track admin reviewers, consider adding a separate admin_reviewed_by field
+                'admin_reviewed_by' => auth('admin')->id(),
             ]);
 
             $verification->user->update(['is_verified' => true]);
 
-            // Send notification email to user
             $verification->user->notify(new VerificationApprovedNotification($verification));
         });
 

@@ -9,6 +9,7 @@ return [
     | That will set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in your .env
     */
     'vapid' => [
+       'subject' => env('VAPID_SUBJECT', 'mailto:your-email@example.com'), // ← THIS IS MISSING
         'public_key' => env('VAPID_PUBLIC_KEY'),
         'private_key' => env('VAPID_PRIVATE_KEY'),
     ],

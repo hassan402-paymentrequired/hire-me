@@ -12,9 +12,9 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Link } from '@inertiajs/react';
 import { Bell } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from '@inertiajs/react';
 
 const NOTIFICATIONS_POLL_INTERVAL_MS = 60_000;
 
@@ -32,9 +32,16 @@ interface NotificationItem {
 }
 
 interface NotificationsResponse {
-    data: NotificationItem[];
-    unread_count: number;
-    meta: { current_page: number; last_page: number; per_page: number; total: number };
+    data: {
+        data: NotificationItem[];
+        unread_count: number;
+        meta: {
+            current_page: number;
+            last_page: number;
+            per_page: number;
+            total: number;
+        };
+    };
 }
 
 async function fetchNotifications(): Promise<NotificationsResponse> {
@@ -87,9 +94,9 @@ export function NotificationBell() {
         setLoading(true);
         setError(null);
         try {
-            const json = await fetchNotifications();
-            setNotifications(json.data);
-            setUnreadCount(json.unread_count);
+            const { data } = await fetchNotifications();
+            setNotifications(data.data);
+            setUnreadCount(data.unread_count);
         } catch {
             setError('Could not load notifications');
         } finally {
@@ -111,7 +118,11 @@ export function NotificationBell() {
         try {
             await markAsRead(id);
             setNotifications((prev) =>
-                prev.map((n) => (n.id === id ? { ...n, read_at: new Date().toISOString() } : n)),
+                prev.map((n) =>
+                    n.id === id
+                        ? { ...n, read_at: new Date().toISOString() }
+                        : n,
+                ),
             );
             setUnreadCount((c) => Math.max(0, c - 1));
         } catch {
@@ -123,7 +134,10 @@ export function NotificationBell() {
         try {
             await markAllAsRead();
             setNotifications((prev) =>
-                prev.map((n) => ({ ...n, read_at: n.read_at ?? new Date().toISOString() })),
+                prev.map((n) => ({
+                    ...n,
+                    read_at: n.read_at ?? new Date().toISOString(),
+                })),
             );
             setUnreadCount(0);
         } catch {
@@ -144,7 +158,7 @@ export function NotificationBell() {
                             >
                                 <Bell className="size-4" />
                                 {unreadCount > 0 && (
-                                    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground">
+                                    <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground">
                                         {unreadCount > 99 ? '99+' : unreadCount}
                                     </span>
                                 )}
@@ -185,23 +199,34 @@ export function NotificationBell() {
                                 <ul className="py-1">
                                     {notifications.map((n) => {
                                         const data = n.data || {};
-                                        const title = data.title || 'Notification';
+                                        const title =
+                                            data.title || 'Notification';
                                         const message = data.message || '';
                                         const actionUrl = data.action_url;
                                         const isUnread = !n.read_at;
                                         return (
-                                            <li key={n.id} className="border-b last:border-0">
+                                            <li
+                                                key={n.id}
+                                                className="border-b last:border-0"
+                                            >
                                                 {actionUrl ? (
                                                     <Link
                                                         href={actionUrl}
                                                         className="block px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
                                                         onClick={() => {
                                                             setOpen(false);
-                                                            if (isUnread) handleMarkAsRead(n.id);
+                                                            if (isUnread)
+                                                                handleMarkAsRead(
+                                                                    n.id,
+                                                                );
                                                         }}
                                                     >
                                                         <div
-                                                            className={isUnread ? 'font-medium' : 'text-muted-foreground'}
+                                                            className={
+                                                                isUnread
+                                                                    ? 'font-medium'
+                                                                    : 'text-muted-foreground'
+                                                            }
                                                         >
                                                             {title}
                                                         </div>
@@ -216,11 +241,18 @@ export function NotificationBell() {
                                                         type="button"
                                                         className="block w-full px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
                                                         onClick={() => {
-                                                            if (isUnread) handleMarkAsRead(n.id);
+                                                            if (isUnread)
+                                                                handleMarkAsRead(
+                                                                    n.id,
+                                                                );
                                                         }}
                                                     >
                                                         <div
-                                                            className={isUnread ? 'font-medium' : 'text-muted-foreground'}
+                                                            className={
+                                                                isUnread
+                                                                    ? 'font-medium'
+                                                                    : 'text-muted-foreground'
+                                                            }
                                                         >
                                                             {title}
                                                         </div>

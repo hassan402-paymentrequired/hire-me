@@ -19,18 +19,8 @@ class NotificationController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate($perPage);
 
-        $items = $notifications->map(function ($notification) {
-            return [
-                'id' => $notification->id,
-                'type' => $notification->type,
-                'data' => $notification->data,
-                'read_at' => $notification->read_at?->toIso8601String(),
-                'created_at' => $notification->created_at->toIso8601String(),
-            ];
-        });
-
         return response()->json([
-            'data' => $items,
+            'data' => $notifications,
             'unread_count' => $user->unreadNotifications()->count(),
             'meta' => [
                 'current_page' => $notifications->currentPage(),

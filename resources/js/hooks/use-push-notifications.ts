@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { usePage, router } from '@inertiajs/react';
+import { usePage } from '@inertiajs/react';
 
 /**
  * Convert base64url VAPID key to Uint8Array for pushManager.subscribe().

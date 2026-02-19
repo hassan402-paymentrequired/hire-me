@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Provider\Dashboard;
 use App\Enum\UserRoleEnum;
 use App\Http\Controllers\Controller;
 use Inertia\Inertia;
+use App\Services\ProviderLogService;
 
 class DashboardController extends Controller
 {
@@ -124,62 +125,9 @@ class DashboardController extends Controller
                     'avatar' => 'https://ui-avatars.com/api/?name=' . urlencode($apt->client_name ?? 'User'),
                 ];
             });
+        
 
-        // Recent Activity - Combine appointments and reviews
-        $recentAppointments = $user->appointmentsAsProvider()
-            ->with('service')
-            ->latest()
-            ->take(5)
-            ->get()
-            ->map(function ($apt) {
-                return [
-                    'id' => 'apt_' . $apt->id,
-                    'type' => 'appointment',
-                    'message' => "New booking from " . ($apt->client_name ?? 'Guest') . " - " . ($apt->service->name ?? 'Service'),
-                    'time' => $apt->created_at->diffForHumans(),
-                    'timestamp' => $apt->created_at->timestamp,
-                ];
-            });
-        
-        // Recent reviews
-        $recentReviews = \App\Models\Review::where('provider_id', $user->id)
-            ->with('client:id,name')
-            ->latest()
-            ->take(5)
-            ->get()
-            ->map(function ($review) {
-                return [
-                    'id' => 'review_' . $review->id,
-                    'type' => 'review',
-                    'message' => "New " . $review->rating . "⭐ review from " . ($review->client->name ?? 'Client'),
-                    'time' => $review->created_at->diffForHumans(),
-                    'timestamp' => $review->created_at->timestamp,
-                ];
-            });
-        
-        // Combine and sort by timestamp (most recent first)
-        $recentActivity = $recentAppointments
-            ->concat($recentReviews)
-            ->sortByDesc('timestamp')
-            ->take(5)
-            ->map(function ($item) {
-                // Remove timestamp before sending to frontend
-                unset($item['timestamp']);
-                return $item;
-            })
-            ->values();
-        
-        // If no activity, show a default message
-        if ($recentActivity->isEmpty()) {
-            $recentActivity = collect([
-                [
-                    'id' => 'empty',
-                    'type' => 'info',
-                    'message' => 'No recent activity. Start by completing your profile!',
-                    'time' => 'Just now',
-                ]
-            ]);
-        }
+        $recentActivity = ProviderLogService::getRecentLog($user->id, 5);
 
         // Check verification status
         $verificationStatus = null;

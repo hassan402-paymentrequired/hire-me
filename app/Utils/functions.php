@@ -21,3 +21,79 @@ function generate_random(int $length = 12): string
 {
     return Str::random($length);
 }
+
+function days(): array
+{
+    return [
+        'Monday' => [
+            'isOpen' => true,
+            'shifts' => [
+                [
+                    'start' => '09:00',
+                    'end' => '17:00',
+                    'breaks' => [],
+                ],
+            ],
+        ],
+        'Tuesday' => [
+            'isOpen' => true,
+            'shifts' => [
+                [
+                    'start' => '09:00',
+                    'end' => '17:00',
+                    'breaks' => [],
+                ],
+            ],
+        ],
+        'Wednesday' => [
+            'isOpen' => true,
+            'shifts' => [
+                [
+                    'start' => '09:00',
+                    'end' => '17:00',
+                    'breaks' => [],
+                ],
+            ],
+        ],
+        'Thursday' => [
+            'isOpen' => true,
+            'shifts' => [
+                [
+                    'start' => '09:00',
+                    'end' => '17:00',
+                    'breaks' => [],
+                ],
+            ],
+        ],
+        'Friday' => [
+            'isOpen' => true,
+            'shifts' => [
+                [
+                    'start' => '09:00',
+                    'end' => '17:00',
+                    'breaks' => [],
+                ],
+            ],
+        ],
+        'Saturday' => [
+            'isOpen' => true,
+            'shifts' => [
+                [
+                    'start' => '09:00',
+                    'end' => '17:00',
+                    'breaks' => [],
+                ],
+            ],
+        ],
+        'Sunday' => [
+            'isOpen' => false,
+            'shifts' => [
+                [
+                    'start' => '09:00',
+                    'end' => '17:00',
+                    'breaks' => [],
+                ],
+            ],
+        ],
+    ];
+}

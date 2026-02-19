@@ -16,11 +16,11 @@ class AdminSeeder extends Seeder
     {
         // Create super admin
         Admin::firstOrCreate(
-            ['email' => 'admin@hireme.com'],
+            ['email' => 'admin@clockra.com'],
             [
                 'name' => 'Super Admin',
                 'email' => 'admin@hireme.com',
-                'password' => Hash::make('password'), // Change this in production!
+                'password' => Hash::make('1234567890'), // Change this in production!
                 'role' => 'super_admin',
                 'is_active' => true,
                 'email_verified_at' => now(),
@@ -29,11 +29,11 @@ class AdminSeeder extends Seeder
 
         // Create regular admin
         Admin::firstOrCreate(
-            ['email' => 'admin2@hireme.com'],
+            ['email' => 'admin2@clockra.com'],
             [
                 'name' => 'Admin User',
-                'email' => 'admin2@hireme.com',
-                'password' => Hash::make('password'), // Change this in production!
+                'email' => 'admin2@clockra.com',
+                'password' => Hash::make('1234567890'), // Change this in production!
                 'role' => 'admin',
                 'is_active' => true,
                 'email_verified_at' => now(),
@@ -42,11 +42,11 @@ class AdminSeeder extends Seeder
 
         // Create moderator
         Admin::firstOrCreate(
-            ['email' => 'moderator@hireme.com'],
+            ['email' => 'moderator@clockra.com'],
             [
                 'name' => 'Moderator',
                 'email' => 'moderator@hireme.com',
-                'password' => Hash::make('password'), // Change this in production!
+                'password' => Hash::make('1234567890'), // Change this in production!
                 'role' => 'moderator',
                 'is_active' => true,
                 'email_verified_at' => now(),
@@ -63,9 +63,9 @@ class AdminSeeder extends Seeder
         });
 
         $this->command->info('Admin users created successfully!');
-        $this->command->info('Super Admin: admin@hireme.com / password');
-        $this->command->info('Admin: admin2@hireme.com / password');
-        $this->command->info('Moderator: moderator@hireme.com / password');
+        $this->command->info('Super Admin: admin@clockra.com / 1234567890');
+        $this->command->info('Admin: admin2@clockra.com / 1234567890');
+        $this->command->info('Moderator: moderator@clockra.com / 1234567890');
         $this->command->warn('⚠️  Please change these passwords in production!');
     }
 }

@@ -10,6 +10,7 @@ use App\Models\Category;
 use App\Models\Service;
 use App\Models\WorkHour;
 use App\Notifications\BusinessSetupCompleteNotification;
+use App\Services\ProviderLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -23,10 +24,14 @@ class OnboardingController extends Controller
         $user = auth()->user();
         $hasService = Service::where('provider_id', $user->id)->exists();
 
+        if ($user->businessProfile->has_onboarded) {
+            return to_route('business.dashboard')->with('error-toast', 'You. already have a business profile.');
+        }
+
         // Determine current step based on what's missing
         // 1. Business Profile
         if ($user->businessProfile && $hasService) {
-            return to_route('business.dashboard')->with('error', 'You. already have a business profile.');
+            return to_route('business.dashboard')->with('error-toast', 'You. already have a business profile.');
         }
 
         if (! $user->businessProfile) {
@@ -128,6 +133,15 @@ class OnboardingController extends Controller
 
     public function workHours()
     {
+        $user = auth_user();
+         if(!$user->businessProfile)
+         {
+            return to_route('home')->with('error-toast', 'You. already have a business profile.');
+         }
+
+         if ($user->businessProfile->has_onboarded) {
+            return to_route('business.dashboard')->with('error-toast', 'You. already have a business profile.');
+        }
         return Inertia::render('provider/onboarding/work-hours', ['step' => 'hours']);
     }
 
@@ -143,15 +157,28 @@ class OnboardingController extends Controller
             'schedule.*.shifts.*.breaks.*.start' => 'required|string',
             'schedule.*.shifts.*.breaks.*.end' => 'required|string',
         ]);
-        $user = auth()->user();
+        $user = auth_user();
 
-        SaveWorkHourJob::dispatch($validated, $user);
+        SaveWorkHourJob::dispatch($validated['schedule'], $user);
 
         return redirect()->route('onboarding.index');
     }
 
     public function services()
     {
+
+         $user = auth()->user();
+
+         if(!$user->businessProfile)
+         {
+            return to_route('home')->with('error-toast', 'You. already have a business profile.');
+         }
+
+
+         if ($user->businessProfile->has_onboarded) {
+            return to_route('business.dashboard')->with('error-toast', 'You. already have a business profile.');
+        }
+
         return Inertia::render('provider/onboarding/services', [
             'step' => 'services',
             'categories' => Category::orderBy('name')->select(['id', 'name'])->get(),
@@ -168,7 +195,7 @@ class OnboardingController extends Controller
             'description' => 'nullable|string',
         ]);
 
-        $user = auth()->user();
+        $user = auth_user();
 
         Service::create([
             'provider_id' => $user->id,
@@ -187,7 +214,7 @@ class OnboardingController extends Controller
 
     public function success()
     {
-        $user = auth()->user();
+        $user = auth_user();
 
         return Inertia::render('provider/onboarding/success', [
             'is_verified' => $user->is_verified ?? false,
@@ -196,7 +223,7 @@ class OnboardingController extends Controller
 
     public function verification()
     {
-        $user = auth()->user();
+        $user = auth_user();
         $existingVerification = \App\Models\ProviderVerification::where('user_id', $user->id)
             ->latest()
             ->first();
@@ -215,7 +242,7 @@ class OnboardingController extends Controller
 
     public function storeVerification(Request $request)
     {
-        $user = auth()->user();
+        $user = auth_user();
 
         // Check if already verified
         if ($user->is_verified) {
@@ -263,92 +290,20 @@ class OnboardingController extends Controller
         $user = auth()->user();
 
         if ($stage === 'work-hours') {
-            $defaultDays = [
-                'Monday' => [
-                    'isOpen' => true,
-                    'shifts' => [
-                        [
-                            'start' => '09:00',
-                            'end' => '17:00',
-                            'breaks' => [],
-                        ],
-                    ],
-                ],
-                'Tuesday' => [
-                    'isOpen' => true,
-                    'shifts' => [
-                        [
-                            'start' => '09:00',
-                            'end' => '17:00',
-                            'breaks' => [],
-                        ],
-                    ],
-                ],
-                'Wednesday' => [
-                    'isOpen' => true,
-                    'shifts' => [
-                        [
-                            'start' => '09:00',
-                            'end' => '17:00',
-                            'breaks' => [],
-                        ],
-                    ],
-                ],
-                'Thursday' => [
-                    'isOpen' => true,
-                    'shifts' => [
-                        [
-                            'start' => '09:00',
-                            'end' => '17:00',
-                            'breaks' => [],
-                        ],
-                    ],
-                ],
-                'Friday' => [
-                    'isOpen' => true,
-                    'shifts' => [
-                        [
-                            'start' => '09:00',
-                            'end' => '17:00',
-                            'breaks' => [],
-                        ],
-                    ],
-                ],
-                'Saturday' => [
-                    'isOpen' => true,
-                    'shifts' => [
-                        [
-                            'start' => '09:00',
-                            'end' => '17:00',
-                            'breaks' => [],
-                        ],
-                    ],
-                ],
-                'Sunday' => [
-                    'isOpen' => false,
-                    'shifts' => [
-                        [
-                            'start' => '09:00',
-                            'end' => '17:00',
-                            'breaks' => [],
-                        ],
-                    ],
-                ],
-            ];
-
+            $defaultDays = days();
             SaveWorkHourJob::dispatch($defaultDays, $user);
 
             return redirect()->route('onboarding.services');
         }
 
+        ProviderLogService::log($user->id, 'Finish setting up business profile', 'Just finish setting up business profile');
+
         $user->businessProfile->update(['has_onboarded' => true]);
         $user->update(['role' => UserRoleEnum::PROVIDER->value]);
 
-        return redirect()->route('onboarding.success');
-
         $user->notify(new BusinessSetupCompleteNotification);
 
-        return redirect()->route('business.dashboard');
+        return redirect()->route('onboarding.success');
 
     }
 }
