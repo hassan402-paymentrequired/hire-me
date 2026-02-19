@@ -21,7 +21,7 @@ class OnboardingController extends Controller
 {
     public function index()
     {
-        $user = auth()->user();
+        $user = auth_user();
         $hasService = Service::where('provider_id', $user->id)->exists();
 
         if ($user->businessProfile->has_onboarded) {
@@ -86,7 +86,7 @@ class OnboardingController extends Controller
 
         try {
             DB::beginTransaction();
-            $user = auth()->user();
+            $user = auth_user();
 
             $data = [
                 'user_id' => $user->id,
@@ -167,7 +167,7 @@ class OnboardingController extends Controller
     public function services()
     {
 
-         $user = auth()->user();
+         $user = auth_user();
 
          if(!$user->businessProfile)
          {
@@ -287,7 +287,7 @@ class OnboardingController extends Controller
             return redirect()->route('onboarding.index')->with('error', 'Invalid onboarding stage.');
         }
 
-        $user = auth()->user();
+        $user = auth_user();
 
         if ($stage === 'work-hours') {
             $defaultDays = days();
