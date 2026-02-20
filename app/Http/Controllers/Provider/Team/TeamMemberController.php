@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use App\Services\ProviderLogService;
 
 class TeamMemberController extends Controller
 {
@@ -178,9 +179,30 @@ class TeamMemberController extends Controller
         }
     }
 
-    public function acceptInvite(Request $request)
+    public function acceptInvite(Request $request, string $link)
     {
-        // logic
+        $member = TeamMember::query()->where('invitation_link', $link)
+        ->whereDate('invitation_expires_at', '>', now())
+        ->first();
+
+        if(!$member){
+            abort(401);
+        }
+        
+          \Illuminate\Support\Facades\DB::transaction(function () use ($request, $member) {
+            $member->update([
+                'is_active' => true,
+                'invitation_link' => null,
+                'invitation_expires_at' => null
+            ]);
+
+
+            ProviderLogService::log($member->provider_id, 'Invitation accepted by ' . $memeber->user->name, 'Invitation accepted');
+
+           $member->inviter->notify(new TeamMemberAcceptInvitation($member));
+        });
+
+        return back()->with('success-toast', 'Provider verified successfully!');
     }
 
     /**
@@ -193,7 +215,7 @@ class TeamMemberController extends Controller
             'is_active' => 'sometimes|boolean',
         ]);
 
-        $provider = auth()->user();
+        $provider = auth_user();
         $teamMember = TeamMember::where('provider_id', $provider->id)
             ->findOrFail($id);
 
