@@ -39,5 +39,5 @@
     <p>Welcome to the team!</p>
 @endsection
 
-@section('cta_url', route('team.invite.accept', ['link' => $teamMember->invitation_link]))
+@section('cta_url', route('business.team.invite.accept', ['link' => $teamMember->invitation_link]))
 @section('cta_text', 'Accept Invitation')

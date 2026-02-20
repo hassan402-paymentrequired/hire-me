@@ -25,7 +25,7 @@ createInertiaApp({
                 <LoadingProvider>
                     <LocationPermissionProvider reminderInterval={10 * 60 * 1000}>
                         <App {...props} />
-                        <Toaster position="top-right" richColors closeButton />
+                        <Toaster position="top-center" richColors closeButton />
                     </LocationPermissionProvider>
                 </LoadingProvider>
             </StrictMode>

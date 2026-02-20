@@ -4,52 +4,59 @@ namespace App\Http\Controllers\Provider\Team;
 
 use App\Enum\UserRoleEnum;
 use App\Http\Controllers\Controller;
-use App\Notifications\TeamMemberInvitationNotification;
 use App\Models\TeamMember;
 use App\Models\User;
 use App\Notifications\InviteUserNotification;
+use App\Notifications\TeamMemberInvitationNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
-use Inertia\Inertia;
 use Illuminate\Validation\ValidationException;
-
+use Inertia\Inertia;
 
 class TeamMemberController extends Controller
 {
     /**
      * Display team members list
      */
-    public function index()
+    public function index(Request $request)
     {
-        $provider = auth()->user();
+        $provider = auth_user();
+
+        $search = $request->search ??= null;
+        $role = $request->role ??= null;
 
         $teamMembers = TeamMember::where('provider_id', $provider->id)
-            ->with(['user', 'inviter'])
+            ->with(['user:id,name,email', 'inviter:id,name'])
+            ->withCount('appointments')
+            ->when($search, function ($query, $search) {
+                $query->whereHas('user', function ($q) use ($search) {
+                    $q->whereLike('users.name', $search)
+                        ->orWhereLike('users.email', $search);
+                });
+            })
+            ->when($role, function ($query, $role) {
+                $query->where('role', $role);
+            })
             ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($member) {
-                return [
-                    'id' => $member->id,
-                    'user' => [
-                        'id' => $member->user->id,
-                        'name' => $member->user->name,
-                        'email' => $member->user->email,
-                    ],
-                    'role' => $member->role,
-                    'is_active' => $member->is_active,
-                    'invited_by' => $member->inviter ? [
-                        'id' => $member->inviter->id,
-                        'name' => $member->inviter->name,
-                    ] : null,
-                    'invited_at' => $member->invited_at?->format('Y-m-d H:i:s'),
-                    'accepted_at' => $member->accepted_at?->format('Y-m-d H:i:s'),
-                    'appointments_count' => $member->appointments()->count(),
-                ];
-            });
+            ->get();
+
+        $stats = TeamMember::where('provider_id', $provider->id)
+            ->selectRaw("
+        COUNT(*) as total,
+        SUM(is_active) as active,
+        SUM(is_active = 0) as deactivated,
+        SUM(role = 'staff') as staffs,
+        SUM(role = 'admin') as admins
+    ")
+            ->first();
 
         return Inertia::render('provider/team/index', [
             'teamMembers' => $teamMembers,
+            'stats' => $stats,
+            'filters' => [
+                'search' => $search,
+                'role' => $request->role,
+            ],
         ]);
     }
 
@@ -130,10 +137,10 @@ class TeamMemberController extends Controller
                 ->with('success-toast', 'Team member added successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error-toast', 'Failed to add team member: ' . $e->getMessage());
+
+            return back()->with('error-toast', 'Failed to add team member: '.$e->getMessage());
         }
     }
-
 
     public function inviteUser(Request $request)
     {
@@ -163,10 +170,11 @@ class TeamMemberController extends Controller
             DB::commit();
 
             return redirect()->route('business.team.index')
-                ->with('success-toast', 'Team member added successfully.');
+                ->with('success-toast', 'Team member invite sent successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error-toast', 'Failed to add team member: ' . $e->getMessage());
+
+            return back()->with('error-toast', 'Failed to add team member: '.$e->getMessage());
         }
     }
 
@@ -174,7 +182,6 @@ class TeamMemberController extends Controller
     {
         // logic
     }
-
 
     /**
      * Update team member role or status
@@ -191,7 +198,7 @@ class TeamMemberController extends Controller
             ->findOrFail($id);
 
         // Prevent deactivating the last admin
-        if (isset($request->is_active) && !$request->is_active && $teamMember->isAdmin()) {
+        if (isset($request->is_active) && ! $request->is_active && $teamMember->isAdmin()) {
             $adminCount = TeamMember::where('provider_id', $provider->id)
                 ->where('role', 'admin')
                 ->where('is_active', true)
@@ -252,7 +259,8 @@ class TeamMemberController extends Controller
             return back()->with('success-toast', 'Team member removed successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error-toast', 'Failed to remove team member: ' . $e->getMessage());
+
+            return back()->with('error-toast', 'Failed to remove team member: '.$e->getMessage());
         }
     }
 

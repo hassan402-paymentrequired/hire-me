@@ -74,7 +74,7 @@ interface DashboardProps {
         created_at: string;
     } | null;
 }
-
+ 
 export default function Index({ stats, upcomingAppointments, recentActivity, is_verified, verification_status }: DashboardProps) {
     const page = usePage();
     const auth = (page.props as any).auth;
@@ -163,9 +163,8 @@ export default function Index({ stats, upcomingAppointments, recentActivity, is_
                                 <p>
                                     {verification_status?.status === 'pending' ? (
                                         <>
-                                            Your verification request is currently under review. 
                                             <span className="block mt-1 text-sm">
-                                                We'll notify you once it's processed. Your business profile will be visible to clients after approval.
+                                                We'll notify you once it's processed. Your business profile will be visible to clients after approval (you can still receive appointments pending the time).
                                             </span>
                                         </>
                                     ) : verification_status?.status === 'rejected' ? (

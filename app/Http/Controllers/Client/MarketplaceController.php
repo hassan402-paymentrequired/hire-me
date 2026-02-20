@@ -63,8 +63,7 @@ class MarketplaceController extends Controller
             ])
             ->firstOrFail();
 
-        // Get work hours - day_of_week is stored as string (e.g., "Monday", "Tuesday")
-        // Ensure all 7 days are included, even if not set (default to closed)
+       
         $dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         $workHoursData = \App\Models\WorkHour::where('provider_id', $provider->id)
             ->get()

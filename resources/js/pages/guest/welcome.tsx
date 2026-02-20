@@ -33,7 +33,6 @@ interface Props {
 }
 
 export default function Welcome({ providers, categories, filters, canRegister }: Props) {
-    console.log(providers)
     const { auth } = usePage().props as { auth?: { user?: unknown } };
     const isGuest = !auth?.user;
     const [allProviders, setAllProviders] = useState(providers.data);
@@ -198,10 +197,10 @@ export default function Welcome({ providers, categories, filters, canRegister }:
                                 {allProviders.length === 0 && !loading ? (
                                         <EmptyCard
                                             title="No providers available at the moment."
-                                            description="No providers available at the moment."
-                                            image="assets/icons/empty.png"
-                                            buttonText='View All Providers'
+                                            // description="No providers available at the moment."
+                                            image="assets/gifs/empty.svg"
                                             buttonOnClick={() => router.get('/')}
+                                            className="size-74"
                                         />  
                                 ) : (
                                     <>

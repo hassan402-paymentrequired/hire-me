@@ -8,6 +8,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
+import { cn } from "@/lib/utils";
 
 interface EmptyCardProps {
   title: string;
@@ -15,14 +16,15 @@ interface EmptyCardProps {
   image: string;
   buttonText?: string;
   buttonOnClick?: () => void;
+  className?: string
 }
 
-export function EmptyCard({ title, description, image, buttonText, buttonOnClick }: EmptyCardProps) {
+export function EmptyCard({ title, description, image, buttonText, buttonOnClick, className }: EmptyCardProps) {
   return (
     <Empty>
       <EmptyHeader>
         <EmptyMedia variant="default">
-          <img src={image} alt={title} width={100} height={100} />
+          <img src={image} alt={title} width={100} height={100} className={cn(className)} />
         </EmptyMedia>
         <EmptyTitle>{title}</EmptyTitle>
         {description && (

@@ -77,7 +77,8 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
-            'role' => UserRoleEnum::class
+            'role' => UserRoleEnum::class,
+            'is_verified' => 'boolean'
         ];
     }
 
