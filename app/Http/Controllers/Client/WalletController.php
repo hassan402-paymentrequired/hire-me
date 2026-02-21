@@ -9,6 +9,7 @@ use App\Models\WalletTransaction;
 use App\Services\PaystackService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class WalletController extends Controller
@@ -90,6 +91,7 @@ class WalletController extends Controller
         $request->validate([
             'amount' => 'required|numeric|min:100|max:1000000',
         ]);
+        Log::info('Initializing wallet top-up', ['user_id' => auth()->id(), 'amount' => $request->amount]);
 
         $user = auth()->user();
         $wallet = Wallet::firstOrCreate(['user_id' => $user->id]);
@@ -117,7 +119,7 @@ class WalletController extends Controller
             // Initialize Paystack payment
             $paystackResponse = $this->paystack->initializeTransaction([
                 'email' => $user->email,
-                'amount' => (int)$request->amount * 100,
+                'amount' => (int) round($request->amount * 100),
                 'reference' => $reference,
                 'callback_url' => route('paystack.callback'),
                 'metadata' => [
