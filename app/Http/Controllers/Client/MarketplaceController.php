@@ -177,7 +177,7 @@ class MarketplaceController extends Controller
         $walletBalance = null;
         if (auth()->check()) {
             $wallet = Wallet::firstOrCreate(['user_id' => auth()->id()]);
-            $walletBalance = $wallet->available_balance;
+            $walletBalance = $wallet->balance;
         }
 
         // Get provider settings

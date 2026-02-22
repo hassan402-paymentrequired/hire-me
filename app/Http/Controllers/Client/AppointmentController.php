@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\NewBookingMail;
 use App\Mail\AppointmentCancelledMail;
 use App\Mail\AppointmentCompletedMail;
+use App\Notifications\NewAppoinmentBookedNotification;
 
 class AppointmentController extends Controller
 {
@@ -139,6 +140,7 @@ class AppointmentController extends Controller
         }
 
         $services = Service::whereIn('id', $request->service_ids)->get();
+
         $originalPrice = $services->sum('price');
         $discountPercent = $request->discount_percent ?? 0;
         $totalPrice = $originalPrice * (1 - ($discountPercent / 100));
@@ -180,7 +182,6 @@ class AppointmentController extends Controller
                                 ->with('required_amount', $priceDifference);
                         }
                         
-                        // Hold the additional amount
                         $clientWallet->holdPayment($priceDifference, $appointment, "Additional payment held for rescheduled appointment");
                         $appointment->update([
                             'escrow_amount' => $appointment->escrow_amount + $priceDifference,
@@ -249,7 +250,6 @@ class AppointmentController extends Controller
                     : 'Appointment booked successfully!';
             }
 
-            // Hold payment - charge client but hold in escrow until both parties approve
             $escrowTransaction = $clientWallet->holdPayment($totalPrice, $appointment, "Payment held for appointment booking (pending dual approval)");
             $appointment->update([
                 'escrow_amount' => $totalPrice,
@@ -260,7 +260,9 @@ class AppointmentController extends Controller
             DB::commit();
 
             // Send email to provider
-            Mail::to($appointment->provider->email)->send(new NewBookingMail($appointment->load('services')));
+            // Mail::to($appointment->provider->email)->queue(new NewBookingMail($appointment->load('services')));
+
+            $appointment->provider->notify(new NewAppoinmentBookedNotification($appointment));
 
             return redirect()->route('client.bookings.show', $appointment->id)
                 ->with('success-toast', $message);
@@ -328,7 +330,7 @@ class AppointmentController extends Controller
             DB::commit();
 
             // Send email to provider
-            Mail::to($appointment->provider->email)->send(new AppointmentCancelledMail($appointment, 'client'));
+            Mail::to($appointment->provider->email)->queue(new AppointmentCancelledMail($appointment, 'client'));
 
             $message = $isLateCancellation && $appointment->escrow_status === 'forfeited'
                 ? 'Appointment cancelled. Because you cancelled less than 5 hours before the appointment, a 10% late cancellation fee was applied. The remainder has been refunded to your wallet.'

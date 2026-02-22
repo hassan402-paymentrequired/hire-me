@@ -81,6 +81,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
     const { auth } = page.props;
     const getInitials = useInitials();
     const { toggleFavoriteSheet } = useLoading();
+
     return (
         <>
             <div className="fixed top-0 right-0 left-0 z-30 border-b border-sidebar-border/80 bg-background">
@@ -258,7 +259,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                                     >
                                                         <span className="text-xs font-medium">
                                                             ₦
-                                                            {auth.user.wallet.available_balance.toLocaleString()}
+                                                            {auth.user.wallet.balance.toLocaleString()}
                                                         </span>
                                                     </Button>
                                                 </Link>

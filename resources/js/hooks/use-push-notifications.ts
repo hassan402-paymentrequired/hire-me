@@ -47,6 +47,7 @@ export function usePushNotifications() {
         if (!vapidPublicKey || !user || typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
             return;
         }
+        
         try {
             const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
             await reg.update();

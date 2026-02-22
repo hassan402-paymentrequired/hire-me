@@ -3,30 +3,29 @@
 namespace App\Http\Controllers\Provider\Schedule;
 
 use App\Http\Controllers\Controller;
-use App\Models\Appointment;
-use App\Models\Wallet;
-use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\DB;
-use App\Mail\AppointmentConfirmedMail;
 use App\Mail\AppointmentCancelledMail;
+use App\Models\Appointment;
 use App\Models\Report;
+use App\Models\Wallet;
+use App\Notifications\AppointmentConfirmedNotification;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Inertia\Inertia;
 
 class ScheduleController extends Controller
 {
     public function calender(Request $request)
     {
         $user = auth()->user();
-        
+
         // Get date range from request or default to current week
-        $startDate = $request->input('start_date') 
+        $startDate = $request->input('start_date')
             ? \Carbon\Carbon::parse($request->input('start_date'))
             : now()->startOfWeek();
-        
+
         $endDate = $startDate->copy()->endOfWeek();
-        
+
         $appointments = $user->appointmentsAsProvider()
             ->with(['service'])
             ->whereBetween('start_time', [$startDate, $endDate])
@@ -40,12 +39,12 @@ class ScheduleController extends Controller
                     'completed' => 'bg-green-100 border-green-300 text-green-800',
                     'cancelled' => 'bg-red-100 border-red-300 text-red-800',
                 ];
-                
+
                 $color = $colorMap[$apt->status] ?? 'bg-gray-100 border-gray-300 text-gray-800';
-                
+
                 // Calculate duration in minutes
                 $durationMinutes = $apt->start_time->diffInMinutes($apt->end_time);
-                
+
                 return [
                     'id' => $apt->id,
                     'service' => $apt->service->name ?? 'Service',
@@ -71,31 +70,31 @@ class ScheduleController extends Controller
     public function appointments(Request $request)
     {
         $user = auth()->user();
-        $query = $user->appointmentsAsProvider()->with(['services', 'client']);
+        $search = $request->search ?? null;
+        $status = $request->status ?? null;
 
-        if ($request->has('search')) {
-            $search = $request->input('search');
-            $query->where('client_name', 'like', "%{$search}%");
-        }
-
-        if ($request->has('status') && $request->input('status') !== 'all') {
-            $query->where('status', $request->input('status'));
-        }
+        $query = $user->appointmentsAsProvider()->with(['services', 'client'])
+            ->when($search, function ($q, $search) {
+                $q->whereLike('client_name', $search);
+            })
+            ->when($status && $status !== 'all', function ($q, $status) {
+                $q->where('status', $status);
+            });
 
         $appointments = $query->latest()->paginate(10)->withQueryString()->through(function ($apt) {
             return [
                 'id' => $apt->id,
-                'client' => $apt->client_name ?? 'Guest',
-                'email' => $apt->client_email,
+                'client' => $apt->client->name,
+                'email' => $apt->client->email,
                 'services' => $apt->services,
                 'description' => $apt->services->pluck('name')->join(', '),
-                'amount' => '₦' . number_format($apt->price),
+                'amount' => '₦'.number_format($apt->price),
                 'date' => $apt->start_time->format('M d, Y'),
                 'time' => $apt->start_time->format('h:i A'),
                 'end_time' => $apt->end_time->format('h:i A'),
                 'status' => ucfirst($apt->status),
                 'notes' => $apt->notes,
-                'avatar' => 'https://ui-avatars.com/api/?name=' . urlencode($apt->client_name ?? 'User'),
+                'avatar' => 'https://ui-avatars.com/api/?name='.urlencode($apt->client_name ?? 'User'),
                 'paymentStatus' => 'Paid', // Mock for now
             ];
         });
@@ -117,18 +116,15 @@ class ScheduleController extends Controller
 
             $appointment->update(['status' => 'confirmed']);
 
-            // Payment was already processed upfront when booking was created
-            // Provider already has the payment in their wallet and can withdraw anytime
-
             DB::commit();
 
-            // Send email to client
-            Mail::to($appointment->client->email)->send(new AppointmentConfirmedMail($appointment));
+            $appointment->client->notify(new AppointmentConfirmedNotification($appointment));
 
             return to_route('provider.appointments.show', ['id' => $appointment->id])->with('success-toast', 'Appointment confirmed successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error-toast', 'Failed to confirm appointment: ' . $e->getMessage());
+
+            return back()->with('error-toast', 'Failed to confirm appointment: '.$e->getMessage());
         }
     }
 
@@ -154,19 +150,19 @@ class ScheduleController extends Controller
             // Refund held payment fully when provider cancels
             if ($appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
                 $clientWallet = Wallet::firstOrCreate(['user_id' => $appointment->client_id]);
-                $clientWallet->refundEscrow($appointment->escrow_amount, $appointment, "Full refund - provider cancelled appointment");
+                $clientWallet->refundEscrow($appointment->escrow_amount, $appointment, 'Full refund - provider cancelled appointment');
                 $appointment->update(['escrow_status' => 'refunded']);
             }
 
             DB::commit();
 
-            // Send email to client
-            Mail::to($appointment->client->email)->send(new AppointmentCancelledMail($appointment, 'provider'));
+            $appointment->client->notify(new \App\Notifications\AppointmentCancelledNotification($appointment, 'provider'));    
 
-            return back()->with('success', 'Appointment cancelled successfully.');
+            return back()->with('success-toast', 'Appointment cancelled successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error-toast', 'Failed to cancel appointment: ' . $e->getMessage());
+
+            return back()->with('error-toast', 'Failed to cancel appointment: '.$e->getMessage());
         }
     }
 
@@ -191,11 +187,11 @@ class ScheduleController extends Controller
             // Check if both parties have approved - then release payment
             if ($appointment->client_approved && $appointment->provider_approved) {
                 $appointment->update(['status' => 'completed']);
-                
+
                 // Release held payment to provider
                 if ($appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
                     $clientWallet = Wallet::firstOrCreate(['user_id' => $appointment->client_id]);
-                    $clientWallet->releaseHeldPayment($appointment->escrow_amount, $appointment, "Payment released after dual approval");
+                    $clientWallet->releaseHeldPayment($appointment->escrow_amount, $appointment, 'Payment released after dual approval');
                     $appointment->update([
                         'escrow_status' => 'released',
                         'payment_released_at' => now(),
@@ -215,7 +211,8 @@ class ScheduleController extends Controller
             }
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error-toast', 'Failed to complete appointment: ' . $e->getMessage());
+
+            return back()->with('error-toast', 'Failed to complete appointment: '.$e->getMessage());
         }
     }
 
@@ -236,14 +233,14 @@ class ScheduleController extends Controller
                 'services' => $appointment->services->map(fn ($s) => [
                     'id' => $s->id,
                     'name' => $s->name,
-                    'price' => '₦' . number_format($s->price, 0),
+                    'price' => '₦'.number_format($s->price, 0),
                     'duration_minutes' => $s->duration_minutes,
                 ]),
                 'start_time' => $appointment->start_time->format('M d, Y g:i A'),
                 'end_time' => $appointment->end_time->format('M d, Y g:i A'),
                 'total_duration_minutes' => $appointment->services->sum('duration_minutes'),
                 'status' => $appointment->status,
-                'price' => '₦' . number_format($appointment->price, 2),
+                'price' => '₦'.number_format($appointment->price, 2),
                 'notes' => $appointment->notes,
                 'created_at' => $appointment->created_at->format('M d, Y'),
                 'escrow_status' => $appointment->escrow_status,

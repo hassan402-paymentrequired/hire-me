@@ -105,3 +105,10 @@ export function isUpcoming(dateString: string | Date): boolean {
 
     return hoursDiff > 0 && hoursDiff <= 24;
 }
+
+
+export function formatCurrency(amount: string){
+
+    return amount;
+
+}

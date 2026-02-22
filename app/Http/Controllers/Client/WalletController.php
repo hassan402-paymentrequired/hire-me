@@ -46,9 +46,9 @@ class WalletController extends Controller
 
         return Inertia::render('client/wallet/index', [
             'wallet' => [
-                'balance' => $wallet->balance,
+                'balance' => (int) $wallet->balance + (int) $wallet->escrow_balance,
                 'escrow_balance' => $wallet->escrow_balance,
-                'available_balance' => $wallet->available_balance,
+                'available_balance' => $wallet->balance,
             ],
             'transactions' => $transactions->through(function ($transaction) {
                 return [

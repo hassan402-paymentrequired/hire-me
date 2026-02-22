@@ -438,7 +438,7 @@ class WidgetController extends Controller
                 return response()->json([
                     'error' => 'Insufficient wallet balance. Please use Paystack payment.',
                     'required' => $totalPrice,
-                    'balance' => $clientWallet->available_balance,
+                    'balance' => $clientWallet->balance,
                 ], 400);
             }
         }

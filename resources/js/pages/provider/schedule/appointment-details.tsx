@@ -1,26 +1,7 @@
-import React from 'react';
-import AppLayout from '@/layouts/app-layout';
-import { Head, Link, router } from '@inertiajs/react';
-import {
-    Calendar,
-    Clock,
-    Mail,
-    FileText,
-    CheckCircle2,
-    XCircle,
-    MapPin,
-    Phone,
-    Loader2,
-    AlertCircle,
-} from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { BreadcrumbItem } from '@/types';
-import business from '@/routes/business';
-import { formatStatus, getStatusVariant } from '@/lib/utils';
 import { CustomAlertDialog } from '@/components/ui/custom-alert-dialog';
 import {
     Dialog,
@@ -31,7 +12,26 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import AppLayout from '@/layouts/app-layout';
+import { formatStatus, getStatusVariant } from '@/lib/utils';
+import business from '@/routes/business';
+import { BreadcrumbItem } from '@/types';
+import { Head, router } from '@inertiajs/react';
+import {
+    AlertCircle,
+    Calendar,
+    CheckCircle2,
+    Clock,
+    FileText,
+    Loader2,
+    Mail,
+    MapPin,
+    Phone,
+    XCircle,
+} from 'lucide-react';
+import React from 'react';
 
 interface Service {
     id: string;
@@ -61,9 +61,11 @@ interface AppointmentDetails {
     total_duration_minutes?: number;
 }
 
-
-
-export default function AppointmentDetailsPage({ appointment }: { appointment: AppointmentDetails }) {
+export default function AppointmentDetailsPage({
+    appointment,
+}: {
+    appointment: AppointmentDetails;
+}) {
     const [isProcessing, setIsProcessing] = React.useState(false);
     const [confirmDialogOpen, setConfirmDialogOpen] = React.useState(false);
     const [completeDialogOpen, setCompleteDialogOpen] = React.useState(false);
@@ -79,9 +81,17 @@ export default function AppointmentDetailsPage({ appointment }: { appointment: A
         { title: appointment.client_name, href: '' },
     ];
 
-    const totalDuration = appointment.total_duration_minutes ?? appointment.services?.reduce((sum, s) => sum + (s.duration_minutes || 0), 0) ?? 0;
+    const totalDuration =
+        appointment.total_duration_minutes ??
+        appointment.services?.reduce(
+            (sum, s) => sum + (s.duration_minutes || 0),
+            0,
+        ) ??
+        0;
     const hasPassed = new Date(appointment.end_time) < new Date();
-    const canMarkComplete = ['confirmed', 'pending_completion'].includes(appointment.status) && hasPassed;
+    const canMarkComplete =
+        ['confirmed', 'pending_completion'].includes(appointment.status) &&
+        hasPassed;
 
     const handleConfirm = () => {
         setConfirmDialogOpen(true);
@@ -89,7 +99,11 @@ export default function AppointmentDetailsPage({ appointment }: { appointment: A
 
     const submitConfirm = () => {
         setIsProcessing(true);
-        router.post(`/provider/appointments/${appointment.id}/confirm`, {}, { onFinish: () => setIsProcessing(false) });
+        router.post(
+            `/provider/appointments/${appointment.id}/confirm`,
+            {},
+            { onFinish: () => setIsProcessing(false) },
+        );
     };
 
     const handleComplete = () => {
@@ -98,7 +112,11 @@ export default function AppointmentDetailsPage({ appointment }: { appointment: A
 
     const submitComplete = () => {
         setIsProcessing(true);
-        router.post(`/provider/appointments/${appointment.id}/complete`, {}, { onFinish: () => setIsProcessing(false) });
+        router.post(
+            `/provider/appointments/${appointment.id}/complete`,
+            {},
+            { onFinish: () => setIsProcessing(false) },
+        );
     };
 
     const handleCancel = () => {
@@ -109,50 +127,74 @@ export default function AppointmentDetailsPage({ appointment }: { appointment: A
     const submitCancel = () => {
         if (!cancelReason.trim()) return;
         setIsProcessing(true);
-        router.post(`/provider/appointments/${appointment.id}/cancel`, { reason: cancelReason.trim() }, {
-            onFinish: () => {
-                setIsProcessing(false);
-                setCancelDialogOpen(false);
+        router.post(
+            `/provider/appointments/${appointment.id}/cancel`,
+            { reason: cancelReason.trim() },
+            {
+                onFinish: () => {
+                    setIsProcessing(false);
+                    setCancelDialogOpen(false);
+                },
             },
-        });
+        );
     };
 
     const handleReport = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!reportReason || !reportDescription.trim() || reportDescription.trim().length < 20) return;
+        if (
+            !reportReason ||
+            !reportDescription.trim() ||
+            reportDescription.trim().length < 20
+        )
+            return;
         setIsProcessing(true);
-        router.post(`/provider/appointments/${appointment.id}/report`, {
-            reason: reportReason,
-            description: reportDescription.trim(),
-        }, {
-            onSuccess: () => {
-                setReportDialogOpen(false);
-                setReportReason('');
-                setReportDescription('');
+        router.post(
+            `/provider/appointments/${appointment.id}/report`,
+            {
+                reason: reportReason,
+                description: reportDescription.trim(),
             },
-            onFinish: () => setIsProcessing(false),
-        });
+            {
+                onSuccess: () => {
+                    setReportDialogOpen(false);
+                    setReportReason('');
+                    setReportDescription('');
+                },
+                onFinish: () => setIsProcessing(false),
+            },
+        );
     };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Appointment - ${appointment.client_name}`} />
 
-            <div className="p-4  space-y-4">
+            <div className="space-y-4 p-4">
                 {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                     <div className="flex items-center gap-4">
-                        <Avatar className="h-16 w-16 border-2 rounded">
+                        <Avatar className="h-16 w-16 rounded border-2">
                             <AvatarFallback className="rounded">
-                                {appointment.client_name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                {appointment.client_name
+                                    .split(' ')
+                                    .map((n) => n[0])
+                                    .join('')
+                                    .toUpperCase()}
                             </AvatarFallback>
                         </Avatar>
                         <div>
-                            <h1 className="text-2xl font-black tracking-tight">{appointment.client_name}</h1>
+                            <h1 className="text-2xl font-black tracking-tight">
+                                {appointment.client_name}
+                            </h1>
                             {appointment.email && (
-                                <p className="text-muted-foreground text-sm flex items-center gap-2 mt-1">
+                                <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                                     <Mail className="h-3 w-3" />
-                                    <a href={`mailto:${appointment.email}`} className="hover:text-primary">{appointment.email}</a>
+                                    <a
+                                        href={`mailto:${appointment.email}`}
+                                        className="hover:text-primary"
+                                    >
+                                        {appointment.email}
+                                    </a>
                                 </p>
                             )}
                         </div>
@@ -164,52 +206,74 @@ export default function AppointmentDetailsPage({ appointment }: { appointment: A
 
                 <div className="grid gap-6 md:grid-cols-3">
                     {/* Main Details */}
-                    <Card className="md:col-span-2 rounded">
+                    <Card className="rounded md:col-span-2">
                         <CardHeader className="pb-4">
-                            <CardTitle className="text-lg font-bold">Appointment Information</CardTitle>
+                            <CardTitle className="text-lg font-bold">
+                                Appointment Information
+                            </CardTitle>
                         </CardHeader>
                         <Separator />
-                        <CardContent className="pt-6 space-y-8">
+                        <CardContent className="space-y-8 pt-6">
                             {/* Time, Date and Duration */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                                 <div className="space-y-1">
-                                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Date & Time</p>
+                                    <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
+                                        Date & Time
+                                    </p>
                                     <div className="flex items-center gap-3">
                                         <Calendar className="h-5 w-5 text-primary" />
-                                        <span className="font-bold text-lg">{appointment.start_time}</span>
+                                        <span className="text-lg font-bold">
+                                            {appointment.start_time}
+                                        </span>
                                     </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Ends</p>
+                                    <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
+                                        Ends
+                                    </p>
                                     <div className="flex items-center gap-3">
                                         <Clock className="h-5 w-5 text-primary" />
-                                        <span className="font-bold text-lg">{appointment.end_time}</span>
+                                        <span className="text-lg font-bold">
+                                            {appointment.end_time}
+                                        </span>
                                     </div>
                                 </div>
                                 {totalDuration > 0 && (
                                     <div className="space-y-1">
-                                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Duration</p>
+                                        <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
+                                            Duration
+                                        </p>
                                         <div className="flex items-center gap-3">
                                             <Clock className="h-5 w-5 text-primary" />
-                                            <span className="font-bold text-lg">{totalDuration} minutes</span>
+                                            <span className="text-lg font-bold">
+                                                {totalDuration} minutes
+                                            </span>
                                         </div>
                                     </div>
                                 )}
                             </div>
 
                             {/* Location */}
-                            {(appointment.location || appointment.location_phone) && (
+                            {(appointment.location ||
+                                appointment.location_phone) && (
                                 <div className="space-y-3">
-                                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Location & Contact</p>
-                                    <div className="flex flex-col gap-2 p-4 rounded-xl bg-muted/30 border border-muted">
+                                    <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
+                                        Location & Contact
+                                    </p>
+                                    <div className="flex flex-col gap-2 rounded-xl border border-muted bg-muted/30 p-4">
                                         {appointment.location && (
                                             <div className="flex items-start gap-3">
-                                                <MapPin className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                                                <span className="text-sm font-medium">{appointment.location}</span>
+                                                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                                                <span className="text-sm font-medium">
+                                                    {appointment.location}
+                                                </span>
                                             </div>
                                         )}
                                         {appointment.location_phone && (
-                                            <a href={`tel:${appointment.location_phone}`} className="flex items-center gap-3 text-sm font-medium text-primary hover:underline">
+                                            <a
+                                                href={`tel:${appointment.location_phone}`}
+                                                className="flex items-center gap-3 text-sm font-medium text-primary hover:underline"
+                                            >
                                                 <Phone className="h-4 w-4 shrink-0" />
                                                 {appointment.location_phone}
                                             </a>
@@ -220,70 +284,117 @@ export default function AppointmentDetailsPage({ appointment }: { appointment: A
 
                             {/* Services List */}
                             <div className="space-y-4">
-                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Booked Services</p>
+                                <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
+                                    Booked Services
+                                </p>
                                 <div className="space-y-3">
                                     {appointment.services.map((service) => (
-                                        <div key={service.id} className="flex items-center justify-between p-4 rounded bg-muted/30 border-2 border-muted transition-colors hover:border-primary/20">
+                                        <div
+                                            key={service.id}
+                                            className="flex items-center justify-between rounded border-2 border-muted bg-muted/30 p-4 transition-colors hover:border-primary/20"
+                                        >
                                             <div className="flex items-center gap-3">
-                                                <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                                                <div className="rounded-lg bg-primary/10 p-2 text-primary">
                                                     <FileText className="h-4 w-4" />
                                                 </div>
                                                 <div>
-                                                    <span className="font-bold capitalize block">{service.name}</span>
+                                                    <span className="block font-bold capitalize">
+                                                        {service.name}
+                                                    </span>
                                                     {service.duration_minutes && (
-                                                        <span className="text-xs text-muted-foreground">{service.duration_minutes} mins</span>
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {
+                                                                service.duration_minutes
+                                                            }{' '}
+                                                            mins
+                                                        </span>
                                                     )}
                                                 </div>
                                             </div>
-                                            <span className="font-black text-lg">{service.price}</span>
+                                            <span className="text-lg font-black">
+                                                {service.price}
+                                            </span>
                                         </div>
                                     ))}
-                                    <div className="flex justify-between items-center pt-2 px-4">
-                                        <span className="font-bold text-muted-foreground">Total Price</span>
-                                        <span className="text-2xl font-black text-primary">{appointment.price}</span>
+                                    <div className="flex items-center justify-between px-4 pt-2">
+                                        <span className="font-bold text-muted-foreground">
+                                            Total Price
+                                        </span>
+                                        <span className="text-2xl font-black text-primary">
+                                            {appointment.price}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Notes */}
                             <div className="space-y-3">
-                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Client Notes</p>
-                                <div className="p-4 rounded-xl bg-muted/50 border-2 border-dashed border-muted italic text-sm text-muted-foreground leading-relaxed">
-                                    {appointment.notes || 'No additional notes provided for this booking.'}
+                                <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
+                                    Client Notes
+                                </p>
+                                <div className="rounded-xl border-2 border-dashed border-muted bg-muted/50 p-4 text-sm leading-relaxed text-muted-foreground italic">
+                                    {appointment.notes ||
+                                        'No additional notes provided for this booking.'}
                                 </div>
                             </div>
 
                             {/* Cancellation Details */}
-                            {appointment.status === 'cancelled' && (appointment.cancelled_by || appointment.cancellation_reason) && (
-                                <div className="space-y-3">
-                                    <p className="text-xs font-bold text-destructive uppercase tracking-widest">Cancellation Details</p>
-                                    <div className="p-4 rounded-xl bg-destructive/5 border border-destructive/20">
-                                        {appointment.cancelled_by && (
-                                            <p className="text-sm font-medium">
-                                                Cancelled by: <span className="capitalize">{appointment.cancelled_by}</span>
-                                            </p>
-                                        )}
-                                        {appointment.cancellation_reason && (
-                                            <p className="text-sm text-muted-foreground mt-1">{appointment.cancellation_reason}</p>
-                                        )}
+                            {appointment.status === 'cancelled' &&
+                                (appointment.cancelled_by ||
+                                    appointment.cancellation_reason) && (
+                                    <div className="space-y-3">
+                                        <p className="text-xs font-bold tracking-widest text-destructive uppercase">
+                                            Cancellation Details
+                                        </p>
+                                        <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4">
+                                            {appointment.cancelled_by && (
+                                                <p className="text-sm font-medium">
+                                                    Cancelled by:{' '}
+                                                    <span className="capitalize">
+                                                        {
+                                                            appointment.cancelled_by
+                                                        }
+                                                    </span>
+                                                </p>
+                                            )}
+                                            {appointment.cancellation_reason && (
+                                                <p className="mt-1 text-sm text-muted-foreground">
+                                                    {
+                                                        appointment.cancellation_reason
+                                                    }
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
 
                             {/* Payment Status */}
                             {appointment.escrow_status && (
                                 <div className="space-y-3">
-                                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Payment Status</p>
-                                    <div className="p-4 rounded-xl bg-muted/30 border border-muted">
-                                        <p className="text-sm font-medium capitalize">{appointment.escrow_status.replace('_', ' ')}</p>
+                                    <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
+                                        Payment Status
+                                    </p>
+                                    <div className="rounded-xl border border-muted bg-muted/30 p-4">
+                                        <p className="text-sm font-medium capitalize">
+                                            {appointment.escrow_status.replace(
+                                                '_',
+                                                ' ',
+                                            )}
+                                        </p>
                                         {appointment.escrow_amount != null && (
-                                            <p className="text-xs text-muted-foreground mt-1">
-                                                Amount held: ₦{Number(appointment.escrow_amount).toLocaleString()}
+                                            <p className="mt-1 text-xs text-muted-foreground">
+                                                Amount held: ₦
+                                                {Number(
+                                                    appointment.escrow_amount,
+                                                ).toLocaleString()}
                                             </p>
                                         )}
                                         {appointment.payment_released_at && (
-                                            <p className="text-xs text-muted-foreground mt-1">
-                                                Released: {appointment.payment_released_at}
+                                            <p className="mt-1 text-xs text-muted-foreground">
+                                                Released:{' '}
+                                                {
+                                                    appointment.payment_released_at
+                                                }
                                             </p>
                                         )}
                                     </div>
@@ -294,47 +405,88 @@ export default function AppointmentDetailsPage({ appointment }: { appointment: A
 
                     {/* Actions and Sidebar */}
                     <div className="space-y-6">
-                        <Card >
+                        <Card>
                             <CardHeader>
-                                <CardTitle className="text-sm font-bold uppercase tracking-widest">Actions</CardTitle>
+                                <CardTitle className="text-sm font-bold tracking-widest uppercase">
+                                    Actions
+                                </CardTitle>
                             </CardHeader>
                             <Separator />
-                            <CardContent className="pt-6 space-y-3">
+                            <CardContent className="space-y-3 pt-6">
                                 {appointment.status === 'pending' && (
-                                    <Button className="w-full" onClick={handleConfirm} disabled={isProcessing}>
-                                        {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+                                    <Button
+                                        className="w-full"
+                                        onClick={handleConfirm}
+                                        disabled={isProcessing}
+                                    >
+                                        {isProcessing ? (
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <CheckCircle2 className="mr-2 h-4 w-4" />
+                                        )}
                                         Accept Booking
                                     </Button>
                                 )}
                                 {canMarkComplete && (
-                                    <Button className="w-full bg-green-600 hover:bg-green-700" onClick={handleComplete} disabled={isProcessing}>
-                                        {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+                                    <Button
+                                        className="w-full bg-green-600 hover:bg-green-700"
+                                        onClick={handleComplete}
+                                        disabled={isProcessing}
+                                    >
+                                        {isProcessing ? (
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <CheckCircle2 className="mr-2 h-4 w-4" />
+                                        )}
                                         Mark as Completed
                                     </Button>
                                 )}
-                                {appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
-                                    <Button variant="destructive" className="w-full" onClick={handleCancel} disabled={isProcessing}>
-                                        <XCircle className="mr-2 h-4 w-4" />
-                                        {appointment.status === 'pending' ? 'Reject Booking' : 'Cancel Appointment'}
-                                    </Button>
-                                )}
+                                {appointment.status !== 'cancelled' &&
+                                    appointment.status !== 'completed' && (
+                                        <Button
+                                            variant="destructive"
+                                            className="w-full"
+                                            onClick={handleCancel}
+                                            disabled={isProcessing}
+                                        >
+                                            <XCircle className="mr-2 h-4 w-4" />
+                                            {appointment.status === 'pending'
+                                                ? 'Reject Booking'
+                                                : 'Cancel Appointment'}
+                                        </Button>
+                                    )}
 
-                                <Button
-                                    variant="ghost"
-                                    className="w-full justify-start text-muted-foreground hover:text-foreground"
-                                    onClick={() => setReportDialogOpen(true)}
-                                    disabled={isProcessing}
-                                >
-                                    <AlertCircle className="mr-2 h-4 w-4" />
-                                    Report Client
-                                </Button>
+                                {appointment.status !== 'cancelled' &&
+                                    appointment.status !== 'completed' && 
+                                    appointment.status !== 'pending' && (
+                                        <Button
+                                            variant="ghost"
+                                            className="w-full justify-start text-muted-foreground hover:text-foreground"
+                                            onClick={() =>
+                                                setReportDialogOpen(true)
+                                            }
+                                            disabled={isProcessing}
+                                        >
+                                            <AlertCircle className="mr-2 h-4 w-4" />
+                                            Report Client
+                                        </Button>
+                                    )}
                             </CardContent>
                         </Card>
 
-                        <div className="px-4 text-center space-y-2">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Booking Metadata</p>
-                            <p className="text-xs font-medium text-muted-foreground">Reference: <span className="font-mono">{appointment.id}</span></p>
-                            <p className="text-xs font-medium text-muted-foreground text-center">Received on {appointment.created_at}</p>
+                        <div className="space-y-2 px-4 text-center">
+                            <p className="text-[10px] font-black tracking-widest text-muted-foreground uppercase">
+                                Booking Metadata
+                            </p>
+                            <p className="text-xs font-medium text-muted-foreground">
+                                Reference:{' '}
+                                <span className="font-mono">
+                                    {appointment.id}
+                                </span>
+                            </p>
+                            <p className="text-center text-xs font-medium text-muted-foreground">
+                                Received on {appointment.created_at}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -376,7 +528,9 @@ export default function AppointmentDetailsPage({ appointment }: { appointment: A
                                 Report Client
                             </DialogTitle>
                             <DialogDescription>
-                                Report an issue with {appointment.client_name}. Our team will review and take appropriate action.
+                                Report an issue with {appointment.client_name}.
+                                Our team will review and take appropriate
+                                action.
                             </DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
@@ -384,44 +538,75 @@ export default function AppointmentDetailsPage({ appointment }: { appointment: A
                                 <Label htmlFor="report-reason">Reason *</Label>
                                 <select
                                     id="report-reason"
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
                                     value={reportReason}
-                                    onChange={(e) => setReportReason(e.target.value)}
+                                    onChange={(e) =>
+                                        setReportReason(e.target.value)
+                                    }
                                     required
                                 >
                                     <option value="">Select a reason</option>
-                                    <option value="no-show">Client did not show up</option>
-                                    <option value="abusive-behavior">Abusive or disrespectful behavior</option>
-                                    <option value="false-claim">False claim or dispute</option>
-                                    <option value="payment-dispute">Payment or refund dispute</option>
-                                    <option value="unprofessional">Unprofessional conduct</option>
-                                    <option value="safety-concern">Safety concern</option>
+                                    <option value="no-show">
+                                        Client did not show up
+                                    </option>
+                                    <option value="abusive-behavior">
+                                        Abusive or disrespectful behavior
+                                    </option>
+                                    <option value="false-claim">
+                                        False claim or dispute
+                                    </option>
+                                    <option value="payment-dispute">
+                                        Payment or refund dispute
+                                    </option>
+                                    <option value="unprofessional">
+                                        Unprofessional conduct
+                                    </option>
+                                    <option value="safety-concern">
+                                        Safety concern
+                                    </option>
                                     <option value="other">Other</option>
                                 </select>
                             </div>
                             <div className="flex flex-col gap-2">
-                                <Label htmlFor="report-description">Details *</Label>
+                                <Label htmlFor="report-description">
+                                    Details *
+                                </Label>
                                 <Textarea
                                     id="report-description"
                                     placeholder="Provide details about the issue (minimum 20 characters)..."
                                     value={reportDescription}
-                                    onChange={(e) => setReportDescription(e.target.value)}
+                                    onChange={(e) =>
+                                        setReportDescription(e.target.value)
+                                    }
                                     required
                                     rows={5}
                                     minLength={20}
                                 />
-                                <p className="text-xs text-muted-foreground">Minimum 20 characters</p>
+                                <p className="text-xs text-muted-foreground">
+                                    Minimum 20 characters
+                                </p>
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setReportDialogOpen(false)}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setReportDialogOpen(false)}
+                            >
                                 Cancel
                             </Button>
                             <Button
                                 type="submit"
-                                disabled={!reportReason || !reportDescription.trim() || reportDescription.trim().length < 20 || isProcessing}
+                                disabled={
+                                    !reportReason ||
+                                    !reportDescription.trim() ||
+                                    reportDescription.trim().length < 20 ||
+                                    isProcessing
+                                }
                             >
-                                {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                {isProcessing ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : null}
                                 Submit Report
                             </Button>
                         </DialogFooter>
@@ -435,10 +620,13 @@ export default function AppointmentDetailsPage({ appointment }: { appointment: A
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <XCircle className="h-5 w-5 text-destructive" />
-                            {appointment.status === 'pending' ? 'Reject Booking' : 'Cancel Appointment'}
+                            {appointment.status === 'pending'
+                                ? 'Reject Booking'
+                                : 'Cancel Appointment'}
                         </DialogTitle>
                         <DialogDescription>
-                            Please provide a reason for cancellation. The client will be notified and their payment will be refunded.
+                            Please provide a reason for cancellation. The client
+                            will be notified and their payment will be refunded.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
@@ -448,14 +636,19 @@ export default function AppointmentDetailsPage({ appointment }: { appointment: A
                                 id="cancel-reason"
                                 placeholder="e.g. Unavailable at scheduled time, schedule conflict..."
                                 value={cancelReason}
-                                onChange={(e) => setCancelReason(e.target.value)}
+                                onChange={(e) =>
+                                    setCancelReason(e.target.value)
+                                }
                                 rows={4}
                                 required
                             />
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>
+                        <Button
+                            variant="outline"
+                            onClick={() => setCancelDialogOpen(false)}
+                        >
                             Keep Appointment
                         </Button>
                         <Button
@@ -463,7 +656,9 @@ export default function AppointmentDetailsPage({ appointment }: { appointment: A
                             onClick={submitCancel}
                             disabled={!cancelReason.trim() || isProcessing}
                         >
-                            {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                            {isProcessing ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : null}
                             Confirm Cancellation
                         </Button>
                     </DialogFooter>

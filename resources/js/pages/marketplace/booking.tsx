@@ -17,9 +17,11 @@ import { Head, router } from '@inertiajs/react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { addMonths, format } from 'date-fns';
-import { Box, Check, CheckCircle2, Clock, Repeat, Wallet, ShieldCheck } from 'lucide-react';
+import { Box, Check, CheckCircle2, Clock, Repeat, Wallet } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { CustomAlertDialog } from '@/components/ui/custom-alert-dialog';
+import {ShieldExclamationIcon} from "@heroicons/react/24/solid"
+import appointments from '@/routes/appointments';
 
 interface Service {
     id: string;
@@ -228,7 +230,7 @@ export default function Booking({
             bookingData.discount_percent = discountPercent;
         }
 
-        router.post('/appointments', bookingData, {
+        router.post(appointments.store().url, bookingData, {
             onError: (errors) => {
                 const firstError = Object.values(errors)[0];
                 toast.error(typeof firstError === 'string' ? firstError : 'Please check your selection and try again.');
@@ -256,7 +258,7 @@ export default function Booking({
             <CustomAlertDialog
                 open={paymentConfirmDialogOpen}
                 onOpenChange={setPaymentConfirmDialogOpen}
-                icon={<ShieldCheck className="size-12 text-primary" />}
+                icon={<ShieldExclamationIcon className="size-12 text-primary" />}
                 title="Confirm Payment"
                 description={`You will be charged ₦${totalPrice.toLocaleString()} which will be held securely. Payment will be released to the provider only after both you and the provider confirm the service is completed. Continue?`}
                 acceptLabel="Continue"
