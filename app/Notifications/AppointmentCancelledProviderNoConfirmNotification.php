@@ -39,7 +39,7 @@ class AppointmentCancelledProviderNoConfirmNotification extends Notification imp
         return [
             'title' => 'Appointment cancelled',
             'message' => 'Your appointment was cancelled because the provider did not confirm in time.',
-            'action_url' => '/bookings',
+            'action_url' => '/my-bookings/'.$this->appointment->id,
             'type' => 'appointment_cancelled',
         ];
     }

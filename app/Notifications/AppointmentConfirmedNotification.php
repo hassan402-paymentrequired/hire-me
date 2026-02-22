@@ -8,8 +8,10 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
+use Illuminate\Contracts\Queue\ShouldQueue;
 
-class AppointmentConfirmedNotification extends Notification
+
+class AppointmentConfirmedNotification extends Notification implements ShouldQueue
 {
     use Queueable, SendsWebPush;
 
@@ -31,7 +33,7 @@ class AppointmentConfirmedNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['mail', WebPushChannel::class];
+        return ['mail', 'database', WebPushChannel::class];
     }
 
     /**

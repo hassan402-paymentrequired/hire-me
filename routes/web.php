@@ -86,7 +86,7 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
 
         Route::prefix('schedule')->group(function () {
             Route::get('/calender', [App\Http\Controllers\Provider\Schedule\ScheduleController::class, 'calender'])->name('schedule.calender.index');
-            Route::get('/appointments', [App\Http\Controllers\Provider\Schedule\ScheduleController::class, 'appoinatments'])->name('schedule.appointments.index');
+            Route::get('/appointments', [App\Http\Controllers\Provider\Schedule\ScheduleController::class, 'appointments'])->name('schedule.appointments.index');
         });
 
         // Provider Appointment Management

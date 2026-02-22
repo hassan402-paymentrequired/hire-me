@@ -59,7 +59,7 @@ class VerificationRejectedNotification extends Notification implements ShouldQue
         return [
             'title' => 'Verification update',
             'message' => 'Your verification was not approved. You can reapply with updated documents.',
-            'action_url' => '/onboarding/verification',
+            'action_url' => '/',
             'type' => 'verification_rejected',
             'verification_id' => $this->verification->id,
         ];

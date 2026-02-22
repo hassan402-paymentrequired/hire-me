@@ -4,11 +4,12 @@ namespace App\Notifications;
 
 use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
 
-class BusinessVerificationSubmittedNotification extends Notification
+class BusinessVerificationSubmittedNotification extends Notification implements ShouldQueue
 {
     use Queueable, SendsWebPush;
 

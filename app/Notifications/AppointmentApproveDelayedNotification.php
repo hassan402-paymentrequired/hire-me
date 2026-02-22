@@ -54,7 +54,7 @@ class AppointmentApproveDelayedNotification extends Notification
         return [
             'title' => 'Appointment approval delayed',
             'message' => 'You have an appointment waiting for your confirmation.',
-            'action_url' => '/business/schedule/appointments',
+            'action_url' => '/provider/appointments/'. $this->appointment->id,
             'type' => 'appointment_delayed',
         ];
     }

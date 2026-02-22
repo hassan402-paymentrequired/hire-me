@@ -34,7 +34,7 @@ class AppointmentCancelledNotification extends Notification implements ShouldQue
      */
     public function via(object $notifiable): array
     {
-        return ['mail', WebPushChannel::class];
+        return ['mail', 'database',WebPushChannel::class];
     }
 
     /**
