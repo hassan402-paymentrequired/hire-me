@@ -23,7 +23,7 @@ class GuestController extends Controller
     {
         $lat = $request->lat ? (float) $request->lat : null;
         $lng = $request->lng ? (float) $request->lng : null;
-        $search = $request->search;
+        $search = $request->search ;
         $category = $request->category !== 'For You' ? $request->category : null;
         $minRating = $request->min_rating ? (float) $request->min_rating : null;
         $sort = $request->input('sort', 'recommended');

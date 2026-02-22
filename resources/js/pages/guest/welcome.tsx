@@ -1,13 +1,13 @@
+import { EmptyCard } from '@/components/ui/empty-card';
 import AppLayout from '@/layouts/guest-layout';
+import { PROVIDERS_BEFORE_LOGIN } from '@/lib/constants';
 import BusinessCard from '@/pages/guest/components/business-card';
 import { HeaderFilter } from '@/pages/guest/components/filter';
+import { Provider } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Landing from './components/landing-page';
 import { MiniLoginForm } from './mini-login-form';
-import { EmptyCard } from '@/components/ui/empty-card';
-import {PROVIDERS_BEFORE_LOGIN} from '@/lib/constants';
-import { Provider } from '@/types';
 
 interface Props {
     providers: {
@@ -32,25 +32,26 @@ interface Props {
     canRegister: boolean;
 }
 
-export default function Welcome({ providers, categories, filters, canRegister }: Props) {
+export default function Welcome({
+    providers,
+    categories,
+    filters,
+    canRegister,
+}: Props) {
     const { auth } = usePage().props as { auth?: { user?: unknown } };
     const isGuest = !auth?.user;
     const [allProviders, setAllProviders] = useState(providers.data);
     const [loading, setLoading] = useState(false);
     const loadMoreRef = useRef<HTMLDivElement>(null);
-    const isLoadingRef = useRef(false); 
+    const isLoadingRef = useRef(false);
+    const prevFiltersRef = useRef(filters);
 
     const displayProviders = isGuest
         ? allProviders.slice(0, PROVIDERS_BEFORE_LOGIN)
         : allProviders;
 
     const loadMore = useCallback(() => {
-        if (
-            isGuest ||
-            !providers.next_page_url ||
-            isLoadingRef.current
-        )
-            return;
+        if (isGuest || !providers.next_page_url || isLoadingRef.current) return;
 
         isLoadingRef.current = true;
         setLoading(true);
@@ -75,8 +76,12 @@ export default function Welcome({ providers, categories, filters, canRegister }:
     }, [isGuest, providers.next_page_url]);
 
     useEffect(() => {
-        if (providers.current_page === 1) {
+        const filtersChanged =
+            JSON.stringify(prevFiltersRef.current) !== JSON.stringify(filters);
+
+        if (providers.current_page === 1 || filtersChanged) {
             setAllProviders(providers.data);
+            prevFiltersRef.current = filters;
         } else {
             setAllProviders((prev) => {
                 const newProviders = providers.data.filter(
@@ -85,7 +90,7 @@ export default function Welcome({ providers, categories, filters, canRegister }:
                 return [...prev, ...newProviders];
             });
         }
-    }, [providers.data, providers.current_page]);
+    }, [providers.data, providers.current_page, filters]);
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -94,7 +99,7 @@ export default function Welcome({ providers, categories, filters, canRegister }:
                     loadMore();
                 }
             },
-            { threshold: 0.5, rootMargin: '100px' }, 
+            { threshold: 0.5, rootMargin: '100px' },
         );
 
         const currentRef = loadMoreRef.current;
@@ -178,12 +183,11 @@ export default function Welcome({ providers, categories, filters, canRegister }:
                 rel="stylesheet"
             />
             <AppLayout>
-                <div className="m box-border flex w-full  flex-col space-y-6 overflow-visible px-5 ">
-
+                <div className="m box-border flex w-full flex-col space-y-6 overflow-visible px-5">
                     <Landing />
 
                     {/* market place */}
-                    <div id="marketplace" className="min-h-[calc(98vh-3rem)] ">
+                    <div id="marketplace" className="min-h-[calc(98vh-3rem)]">
                         <HeaderFilter
                             categories={categories}
                             filters={filters}
@@ -192,25 +196,27 @@ export default function Welcome({ providers, categories, filters, canRegister }:
                         />
 
                         {/* Main Content Grid */}
-                        <div >
+                        <div>
                             <div className="px-1 py-4">
                                 {allProviders.length === 0 && !loading ? (
-                                        <EmptyCard
-                                            title="No providers available at the moment."
-                                            // description="No providers available at the moment."
-                                            image="assets/gifs/empty.svg"
-                                            buttonOnClick={() => router.get('/')}
-                                            className="size-74"
-                                        />  
+                                    <EmptyCard
+                                        title="No providers available at the moment."
+                                        // description="No providers available at the moment."
+                                        image="assets/gifs/empty.svg"
+                                        buttonOnClick={() => router.get('/')}
+                                        className="size-74"
+                                    />
                                 ) : (
                                     <>
                                         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                            {displayProviders.map((provider) => (
-                                                <BusinessCard
-                                                    provider={provider}
-                                                    key={provider.id}
-                                                />
-                                            ))}
+                                            {displayProviders.map(
+                                                (provider) => (
+                                                    <BusinessCard
+                                                        provider={provider}
+                                                        key={provider.id}
+                                                    />
+                                                ),
+                                            )}
                                         </div>
 
                                         {/* Guest gate: login to continue viewing more providers */}
