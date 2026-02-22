@@ -39,6 +39,7 @@ import { Link, usePage } from '@inertiajs/react';
 import { BookOpen, CalendarSync, Folder, Heart, Menu } from 'lucide-react';
 import AppLogo from './app-logo';
 import AppLogoIcon from './app-logo-icon';
+import { NotificationBell } from './notification-bell';
 
 interface NavItem {
     title: string;
@@ -52,10 +53,6 @@ const mainNavItems = (auth?: any): NavItem[] => {
             title: 'Marketplace',
             href: home().url,
         },
-        {
-            title: 'Find on map',
-            href: '/find-on-map',
-        }
     ];
     return items;
 };
@@ -84,6 +81,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
     const { auth } = page.props;
     const getInitials = useInitials();
     const { toggleFavoriteSheet } = useLoading();
+
     return (
         <>
             <div className="fixed top-0 right-0 left-0 z-30 border-b border-sidebar-border/80 bg-background">
@@ -184,17 +182,12 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                             )}
                                             prefetch
                                         >
-                                            {item.icon && (
-                                                <Icon
-                                                    iconNode={item.icon}
-                                                    className="mr-2 h-4 w-4"
-                                                />
-                                            )}
                                             {item.title}
                                         </Link>
-                                        {isSameUrl(page.url, item.href) && (
+                                        {/* for now since we have one link it should alway be active */}
+                                        {/* {isSameUrl(page.url, item.href) && ( */} 
                                             <div className="absolute bottom-0 left-0 h-0.5 w-full translate-y-px bg-black dark:bg-white"></div>
-                                        )}
+                                        {/* )} */}
                                     </NavigationMenuItem>
                                 ))}
                             </NavigationMenuList>
@@ -266,7 +259,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                                     >
                                                         <span className="text-xs font-medium">
                                                             ₦
-                                                            {auth.user.wallet.available_balance.toLocaleString()}
+                                                            {auth.user.wallet.balance.toLocaleString()}
                                                         </span>
                                                     </Button>
                                                 </Link>
@@ -298,6 +291,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
+                                <NotificationBell />
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button

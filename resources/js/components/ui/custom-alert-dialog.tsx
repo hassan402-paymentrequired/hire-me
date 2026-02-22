@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as React from "react"
 import {
     AlertDialog,
@@ -14,7 +15,7 @@ export interface CustomAlertDialogProps {
     /** Callback when open state changes */
     onOpenChange: (open: boolean) => void
     /** Icon to display at the top (ReactNode) */
-    icon?: React.ReactNode
+    icon?: any
     /** Title text */
     title: string
     /** Description text */
@@ -89,7 +90,7 @@ export function CustomAlertDialog({
         <AlertDialog open={open} onOpenChange={onOpenChange}>
             <AlertDialogContent
                 className={cn(
-                    "sm:max-w-md p-8 rounded-3xl border-none shadow-lg",
+                    "sm:max-w-md p-6 rounded-lg border-none shadow-lg",
                     className
                 )}
             >
@@ -117,7 +118,7 @@ export function CustomAlertDialog({
                             <Button
                                 variant={rejectVariant}
                                 onClick={handleReject}
-                                className="flex-1 rounded-lg"
+                                className="flex-1 rounded"
                             >
                                 {rejectLabel}
                             </Button>
@@ -126,7 +127,7 @@ export function CustomAlertDialog({
                             variant={acceptVariant}
                             onClick={handleAccept}
                             className={cn(
-                                "flex-1 rounded-lg",
+                                "flex-1 rounded",
                                 !showReject && "w-full"
                             )}
                         >

@@ -6,10 +6,12 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\WebPush\WebPushChannel;
+use App\Notifications\Concerns\SendsWebPush;
 
 class StoreSetupNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsWebPush;
 
     /**
      * Create a new notification instance.
@@ -26,7 +28,7 @@ class StoreSetupNotification extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database', WebPushChannel::class];
     }
 
     /**
@@ -45,7 +47,10 @@ class StoreSetupNotification extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         return [
-            //
+            'title' => 'Store setup',
+            'message' => 'Complete your store setup to start receiving bookings.',
+            'action_url' => '/business/settings',
+            'type' => 'store_setup',
         ];
     }
 }

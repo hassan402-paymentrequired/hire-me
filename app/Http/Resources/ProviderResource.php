@@ -35,6 +35,8 @@ class ProviderResource extends JsonResource
             'rating' => isset($this->avg_rating) && $this->avg_rating ? round((float) $this->avg_rating, 1) : 0,
             'reviewsCount' => $this->reviews_count ?? 0,
             'minPrice' => $this->min_price ?? 0,
+            'isVerified' => $this->is_verified,
+            'category' => $this->businessProfile->category
         ];
     }
 }

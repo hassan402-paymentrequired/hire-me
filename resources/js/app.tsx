@@ -4,12 +4,11 @@ import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { initializeTheme } from './hooks/use-appearance';
 import { LoadingProvider } from '@/contexts/loading-context';
 import { LocationPermissionProvider } from '@/contexts/location-permission-context';
 import { Toaster } from 'sonner';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'Clockra';
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
@@ -18,7 +17,7 @@ createInertiaApp({
             `./pages/${name}.tsx`,
             import.meta.glob('./pages/**/*.tsx'),
         ),
-    setup({ el, App, props }) {
+     setup({ el, App, props }) {
         const root = createRoot(el);
 
         root.render(
@@ -26,10 +25,10 @@ createInertiaApp({
                 <LoadingProvider>
                     <LocationPermissionProvider reminderInterval={10 * 60 * 1000}>
                         <App {...props} />
-                        <Toaster position="top-right" richColors closeButton />
+                        <Toaster position="top-center" richColors closeButton />
                     </LocationPermissionProvider>
                 </LoadingProvider>
-            </StrictMode>,
+            </StrictMode>
         );
     },
     progress: {

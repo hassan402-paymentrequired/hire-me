@@ -3,11 +3,15 @@
 namespace App\Http\Controllers\Provider;
 
 use App\Http\Controllers\Controller;
+use App\Services\FileUploadService;
+use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class VerificationController extends Controller
 {
-    public function store(\Illuminate\Http\Request $request)
+    public function store(Request $request)
     {
         $user = auth()->user();
 
@@ -26,20 +30,36 @@ class VerificationController extends Controller
         }
 
         $validated = $request->validate([
-            'document_type' => 'required|in:passport,national_id,drivers_license',
-            'document' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120', // 5MB
+            'document_type' => 'required|in:passport,national_id,drivers_license,cac_registration',
+            'document' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ]);
 
         // Store document securely
-        $path = $request->file('document')->store('verifications', 'private');
+        // $path = $request->file('document')->store('verifications', 'private');
+        try {
+            DB::beginTransaction();
 
-        \App\Models\ProviderVerification::create([
-            'user_id' => $user->id,
-            'document_type' => $validated['document_type'],
-            'document_path' => $path,
-            'status' => 'pending',
-        ]);
+            
+            $path = FileUploadService::upload($request->file('document'), 'verifications', 'private');
 
-        return back()->with('success', 'Verification request submitted successfully! We will review it shortly.');
+            \App\Models\ProviderVerification::create([
+                'user_id' => $user->id,
+                'document_type' => $validated['document_type'],
+                'document_path' => $path,
+                'status' => 'pending',
+            ]);
+
+            $user->notify(new \App\Notifications\BusinessVerificationSubmittedNotification());
+
+            DB::commit();
+
+            return back()->with('success', 'Verification request submitted successfully! We will review it shortly.');
+
+        } catch (Exception $th) {
+            DB::rollBack();
+            Log::error($th);
+            return back()->with('error', 'An error occurred while submitting your verification. Please try again later.');  
+        }
+
     }
 }

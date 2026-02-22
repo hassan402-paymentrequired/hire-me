@@ -44,7 +44,7 @@ class Wallet extends Model
      */
     public function hasSufficientBalance(float $amount): bool
     {
-        return $this->available_balance >= $amount;
+        return $this->balance >= $amount;
     }
 
     /**

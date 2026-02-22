@@ -8,10 +8,12 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\WebPush\WebPushChannel;
+use App\Notifications\Concerns\SendsWebPush;
 
 class RecurringAppointmentRescheduledNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsWebPush;
 
     public function __construct(
         public Appointment $appointment,
@@ -20,7 +22,7 @@ class RecurringAppointmentRescheduledNotification extends Notification implement
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database', WebPushChannel::class];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -39,6 +41,11 @@ class RecurringAppointmentRescheduledNotification extends Notification implement
 
     public function toArray(object $notifiable): array
     {
-        return [];
+        return [
+            'title' => 'Recurring appointment rescheduled',
+            'message' => 'Your recurring appointment was moved to a new time.',
+            'action_url' => '/bookings',
+            'type' => 'recurring_rescheduled',
+        ];
     }
 }

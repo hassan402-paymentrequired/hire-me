@@ -89,7 +89,6 @@ export default function WalletIndex({
     withdrawals,
     banks = [],
     bankAccount = null,
-    paystackPublicKey,
 }: Props) {
     const [topUpAmount, setTopUpAmount] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
@@ -113,7 +112,13 @@ export default function WalletIndex({
 
     const handleTopUp = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!topUpAmount || parseFloat(topUpAmount) < 100) {
+        if (!topUpAmount) {
+            return;
+        }
+
+        if(parseFloat(topUpAmount) < 100 || parseFloat(topUpAmount) > 1000000)
+        {
+            toast.error("Amount can not be less ₦1,000 or greater than ₦1,000,000")
             return;
         }
 
@@ -135,23 +140,6 @@ export default function WalletIndex({
             alert('An error occurred. Please try again.');
             setIsProcessing(false);
         }
-    };
-
-    const getStatusBadgeWithdrawal = (status: string) => {
-        const variants: Record<
-            string,
-            'default' | 'secondary' | 'destructive' | 'outline'
-        > = {
-            completed: 'default',
-            pending: 'secondary',
-            failed: 'destructive',
-        };
-
-        return (
-            <Badge variant={variants[status] || 'outline'}>
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-            </Badge>
-        );
     };
 
     const getTypeLabel = (type: string) => {

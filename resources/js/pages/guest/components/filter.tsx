@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/select';
 import { router } from '@inertiajs/react';
 import { MapPin, Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 interface Category {
     name: string;
@@ -40,22 +40,27 @@ export const HeaderFilter = ({
         filters?.category || 'For You',
     );
     const [search, setSearch] = useState(filters?.search || '');
-
-    useEffect(() => {
-        setSearch(filters?.search || '');
-    }, [filters?.search]);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         setSelectedCategory(filters?.category || 'For You');
-    }, [filters?.category]);
+        setSearch(filters?.search || '');
+    }, [filters?.category, filters?.search]);
 
     const handleSearch = (value: string) => {
         setSearch(value);
-        router.get(
-            '/',
-            { ...filters, search: value },
-            { preserveState: true, replace: true, preserveScroll: true },
-        );
+
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+
+        debounceRef.current = setTimeout(() => {
+            router.get(
+                '/',
+                { ...filters, search: value },
+                { preserveState: true, replace: true, preserveScroll: true },
+            );
+        }, 500); 
     };
 
     const handleCategoryChange = (category: string) => {
@@ -93,7 +98,7 @@ export const HeaderFilter = ({
                             <Search className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 placeholder="Search Service, location..."
-                                className="h-12 rounded-full border-border/60 pr-12 pl-11 focus-visible:bg-background focus-visible:ring-1"
+                                className="h-12 rounded-full border-border/60 pr-12 pl-11 font-heading focus-visible:bg-background focus-visible:ring-1"
                                 value={search}
                                 onChange={(e) => handleSearch(e.target.value)}
                             />
@@ -153,7 +158,7 @@ export const HeaderFilter = ({
             </div>
 
             {/* Category Pills */}
-            <div className="scrollbar-hide mt-3 flex space-x-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="scrollbar-hide mt-5 flex space-x-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <button
                     onClick={() => handleCategoryChange('For You')}
                     className={`rounded px-4 py-2 text-sm font-medium whitespace-nowrap transition-all ${

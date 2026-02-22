@@ -17,9 +17,11 @@ import { Head, router } from '@inertiajs/react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { addMonths, format } from 'date-fns';
-import { Box, Check, CheckCircle2, Clock, Repeat, Wallet, ShieldCheck } from 'lucide-react';
+import { Box, Check, CheckCircle2, Clock, Repeat, Wallet } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { CustomAlertDialog } from '@/components/ui/custom-alert-dialog';
+import {ShieldExclamationIcon} from "@heroicons/react/24/solid"
+import appointments from '@/routes/appointments';
 
 interface Service {
     id: string;
@@ -228,7 +230,7 @@ export default function Booking({
             bookingData.discount_percent = discountPercent;
         }
 
-        router.post('/appointments', bookingData, {
+        router.post(appointments.store().url, bookingData, {
             onError: (errors) => {
                 const firstError = Object.values(errors)[0];
                 toast.error(typeof firstError === 'string' ? firstError : 'Please check your selection and try again.');
@@ -256,7 +258,7 @@ export default function Booking({
             <CustomAlertDialog
                 open={paymentConfirmDialogOpen}
                 onOpenChange={setPaymentConfirmDialogOpen}
-                icon={<ShieldCheck className="size-12 text-primary" />}
+                icon={<ShieldExclamationIcon className="size-12 text-primary" />}
                 title="Confirm Payment"
                 description={`You will be charged ₦${totalPrice.toLocaleString()} which will be held securely. Payment will be released to the provider only after both you and the provider confirm the service is completed. Continue?`}
                 acceptLabel="Continue"
@@ -334,7 +336,7 @@ export default function Booking({
                         <div className="space-y-12 lg:col-span-2">
                             {/* Calendar & Slots Card */}
                             <div className="overflow-hidden rounded border bg-card">
-                                <div className="grid grid-cols-1 md:grid-cols-2">
+                                <div className="grid grid-cols-1 md:grid-cols-2 sm:h-[360px]">
                                     <div className="flex justify-center border-b p-3 md:border-r md:border-b-0">
                                         <Calendar
                                             mode="single"
@@ -380,11 +382,11 @@ export default function Booking({
 
                                                 return false;
                                             }}
-                                            className="rounded-md"
+                                            className="rounded-md h-full w-full"
                                         />
                                     </div>
 
-                                    <div className="space-y-3 bg-muted/5 p-4">
+                                    <div className="space-y-3 bg-muted/5 p-4 sm:w-full sm:h-full sm:overflow-hidden sm:overflow-y-auto">
                                         <div className="flex items-center justify-between">
                                             <h3 className="text-lg font-bold tracking-tighter uppercase md:text-xl">
                                                 {format(
@@ -482,7 +484,7 @@ export default function Booking({
                             {/* Services Selection */}
                             <div className="space-y-6">
                                 <h3 className="text-xl font-black tracking-tight">
-                                    Services offered by the provider
+                                    Select services you'll like to book
                                 </h3>
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                     {services.map((s) => (
@@ -522,9 +524,6 @@ export default function Booking({
                                                         {s.name}
                                                     </h4>
                                                 </div>
-                                                <p className="line-clamp-1 text-xs text-muted-foreground sm:text-sm">
-                                                    {s.description}
-                                                </p>
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-sm font-black">
                                                         ₦
@@ -552,6 +551,7 @@ export default function Booking({
                                     placeholder="Add any special requests or information for the provider..."
                                     value={notes}
                                     onChange={(e) => setNotes(e.target.value)}
+                                    className='text-sm'
                                 />
                             </div>
 
@@ -582,9 +582,11 @@ export default function Booking({
                                                               | 'bi_weekly'
                                                               | 'monthly'),
                                                 );
-                                                if (!value) {
+
+                                                if (!value || value == 'once') {
                                                     setRecurrenceEndDate(null);
                                                     setRecurrenceCount(null);
+                                                    setRecurrencePattern(null)
                                                 }
                                             }}
                                         >
@@ -621,7 +623,7 @@ export default function Booking({
                                                         selectedDate,
                                                         'yyyy-MM-dd',
                                                     )}
-                                                    max={format(
+                                                    max={format( //here
                                                         addMonths(
                                                             selectedDate,
                                                             12,

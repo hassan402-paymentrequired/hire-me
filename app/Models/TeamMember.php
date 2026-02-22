@@ -19,6 +19,8 @@ class TeamMember extends Model
         'invited_by',
         'invited_at',
         'accepted_at',
+        'invitation_link',
+        'invitation_expires_at',
     ];
 
     protected $casts = [

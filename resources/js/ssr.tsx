@@ -16,7 +16,7 @@ createServer((page) =>
                 import.meta.glob('./pages/**/*.tsx'),
             ),
         setup: ({ App, props }) => {
-            return <App {...props} />;
+            return <App {...props} />;  
         },
     }),
 );

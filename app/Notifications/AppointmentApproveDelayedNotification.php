@@ -7,10 +7,12 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\WebPush\WebPushChannel;
+use App\Notifications\Concerns\SendsWebPush;
 
 class AppointmentApproveDelayedNotification extends Notification
 {
-    use Queueable;
+    use Queueable, SendsWebPush;
 
     /**
      * Create a new notification instance.
@@ -27,7 +29,7 @@ class AppointmentApproveDelayedNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database', WebPushChannel::class];
     }
 
     /**
@@ -50,7 +52,10 @@ class AppointmentApproveDelayedNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            //
+            'title' => 'Appointment approval delayed',
+            'message' => 'You have an appointment waiting for your confirmation.',
+            'action_url' => '/provider/appointments/'. $this->appointment->id,
+            'type' => 'appointment_delayed',
         ];
     }
 }

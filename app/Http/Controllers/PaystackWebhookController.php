@@ -23,6 +23,10 @@ class PaystackWebhookController extends Controller
      */
     public function handleWebhook(Request $request)
     {
+        Log::info('Received Paystack webhook', [
+            'headers' => $request->headers->all(),
+            'payload' => $request->all(),
+        ]); 
         // Verify webhook signature
         $signature = $request->header('X-Paystack-Signature');
         $payload = $request->getContent();
@@ -195,6 +199,8 @@ class PaystackWebhookController extends Controller
     public function handleCallback(Request $request)
     {
         $reference = $request->query('reference');
+
+        Log::info('Handling Paystack callback', ['reference' => $reference]);
 
         if (!$reference) {
             return redirect()->route('wallet.index')

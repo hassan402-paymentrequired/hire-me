@@ -13,12 +13,16 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use NotificationChannels\WebPush\HasPushSubscriptions;
 
 #[ObservedBy(UserObserver::class)]
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, TwoFactorAuthenticatable, HasUlids;
+    use HasFactory, HasPushSubscriptions, Notifiable, TwoFactorAuthenticatable, HasUlids;
+
+    // protected $keyType = 'string';
+    // public $incrementing = false;
 
     /**
      * The attributes that are mass assignable.
@@ -73,7 +77,8 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
-            'role' => UserRoleEnum::class
+            'role' => UserRoleEnum::class,
+            'is_verified' => 'boolean'
         ];
     }
 
@@ -185,4 +190,6 @@ class User extends Authenticatable implements MustVerifyEmail
 
         return $teamMember && $teamMember->isAdmin();
     }
+
+
 }

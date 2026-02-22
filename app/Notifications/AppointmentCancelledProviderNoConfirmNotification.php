@@ -7,10 +7,12 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\WebPush\WebPushChannel;
+use App\Notifications\Concerns\SendsWebPush;
 
 class AppointmentCancelledProviderNoConfirmNotification extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsWebPush;
 
     public function __construct(
         public Appointment $appointment,
@@ -19,7 +21,7 @@ class AppointmentCancelledProviderNoConfirmNotification extends Notification imp
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database', WebPushChannel::class];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -34,6 +36,11 @@ class AppointmentCancelledProviderNoConfirmNotification extends Notification imp
 
     public function toArray(object $notifiable): array
     {
-        return [];
+        return [
+            'title' => 'Appointment cancelled',
+            'message' => 'Your appointment was cancelled because the provider did not confirm in time.',
+            'action_url' => '/my-bookings/'.$this->appointment->id,
+            'type' => 'appointment_cancelled',
+        ];
     }
 }

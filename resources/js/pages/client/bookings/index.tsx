@@ -58,9 +58,10 @@ export default function BookingList({ bookings = [], statusFilter = 'active' }: 
                 ) : (
                     <div className="text-center py-20">
                         <div className="flex justify-center mb-4">
-                            <div className="p-3 bg-muted rounded-full">
+                            {/* <div className="p-3 bg-muted rounded-full">
                                 <CalendarIcon className="w-8 h-8 text-muted-foreground" />
-                            </div>
+                            </div> */}
+                            <img src='/assets/gifs/empty.svg' alt='Empty icon' />
                         </div>
                         <h3 className="text-lg font-semibold">
                             {statusFilter === 'active' ? 'No active bookings' : `No ${statusFilter} bookings`}

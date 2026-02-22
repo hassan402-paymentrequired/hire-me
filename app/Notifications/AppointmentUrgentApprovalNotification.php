@@ -7,10 +7,12 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\WebPush\WebPushChannel;
+use App\Notifications\Concerns\SendsWebPush;
 
 class AppointmentUrgentApprovalNotification extends Notification
 {
-    use Queueable;
+    use Queueable, SendsWebPush;
 
     /**
      * Create a new notification instance.
@@ -27,7 +29,7 @@ class AppointmentUrgentApprovalNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database', WebPushChannel::class];
     }
 
     /**
@@ -51,7 +53,10 @@ class AppointmentUrgentApprovalNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            //
+            'title' => 'Urgent: Appointment needs approval',
+            'message' => 'An appointment is coming up soon. Please confirm or decline.',
+            'action_url' => '/business/schedule/appointments',
+            'type' => 'appointment_urgent',
         ];
     }
 }

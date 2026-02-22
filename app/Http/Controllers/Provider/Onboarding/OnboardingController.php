@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers\Provider\Onboarding;
 
+use App\Enum\UserRoleEnum;
 use App\Http\Controllers\Controller;
+use App\Jobs\SaveWorkHourJob;
 use App\Models\BusinessProfile;
+use App\Models\Category;
 use App\Models\Service;
 use App\Models\WorkHour;
-use App\Models\Category;
 use App\Notifications\BusinessSetupCompleteNotification;
+use App\Services\ProviderLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -18,26 +21,33 @@ class OnboardingController extends Controller
 {
     public function index()
     {
-        $user = auth()->user();
+        $user = auth_user();
+        $hasService = Service::where('provider_id', $user->id)->exists();
+
+        if ($user->businessProfile->has_onboarded) {
+            return to_route('business.dashboard')->with('error-toast', 'You. already have a business profile.');
+        }
 
         // Determine current step based on what's missing
         // 1. Business Profile
-        if (!$user->businessProfile) {
+        if ($user->businessProfile && $hasService) {
+            return to_route('business.dashboard')->with('error-toast', 'You. already have a business profile.');
+        }
+
+        if (! $user->businessProfile) {
             return redirect()->route('onboarding.business-profile');
         }
 
         // 2. Work Hours (check if any exist)
-        if (!WorkHour::where('provider_id', $user->id)->exists()) {
+        if (! WorkHour::where('provider_id', $user->id)->exists()) {
             return redirect()->route('onboarding.work-hours');
         }
 
         // 3. Services (check if any exist)
-        if (!Service::where('provider_id', $user->id)->exists()) {
+        if (! $hasService) {
             return redirect()->route('onboarding.services');
         }
 
-        // All done - verification is no longer part of onboarding
-        // Providers can complete onboarding, but their business won't be visible until verified
         return redirect()->route('business.dashboard');
     }
 
@@ -52,7 +62,7 @@ class OnboardingController extends Controller
 
         return Inertia::render('provider/onboarding/business-profile', [
             'step' => 'profile',
-            'categories' => $categories
+            'categories' => $categories,
         ]);
     }
 
@@ -76,12 +86,12 @@ class OnboardingController extends Controller
 
         try {
             DB::beginTransaction();
-            $user = auth()->user();
+            $user = auth_user();
 
             $data = [
                 'user_id' => $user->id,
                 'business_name' => $request->business_name,
-                'slug' => Str::slug($request->business_name) . '-' . Str::random(6),
+                'slug' => Str::slug($request->business_name).'-'.Str::random(6),
                 'description' => $request->description,
                 'address' => $request->address,
                 'city' => $request->city,
@@ -111,16 +121,27 @@ class OnboardingController extends Controller
             }
 
             DB::commit();
+
             return redirect()->route('onboarding.index');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("Error creating business profile: {$e->getMessage()}");
+
             return back()->withErrors(['business_name' => 'Error creating business profile. Please try again.']);
         }
     }
 
     public function workHours()
     {
+        $user = auth_user();
+         if(!$user->businessProfile)
+         {
+            return to_route('home')->with('error-toast', 'You. already have a business profile.');
+         }
+
+         if ($user->businessProfile->has_onboarded) {
+            return to_route('business.dashboard')->with('error-toast', 'You. already have a business profile.');
+        }
         return Inertia::render('provider/onboarding/work-hours', ['step' => 'hours']);
     }
 
@@ -136,44 +157,31 @@ class OnboardingController extends Controller
             'schedule.*.shifts.*.breaks.*.start' => 'required|string',
             'schedule.*.shifts.*.breaks.*.end' => 'required|string',
         ]);
+        $user = auth_user();
 
-        $user = auth()->user();
-
-        WorkHour::where('provider_id', $user->id)->delete();
-
-        foreach ($validated['schedule'] as $day => $dayData) {
-            $firstShift = $dayData['shifts'][0] ?? null;
-
-            WorkHour::create([
-                'provider_id' => $user->id,
-                'day_of_week' => $day,
-                'start_time' => !$dayData['isOpen'] || !$firstShift ? null : $firstShift['start'] . ':00',
-                'end_time' => !$dayData['isOpen'] || !$firstShift ? null : $firstShift['end'] . ':00',
-                'breaks' => !$dayData['isOpen'] || !$firstShift ? null : array_map(function ($break) {
-                    return [
-                        'start' => $break['start'],
-                        'end' => $break['end']
-                    ];
-                }, $firstShift['breaks'] ?? []),
-                'is_closed' => !$dayData['isOpen'],
-            ]);
-        }
+        SaveWorkHourJob::dispatch($validated['schedule'], $user);
 
         return redirect()->route('onboarding.index');
     }
 
     public function services()
     {
-        $categories = Category::orderBy('name')->get()->map(function ($category) {
-            return [
-                'value' => $category->id,
-                'label' => $category->name,
-            ];
-        });
+
+         $user = auth_user();
+
+         if(!$user->businessProfile)
+         {
+            return to_route('home')->with('error-toast', 'You. already have a business profile.');
+         }
+
+
+         if ($user->businessProfile->has_onboarded) {
+            return to_route('business.dashboard')->with('error-toast', 'You. already have a business profile.');
+        }
 
         return Inertia::render('provider/onboarding/services', [
             'step' => 'services',
-            'categories' => $categories
+            'categories' => Category::orderBy('name')->select(['id', 'name'])->get(),
         ]);
     }
 
@@ -187,7 +195,7 @@ class OnboardingController extends Controller
             'description' => 'nullable|string',
         ]);
 
-        $user = auth()->user();
+        $user = auth_user();
 
         Service::create([
             'provider_id' => $user->id,
@@ -199,14 +207,15 @@ class OnboardingController extends Controller
             'status' => 'active',
         ]);
 
-        $user->notify(new BusinessSetupCompleteNotification());
+        $user->notify(new BusinessSetupCompleteNotification);
 
         return redirect()->route('onboarding.success');
     }
 
     public function success()
     {
-        $user = auth()->user();
+        $user = auth_user();
+
         return Inertia::render('provider/onboarding/success', [
             'is_verified' => $user->is_verified ?? false,
         ]);
@@ -214,7 +223,7 @@ class OnboardingController extends Controller
 
     public function verification()
     {
-        $user = auth()->user();
+        $user = auth_user();
         $existingVerification = \App\Models\ProviderVerification::where('user_id', $user->id)
             ->latest()
             ->first();
@@ -227,13 +236,13 @@ class OnboardingController extends Controller
                 'rejection_reason' => $existingVerification->rejection_reason,
                 'created_at' => $existingVerification->created_at,
             ] : null,
-            'is_verified' => (bool)$user->is_verified,
+            'is_verified' => (bool) $user->is_verified,
         ]);
     }
 
     public function storeVerification(Request $request)
     {
-        $user = auth()->user();
+        $user = auth_user();
 
         // Check if already verified
         if ($user->is_verified) {
@@ -271,12 +280,30 @@ class OnboardingController extends Controller
         return redirect()->route('business.dashboard')->with('success-toast', 'Verification request submitted successfully! We will review it shortly.');
     }
 
-    public function skip()
+    public function skip(string $stage)
     {
-        // Send notification when onboarding is complete (even if verification is skipped)
-        $user = auth()->user();
-        $user->notify(new BusinessSetupCompleteNotification());
 
-        return redirect()->route('business.dashboard');
+        if (! in_array($stage, ['work-hours', 'services'])) {
+            return redirect()->route('onboarding.index')->with('error', 'Invalid onboarding stage.');
+        }
+
+        $user = auth_user();
+
+        if ($stage === 'work-hours') {
+            $defaultDays = days();
+            SaveWorkHourJob::dispatch($defaultDays, $user);
+
+            return redirect()->route('onboarding.services');
+        }
+
+        ProviderLogService::log($user->id, 'Finish setting up business profile', 'Just finish setting up business profile');
+
+        $user->businessProfile->update(['has_onboarded' => true]);
+        $user->update(['role' => UserRoleEnum::PROVIDER->value]);
+
+        $user->notify(new BusinessSetupCompleteNotification);
+
+        return redirect()->route('onboarding.success');
+
     }
 }

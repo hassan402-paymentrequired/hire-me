@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
     Avatar,
     AvatarFallback,
@@ -21,25 +22,21 @@ import {
     Calendar,
     Clock,
     CreditCard,
-    MoreHorizontal,
-    Plus,
     Star,
     Users,
     AlertCircle,
     ShieldCheck,
-    XCircle,
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Link } from '@inertiajs/react';
 import { dashboard } from '@/routes/business';
 import {
     Empty,
-    EmptyContent,
-    EmptyDescription,
     EmptyHeader,
     EmptyMedia,
     EmptyTitle,
 } from "@/components/ui/empty"
+import { formatDate } from '@/lib/utils';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -65,9 +62,10 @@ interface DashboardProps {
         avatar: string;
     }>;
     recentActivity: Array<{
-        id: number;
-        message: string;
-        time: string;
+        id: string;
+        action: string;
+        description: string;
+        created_at: string;
     }>;
     is_verified?: boolean;
     verification_status?: {
@@ -76,7 +74,7 @@ interface DashboardProps {
         created_at: string;
     } | null;
 }
-
+ 
 export default function Index({ stats, upcomingAppointments, recentActivity, is_verified, verification_status }: DashboardProps) {
     const page = usePage();
     const auth = (page.props as any).auth;
@@ -116,6 +114,8 @@ export default function Index({ stats, upcomingAppointments, recentActivity, is_
             icon: Star,
         },
     ];
+
+    // console.log(recentActivity.pendingAttributes)
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -159,13 +159,12 @@ export default function Index({ stats, upcomingAppointments, recentActivity, is_
                                 ? 'text-blue-700 w-full dark:text-blue-300'
                                 : 'text-yellow-700 w-full dark:text-yellow-300'
                         }>
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between w-full">
                                 <p>
                                     {verification_status?.status === 'pending' ? (
                                         <>
-                                            Your verification request is currently under review. 
                                             <span className="block mt-1 text-sm">
-                                                We'll notify you once it's processed. Your business profile will be visible to clients after approval.
+                                                We'll notify you once it's processed. Your business profile will be visible to clients after approval (you can still receive appointments pending the time).
                                             </span>
                                         </>
                                     ) : verification_status?.status === 'rejected' ? (
@@ -178,9 +177,6 @@ export default function Index({ stats, upcomingAppointments, recentActivity, is_
                                     ) : (
                                         <>
                                             Your business profile is not visible to clients until you complete verification.
-                                            <span className="block mt-1 text-sm">
-                                                Upload a valid document to verify your identity and start receiving bookings.
-                                            </span>
                                         </>
                                     )}
                                 </p>
@@ -324,19 +320,12 @@ export default function Index({ stats, upcomingAppointments, recentActivity, is_
                                             <span className="relative mr-4 flex h-2 w-2 shrink-0 translate-y-2 rounded-full bg-sky-500" />
                                             <div className="space-y-1">
                                                 <p className="text-sm leading-none font-medium">
-                                                    {activity.message}
+                                                    {activity.action}
                                                 </p>
                                                 <p className="text-xs text-muted-foreground">
-                                                    {activity.time}
+                                                    {formatDate(activity.created_at)}
                                                 </p>
                                             </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="ml-auto h-6 w-6"
-                                            >
-                                                <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-                                            </Button>
                                         </div>
                                     ))
                                 )}

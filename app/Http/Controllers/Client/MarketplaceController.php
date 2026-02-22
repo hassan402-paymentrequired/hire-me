@@ -10,6 +10,7 @@ use App\Models\Appointment;
 use App\Models\Wallet;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
+use Carbon\Carbon;
 
 class MarketplaceController extends Controller
 {
@@ -45,13 +46,13 @@ class MarketplaceController extends Controller
         ]);
     }
 
-    public function show($slug)
+    public function show(string $slug)
     {
         $businessProfile = BusinessProfile::where('slug', $slug)->firstOrFail();
         
         // Check if provider is verified
         if (!$businessProfile->user->is_verified) {
-            abort(404, 'Provider profile not found');
+            abort(404, 'Provider not found');
         }
         
         $provider = $businessProfile->user()
@@ -62,8 +63,7 @@ class MarketplaceController extends Controller
             ])
             ->firstOrFail();
 
-        // Get work hours - day_of_week is stored as string (e.g., "Monday", "Tuesday")
-        // Ensure all 7 days are included, even if not set (default to closed)
+       
         $dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         $workHoursData = \App\Models\WorkHour::where('provider_id', $provider->id)
             ->get()
@@ -82,8 +82,8 @@ class MarketplaceController extends Controller
                 $dayName => [
                     'isOpen' => true,
                     'hours' => $openHours->map(fn($h) => [
-                        'start' => \Carbon\Carbon::parse($h->start_time)->format('g:i A'),
-                        'end' => \Carbon\Carbon::parse($h->end_time)->format('g:i A'),
+                        'start' => Carbon::parse($h->start_time)->format('g:i A'),
+                        'end' => Carbon::parse($h->end_time)->format('g:i A'),
                     ])->values()->toArray()
                 ]
             ];
@@ -97,13 +97,14 @@ class MarketplaceController extends Controller
 
         $canReview = false;
         $isFavourite = false;
+
         if (auth()->check()) {
             $canReview = Appointment::where('client_id', auth()->id())
                 ->where('provider_id', $provider->id)
                 ->where('status', 'completed')
                 ->whereDoesntHave('review')
                 ->exists();
-        $isFavourite = FavouriteBusiness::query()->where('user_id', auth()->id())->where('business_profile_id', $businessProfile->id)->exists();
+            $isFavourite = FavouriteBusiness::query()->where('user_id', auth()->id())->where('business_profile_id', $businessProfile->id)->exists();
         }
 
 
@@ -141,13 +142,7 @@ class MarketplaceController extends Controller
                 'years_in_business' => $yearsInBusiness,
                 'total_service_hours' => round($totalServiceHours, 1),
             ],
-            'services' => $provider->services->map(fn($service) => [
-                'id' => $service->id,
-                'name' => $service->name,
-                'description' => $service->description,
-                'duration' => $service->duration_minutes,
-                'price' => $service->price,
-            ]),
+            'services' => $provider->services,
             'workHours' => $workHours,
             'reviews' => $reviews->map(fn($r) => [
                 'id' => $r->id,
@@ -182,7 +177,7 @@ class MarketplaceController extends Controller
         $walletBalance = null;
         if (auth()->check()) {
             $wallet = Wallet::firstOrCreate(['user_id' => auth()->id()]);
-            $walletBalance = $wallet->available_balance;
+            $walletBalance = $wallet->balance;
         }
 
         // Get provider settings

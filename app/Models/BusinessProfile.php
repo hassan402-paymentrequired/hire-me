@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Observers\BusinessProfileObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 
+#[ObservedBy(BusinessProfileObserver::class)]
 class BusinessProfile extends Model
 {
     use HasFactory, HasUlids;
@@ -28,6 +31,7 @@ class BusinessProfile extends Model
         'widget_enabled',
         'widget_settings',
         'widget_domains',
+        'has_onboarded'
     ];
 
     protected $casts = [

@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 
+Route::get('/team/accept-invite/{link}', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'acceptInvite'])->name('business.team.invite.accept');
+
 Route::middleware(['provider.setup'])->group(function () {
     Route::get('/', [\App\Http\Controllers\Guest\GuestController::class, 'welcome'])->name('home');
     Route::get('/find-on-map', [\App\Http\Controllers\Guest\GuestController::class, 'findOnMap'])->name('find-on-map');
@@ -43,7 +45,7 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
         Route::get('/verification', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'verification'])->name('verification');
         Route::post('/verification', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'storeVerification'])->name('verification.store');
         Route::get('/success', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'success'])->name('success');
-        Route::post('/skip', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'skip'])->name('skip');
+        Route::post('/skip/{stage}', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'skip'])->name('skip');
     });
 
     Route::middleware('provider')->group(function () {
@@ -75,6 +77,7 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
                 Route::get('/', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'index'])->name('index');
                 Route::get('/create', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'create'])->name('create');
                 Route::post('/', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'store'])->name('store');
+                Route::post('/invite', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'inviteUser'])->name('invite');
                 Route::put('/{id}', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'update'])->name('update');
                 Route::delete('/{id}', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'destroy'])->name('destroy');
                 Route::get('/members/list', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'getTeamMembers'])->name('members.list');
@@ -110,6 +113,19 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
     Route::prefix('my-bookings')->name('client.bookings.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Client\AppointmentController::class, 'index'])->name('index');
         Route::get('/{id}', [\App\Http\Controllers\Client\AppointmentController::class, 'show'])->name('show');
+    });
+
+    // Web Push: store/remove browser push subscription
+    Route::prefix('push-subscription')->name('push-subscription.')->group(function () {
+        Route::post('/', [\App\Http\Controllers\PushSubscriptionController::class, 'store'])->name('store');
+        Route::delete('/', [\App\Http\Controllers\PushSubscriptionController::class, 'destroy'])->name('destroy');
+    });
+
+    // In-app notifications (JSON API for notification bell)
+    Route::prefix('notifications')->name('notifications.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\NotificationController::class, 'index'])->name('index');
+        Route::post('/read-all', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('read-all');
+        Route::post('/{id}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('read');
     });
 
     // Client Wallet
