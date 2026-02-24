@@ -1,12 +1,11 @@
 import AppLogo from '@/components/app-logo';
-import AppLogoIcon from '@/components/app-logo-icon';
 import { Link } from '@inertiajs/react';
 
 const Footer = () => {
     return (
-        <footer className="bg-white dark:bg-gray-900">
+        <footer className="bg-white dark:bg-gray-900 mt-16 border-t">
             <div className="w-full px-4 pt-16 pb-8 sm:px-6 lg:px-8">
-                <div className="mx-auto max-w-md">
+                {/* <div className="mx-auto max-w-md">
                     <p className="block text-center text-xl font-bold text-gray-900 sm:text-3xl dark:text-white">
                         Want us to email you with the latest blockbuster news?
                     </p>
@@ -33,9 +32,9 @@ const Footer = () => {
                             </button>
                         </div>
                     </form>
-                </div>
+                </div> */}
 
-                <div className="mt-16 grid grid-cols-1 gap-12 lg:grid-cols-3 lg:gap-16">
+                <div className=" grid grid-cols-1 gap-8 lg:grid-cols-3  ">
                     {/* Column 1: Logo, description, and social icons together */}
                     <div className="flex flex-col items-center text-center lg:items-start lg:text-left col-span-2">
                         <AppLogo />
@@ -44,7 +43,7 @@ const Footer = () => {
                         </p>
                         <div className="mt-6 flex justify-center gap-4 lg:justify-start">
                             <a
-                                className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
+                                className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75 font-heading"
                                 href="#"
                                 target="_blank"
                                 rel="noreferrer"
@@ -64,7 +63,7 @@ const Footer = () => {
                                 </svg>
                             </a>
                             <a
-                                className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
+                                className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75 font-heading"
                                 href="#"
                                 target="_blank"
                                 rel="noreferrer"
@@ -84,7 +83,7 @@ const Footer = () => {
                                 </svg>
                             </a>
                             <a
-                                className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
+                                className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75 font-heading"
                                 href="#"
                                 target="_blank"
                                 rel="noreferrer"
@@ -100,7 +99,7 @@ const Footer = () => {
                                 </svg>
                             </a>
                             <a
-                                className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
+                                className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75 font-heading"
                                 href="#"
                                 target="_blank"
                                 rel="noreferrer"
@@ -120,7 +119,7 @@ const Footer = () => {
                                 </svg>
                             </a>
                             <a
-                                className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
+                                className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75 font-heading"
                                 href="#"
                                 target="_blank"
                                 rel="noreferrer"
@@ -152,7 +151,7 @@ const Footer = () => {
                                 <li>
                                     <Link
                                         href="/about"
-                                        className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
+                                        className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75 font-heading"
                                     >
                                         About
                                     </Link>
@@ -161,7 +160,7 @@ const Footer = () => {
                                 <li>
                                     <Link
                                         href="/history"
-                                        className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
+                                        className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75 font-heading"
                                     >
                                         History
                                     </Link>
@@ -169,7 +168,7 @@ const Footer = () => {
                                 <li>
                                     <Link
                                         href="/our-team"
-                                        className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
+                                        className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75 font-heading"
                                     >
                                         Our Team
                                     </Link>
@@ -184,7 +183,7 @@ const Footer = () => {
                                 <li>
                                     <Link
                                         href="/faqs"
-                                        className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
+                                        className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75 font-heading"
                                     >
                                         FAQs
                                     </Link>
@@ -192,7 +191,7 @@ const Footer = () => {
                                 <li>
                                     <Link
                                         href="/contact"
-                                        className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
+                                        className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75 font-heading"
                                     >
                                         Contact
                                     </Link>
@@ -207,7 +206,7 @@ const Footer = () => {
                                 <li>
                                     <Link
                                         href="/privacy-policy"
-                                        className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
+                                        className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75 font-heading"
                                     >
                                         Privacy Policy
                                     </Link>
@@ -215,7 +214,7 @@ const Footer = () => {
                                 <li>
                                     <Link
                                         href="/terms"
-                                        className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
+                                        className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75 font-heading"
                                     >
                                         Terms and Conditions
                                     </Link>
