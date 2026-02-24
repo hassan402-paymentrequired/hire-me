@@ -1,8 +1,16 @@
-/**
- * Service worker for Web Push notifications.
- * When the user is not in the app, push events show a system notification.
- */
+self.addEventListener("install", function(event) {
+    console.log(event)
+    self.skipWaiting();
+});
+
+self.addEventListener("activate", function(event) {
+    console.log(event)
+    event.waitUntil(self.clients.claim());
+});
+
+
 self.addEventListener('push', function (event) {
+    console.log(event)
     if (!event.data) return;
     let payload;
     try {
@@ -28,6 +36,7 @@ self.addEventListener('push', function (event) {
 });
 
 self.addEventListener('notificationclick', function (event) {
+    console.log(event)
     event.notification.close();
     const url = event.notification.data && event.notification.data.url ? event.notification.data.url : '/';
     event.waitUntil(

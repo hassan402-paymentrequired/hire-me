@@ -34,7 +34,7 @@ class NotificationController extends Controller
     /**
      * Mark a single notification as read.
      */
-    public function markAsRead(Request $request, string $id): JsonResponse
+    public function markAsRead(Request $request, string $id)
     {
         $notification = $request->user()
             ->notifications()
@@ -43,18 +43,18 @@ class NotificationController extends Controller
 
         $notification->markAsRead();
 
-        return response()->json(['ok' => true]);
+        return back();
     }
 
     /**
      * Mark all notifications as read.
      */
-    public function markAllAsRead(Request $request): JsonResponse
+    public function markAllAsRead(Request $request)
     {
         foreach ($request->user()->unreadNotifications as $notification) {
             $notification->markAsRead();
         }
 
-        return response()->json(['ok' => true]);
+        return back();
     }
 }

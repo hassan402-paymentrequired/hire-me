@@ -268,12 +268,14 @@ export default function ProviderProfile({ provider, services, workHours, reviews
                                     onClick={prevSlide}
                                     className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 text-white flex items-center justify-center transition-all hover:scale-110"
                                 >
+                                    <span className='sr-only'>prev</span>
                                     <ChevronLeft className="w-6 h-6" />
                                 </button>
                                 <button
                                     onClick={nextSlide}
                                     className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 text-white flex items-center justify-center transition-all hover:scale-110"
                                 >
+                                      <span className='sr-only'>next</span>
                                     <ChevronRight className="w-6 h-6" />
                                 </button>
                             </>

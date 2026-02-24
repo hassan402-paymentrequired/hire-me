@@ -32,11 +32,11 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
 
     return (
         <>
-            <DropdownMenuLabel className="p-0 font-normal">
+            <DropdownMenuLabel className="p-0 font-normal ">
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                     <UserInfo user={user} showEmail={true} />
                 </div>
-                {user.wallet && (
+                {/* {user.wallet && (
                     <div className="mt-2 border-t border-border px-1 py-1.5">
                         <div className="flex items-center justify-between text-xs">
                             <span className="text-muted-foreground">
@@ -48,7 +48,7 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                             </span>
                         </div>
                     </div>
-                )}
+                )} */}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>

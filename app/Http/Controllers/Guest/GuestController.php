@@ -53,7 +53,7 @@ class GuestController extends Controller
 
         return Inertia::render('guest/welcome', [
             'canRegister' => Features::enabled(Features::registration()),
-            'providers' => $providers,
+            'providers' => Inertia::scroll(fn() => $providers),
             'categories' => $categories,
             'filters' => [
                 'search' => $search,

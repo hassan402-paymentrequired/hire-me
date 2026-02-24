@@ -33,7 +33,7 @@
 
         {{-- Additional SEO --}}
         <meta name="theme-color" content="#3b82f6">
-        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <meta name="apple-mobile-web-app-title" content="{{ config('app.name') }}">
         <meta name="application-name" content="{{ config('app.name') }}">
@@ -91,7 +91,7 @@
         @vite(['resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
         @inertiaHead
     </head>
-    <body class="font-sans antialiased">
+    <body class="font-heading antialiased">
         @inertia
     </body>
 </html>

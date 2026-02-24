@@ -1,13 +1,14 @@
 import { EmptyCard } from '@/components/ui/empty-card';
 import AppLayout from '@/layouts/guest-layout';
-import { PROVIDERS_BEFORE_LOGIN } from '@/lib/constants';
+// import { PROVIDERS_BEFORE_LOGIN } from '@/lib/constants';
 import BusinessCard from '@/pages/guest/components/business-card';
 import { HeaderFilter } from '@/pages/guest/components/filter';
 import { Provider } from '@/types';
-import { Head, router, usePage } from '@inertiajs/react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Head, InfiniteScroll, router, usePage } from '@inertiajs/react';
+import { useRef } from 'react';
 import Landing from './components/landing-page';
 import { MiniLoginForm } from './mini-login-form';
+import { toast } from 'sonner';
 
 interface Props {
     providers: {
@@ -40,80 +41,11 @@ export default function Welcome({
 }: Props) {
     const { auth } = usePage().props as { auth?: { user?: unknown } };
     const isGuest = !auth?.user;
-    const [allProviders, setAllProviders] = useState(providers.data);
-    const [loading, setLoading] = useState(false);
     const loadMoreRef = useRef<HTMLDivElement>(null);
-    const isLoadingRef = useRef(false);
-    const prevFiltersRef = useRef(filters);
 
-    const displayProviders = isGuest
-        ? allProviders.slice(0, PROVIDERS_BEFORE_LOGIN)
-        : allProviders;
-
-    const loadMore = useCallback(() => {
-        if (isGuest || !providers.next_page_url || isLoadingRef.current) return;
-
-        isLoadingRef.current = true;
-        setLoading(true);
-
-        router.get(
-            providers.next_page_url,
-            {},
-            {
-                preserveState: true,
-                preserveScroll: true,
-                only: ['providers'],
-                onFinish: () => {
-                    setLoading(false);
-                    isLoadingRef.current = false;
-                },
-                onError: () => {
-                    setLoading(false);
-                    isLoadingRef.current = false;
-                },
-            },
-        );
-    }, [isGuest, providers.next_page_url]);
-
-    useEffect(() => {
-        const filtersChanged =
-            JSON.stringify(prevFiltersRef.current) !== JSON.stringify(filters);
-
-        if (providers.current_page === 1 || filtersChanged) {
-            setAllProviders(providers.data);
-            prevFiltersRef.current = filters;
-        } else {
-            setAllProviders((prev) => {
-                const newProviders = providers.data.filter(
-                    (p) => !prev.some((existing) => existing.id === p.id),
-                );
-                return [...prev, ...newProviders];
-            });
-        }
-    }, [providers.data, providers.current_page, filters]);
-
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (entries[0].isIntersecting && !isLoadingRef.current) {
-                    loadMore();
-                }
-            },
-            { threshold: 0.5, rootMargin: '100px' },
-        );
-
-        const currentRef = loadMoreRef.current;
-        if (currentRef) {
-            observer.observe(currentRef);
-        }
-
-        return () => {
-            if (currentRef) {
-                observer.unobserve(currentRef);
-            }
-            observer.disconnect();
-        };
-    }, [loadMore]);
+    // const displayProviders = isGuest
+    //     ? allProviders.slice(0, PROVIDERS_BEFORE_LOGIN)
+    //     : allProviders;
 
     const requestLocation = () => {
         if ('geolocation' in navigator) {
@@ -136,19 +68,28 @@ export default function Welcome({
                 },
                 (error) => {
                     console.error('Error getting location:', error);
+                    let errorMessage = 'Could not determine your location. Please try searching manually.';
+
+                    if (error.code === error.PERMISSION_DENIED) {
+                        errorMessage = 'Location access was denied. Please allow location access in your browser settings.';
+                    } else if (error.code === error.POSITION_UNAVAILABLE) {
+                        errorMessage = 'Your location is currently unavailable. This might be a device or network issue.';
+                    } else if (error.code === error.TIMEOUT) {
+                        errorMessage = 'Location request timed out. Please try again.';
+                    }
+
+                    toast.error(errorMessage, { id: 'location-toast' });
                 },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
             );
         } else {
-            console.error('Geolocation is not supported by this browser.');
+            toast.error('Geolocation is not supported by your browser.');
         }
     };
-
-    useEffect(() => {
-        // Auto-detect location if not already filtered by location
-        if (!filters.lat || !filters.lng) {
-            requestLocation();
-        }
-    }, [filters.lat, filters.lng]);
 
     return (
         <>
@@ -198,7 +139,7 @@ export default function Welcome({
                         {/* Main Content Grid */}
                         <div>
                             <div className="px-1 py-4">
-                                {allProviders.length === 0 && !loading ? (
+                                {providers?.data?.length === 0  ? (
                                     <EmptyCard
                                         title="No providers available at the moment."
                                         // description="No providers available at the moment."
@@ -208,16 +149,38 @@ export default function Welcome({
                                     />
                                 ) : (
                                     <>
-                                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                            {displayProviders.map(
-                                                (provider) => (
-                                                    <BusinessCard
-                                                        provider={provider}
-                                                        key={provider.id}
-                                                    />
-                                                ),
-                                            )}
-                                        </div>
+                                        <InfiniteScroll
+                                            data="providers"
+                                            buffer={300}
+                                            next={({
+                                                loading,
+                                                hasNext
+                                            }) =>
+                                                hasNext && (
+                                                    <div
+                                                        className="mt-8 flex h-10 items-center justify-center"
+                                                    >
+                                                        {loading && (
+                                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                                                Loading more...
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )
+                                            }
+                                        >
+                                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                                {providers?.data?.map(
+                                                    (provider) => (
+                                                        <BusinessCard
+                                                            provider={provider}
+                                                            key={provider.id}
+                                                        />
+                                                    ),
+                                                )}
+                                            </div>
+                                        </InfiniteScroll>
 
                                         {/* Guest gate: login to continue viewing more providers */}
                                         {isGuest && (
@@ -228,22 +191,6 @@ export default function Welcome({
                                                 />
                                             </div>
                                         )}
-
-                                        {/* Infinite Scroll Trigger — only when authenticated */}
-                                        {!isGuest &&
-                                            providers.next_page_url && (
-                                                <div
-                                                    ref={loadMoreRef}
-                                                    className="mt-8 flex h-10 items-center justify-center"
-                                                >
-                                                    {loading && (
-                                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                                            Loading more...
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
                                     </>
                                 )}
                             </div>

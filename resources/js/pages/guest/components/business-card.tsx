@@ -68,6 +68,7 @@ const BusinessCard = ({ provider }: { provider: ProviderProps }) => {
                                 setImageLoaded(false);
                             }}
                             onLoad={() => setImageLoaded(true)}
+                            loading='lazy'
                         />
                     </>
                 ) : (

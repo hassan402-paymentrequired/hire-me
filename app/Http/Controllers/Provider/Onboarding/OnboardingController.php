@@ -24,7 +24,7 @@ class OnboardingController extends Controller
         $user = auth_user();
         $hasService = Service::where('provider_id', $user->id)->exists();
 
-        if ($user->businessProfile->has_onboarded) {
+        if ($user->businessProfile()->exists() && $user->businessProfile->has_onboarded) {
             return to_route('business.dashboard')->with('error-toast', 'You. already have a business profile.');
         }
 
