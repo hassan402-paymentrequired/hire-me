@@ -670,7 +670,7 @@ class BusinessController extends Controller
             $request->validate(['id' => 'required|exists:business_profiles,id']);
 
             $existing = FavouriteBusiness::query()->where('user_id', auth()->id())->where('business_profile_id', $request->id)->first();
-
+$message = '';
             if(!$existing)
             {
                  FavouriteBusiness::query()->create(
@@ -679,11 +679,13 @@ class BusinessController extends Controller
                         'business_profile_id' => $request->id
                     ]
                 );
+                $message = 'Business marked as favourite.';
             }else{
                 $existing->delete();
+                $message = 'Business removed from favourites.';
             }
 
-            return back()->with('success-toast', 'Business marked as favourite successfully.');
+            return back()->with('success-toast', $message);
 
         }catch (\Exception $e) {
             Log::error("Error marking business as favourite: {$e->getMessage()}");

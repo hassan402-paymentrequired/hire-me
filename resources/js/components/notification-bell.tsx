@@ -12,16 +12,12 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Link } from '@inertiajs/react';
+import notifications from '@/routes/notifications';
+import { Link, router } from '@inertiajs/react';
 import { Bell } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 const NOTIFICATIONS_POLL_INTERVAL_MS = 60_000;
-
-function getCsrfToken(): string | null {
-    const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
-    return match ? decodeURIComponent(match[1]) : null;
-}
 
 interface NotificationItem {
     id: string;
@@ -32,7 +28,6 @@ interface NotificationItem {
 }
 
 interface NotificationsResponse {
-    data: {
         data: NotificationItem[];
         unread_count: number;
         meta: {
@@ -41,7 +36,6 @@ interface NotificationsResponse {
             per_page: number;
             total: number;
         };
-    };
 }
 
 async function fetchNotifications(): Promise<NotificationsResponse> {
@@ -54,33 +48,15 @@ async function fetchNotifications(): Promise<NotificationsResponse> {
 }
 
 async function markAsRead(id: string): Promise<void> {
-    const token = getCsrfToken();
-    await fetch(`/notifications/${id}/read`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            ...(token && { 'X-XSRF-TOKEN': token }),
-            ...(token && { 'X-CSRF-TOKEN': token }),
-        },
-        body: JSON.stringify({}),
-    });
+    router.post(notifications.read(id).url, {}, {
+        preserveScroll: true
+    })
 }
 
 async function markAllAsRead(): Promise<void> {
-    const token = getCsrfToken();
-    await fetch('/notifications/read-all', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            ...(token && { 'X-XSRF-TOKEN': token }),
-            ...(token && { 'X-CSRF-TOKEN': token }),
-        },
-        body: JSON.stringify({}),
-    });
+     router.post(notifications.readAll().url, {}, {
+        preserveScroll: true
+    })
 }
 
 export function NotificationBell() {
@@ -94,8 +70,8 @@ export function NotificationBell() {
         setLoading(true);
         setError(null);
         try {
-            const { data } = await fetchNotifications();
-            setNotifications(data.data);
+            const  data = await fetchNotifications();
+            setNotifications(data.data.data);
             setUnreadCount(data.unread_count);
         } catch {
             setError('Could not load notifications');
@@ -168,8 +144,8 @@ export function NotificationBell() {
                     <TooltipContent>
                         <p>Notifications</p>
                     </TooltipContent>
-                    <DropdownMenuContent align="end" className="w-80 p-0">
-                        <div className="flex items-center justify-between border-b px-3 py-2">
+                    <DropdownMenuContent align="end" className="w-96 p-0 font-heading shadow-none rounded">
+                        <div className="flex items-center justify-between border-b px-3 py-2 bg-gray-100">
                             <span className="font-medium">Notifications</span>
                             {unreadCount > 0 && (
                                 <Button
@@ -182,6 +158,7 @@ export function NotificationBell() {
                                 </Button>
                             )}
                         </div>
+
                         {loading && notifications.length === 0 ? (
                             <div className="flex justify-center py-8">
                                 <Spinner className="size-6" />
@@ -211,6 +188,7 @@ export function NotificationBell() {
                                             >
                                                 {actionUrl ? (
                                                     <Link
+                                                    disabled={!isUnread}
                                                         href={actionUrl}
                                                         className="block px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
                                                         onClick={() => {
@@ -238,6 +216,7 @@ export function NotificationBell() {
                                                     </Link>
                                                 ) : (
                                                     <button
+                                                      disabled={!isUnread}
                                                         type="button"
                                                         className="block w-full px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
                                                         onClick={() => {

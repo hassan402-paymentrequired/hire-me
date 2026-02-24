@@ -46,7 +46,7 @@ export default function Landing() {
                 <div className="mx-auto max-w-2xl text-center">
                     {/* Trust badge - staggered entrance */}
                     <div
-                        className="animate-fade-in-up mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-medium text-primary"
+                        className="animate-fade-in-up font-heading mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-medium text-primary"
                         style={{ animationDelay: '0.1s' }}
                     >
                         <SparklesIcon className="h-4 w-4" />

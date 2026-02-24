@@ -15,18 +15,6 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
     return output;
 }
 
-/**
- * Encode ArrayBuffer to base64url for sending to server.
- */
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-    const bytes = new Uint8Array(buffer);
-    let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
 function getCsrfToken(): string | null {
     if (typeof document === 'undefined') return null;
     const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
@@ -47,7 +35,7 @@ export function usePushNotifications() {
         if (!vapidPublicKey || !user || typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
             return;
         }
-        
+
         try {
             const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
             await reg.update();
@@ -60,15 +48,17 @@ export function usePushNotifications() {
             const endpoint = subscription.endpoint;
             const p256dh = subscription.getKey('p256dh');
             const authKey = subscription.getKey('auth');
+            const contentEncoding = (PushManager.supportedContentEncodings || ['aesgcm'])[0];
+
             if (!p256dh || !authKey) return;
 
             const payload = {
                 endpoint,
                 keys: {
-                    p256dh: arrayBufferToBase64(p256dh),
-                    auth: arrayBufferToBase64(authKey),
+                    p256dh: btoa(String.fromCharCode.apply(null, new Uint8Array(p256dh) as unknown as number[])),
+                    auth: btoa(String.fromCharCode.apply(null, new Uint8Array(authKey) as unknown as number[])),
                 },
-                contentEncoding: 'aesgcm',
+                contentEncoding: contentEncoding,
             };
 
             const csrf = getCsrfToken();
@@ -85,7 +75,6 @@ export function usePushNotifications() {
             });
         } catch {
             // Permission denied, push not supported, or network error – fail silently
-
         }
     }, [user, vapidPublicKey]);
 
@@ -95,3 +84,4 @@ export function usePushNotifications() {
         subscribe();
     }, [user, vapidPublicKey, subscribe]);
 }
+
