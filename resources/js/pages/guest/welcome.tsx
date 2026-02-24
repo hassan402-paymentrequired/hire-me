@@ -151,7 +151,7 @@ export default function Welcome({
                                     <>
                                         <InfiniteScroll
                                             data="providers"
-                                            buffer={500}
+                                            buffer={300}
                                             next={({
                                                 loading,
                                                 hasNext
