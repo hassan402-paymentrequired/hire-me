@@ -4,8 +4,8 @@ import { PROVIDERS_BEFORE_LOGIN } from '@/lib/constants';
 import BusinessCard from '@/pages/guest/components/business-card';
 import { HeaderFilter } from '@/pages/guest/components/filter';
 import { Provider } from '@/types';
-import { Head, router, usePage } from '@inertiajs/react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Head, InfiniteScroll, router, usePage } from '@inertiajs/react';
+import { useRef, useState } from 'react';
 import Landing from './components/landing-page';
 import { MiniLoginForm } from './mini-login-form';
 
@@ -43,77 +43,10 @@ export default function Welcome({
     const [allProviders, setAllProviders] = useState(providers.data);
     const [loading, setLoading] = useState(false);
     const loadMoreRef = useRef<HTMLDivElement>(null);
-    const isLoadingRef = useRef(false);
-    const prevFiltersRef = useRef(filters);
 
-    const displayProviders = isGuest
-        ? allProviders.slice(0, PROVIDERS_BEFORE_LOGIN)
-        : allProviders;
-
-    const loadMore = useCallback(() => {
-        if (isGuest || !providers.next_page_url || isLoadingRef.current) return;
-
-        isLoadingRef.current = true;
-        setLoading(true);
-
-        router.get(
-            providers.next_page_url,
-            {},
-            {
-                preserveState: true,
-                preserveScroll: true,
-                only: ['providers'],
-                onFinish: () => {
-                    setLoading(false);
-                    isLoadingRef.current = false;
-                },
-                onError: () => {
-                    setLoading(false);
-                    isLoadingRef.current = false;
-                },
-            },
-        );
-    }, [isGuest, providers.next_page_url]);
-
-    useEffect(() => {
-        const filtersChanged =
-            JSON.stringify(prevFiltersRef.current) !== JSON.stringify(filters);
-
-        if (providers.current_page === 1 || filtersChanged) {
-            setAllProviders(providers.data);
-            prevFiltersRef.current = filters;
-        } else {
-            setAllProviders((prev) => {
-                const newProviders = providers.data.filter(
-                    (p) => !prev.some((existing) => existing.id === p.id),
-                );
-                return [...prev, ...newProviders];
-            });
-        }
-    }, [providers.data, providers.current_page, filters]);
-
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (entries[0].isIntersecting && !isLoadingRef.current) {
-                    loadMore();
-                }
-            },
-            { threshold: 0.5, rootMargin: '100px' },
-        );
-
-        const currentRef = loadMoreRef.current;
-        if (currentRef) {
-            observer.observe(currentRef);
-        }
-
-        return () => {
-            if (currentRef) {
-                observer.unobserve(currentRef);
-            }
-            observer.disconnect();
-        };
-    }, [loadMore]);
+    // const displayProviders = isGuest
+    //     ? allProviders.slice(0, PROVIDERS_BEFORE_LOGIN)
+    //     : allProviders;
 
     const requestLocation = () => {
         if ('geolocation' in navigator) {
@@ -142,13 +75,6 @@ export default function Welcome({
             console.error('Geolocation is not supported by this browser.');
         }
     };
-
-    useEffect(() => {
-        // Auto-detect location if not already filtered by location
-        if (!filters.lat || !filters.lng) {
-            requestLocation();
-        }
-    }, [filters.lat, filters.lng]);
 
     return (
         <>
@@ -208,29 +134,13 @@ export default function Welcome({
                                     />
                                 ) : (
                                     <>
-                                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                            {displayProviders.map(
-                                                (provider) => (
-                                                    <BusinessCard
-                                                        provider={provider}
-                                                        key={provider.id}
-                                                    />
-                                                ),
-                                            )}
-                                        </div>
-
-                                        {/* Guest gate: login to continue viewing more providers */}
-                                        {isGuest && (
-                                            <div className="mt-10">
-                                                <MiniLoginForm
-                                                    gate
-                                                    canRegister={canRegister}
-                                                />
-                                            </div>
-                                        )}
-
-                                        {/* Infinite Scroll Trigger — only when authenticated */}
-                                        {!isGuest &&
+                                        <InfiniteScroll
+                                            data="providers"
+                                            buffer={500}
+                                            next={({
+                                                loading,
+                                            }) =>
+                                                 !isGuest &&
                                             providers.next_page_url && (
                                                 <div
                                                     ref={loadMoreRef}
@@ -243,7 +153,30 @@ export default function Welcome({
                                                         </div>
                                                     )}
                                                 </div>
-                                            )}
+                                            )
+                                            }
+                                        >
+                                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                                {providers?.data?.map(
+                                                    (provider) => (
+                                                        <BusinessCard
+                                                            provider={provider}
+                                                            key={provider.id}
+                                                        />
+                                                    ),
+                                                )}
+                                            </div>
+                                        </InfiniteScroll>
+
+                                        {/* Guest gate: login to continue viewing more providers */}
+                                        {isGuest && (
+                                            <div className="mt-10">
+                                                <MiniLoginForm
+                                                    gate
+                                                    canRegister={canRegister}
+                                                />
+                                            </div>
+                                        )}
                                     </>
                                 )}
                             </div>

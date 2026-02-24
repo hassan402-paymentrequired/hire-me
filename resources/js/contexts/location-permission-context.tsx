@@ -59,6 +59,9 @@ export function LocationPermissionProvider({
 }: LocationPermissionProviderProps) {
     const [showDialog, setShowDialog] = useState(false)
     const [lastDismissed, setLastDismissed] = useState<Date | null>(null)
+    // Track when a browser permission request is in-flight to prevent the
+    // modal from re-opening while the native prompt is visible.
+    const requestingRef = React.useRef(false)
 
     const {
         status,
@@ -72,11 +75,13 @@ export function LocationPermissionProvider({
         reminderInterval,
         autoRequest: false,
         onGranted: () => {
+            requestingRef.current = false
             setShowDialog(false)
             setLastDismissed(null)
         },
         onDenied: () => {
-            // Keep dialog open if denied, user might want to try again
+            requestingRef.current = false
+            // Don't re-open the dialog immediately after denial
         },
     })
 
@@ -84,6 +89,11 @@ export function LocationPermissionProvider({
      * Check if we should show the dialog
      */
     const shouldShowDialog = useCallback((): boolean => {
+        // Don't show while a browser permission request is in-flight
+        if (requestingRef.current) {
+            return false
+        }
+
         // Don't show if already granted
         if (hasPermission) {
             return false
@@ -129,16 +139,19 @@ export function LocationPermissionProvider({
     }, [])
 
     /**
-     * Handle accept - request location
+     * Handle accept - close dialog immediately, then request location
      */
     const handleAccept = useCallback(async () => {
+        // Close the modal immediately BEFORE triggering the browser prompt
+        requestingRef.current = true
+        setShowDialog(false)
+
         try {
             await requestLocation()
-            setShowDialog(false)
             setLastDismissed(null)
-        } catch (error) {
-            // Error handled by hook's onDenied callback
-            // Dialog stays open so user can try again or dismiss
+        } catch {
+            // Browser prompt was denied or timed out
+            requestingRef.current = false
         }
     }, [requestLocation])
 
@@ -151,10 +164,10 @@ export function LocationPermissionProvider({
 
     // Default icon if not provided
     const defaultIcon = (
-        <img 
-            src="/assets/gifs/location.gif" 
-            alt="Location Permission" 
-            className="size-16 object-contain" 
+        <img
+            src="/assets/gifs/location.gif"
+            alt="Location Permission"
+            className="size-16 object-contain"
         />
     )
 
