@@ -8,6 +8,7 @@ use App\Models\Appointment;
 use App\Models\Report;
 use App\Models\Wallet;
 use App\Notifications\AppointmentConfirmedNotification;
+use App\Notifications\AwaitingClientConfirmation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -198,8 +199,9 @@ class ScheduleController extends Controller
                     ]);
                 }
             } else {
-                // Only provider approved, waiting for client
+                
                 $appointment->update(['status' => 'pending_completion']);
+                $appointment->client->notify(new AwaitingClientConfirmation($appointment));
             }
 
             DB::commit();

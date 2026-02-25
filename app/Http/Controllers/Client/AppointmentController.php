@@ -9,6 +9,7 @@ use App\Models\Service;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WorkHour;
+use App\Notifications\AppointmentCompletedNotification;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -470,8 +471,7 @@ class AppointmentController extends Controller
             DB::commit();
 
             if ($appointment->client_approved && $appointment->provider_approved) {
-                // Send email to client
-                Mail::to($appointment->client->email)->send(new AppointmentCompletedMail($appointment));
+                $appointment->client->notify(new AppointmentCompletedNotification($appointment));
                 return back()->with('success-toast', 'Appointment completed and payment released to provider.');
             } else {
                 return back()->with('success-toast', 'Your approval recorded. Waiting for provider approval to release payment.');

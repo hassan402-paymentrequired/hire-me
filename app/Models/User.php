@@ -19,7 +19,7 @@ use NotificationChannels\WebPush\HasPushSubscriptions;
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, HasPushSubscriptions, Notifiable, TwoFactorAuthenticatable, HasUlids;
+    use HasFactory, HasPushSubscriptions, HasUlids, Notifiable, TwoFactorAuthenticatable;
 
     // protected $keyType = 'string';
     // public $incrementing = false;
@@ -78,7 +78,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
             'role' => UserRoleEnum::class,
-            'is_verified' => 'boolean'
+            'is_verified' => 'boolean',
         ];
     }
 
@@ -191,5 +191,18 @@ class User extends Authenticatable implements MustVerifyEmail
         return $teamMember && $teamMember->isAdmin();
     }
 
+    public function canManageAppointment(Appointment $appointment): bool
+    {
+        return true;
+    }
 
+    public function isFirstAppointmentCompleted(): bool
+    {
+        return $this->appointmentsAsProvider()->where('status', 'completed')->count() === 1;
+    }
+
+    public function isFirstAppointmentCompletedAsClient(): bool
+    {
+        return $this->appointmentsAsClient()->where('status', 'completed')->count() === 1;
+    }
 }
