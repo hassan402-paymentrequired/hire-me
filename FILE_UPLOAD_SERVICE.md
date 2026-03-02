@@ -1,5 +1,7 @@
 # File Upload Service Documentation
 
+handyslot
+
 ## Overview
 The `FileUploadService` is a reusable service that handles file uploads across the application. It automatically detects if AWS S3 is configured and uses it for production, otherwise falls back to local filesystem storage.
 

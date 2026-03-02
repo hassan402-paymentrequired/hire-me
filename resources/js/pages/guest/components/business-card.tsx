@@ -123,7 +123,7 @@ const BusinessCard = ({ provider }: { provider: ProviderProps }) => {
                         {provider.avatar && (
                             <AvatarImage src={provider.avatar} alt={provider.name} />
                         )}
-                        <AvatarFallback className="text-primary font-semibold text-xs">
+                        <AvatarFallback className="text-primary bg-muted font-semibold text-xs">
                             {initials}
                         </AvatarFallback>
                     </Avatar>

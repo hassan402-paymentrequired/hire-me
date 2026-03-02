@@ -112,7 +112,6 @@ class AppointmentController extends Controller
             'start_time.date' => 'The selected time is invalid. Please choose another slot.',
         ]);
 
-        // Frequency Limits check
         $provider = User::with('businessProfile')->findOrFail($request->provider_id);
         $settings = $provider->businessProfile->settings ?? [];
         $maxPerWeek = $settings['max_bookings_per_week'] ?? null;

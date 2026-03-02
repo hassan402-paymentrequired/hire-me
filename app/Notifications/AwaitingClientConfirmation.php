@@ -10,7 +10,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
 
-class AwaitingClientConfirmation extends Notification
+class AwaitingClientConfirmation extends Notification implements ShouldQueue
 {
     use Queueable, SendsWebPush;
 
@@ -55,7 +55,10 @@ class AwaitingClientConfirmation extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            //
+             'title' => 'Waiting for your confirmation',
+            'message' => "The provider has confirmed the appointment {$this->appointment->id}. Please confirm to proceed.",
+            'action_url' => '/my-bookings/'.$this->appointment->id,
+            'type' => 'appointment_confirmed_provider',
         ];
     }
 }

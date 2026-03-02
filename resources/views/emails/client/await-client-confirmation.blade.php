@@ -13,4 +13,4 @@
 @endsection
 
 @section('cta_url', url('/wallet'))
-@section('cta_text', 'Top Up Wallet')
+@section('cta_text', 'Approve')

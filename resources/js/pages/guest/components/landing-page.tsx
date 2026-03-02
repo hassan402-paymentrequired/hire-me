@@ -94,7 +94,7 @@ export default function Landing() {
 
                     {/* Description - staggered */}
                     <p
-                        className="mt-8 animate-fade-in-up text-lg font-medium text-pretty text-gray-500 sm:text-xl/8 dark:text-gray-400"
+                        className="mt-8 animate-fade-in-up text-sm font-medium text-pretty text-gray-500 sm:text-base dark:text-gray-400"
                         style={{ animationDelay: '0.45s' }}
                     >
                         Discover and connect with top-rated local professionals

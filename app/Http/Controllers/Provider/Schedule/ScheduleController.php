@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Provider\Schedule;
 
 use App\Http\Controllers\Controller;
-use App\Mail\AppointmentCancelledMail;
 use App\Models\Appointment;
 use App\Models\Report;
 use App\Models\Wallet;
@@ -11,7 +10,6 @@ use App\Notifications\AppointmentConfirmedNotification;
 use App\Notifications\AwaitingClientConfirmation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 
 class ScheduleController extends Controller
@@ -139,6 +137,12 @@ class ScheduleController extends Controller
             ->where('status', '!=', 'cancelled')
             ->findOrFail($id);
 
+        $canCancel = $appointment->start_time->isFuture() && ! in_array($appointment->status, ['cancelled', 'completed']);
+
+        if (! $canCancel) {
+            return back()->with('error-toast', 'You cannot cancel a past appointment.');
+        }
+
         try {
             DB::beginTransaction();
 
@@ -157,7 +161,7 @@ class ScheduleController extends Controller
 
             DB::commit();
 
-            $appointment->client->notify(new \App\Notifications\AppointmentCancelledNotification($appointment, 'provider'));    
+            $appointment->client->notify(new \App\Notifications\AppointmentCancelledNotification($appointment, 'provider'));
 
             return back()->with('success-toast', 'Appointment cancelled successfully.');
         } catch (\Exception $e) {
@@ -199,7 +203,7 @@ class ScheduleController extends Controller
                     ]);
                 }
             } else {
-                
+
                 $appointment->update(['status' => 'pending_completion']);
                 $appointment->client->notify(new AwaitingClientConfirmation($appointment));
             }
@@ -227,6 +231,10 @@ class ScheduleController extends Controller
         $provider = $appointment->provider;
         $bp = $provider?->businessProfile;
 
+        $canCancel = $appointment->start_time->isFuture() && ! in_array($appointment->status, ['cancelled', 'completed']);
+        $canComplete = ! in_array($appointment->status, ['cancelled', 'completed']);
+        $canReportClient = $appointment->start_time->isPast();
+
         return Inertia::render('provider/schedule/appointment-details', [
             'appointment' => [
                 'id' => $appointment->id,
@@ -253,6 +261,9 @@ class ScheduleController extends Controller
                 'location' => $bp?->address ? trim("{$bp->address}, {$bp->city}, {$bp->state} {$bp->zip_code}") : null,
                 'location_phone' => $bp?->phone,
             ],
+            'canCancel' => $canCancel,
+            'canComplete' => $canComplete,
+            'canReportClient' => $canReportClient,
         ]);
     }
 

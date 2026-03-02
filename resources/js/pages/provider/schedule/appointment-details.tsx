@@ -63,9 +63,15 @@ interface AppointmentDetails {
 
 export default function AppointmentDetailsPage({
     appointment,
+    canCancel, 
+    canComplete, canReportClient
 }: {
     appointment: AppointmentDetails;
+    canCancel: boolean;
+    canComplete: boolean;
+    canReportClient: boolean;
 }) {
+
     const [isProcessing, setIsProcessing] = React.useState(false);
     const [confirmDialogOpen, setConfirmDialogOpen] = React.useState(false);
     const [completeDialogOpen, setCompleteDialogOpen] = React.useState(false);
@@ -447,7 +453,8 @@ export default function AppointmentDetailsPage({
                                             variant="destructive"
                                             className="w-full"
                                             onClick={handleCancel}
-                                            disabled={isProcessing}
+                                            disabled={isProcessing || !canCancel}
+
                                         >
                                             <XCircle className="mr-2 h-4 w-4" />
                                             {appointment.status === 'pending'
@@ -457,7 +464,7 @@ export default function AppointmentDetailsPage({
                                     )}
 
                                 {appointment.status !== 'cancelled' &&
-                                    appointment.status !== 'completed' && 
+                                    appointment.status !== 'completed' &&
                                     appointment.status !== 'pending' && (
                                         <Button
                                             variant="ghost"
