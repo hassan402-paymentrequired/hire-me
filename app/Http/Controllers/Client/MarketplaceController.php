@@ -50,11 +50,6 @@ class MarketplaceController extends Controller
     {
         $businessProfile = BusinessProfile::where('slug', $slug)->firstOrFail();
         
-        // Check if provider is verified
-        if (!$businessProfile->user->is_verified) {
-            abort(404, 'Provider not found');
-        }
-        
         $provider = $businessProfile->user()
             ->with([
                 'services' => function ($query) {
@@ -160,11 +155,6 @@ class MarketplaceController extends Controller
     {
         $businessProfile = BusinessProfile::where('slug', $slug)->firstOrFail();
         
-        // Check if provider is verified
-        if (!$businessProfile->user->is_verified) {
-            abort(404, 'Provider profile not found');
-        }
-        
         $provider = $businessProfile->user()
             ->with([
                 'services' => function ($query) {
@@ -173,7 +163,6 @@ class MarketplaceController extends Controller
             ])
             ->firstOrFail();
 
-        // Get client wallet balance if authenticated
         $walletBalance = null;
         if (auth()->check()) {
             $wallet = Wallet::firstOrCreate(['user_id' => auth()->id()]);
