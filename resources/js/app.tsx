@@ -6,7 +6,11 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { LoadingProvider } from '@/contexts/loading-context';
 import { LocationPermissionProvider } from '@/contexts/location-permission-context';
-import { Toaster } from 'sonner';
+import { GooeyToaster } from 'goey-toast'
+import "goey-toast/styles.css";
+
+
+
 
 const appName = import.meta.env.VITE_APP_NAME || 'Clockra';
 
@@ -25,7 +29,8 @@ createInertiaApp({
                 <LoadingProvider>
                     <LocationPermissionProvider reminderInterval={10 * 60 * 1000}>
                         <App {...props} />
-                        <Toaster position="top-center" richColors closeButton />
+                        <GooeyToaster position="top-center" />
+
                     </LocationPermissionProvider>
                 </LoadingProvider>
             </StrictMode>

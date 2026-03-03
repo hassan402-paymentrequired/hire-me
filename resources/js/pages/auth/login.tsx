@@ -12,7 +12,6 @@ import { register } from '@/routes';
 import { request } from '@/routes/password';
 import { Form, Head } from '@inertiajs/react';
 import { store } from '@/routes/login';
-import { useLoading } from '@/contexts/loading-context';
 
 interface LoginProps {
     status?: string;
@@ -25,8 +24,8 @@ export default function Login({
     canResetPassword,
     canRegister,
 }: LoginProps) {
-    const { showLoading, hideLoading } = useLoading();
     const [showPassword, setShowPassword] = useState(false);
+
     
     return (
         <AuthLayout

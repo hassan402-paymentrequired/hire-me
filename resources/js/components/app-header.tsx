@@ -31,7 +31,7 @@ import { UserMenuContent } from '@/components/user-menu-content';
 import { useLoading } from '@/contexts/loading-context';
 import { useInitials } from '@/hooks/use-initials';
 import { cn, isSameUrl, resolveUrl } from '@/lib/utils';
-import { becomeProvider, home, login } from '@/routes';
+import { becomeProvider, home, login, register } from '@/routes';
 import business from '@/routes/business';
 import client from '@/routes/client';
 import { type BreadcrumbItem, type SharedData } from '@/types';
@@ -320,11 +320,14 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                 </DropdownMenu>
                             </div>
                         ) : (
-                            <>
-                                <Link href={login()} prefetch>
-                                    <Button size={'sm'} className='rounded'>Get started</Button>
+                            <div className='flex items-center gap-x-4'>
+                                <Link href={register()} prefetch>
+                                    <Button size={'sm'} className='rounded-full'>Get started</Button>
                                 </Link>
-                            </>
+                                <Link href={login()} prefetch>
+                                    <Button size={'sm'} variant="outline" className='rounded-full'>Sign in</Button>
+                                </Link>
+                            </div>
                         )}
                     </div>
                 </div>

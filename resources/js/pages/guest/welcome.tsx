@@ -41,11 +41,7 @@ export default function Welcome({
 }: Props) {
     const { auth } = usePage().props as { auth?: { user?: unknown } };
     const isGuest = !auth?.user;
-    const loadMoreRef = useRef<HTMLDivElement>(null);
-
-    // const displayProviders = isGuest
-    //     ? allProviders.slice(0, PROVIDERS_BEFORE_LOGIN)
-    //     : allProviders;
+   
 
     const requestLocation = () => {
         if ('geolocation' in navigator) {

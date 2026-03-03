@@ -26,7 +26,7 @@ export function EmptyCard({ title, description, image, buttonText, buttonOnClick
         <EmptyMedia variant="default">
           <img src={image} alt={title} width={100} height={100} className={cn(className)} />
         </EmptyMedia>
-        <EmptyTitle>{title}</EmptyTitle>
+        <EmptyTitle className="text-muted-foreground text-sm ">{title}</EmptyTitle>
         {description && (
           <EmptyDescription>
             {description}

@@ -7,8 +7,10 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { EmptyCard } from '@/components/ui/empty-card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import {
     Table,
     TableBody,
@@ -19,11 +21,9 @@ import {
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/guest-layout';
 import { Head, router, useForm } from '@inertiajs/react';
-import { ArrowDownUp, Loader2, Plus, Wallet, ArrowDown, Building2 } from 'lucide-react';
+import { ArrowDown, ArrowDownUp, Building2, Loader2, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { SearchableSelect } from '@/components/ui/searchable-select';
-import { EmptyCard } from '@/components/ui/empty-card';
 
 interface WalletData {
     balance: number;
@@ -94,14 +94,28 @@ export default function WalletIndex({
     const [isProcessing, setIsProcessing] = useState(false);
     const [showAddBank, setShowAddBank] = useState(false);
 
-    const { data: withdrawalData, setData: setWithdrawalData, post: postWithdrawal, transform: transformWithdrawal, processing: processingWithdrawal, errors: withdrawalErrors } = useForm({
+    const {
+        data: withdrawalData,
+        setData: setWithdrawalData,
+        post: postWithdrawal,
+        transform: transformWithdrawal,
+        processing: processingWithdrawal,
+        errors: withdrawalErrors,
+    } = useForm({
         amount: '',
         recipient_code: bankAccount?.recipient_code ?? '',
         account_name: bankAccount?.account_name ?? '',
         bank_name: bankAccount?.bank_name ?? '',
     });
 
-    const { data: bankData, setData: setBankData, post: postBank, transform: transformBank, processing: processingBank, errors: bankErrors } = useForm({
+    const {
+        data: bankData,
+        setData: setBankData,
+        post: postBank,
+        transform: transformBank,
+        processing: processingBank,
+        errors: bankErrors,
+    } = useForm({
         account_number: '',
         bank_code: '',
         account_name: '',
@@ -116,9 +130,13 @@ export default function WalletIndex({
             return;
         }
 
-        if(parseFloat(topUpAmount) < 100 || parseFloat(topUpAmount) > 1000000)
-        {
-            toast.error("Amount can not be less ₦1,000 or greater than ₦1,000,000")
+        if (
+            parseFloat(topUpAmount) < 100 ||
+            parseFloat(topUpAmount) > 1000000
+        ) {
+            toast.error(
+                'Amount can not be less ₦1,000 or greater than ₦1,000,000',
+            );
             return;
         }
 
@@ -156,7 +174,8 @@ export default function WalletIndex({
 
     const handleAddOrUpdateBank = (e: React.FormEvent) => {
         e.preventDefault();
-        const bankName = banks.find((b) => b.code === bankData.bank_code)?.name ?? '';
+        const bankName =
+            banks.find((b) => b.code === bankData.bank_code)?.name ?? '';
         if (!bankName) {
             toast.error('Please select a valid bank');
             return;
@@ -165,7 +184,12 @@ export default function WalletIndex({
         postBank('/wallet/client/withdraw/recipient', {
             onSuccess: () => {
                 setShowAddBank(false);
-                setBankData({ account_number: '', bank_code: '', account_name: '', bank_name: '' });
+                setBankData({
+                    account_number: '',
+                    bank_code: '',
+                    account_name: '',
+                    bank_name: '',
+                });
             },
         });
     };
@@ -204,7 +228,7 @@ export default function WalletIndex({
         );
     };
 
-    const bankOptions = banks.map(bank => ({
+    const bankOptions = banks.map((bank) => ({
         value: bank.code,
         label: bank.name,
     }));
@@ -338,13 +362,14 @@ export default function WalletIndex({
                                 Withdraw Funds
                             </CardTitle>
                             <CardDescription>
-                                Transfer money from your wallet to your bank account
+                                Transfer money from your wallet to your bank
+                                account
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
                             {!hasBankAccount && !showAddBank && (
-                                <div className="text-center py-4">
-                                    <p className="text-sm text-muted-foreground mb-4">
+                                <div className="py-4 text-center">
+                                    <p className="mb-4 text-sm text-muted-foreground">
                                         Add a bank account to withdraw funds
                                     </p>
                                     <Button
@@ -359,11 +384,16 @@ export default function WalletIndex({
                             )}
 
                             {showAddBank && (
-                                <form onSubmit={handleAddOrUpdateBank} className="space-y-4">
+                                <form
+                                    onSubmit={handleAddOrUpdateBank}
+                                    className="space-y-4"
+                                >
                                     <SearchableSelect
                                         label="Bank"
                                         value={bankData.bank_code}
-                                        onChange={(value) => setBankData('bank_code', value)}
+                                        onChange={(value) =>
+                                            setBankData('bank_code', value)
+                                        }
                                         options={bankOptions}
                                         placeholder="Select bank"
                                         searchPlaceholder="Search banks..."
@@ -371,33 +401,47 @@ export default function WalletIndex({
                                     />
 
                                     <div>
-                                        <Label htmlFor="account_number">Account Number</Label>
+                                        <Label htmlFor="account_number">
+                                            Account Number
+                                        </Label>
                                         <Input
                                             id="account_number"
                                             type="text"
                                             maxLength={10}
                                             value={bankData.account_number}
-                                            onChange={(e) => setBankData('account_number', e.target.value)}
+                                            onChange={(e) =>
+                                                setBankData(
+                                                    'account_number',
+                                                    e.target.value,
+                                                )
+                                            }
                                             placeholder="Enter 10-digit account number"
                                         />
                                         {bankErrors.account_number && (
-                                            <p className="text-sm text-destructive mt-1">
+                                            <p className="mt-1 text-sm text-destructive">
                                                 {bankErrors.account_number}
                                             </p>
                                         )}
                                     </div>
 
                                     <div>
-                                        <Label htmlFor="account_name">Account Name</Label>
+                                        <Label htmlFor="account_name">
+                                            Account Name
+                                        </Label>
                                         <Input
                                             id="account_name"
                                             type="text"
                                             value={bankData.account_name}
-                                            onChange={(e) => setBankData('account_name', e.target.value)}
+                                            onChange={(e) =>
+                                                setBankData(
+                                                    'account_name',
+                                                    e.target.value,
+                                                )
+                                            }
                                             placeholder="Enter account name"
                                         />
                                         {bankErrors.account_name && (
-                                            <p className="text-sm text-destructive mt-1">
+                                            <p className="mt-1 text-sm text-destructive">
                                                 {bankErrors.account_name}
                                             </p>
                                         )}
@@ -412,7 +456,9 @@ export default function WalletIndex({
                                             {processingBank && (
                                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                             )}
-                                            {hasBankAccount ? 'Update Bank Account' : 'Add Bank Account'}
+                                            {hasBankAccount
+                                                ? 'Update Bank Account'
+                                                : 'Add Bank Account'}
                                         </Button>
                                         <Button
                                             type="button"
@@ -433,9 +479,14 @@ export default function WalletIndex({
                             )}
 
                             {hasBankAccount && !showAddBank && (
-                                <form onSubmit={handleWithdraw} className="space-y-4">
+                                <form
+                                    onSubmit={handleWithdraw}
+                                    className="space-y-4"
+                                >
                                     <div>
-                                        <Label htmlFor="withdraw_amount">Amount (₦)</Label>
+                                        <Label htmlFor="withdraw_amount">
+                                            Amount (₦)
+                                        </Label>
                                         <Input
                                             id="withdraw_amount"
                                             type="number"
@@ -443,22 +494,30 @@ export default function WalletIndex({
                                             step="100"
                                             max={wallet.available_balance}
                                             value={withdrawalData.amount}
-                                            onChange={(e) => setWithdrawalData('amount', e.target.value)}
+                                            onChange={(e) =>
+                                                setWithdrawalData(
+                                                    'amount',
+                                                    e.target.value,
+                                                )
+                                            }
                                             placeholder="Enter amount (minimum ₦100)"
                                             required
                                         />
                                         {withdrawalErrors.amount && (
-                                            <p className="text-sm text-destructive mt-1">
+                                            <p className="mt-1 text-sm text-destructive">
                                                 {withdrawalErrors.amount}
                                             </p>
                                         )}
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                            Maximum: ₦{wallet.available_balance.toLocaleString()}
+                                        <p className="mt-1 text-xs text-muted-foreground">
+                                            Maximum: ₦
+                                            {wallet.available_balance.toLocaleString()}
                                         </p>
                                     </div>
 
-                                    <div className="rounded-lg bg-blue-50 dark:bg-blue-950/20 p-4 border border-blue-200 dark:border-blue-900">
-                                        <p className="text-sm font-medium mb-1">Bank Account</p>
+                                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/20">
+                                        <p className="mb-1 text-sm font-medium">
+                                            Bank Account
+                                        </p>
                                         <p className="text-sm text-muted-foreground">
                                             {bankAccount
                                                 ? `${bankAccount.bank_name} - ${bankAccount.account_name} (****${bankAccount.account_number_masked})`
@@ -468,7 +527,14 @@ export default function WalletIndex({
 
                                     <Button
                                         type="submit"
-                                        disabled={processingWithdrawal || !withdrawalData.amount || parseFloat(withdrawalData.amount) < 100 || parseFloat(withdrawalData.amount) > wallet.available_balance}
+                                        disabled={
+                                            processingWithdrawal ||
+                                            !withdrawalData.amount ||
+                                            parseFloat(withdrawalData.amount) <
+                                                100 ||
+                                            parseFloat(withdrawalData.amount) >
+                                                wallet.available_balance
+                                        }
                                         className="w-full"
                                     >
                                         {processingWithdrawal ? (
@@ -528,13 +594,16 @@ export default function WalletIndex({
                                                     {withdrawal.created_at}
                                                 </TableCell>
                                                 <TableCell className="font-medium">
-                                                    ₦{withdrawal.amount.toLocaleString()}
+                                                    ₦
+                                                    {withdrawal.amount.toLocaleString()}
                                                 </TableCell>
                                                 <TableCell className="max-w-xs truncate">
                                                     {withdrawal.description}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {getStatusBadge(withdrawal.status)}
+                                                    {getStatusBadge(
+                                                        withdrawal.status,
+                                                    )}
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -560,7 +629,8 @@ export default function WalletIndex({
                         {transactions.data.length === 0 ? (
                             <EmptyCard
                                 title="No transactions yet"
-                                image="assets/icons/empty.png"
+                                image="assets/gifs/empty.svg"
+                                className="size-36"
                             />
                         ) : (
                             <div className="overflow-x-auto">
