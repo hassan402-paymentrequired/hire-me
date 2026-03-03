@@ -2,35 +2,36 @@ import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn, isSameUrl, resolveUrl } from '@/lib/utils';
-import { edit as editAppearance } from '@/routes/appearance';
+// import { edit as editAppearance } from '@/routes/appearance';
 import { edit } from '@/routes/profile';
 import { show } from '@/routes/two-factor';
 import { edit as editPassword } from '@/routes/user-password';
-import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
+import { UserIcon, LockClosedIcon, ShieldExclamationIcon } from '@heroicons/react/24/solid'
 
-const sidebarNavItems: NavItem[] = [
+
+const sidebarNavItems: Array<{title: string, href: string, icon: any}> = [
     {
         title: 'Profile',
-        href: edit(),
-        icon: null,
+        href: edit().url,
+        icon: UserIcon,
     },
     {
         title: 'Password',
-        href: editPassword(),
-        icon: null,
+        href: editPassword().url,
+        icon: LockClosedIcon,
     },
     {
         title: 'Two-Factor Auth',
-        href: show(),
-        icon: null,
+        href: show().url,
+        icon: ShieldExclamationIcon,
     },
-    {
-        title: 'Appearance',
-        href: editAppearance(),
-        icon: null,
-    },
+    // {
+    //     title: 'Appearance',
+    //     href: editAppearance().url,
+    //     icon: null,
+    // },
 ];
 
 export default function ClientSettingsLayout({ children }: PropsWithChildren) {
