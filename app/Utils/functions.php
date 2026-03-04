@@ -2,6 +2,11 @@
 
 use Illuminate\Support\Str;
 
+function app_name(string $name): string
+{
+    return config('app.name') . ' - ' . $name;
+}
+
 function auth_user(string $guard = 'web')
 {
     return auth($guard)->user();
