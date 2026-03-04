@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Provider\Schedule;
 
+use App\Enum\AppointmentStatusEnum;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\Report;
@@ -232,8 +233,12 @@ class ScheduleController extends Controller
         $bp = $provider?->businessProfile;
 
         $canCancel = $appointment->start_time->isFuture() && ! in_array($appointment->status, ['cancelled', 'completed']);
-        $canComplete = ! in_array($appointment->status, ['cancelled', 'completed']);
+        $canComplete = ! in_array($appointment->status, ['cancelled', 'completed']) && $appointment->start_time->isPast();
         $canReportClient = $appointment->start_time->isPast();
+
+        $waitingForClientApproval = ($appointment->status === AppointmentStatusEnum::PENDING_COMPLETION->value) && is_null($appointment->client_approved);
+
+        // dd($appointment->toArray());
 
         return Inertia::render('provider/schedule/appointment-details', [
             'appointment' => [
@@ -264,6 +269,7 @@ class ScheduleController extends Controller
             'canCancel' => $canCancel,
             'canComplete' => $canComplete,
             'canReportClient' => $canReportClient,
+            'waitingForClientApproval' => $waitingForClientApproval,
         ]);
     }
 

@@ -63,15 +63,17 @@ interface AppointmentDetails {
 
 export default function AppointmentDetailsPage({
     appointment,
-    canCancel, 
-    canComplete, canReportClient
+    canCancel,
+    canComplete,
+    canReportClient,
+    waitingForClientApproval,
 }: {
     appointment: AppointmentDetails;
     canCancel: boolean;
     canComplete: boolean;
     canReportClient: boolean;
+    waitingForClientApproval: boolean;
 }) {
-
     const [isProcessing, setIsProcessing] = React.useState(false);
     const [confirmDialogOpen, setConfirmDialogOpen] = React.useState(false);
     const [completeDialogOpen, setCompleteDialogOpen] = React.useState(false);
@@ -94,10 +96,6 @@ export default function AppointmentDetailsPage({
             0,
         ) ??
         0;
-    const hasPassed = new Date(appointment.end_time) < new Date();
-    const canMarkComplete =
-        ['confirmed', 'pending_completion'].includes(appointment.status) &&
-        hasPassed;
 
     const handleConfirm = () => {
         setConfirmDialogOpen(true);
@@ -433,28 +431,32 @@ export default function AppointmentDetailsPage({
                                         Accept Booking
                                     </Button>
                                 )}
-                                {canMarkComplete && (
-                                    <Button
-                                        className="w-full bg-green-600 hover:bg-green-700"
-                                        onClick={handleComplete}
-                                        disabled={isProcessing}
-                                    >
-                                        {isProcessing ? (
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        ) : (
-                                            <CheckCircle2 className="mr-2 h-4 w-4" />
-                                        )}
-                                        Mark as Completed
-                                    </Button>
-                                )}
+                                {canComplete &&
+                                    (waitingForClientApproval ? (
+                                        <p>Waiting for client approval</p>
+                                    ) : (
+                                        <Button
+                                            className="w-full bg-green-600 hover:bg-green-700"
+                                            onClick={handleComplete}
+                                            disabled={isProcessing}
+                                        >
+                                            {isProcessing ? (
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <CheckCircle2 className="mr-2 h-4 w-4" />
+                                            )}
+                                            Mark as Completed
+                                        </Button>
+                                    ))}
                                 {appointment.status !== 'cancelled' &&
                                     appointment.status !== 'completed' && (
                                         <Button
                                             variant="destructive"
                                             className="w-full"
                                             onClick={handleCancel}
-                                            disabled={isProcessing || !canCancel}
-
+                                            disabled={
+                                                isProcessing || !canCancel
+                                            }
                                         >
                                             <XCircle className="mr-2 h-4 w-4" />
                                             {appointment.status === 'pending'

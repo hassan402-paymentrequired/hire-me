@@ -21,6 +21,8 @@ class GuestController extends Controller
      */
     public function welcome(Request $request)
     {
+        // dd($request->user()->getAuthPasswordName());
+        // dd($request->session()->get('password_hash_database'));
         $lat = $request->lat ? (float) $request->lat : null;
         $lng = $request->lng ? (float) $request->lng : null;
         $search = $request->search ;

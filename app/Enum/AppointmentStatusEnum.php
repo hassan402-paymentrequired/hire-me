@@ -10,4 +10,6 @@ enum AppointmentStatusEnum: string
     case CANCELLED = 'cancelled';
     case COMPLETED = 'completed';
     case NO_SHOW = 'no_show';
+
+    case PENDING_COMPLETION = 'pending_completion';
 }
