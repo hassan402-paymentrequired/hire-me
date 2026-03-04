@@ -1,98 +1,87 @@
-import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
+import { Appointment, type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
-import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { ChevronLeft, ChevronRight, Clock, CalendarDays, Plus } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Schedule',
-        href: '/schedule',
-    },
-    {
-        title: 'Calendar',
-        href: '/schedule/calendar',
-    },
+    { title: 'Schedule', href: '/schedule' },
+    { title: 'Calendar', href: '/schedule/calendar' },
 ];
-
-interface Appointment {
-    id: string;
-    date: string; // YYYY-MM-DD
-    day_of_week: number; // 0 = Sunday, 1 = Monday, etc.
-    start_time: string; // ISO string
-    end_time: string; // ISO string
-    duration: number; // in minutes
-    client: string;
-    service: string;
-    color: string;
-    status: string;
-    start_hour: string;
-    start_minute: string;
-}
 
 interface CalendarProps {
     appointments: Appointment[];
     currentWeekStart?: string;
 }
 
+const STATUS_STYLES: Record<string, string> = {
+    pending:   'bg-sky-100 text-sky-700 border-sky-200',
+    confirmed: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    completed: 'bg-neutral-100 text-neutral-500 border-neutral-200',
+    cancelled: 'bg-red-100 text-red-600 border-red-200',
+};
+
+const DAY_ACCENT_COLORS = [
+    'bg-violet-500',
+    'bg-sky-500',
+    'bg-emerald-500',
+    'bg-amber-500',
+    'bg-rose-500',
+    'bg-indigo-500',
+    'bg-teal-500',
+];
+
+function formatTime(dateStr: string) {
+    return new Date(dateStr).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+    });
+}
+
+function formatCurrency(amount: number) {
+    return `₦${(amount || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+}
+
+function getDurationLabel(apt: Appointment) {
+    const start = new Date(apt.start_time);
+    const end = new Date(apt.end_time);
+    const mins = Math.round((end.getTime() - start.getTime()) / 60000);
+    if (mins >= 60) {
+        const h = Math.floor(mins / 60);
+        const m = mins % 60;
+        return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    }
+    return `${mins}m`;
+}
+
 export default function Calendar({ appointments, currentWeekStart }: CalendarProps) {
-    const [view, setView] = useState<'week' | 'day'>('week');
-    
-    // Initialize currentDate from prop or use today
-    const initialDate = currentWeekStart 
-        ? new Date(currentWeekStart)
-        : new Date();
-    
+    const initialDate = currentWeekStart ? new Date(currentWeekStart) : new Date();
     const [currentDate, setCurrentDate] = useState(initialDate);
 
-    // Calculate week dates based on current date (Monday to Sunday)
-    const getWeekDates = () => {
-        const start = new Date(currentDate);
+    const getWeekDates = (base: Date) => {
+        const start = new Date(base);
         const day = start.getDay();
-        // Adjust to Monday (1) - if Sunday (0), go back 6 days
         const diff = start.getDate() - day + (day === 0 ? -6 : 1);
         start.setDate(diff);
         start.setHours(0, 0, 0, 0);
-
-        const dates = [];
-        for (let i = 0; i < 7; i++) {
-            const date = new Date(start);
-            date.setDate(start.getDate() + i);
-            dates.push(date);
-        }
-        return dates;
-    };
-
-    const weekDates = useMemo(() => getWeekDates(), [currentDate]);
-    const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    // Extended time slots from 6 AM to 10 PM (16 hours)
-    const timeSlots = Array.from({ length: 16 }, (_, i) => i + 6);
-
-    const goToPreviousWeek = () => {
-        const newDate = new Date(currentDate);
-        newDate.setDate(newDate.getDate() - 7);
-        setCurrentDate(newDate);
-        // Reload appointments for new week
-        const weekStart = new Date(newDate);
-        const day = weekStart.getDay();
-        const diff = weekStart.getDate() - day + (day === 0 ? -6 : 1);
-        weekStart.setDate(diff);
-        router.reload({
-            data: { start_date: weekStart.toISOString().split('T')[0] },
-            only: ['appointments', 'currentWeekStart'],
+        return Array.from({ length: 7 }, (_, i) => {
+            const d = new Date(start);
+            d.setDate(start.getDate() + i);
+            return d;
         });
     };
 
-    const goToNextWeek = () => {
+    const weekDates = useMemo(() => getWeekDates(currentDate), [currentDate]);
+    const today = new Date();
+
+    const navigateWeek = (dir: -1 | 1) => {
         const newDate = new Date(currentDate);
-        newDate.setDate(newDate.getDate() + 7);
+        newDate.setDate(newDate.getDate() + dir * 7);
         setCurrentDate(newDate);
-        // Reload appointments for new week
-        const weekStart = new Date(newDate);
-        const day = weekStart.getDay();
-        const diff = weekStart.getDate() - day + (day === 0 ? -6 : 1);
-        weekStart.setDate(diff);
+        const weekStart = getWeekDates(newDate)[0];
         router.reload({
             data: { start_date: weekStart.toISOString().split('T')[0] },
             only: ['appointments', 'currentWeekStart'],
@@ -100,225 +89,181 @@ export default function Calendar({ appointments, currentWeekStart }: CalendarPro
     };
 
     const goToToday = () => {
-        const today = new Date();
-        setCurrentDate(today);
-        // Reload appointments for current week
-        const weekStart = new Date(today);
-        const day = weekStart.getDay();
-        const diff = weekStart.getDate() - day + (day === 0 ? -6 : 1);
-        weekStart.setDate(diff);
+        setCurrentDate(new Date());
+        const weekStart = getWeekDates(new Date())[0];
         router.reload({
             data: { start_date: weekStart.toISOString().split('T')[0] },
             only: ['appointments', 'currentWeekStart'],
         });
     };
 
-    const monthYear = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    const today = new Date();
-    
-    // Calculate current time position for the red line
-    const getCurrentTimePosition = () => {
-        const now = new Date();
-        const currentHour = now.getHours();
-        const currentMinute = now.getMinutes();
-        const minutesFromStart = (currentHour - timeSlots[0]) * 60 + currentMinute;
-        return (minutesFromStart / 60) * 80; // 80px per hour
-    };
-
-    // Filter appointments for the current week
-    const weekAppointments = useMemo(() => {
-        return appointments.filter(apt => {
-            const aptDate = new Date(apt.date);
-            return weekDates.some(weekDate => 
-                aptDate.toDateString() === weekDate.toDateString()
-            );
+    // Group appointments by date string
+    const grouped = useMemo(() => {
+        const map: Record<string, Appointment[]> = {};
+        weekDates.forEach((d) => {
+            map[d.toDateString()] = [];
         });
+        appointments.forEach((apt) => {
+            const key = new Date(apt.start_time).toDateString();
+            if (map[key]) map[key].push(apt);
+        });
+        return map;
     }, [appointments, weekDates]);
 
-    // Calculate appointment position
-    const getAppointmentPosition = (apt: Appointment) => {
-        const startTime = new Date(apt.start_time);
-        const endTime = new Date(apt.end_time);
-        
-        // Find which day of the week this appointment is on
-        const aptDate = new Date(apt.date);
-        const dayIndex = weekDates.findIndex(weekDate => 
-            aptDate.toDateString() === weekDate.toDateString()
-        );
-        
-        if (dayIndex === -1) return null;
-        
-        // Calculate top position based on start time
-        const startHour = startTime.getHours();
-        const startMinute = startTime.getMinutes();
-        const minutesFromDayStart = (startHour - timeSlots[0]) * 60 + startMinute;
-        const topOffset = (minutesFromDayStart / 60) * 80; // 80px per hour
-        
-        // Calculate height based on duration
-        const durationMinutes = apt.duration;
-        const height = (durationMinutes / 60) * 80; // 80px per hour
-        
-        // Calculate left position
-        const widthPercent = 100 / 7;
-        const leftPercent = dayIndex * widthPercent;
-        
-        return {
-            top: topOffset,
-            height: Math.max(height, 40), // Minimum height of 40px
-            left: leftPercent,
-            width: widthPercent,
-            dayIndex,
-        };
-    };
+    const monthYear = currentDate.toLocaleDateString('en-US', {
+        month: 'long',
+        year: 'numeric',
+    });
+
+    // Only show days that are within the week
+    const daysWithContent = weekDates;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Calendar" />
-            <div className="flex h-full flex-col gap-4 p-4">
-                {/* Calendar Header */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon" onClick={goToPreviousWeek}>
-                            <ChevronLeft className="h-4 w-4" />
-                        </Button>
-                        <h2 className="text-lg font-semibold">
-                            {monthYear}
-                        </h2>
-                        <Button variant="outline" size="icon" onClick={goToNextWeek}>
-                            <ChevronRight className="h-4 w-4" />
-                        </Button>
-                      
-                    </div>
-                    <div className="flex gap-2">
-                        <Button variant="outline" onClick={goToToday}>Today</Button>
+
+            <div className="flex h-full flex-col gap-6 p-4">
+
+                {/* ── Page heading ── */}
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight">My Calendar</h1>
+                        <p className="text-sm text-muted-foreground">Upcoming appointments this week</p>
                     </div>
                 </div>
 
-                {/* Calendar Grid */}
-                <div className="flex flex-1 flex-col overflow-hidden rounded-lg border bg-background text-sm shadow-sm h-[calc(100vh-12rem)] min-h-[600px]">
-                    {/* Header Row */}
-                    <div className="flex border-b">
-                        <div className="w-16 flex-none border-r bg-muted/50 p-2"></div>
-                        {weekDays.map((day, i) => {
-                            const date = weekDates[i];
-                            const isToday = date.toDateString() === today.toDateString();
-
-                            return (
-                                <div
-                                    key={day}
-                                    className="flex-1 border-r p-2 text-center last:border-r-0"
-                                >
-                                    <div className="text-xs font-semibold text-muted-foreground">
-                                        {day}
-                                    </div>
-                                    <div
-                                        className={`mt-1 text-lg font-bold ${
-                                            isToday
-                                                ? 'flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground mx-auto'
-                                                : ''
-                                        }`}
-                                    >
-                                        {date.getDate()}
-                                    </div>
-                                </div>
-                            );
-                        })}
+                {/* ── Week navigation ── */}
+                <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg" onClick={() => navigateWeek(-1)}>
+                            <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <span className="text-base font-semibold min-w-[140px] text-center">{monthYear}</span>
+                        <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg" onClick={() => navigateWeek(1)}>
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
                     </div>
+                    <Button variant="outline" size="sm" className="rounded-lg text-xs" onClick={goToToday}>
+                        Today
+                    </Button>
+                </div>
 
-                    {/* Time Grid */}
-                    <div className="flex flex-1 overflow-y-auto">
-                        {/* Time Column */}
-                        <div className="w-16 flex-none border-r bg-muted/50">
-                            {timeSlots.map((hour) => (
-                                <div
-                                    key={hour}
-                                    className="relative h-20 border-b p-2 text-xs text-muted-foreground last:border-b-0"
-                                >
-                                    <span className="-mt-2.5 block text-right">
-                                        {hour > 12 ? hour - 12 : hour}{' '}
-                                        {hour >= 12 ? 'PM' : 'AM'}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
+                {/* ── Day strips ── */}
+                <div className="flex flex-col gap-6 overflow-y-auto pb-6">
+                    {daysWithContent.map((date, dayIdx) => {
+                        const dateKey = date.toDateString();
+                        const dayApts = grouped[dateKey] || [];
+                        const isToday = dateKey === today.toDateString();
+                        const isPast = date < today && !isToday;
+                        const accentColor = DAY_ACCENT_COLORS[dayIdx % DAY_ACCENT_COLORS.length];
 
-                        {/* Days Columns */}
-                        <div className="relative flex flex-1">
-                            {/* Grid Lines */}
-                            {weekDays.map((day) => (
-                                <div
-                                    key={day}
-                                    className="flex-1 border-r last:border-r-0"
-                                >
-                                    {timeSlots.map((hour) => (
-                                        <div
-                                            key={hour}
-                                            className="h-20 border-b last:border-b-0"
-                                        ></div>
-                                    ))}
-                                </div>
-                            ))}
+                        const monthLabel = date.toLocaleDateString('en-US', { month: 'short' });
+                        const dayNum = date.getDate();
+                        const dayName = date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
 
-                            {/* Appointments overlay */}
-                            {weekAppointments.map((apt) => {
-                                const position = getAppointmentPosition(apt);
-                                if (!position) return null;
+                        return (
+                            <div key={dateKey} className={isPast && dayApts.length === 0 ? 'opacity-40' : ''}>
+                                {/* Month separator — show if first day or month changes */}
+                                {(dayIdx === 0 || date.getMonth() !== daysWithContent[dayIdx - 1].getMonth()) && (
+                                    <div className="mb-3 flex items-center gap-3">
+                                        <span className="text-sm font-bold text-primary tracking-wide">{monthLabel}</span>
+                                        <div className="flex-1 h-px bg-border" />
+                                    </div>
+                                )}
 
-                                const startTime = new Date(apt.start_time);
-                                const endTime = new Date(apt.end_time);
-                                const timeStr = `${startTime.toLocaleTimeString('en-US', { 
-                                    hour: 'numeric', 
-                                    minute: '2-digit',
-                                    hour12: true 
-                                })} - ${endTime.toLocaleTimeString('en-US', { 
-                                    hour: 'numeric', 
-                                    minute: '2-digit',
-                                    hour12: true 
-                                })}`;
-
-                                return (
-                                    <div
-                                        key={apt.id}
-                                        className={`absolute mx-1 rounded-md border-l-4 p-2 text-xs shadow-sm cursor-pointer hover:shadow-md transition-shadow ${apt.color}`}
-                                        style={{
-                                            top: `${position.top}px`,
-                                            height: `${position.height}px`,
-                                            left: `${position.left}%`,
-                                            width: `calc(${position.width}% - 8px)`,
-                                            minHeight: '40px',
-                                        }}
-                                        onClick={() => router.visit(`/provider/appointments/${apt.id}`)}
-                                        title={`${apt.service} - ${apt.client} (${timeStr})`}
-                                    >
-                                        <div className="font-semibold truncate">
-                                            {apt.service}
-                                        </div>
-                                        <div className="truncate text-[10px] mt-0.5">
-                                            {apt.client}
-                                        </div>
-                                        <div className="mt-1 flex items-center gap-1 text-[10px] opacity-80">
-                                            <Clock className="w-3 h-3" />
-                                            {apt.duration >= 60 
-                                                ? `${Math.floor(apt.duration / 60)}h ${apt.duration % 60}m`
-                                                : `${apt.duration}m`
+                                <div className="flex gap-4 items-start">
+                                    {/* Date badge */}
+                                    <div className="flex flex-col items-center gap-0.5 w-14 flex-shrink-0">
+                                        <div className={`
+                                            flex flex-col items-center justify-center rounded-xl w-12 h-14 shado border
+                                            ${isToday
+                                                ? `${accentColor} text-white border-transparent shadow-md`
+                                                : 'bg-card border-border text-foreground'
                                             }
+                                        `}>
+                                            <span className="text-[10px] font-semibold tracking-widest opacity-80 leading-none mb-0.5">
+                                                {dayName}
+                                            </span>
+                                            <span className="text-xl font-black leading-none">{dayNum}</span>
                                         </div>
+                                        {/* Vertical line connecting to cards */}
+                                        {dayApts.length > 0 && (
+                                            <div className="w-px flex-1 bg-border/60 mt-1" style={{ minHeight: '20px' }} />
+                                        )}
                                     </div>
-                                );
-                            })}
 
-                            {/* Current Time Line - Only show if viewing current week and today */}
-                            {weekDates.some(date => date.toDateString() === today.toDateString()) && (
-                                <div
-                                    className="absolute left-0 w-full border-t-2 border-red-500 z-20 pointer-events-none"
-                                    style={{ top: `${getCurrentTimePosition()}px` }}
-                                >
-                                    <div className="absolute -left-2 -top-1.5 w-3 h-3 rounded-full bg-red-500"></div>
+                                    {/* Appointment cards — horizontal scroll on mobile */}
+                                    {dayApts.length === 0 ? (
+                                        <div className="flex items-center gap-2 h-14 text-sm text-muted-foreground italic">
+                                            <CalendarDays className="w-4 h-4 opacity-40" />
+                                            No appointments
+                                        </div>
+                                    ) : (
+                                        <div className="flex gap-3 overflow-x-auto pb-1 flex-1 scrollbar-none snap-x snap-mandatory">
+                                            {dayApts.map((apt) => {
+                                                const statusStyle = STATUS_STYLES[apt.status?.toLowerCase()] ?? STATUS_STYLES['pending'];
+                                                const serviceName = apt.services?.[0]?.name ?? 'Service';
+
+                                                return (
+                                                    <button
+                                                        key={apt.service_id + apt.start_time}
+                                                        onClick={() => router.visit(`/provider/appointments/${apt.service_id}`)}
+                                                        className="
+                                                            snap-start flex-shrink-0 w-[220px] sm:w-[260px]
+                                                            bg-card border border-border rounded-2xl p-4
+                                                            text-left shadow-sm
+                                                            hover:shadow-md hover:border-primary/30
+                                                            active:scale-[0.98]
+                                                            transition-all duration-150
+                                                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
+                                                            group
+                                                        "
+                                                    >
+                                                        {/* Client name */}
+                                                        <p className="font-bold text-sm text-foreground truncate group-hover:text-primary transition-colors">
+                                                            {apt.client_name}
+                                                        </p>
+
+                                                        {/* Time range */}
+                                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                                            {formatTime(apt.start_time)} – {formatTime(apt.end_time)}
+                                                        </p>
+
+                                                        {/* Service name */}
+                                                        <p className="text-xs text-muted-foreground mt-1 truncate">
+                                                            {serviceName}
+                                                        </p>
+
+                                                        {/* Divider */}
+                                                        <div className="my-3 h-px bg-border" />
+
+                                                        {/* Footer: price + status + duration */}
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <span className="text-sm font-bold text-foreground">
+                                                                {formatCurrency(apt.price)}
+                                                            </span>
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                                                    <Clock className="w-3 h-3" />
+                                                                    {getDurationLabel(apt)}
+                                                                </span>
+                                                                <Badge
+                                                                    variant="outline"
+                                                                    className={`text-[10px] px-2 py-0 font-semibold uppercase tracking-wide border ${statusStyle}`}
+                                                                >
+                                                                    {apt.status}
+                                                                </Badge>
+                                                            </div>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-
-                        </div>
-                    </div>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
         </AppLayout>

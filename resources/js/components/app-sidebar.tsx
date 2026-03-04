@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -10,30 +11,36 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { Link } from '@inertiajs/react'; // Added usePage hook
-import {
-    ChartArea,
-    Folder,
-} from 'lucide-react';
+import { Link } from '@inertiajs/react';
+import { ChartArea, Folder } from 'lucide-react';
 import AppLogo from './app-logo';
 import schedule from '@/routes/schedule';
 import business, { dashboard } from '@/routes/business';
-import { ArchiveBoxIcon, CalendarDaysIcon, RectangleStackIcon, UserGroupIcon, WalletIcon, Cog6ToothIcon, FireIcon, ChartBarIcon, PuzzlePieceIcon } from '@heroicons/react/24/solid'
-
+import {
+    ArchiveBoxIcon,
+    CalendarDaysIcon,
+    RectangleStackIcon,
+    UserGroupIcon,
+    WalletIcon,
+    Cog6ToothIcon,
+    FireIcon,
+    ChartBarIcon,
+    PuzzlePieceIcon,
+} from '@heroicons/react/24/solid';
 
 const mainNavItems: any[] = [
     {
-        name: "Dashboard",
+        name: 'Dashboard',
         links: [
             {
                 title: 'Dashboard',
                 href: dashboard(),
                 icon: ChartBarIcon,
-            }
+            },
         ],
     },
     {
-        name: "Schedule",
+        name: 'Schedule',
         links: [
             {
                 title: 'Calender',
@@ -44,11 +51,11 @@ const mainNavItems: any[] = [
                 title: 'Appointments',
                 href: schedule.appointments.index(),
                 icon: ArchiveBoxIcon,
-            }
-        ]
+            },
+        ],
     },
     {
-        name: "Business",
+        name: 'Business',
         links: [
             {
                 title: 'Business hours',
@@ -59,6 +66,7 @@ const mainNavItems: any[] = [
                 title: 'Analytics',
                 href: business.analytics(),
                 icon: ChartArea,
+                isLocked: false,
             },
             {
                 title: 'Services',
@@ -69,9 +77,10 @@ const mainNavItems: any[] = [
                 title: 'Team Members',
                 href: business.team.index(),
                 icon: UserGroupIcon,
+                isLocked: true,
             },
             {
-                title: 'Withdraw Funds',
+                title: 'Wallet',
                 href: '/wallet/withdraw',
                 icon: WalletIcon,
             },
@@ -79,19 +88,20 @@ const mainNavItems: any[] = [
                 title: 'Settings',
                 href: business.settings(),
                 icon: Cog6ToothIcon,
-            }
-        ]
+            },
+        ],
     },
     {
-        name: "Integration",
+        name: 'Integration',
         links: [
             {
                 title: 'Booking Widget',
                 href: business.integration.index(),
                 icon: PuzzlePieceIcon,
-            }
-        ]
-    }
+                isLocked: true,
+            },
+        ],
+    },
 ];
 
 const footerNavItems: any[] = [
@@ -99,7 +109,7 @@ const footerNavItems: any[] = [
         title: 'Go to marketplace',
         href: '/',
         icon: Folder,
-    }
+    },
 ];
 
 export function AppSidebar() {

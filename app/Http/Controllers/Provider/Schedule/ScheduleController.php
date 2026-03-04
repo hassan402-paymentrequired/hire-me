@@ -17,7 +17,7 @@ class ScheduleController extends Controller
 {
     public function calender(Request $request)
     {
-        $user = auth()->user();
+        $user = auth_user();
 
         // Get date range from request or default to current week
         $startDate = $request->input('start_date')
@@ -30,36 +30,7 @@ class ScheduleController extends Controller
             ->with(['service'])
             ->whereBetween('start_time', [$startDate, $endDate])
             ->orderBy('start_time', 'asc')
-            ->get()
-            ->map(function ($apt) {
-                // Determine color based on status
-                $colorMap = [
-                    'pending' => 'bg-yellow-100 border-yellow-300 text-yellow-800',
-                    'confirmed' => 'bg-blue-100 border-blue-300 text-blue-800',
-                    'completed' => 'bg-green-100 border-green-300 text-green-800',
-                    'cancelled' => 'bg-red-100 border-red-300 text-red-800',
-                ];
-
-                $color = $colorMap[$apt->status] ?? 'bg-gray-100 border-gray-300 text-gray-800';
-
-                // Calculate duration in minutes
-                $durationMinutes = $apt->start_time->diffInMinutes($apt->end_time);
-
-                return [
-                    'id' => $apt->id,
-                    'service' => $apt->service->name ?? 'Service',
-                    'client' => $apt->client_name ?? 'Guest',
-                    'start_time' => $apt->start_time->toIso8601String(),
-                    'end_time' => $apt->end_time->toIso8601String(),
-                    'duration' => $durationMinutes,
-                    'status' => $apt->status,
-                    'date' => $apt->start_time->format('Y-m-d'),
-                    'day_of_week' => $apt->start_time->format('w'), // 0 = Sunday, 1 = Monday, etc.
-                    'start_hour' => $apt->start_time->format('H'),
-                    'start_minute' => $apt->start_time->format('i'),
-                    'color' => $color,
-                ];
-            });
+            ->get();
 
         return Inertia::render('provider/schedule/calendar', [
             'appointments' => $appointments,

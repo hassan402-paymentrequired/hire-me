@@ -36,14 +36,11 @@ import {
     Edit2,
     Plus,
     Trash2,
-    TrendingUp,
     LayoutGrid,
     Star,
     Search,
-    Filter,
     Clock,
     Box,
-    Check
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
@@ -188,11 +185,11 @@ export default function ServicesIndex({ services, categories, stats }: Props) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Service Management" />
 
-            <div className="flex flex-col gap-6 p-4 max-w-7xl mx-auto w-full">
+            <div className="flex flex-col gap-6 p-4 w-full">
                 {/* Header Section */}
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div>
-                        <h1 className="text-3xl font-black tracking-tight text-foreground">Services</h1>
+                        <h1 className="text-2xl font-bold tracking-tight">Services</h1>
                         <p className="text-muted-foreground">Manage and organize your service offerings.</p>
                     </div>
                     <Dialog open={isAddModalOpen || !!editingService} onOpenChange={(open) => {
@@ -374,9 +371,9 @@ export default function ServicesIndex({ services, categories, stats }: Props) {
                                                 <Box className="size-5" />
                                             </div>
                                             <div>
-                                                <p className="font-extrabold text-lg leading-tight capitalize">{service.name}</p>
+                                                <p className="font-extrabold text-lg leading-tight capitalize">{service.name.substring(0,20)}</p>
                                                 {service.description && (
-                                                    <p className="text-xs text-muted-foreground line-clamp-1 mt-1 font-medium">{service.description}</p>
+                                                    <p className="text-xs text-muted-foreground line-clamp-1 mt-1 font-medium">{service.description.substring(0,20)}</p>
                                                 )}
                                             </div>
                                         </div>

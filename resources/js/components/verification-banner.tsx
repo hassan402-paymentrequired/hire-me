@@ -1,16 +1,7 @@
-import { SharedData } from '@/types';
 import { XMarkIcon } from '@heroicons/react/20/solid';
-import { usePage } from '@inertiajs/react';
 
 export default function VerificationBanner() {
-    const {
-        auth: { user },
-    } = usePage<SharedData>().props;
-
-    if (user && user.email_verified_at) {
-        return '';
-    }
-
+  
     return (
         <div className="sticky flex items-center gap-x-6 bg-gray-900 px-6 py-2.5 after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-white/10 sm:px-3.5 sm:before:flex-1">
             <p className="text-sm/6 text-white">
