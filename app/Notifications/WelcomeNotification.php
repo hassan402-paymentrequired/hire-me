@@ -2,13 +2,12 @@
 
 namespace App\Notifications;
 
-use App\Enum\UserRoleEnum;
+use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
-use App\Notifications\Concerns\SendsWebPush;
 
 class WelcomeNotification extends Notification implements ShouldQueue
 {
@@ -37,10 +36,9 @@ class WelcomeNotification extends Notification implements ShouldQueue
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $mail = $notifiable->role === UserRoleEnum::PROVIDER ? 'emails.provider.welcome-notification' : 'emails.client.welcome-notification';
         return (new MailMessage)
-            ->subject('Welcome to '. config('app.name'))
-            ->markdown($mail, ['user' => $notifiable]);
+            ->subject('Welcome to '.config('app.name'))
+            ->markdown('emails.general.welcome-notification', ['user' => $notifiable]);
     }
 
     /**
@@ -51,7 +49,7 @@ class WelcomeNotification extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         return [
-            'title' => 'Welcome to ' . config('app.name'),
+            'title' => 'Welcome to '.config('app.name'),
             'message' => 'Your account is ready. Explore the marketplace or set up your business.',
             'action_url' => '/',
             'type' => 'welcome',

@@ -27,7 +27,7 @@ class ScheduleController extends Controller
         $endDate = $startDate->copy()->endOfWeek();
 
         $appointments = $user->appointmentsAsProvider()
-            ->with(['service'])
+            ->with(['service', 'client'])
             ->whereBetween('start_time', [$startDate, $endDate])
             ->orderBy('start_time', 'asc')
             ->get();

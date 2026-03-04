@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Notifications\WelcomeNotification;
+use App\Services\Cache\CacheService;
 
 class UserObserver
 {
@@ -32,7 +33,7 @@ class UserObserver
             $user->notify(new WelcomeNotification);
         }
         if ($user->isDirty('is_verified')) {
-            WelcomeController::clearMarketplaceCache();
+            CacheService::clearMarketplaceCache();
         }
     }
 
@@ -41,7 +42,7 @@ class UserObserver
      */
     public function deleted(User $user): void
     {
-        WelcomeController::clearMarketplaceCache();
+        CacheService::clearMarketplaceCache();
     }
 
     /**

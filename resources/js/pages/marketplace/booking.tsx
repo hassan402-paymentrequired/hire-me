@@ -726,7 +726,7 @@ export default function Booking({
                                                 className="flex items-center justify-between"
                                             >
                                                 <div className="flex flex-col items-start">
-                                                    <span className="text-sm text-muted-foreground/60 capitalize">
+                                                    <span className="text-sm text-muted-foreground/60 capitalize line-clamp-2">
                                                         {s.name}
                                                     </span>
                                                     <p className="mt-1 text-xs font-bold tracking-widest text-muted-foreground/80 uppercase">

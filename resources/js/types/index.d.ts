@@ -115,5 +115,6 @@ export interface Appointment {
     discount_percent: number,
     recurrence_stopped_at: string,
     team_member_id: string,
-    services: Service[]
+    services: Service[],
+    client: User
 }

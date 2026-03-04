@@ -210,7 +210,7 @@ export default function Calendar({ appointments, currentWeekStart }: CalendarPro
                                                         onClick={() => router.visit(`/provider/appointments/${apt.service_id}`)}
                                                         className="
                                                             snap-start flex-shrink-0 w-[220px] sm:w-[260px]
-                                                            bg-card border border-border rounded-2xl p-4
+                                                            bg-card border border-border rounded-lg p-4
                                                             text-left shadow-sm
                                                             hover:shadow-md hover:border-primary/30
                                                             active:scale-[0.98]
@@ -221,7 +221,7 @@ export default function Calendar({ appointments, currentWeekStart }: CalendarPro
                                                     >
                                                         {/* Client name */}
                                                         <p className="font-bold text-sm text-foreground truncate group-hover:text-primary transition-colors">
-                                                            {apt.client_name}
+                                                            {apt.client.name}
                                                         </p>
 
                                                         {/* Time range */}
