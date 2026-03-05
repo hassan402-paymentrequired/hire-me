@@ -22,7 +22,7 @@ class AppointmentConfirmedNotification extends Notification implements ShouldQue
      */
     public function __construct(Appointment $appointment)
     {
-        $this->appointment = $appointment->load(['provider.businessProfile', 'service']);
+        $this->appointment = $appointment->load(['provider.businessProfile', 'services']);
 
     }
 

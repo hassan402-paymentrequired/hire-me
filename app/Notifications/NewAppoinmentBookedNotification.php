@@ -29,7 +29,7 @@ class NewAppoinmentBookedNotification extends Notification implements ShouldQueu
      */
     public function via(object $notifiable): array
     {
-        return ['mail', WebPushChannel::class];
+        return ['mail','database', WebPushChannel::class];
     }
 
     /**

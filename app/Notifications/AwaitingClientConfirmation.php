@@ -16,49 +16,42 @@ class AwaitingClientConfirmation extends Notification implements ShouldQueue
 
     protected Appointment $appointment;
 
-    /**
-     * Create a new notification instance.
-     */
     public function __construct(Appointment $appointment)
     {
-        $this->appointment = $appointment;
+        $this->appointment = $appointment->load([
+            'provider.businessProfile',
+            'services',
+        ]);
     }
 
-    /**
-     * Get the notification's delivery channels.
-     *
-     * @return array<int, string>
-     */
     public function via(object $notifiable): array
     {
         return ['mail', 'database', WebPushChannel::class];
     }
 
-    /**
-     * Get the mail representation of the notification.
-     */
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-        ->subject('Awaiting your confirmation ' . config('app.name'))
-        ->markdown('emails.client.await-client-confirmation', [
-            'appointment'=> $this->appointment,
-            'user' => $notifiable,
-        ]);
+            ->subject('Your confirmation is needed — '.config('app.name'))
+            ->view('emails.client.await-client-confirmation', [
+                'appointment' => $this->appointment,
+                'user' => $notifiable,
+            ]);
     }
 
-    /**
-     * Get the array representation of the notification.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(object $notifiable): array
     {
+        $serviceNames = $this->appointment->services
+            ->pluck('name')
+            ->join(', ');
+
+        $providerName = $this->appointment->provider->businessProfile->name ?? 'Your provider';
+
         return [
-             'title' => 'Waiting for your confirmation',
-            'message' => "The provider has confirmed the appointment {$this->appointment->id}. Please confirm to proceed.",
+            'title' => 'Confirm your appointment is complete',
+            'message' => "{$providerName} has marked your {$serviceNames} appointment as completed. Tap to confirm and release payment.",
             'action_url' => '/my-bookings/'.$this->appointment->id,
-            'type' => 'appointment_confirmed_provider',
+            'type' => 'awaiting_client_confirmation',
         ];
     }
 }

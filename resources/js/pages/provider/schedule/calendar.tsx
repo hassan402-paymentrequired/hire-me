@@ -207,7 +207,7 @@ export default function Calendar({ appointments, currentWeekStart }: CalendarPro
                                                 return (
                                                     <button
                                                         key={apt.service_id + apt.start_time}
-                                                        onClick={() => router.visit(`/provider/appointments/${apt.service_id}`)}
+                                                        onClick={() => router.visit(`/provider/appointments/${apt.id}`)}
                                                         className="
                                                             snap-start flex-shrink-0 w-[220px] sm:w-[260px]
                                                             bg-card border border-border rounded-lg p-4

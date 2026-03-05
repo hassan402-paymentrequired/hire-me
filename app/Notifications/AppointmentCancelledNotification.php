@@ -3,11 +3,13 @@
 namespace App\Notifications;
 
 use App\Models\Appointment;
+use App\Models\User;
 use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Collection;
 use NotificationChannels\WebPush\WebPushChannel;
 
 class AppointmentCancelledNotification extends Notification implements ShouldQueue
@@ -18,45 +20,76 @@ class AppointmentCancelledNotification extends Notification implements ShouldQue
 
     public string $cancelledBy;
 
-    /**
-     * Create a new notification instance.
-     */
+    public Collection $similarProviders;
+
     public function __construct(Appointment $appointment, string $cancelledBy)
     {
-        $this->appointment = $appointment->load(['client', 'provider.businessProfile', 'service']);
+        $this->appointment = $appointment->load(['client', 'provider.businessProfile', 'services']);
         $this->cancelledBy = $cancelledBy;
+
+        // Only suggest alternatives when the provider cancelled — not the client
+        $this->similarProviders = $cancelledBy === 'provider'
+            ? $this->findSimilarProviders()
+            : collect();
     }
 
     /**
-     * Get the notification's delivery channels.
-     *
-     * @return array<int, string>
+     * Find up to 5 active providers offering at least one of the same service categories,
+     * excluding the provider who cancelled.
      */
+    private function findSimilarProviders(): Collection
+    {
+        $categoryIds = $this->appointment->services
+            ->pluck('category_id')
+            ->filter()
+            ->unique();
+
+        if ($categoryIds->isEmpty()) {
+            return collect();
+        }
+
+        return User::query()
+            ->with([
+                'services' => fn ($q) => $q->whereIn('category_id', $categoryIds)->limit(3),
+                'businessProfile'
+            ])
+            ->whereHas('services', fn ($q) => $q->whereIn('category_id', $categoryIds))
+            ->where('id', '!=', $this->appointment->provider_id)
+            ->where('is_verified', true)
+            ->inRandomOrder()
+            ->limit(5)
+            ->get()
+            ->filter(fn ($b) => $b->services->isNotEmpty());
+    }
+
     public function via(object $notifiable): array
     {
-        return ['mail', 'database',WebPushChannel::class];
+        return ['mail', 'database', WebPushChannel::class];
     }
 
-    /**
-     * Get the mail representation of the notification.
-     */
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Appointment Cancelled - '.config('app.name'))
-            ->view('emails.appointment-cancelled', ['appointment' => $this->appointment]);
+            ->subject('Appointment Cancelled — '.config('app.name'))
+            ->view('emails.appointment-cancelled', [
+                'appointment' => $this->appointment,
+                'recipientName' => $notifiable->name,
+                'cancelledBy' => $this->cancelledBy,
+                'similarProviders' => $this->similarProviders,
+            ]);
     }
 
-    /**
-     * Get the array representation of the notification.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(object $notifiable): array
     {
+        $serviceNames = $this->appointment->services
+            ->pluck('name')
+            ->join(', ');
+
         return [
-            'title' => 'Your Appointment has being rejected '.config('app.name'),
-            'message' => 'Your booking request from '.$this->appointment->client->name.' for '.$this->appointment->service->name.' has being cancelled by the provider.',
+            'title' => 'Appointment Cancelled — '.config('app.name'),
+            'message' => 'Your booking with '.$this->appointment->client->name
+                          .' for '.$serviceNames
+                          .' has been cancelled by the '.$this->cancelledBy.'.',
             'action_url' => '/my-bookings/'.$this->appointment->id,
             'type' => 'appointment_cancelled',
         ];

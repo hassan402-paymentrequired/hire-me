@@ -185,5 +185,6 @@ Route::prefix('api/widget')->name('api.widget.')->group(function () {
 // Paystack Webhook (no auth required)
 Route::post('/paystack/webhook', [\App\Http\Controllers\PaystackWebhookController::class, 'handleWebhook'])->name('paystack.webhook');
 Route::get('/paystack/callback', [\App\Http\Controllers\PaystackWebhookController::class, 'handleCallback'])->name('paystack.callback');
+Route::get('/notification/{token}', [\App\Http\Controllers\PaystackWebhookController::class, 'handleCallback'])->name('unsubscribe');
 
 require __DIR__ . '/settings.php';

@@ -362,7 +362,7 @@
                                 <span>&bull;</span>
                                 <a href="{{ config('app.url') }}/terms">Terms of Service</a>
                                 <span>&bull;</span>
-                                <a href="mailto:support@{{ parse_url(config('app.url'), PHP_URL_HOST) }}">Contact Support</a>
+                                <a href="mailto:support@{{ config('app.url') }}">Contact Support</a>
                                 <span>&bull;</span>
                                 <a href="@yield('unsubscribe_url', '#')">Unsubscribe</a>
                             </div>
