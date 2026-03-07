@@ -25,41 +25,33 @@ class CreditCompletedAppointmentDeplay implements ShouldQueue
      */
     public function handle(): void
     {
-
-        Appointment::whereIn('status', ['confirmed', 'pending', 'pending_completion'])
+        // Automatically release funds for appointments whose end time is at least
+        // 15 minutes in the past and whose escrow is still held.
+        Appointment::whereIn('status', ['confirmed', 'pending_completion'])
             ->whereNull('payment_released_at')
             ->whereNull('provider_credited_at')
-            ->where(function ($query) {
-
-                // both approved
-                $query->where(function ($q) {
-                    $q->whereNotNull('client_approved_at')
-                        ->whereNotNull('provider_approved_at');
-                })
-
-                // OR first approval older than 24 hours
-                    ->orWhere(function ($q) {
-
-                        $q->whereNotNull(DB::raw('COALESCE(client_approved_at, provider_approved_at)'))
-                            ->where(
-                                DB::raw('COALESCE(client_approved_at, provider_approved_at)'),
-                                '<=',
-                                now()->subDay()
-                            );
-
-                    });
-
-            })
+            ->where('escrow_status', 'held')
+            ->where('end_time', '<=', now()->subMinutes(15))
             ->chunk(1000, function ($appointments) {
                 $appointments->each(function ($appointment) {
+                    // Extra safety guard
+                    if ($appointment->escrow_status !== 'held' || $appointment->escrow_amount <= 0) {
+                        return;
+                    }
+
                     $clientWallet = Wallet::firstOrCreate(['user_id' => $appointment->client_id]);
-                    $clientWallet->releaseHeldPayment($appointment->escrow_amount, $appointment, 'Payment released after dual approval');
+                    $clientWallet->releaseHeldPayment(
+                        $appointment->escrow_amount,
+                        $appointment,
+                        'Automatic payment release 15 minutes after appointment end time'
+                    );
+
                     $appointment->update([
+                        'status' => 'completed',
                         'escrow_status' => 'released',
                         'payment_released_at' => now(),
                     ]);
                 });
             });
-
     }
 }

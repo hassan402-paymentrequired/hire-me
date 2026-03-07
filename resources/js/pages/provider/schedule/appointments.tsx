@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { AppointmentActions } from '@/components/appointments/appointment-actions';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,13 +12,9 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
+import { Appointment, type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import {
-    Filter,
-    Search,
-} from 'lucide-react';
-import { AppointmentActions } from '@/components/appointments/appointment-actions';
+import { Filter, Search } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -33,29 +31,12 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-import { router } from '@inertiajs/react';
-import { debounce } from 'lodash';
-import { useCallback,  useState } from 'react';
 import business from '@/routes/business';
+import { router } from '@inertiajs/react';
+import { useState } from 'react';
+import { useDebouncedAppointmentSearch } from '@/hooks/use-debounce-appointment-search';
+import { formatPrice, formatTime, formatDate, formatStatus } from '@/lib/utils';
 
-// ... other imports
-
-interface Appointment {
-    id: number;
-    client: string;
-    email?: string;
-    service: string;
-    services: { id: string; name: string; price: string }[];
-    description?: string;
-    amount: string;
-    date: string;
-    time: string;
-    end_time: string;
-    status: string;
-    notes?: string;
-    avatar: string;
-    paymentStatus: string;
-}
 
 interface AppointmentListProps {
     appointments: {
@@ -68,25 +49,19 @@ interface AppointmentListProps {
     };
 }
 
-export default function Appointments({ appointments, filters }: AppointmentListProps) {
+
+export default function Appointments({
+    appointments,
+    filters,
+}: AppointmentListProps) {
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
+    const searchAppointments = useDebouncedAppointmentSearch(statusFilter);
 
-    // Debounce search to prevent excessive requests
-    const debouncedSearch = useCallback(
-        debounce((query: string) => {
-            router.get(
-                '/schedule/appointments',
-                { search: query, status: statusFilter !== 'all' ? statusFilter : undefined },
-                { preserveState: true, replace: true }
-            );
-        }, 300),
-        [statusFilter]
-    );
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value);
-        debouncedSearch(e.target.value);
+        searchAppointments(e.target.value);
     };
 
     const handleStatusChange = (value: string) => {
@@ -94,7 +69,7 @@ export default function Appointments({ appointments, filters }: AppointmentListP
         router.get(
             '/schedule/appointments',
             { search: searchTerm, status: value !== 'all' ? value : undefined },
-            { preserveState: true, replace: true }
+            { preserveState: true, replace: true },
         );
     };
 
@@ -115,11 +90,11 @@ export default function Appointments({ appointments, filters }: AppointmentListP
 
                 <Card>
                     <CardHeader>
-                         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                             <CardTitle>All Bookings</CardTitle>
-                             <div className="flex flex-1 items-center gap-2 md:max-w-md">
+                            <div className="flex flex-1 items-center gap-2 md:max-w-md">
                                 <div className="relative flex-1">
-                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
                                     <Input
                                         placeholder="Search clients..."
                                         className="pl-9"
@@ -128,10 +103,10 @@ export default function Appointments({ appointments, filters }: AppointmentListP
                                     />
                                 </div>
                                 <div className="w-[140px]">
-                                     <Select
+                                    <Select
                                         value={statusFilter}
                                         onValueChange={handleStatusChange}
-                                     >
+                                    >
                                         <SelectTrigger>
                                             <div className="flex items-center gap-2">
                                                 <Filter className="h-4 w-4" />
@@ -139,20 +114,28 @@ export default function Appointments({ appointments, filters }: AppointmentListP
                                             </div>
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="all">All Status</SelectItem>
-                                            <SelectItem value="confirmed">Confirmed</SelectItem>
-                                            <SelectItem value="pending">Pending</SelectItem>
-                                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                                            <SelectItem value="all">
+                                                All Status
+                                            </SelectItem>
+                                            <SelectItem value="confirmed">
+                                                Confirmed
+                                            </SelectItem>
+                                            <SelectItem value="pending">
+                                                Pending
+                                            </SelectItem>
+                                            <SelectItem value="cancelled">
+                                                Cancelled
+                                            </SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
                             </div>
-                         </div>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <div className="rounded-md border">
                             <div className="relative w-full overflow-auto">
-                                <table className="w-full caption-bottom text-sm text-left">
+                                <table className="w-full caption-bottom text-left text-sm">
                                     <thead className="[&_tr]:border-b">
                                         <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
                                             <th className="h-12 px-4 align-middle font-medium text-muted-foreground">
@@ -170,7 +153,7 @@ export default function Appointments({ appointments, filters }: AppointmentListP
                                             <th className="h-12 px-4 align-middle font-medium text-muted-foreground">
                                                 Status
                                             </th>
-                                            <th className="h-12 px-4 align-middle font-medium text-muted-foreground text-right">
+                                            <th className="h-12 px-4 text-right align-middle font-medium text-muted-foreground">
                                                 Actions
                                             </th>
                                         </tr>
@@ -186,29 +169,50 @@ export default function Appointments({ appointments, filters }: AppointmentListP
                                                         <div className="flex items-center gap-3">
                                                             <Avatar className="h-9 w-9">
                                                                 <AvatarImage
-                                                                    src={apt.avatar}
-                                                                    alt={apt.client}
+                                                                    src={
+                                                                        apt.client.avatar
+                                                                    }
+                                                                    alt={
+                                                                        apt.client.name
+                                                                    }
                                                                 />
                                                                 <AvatarFallback>
-                                                                    {apt.client.charAt(0)}
+                                                                    {apt.client.name.charAt(
+                                                                        0,
+                                                                    )}
                                                                 </AvatarFallback>
                                                             </Avatar>
                                                             <div className="flex flex-col">
                                                                 <span className="font-medium">
-                                                                    {apt.client}
+                                                                    {apt.client.name}
                                                                 </span>
-                                                                <span className="text-xs text-muted-foreground hidden sm:inline">
-                                                                    First time visit
+                                                                <span className="hidden text-xs text-muted-foreground sm:inline">
+                                                                    {/* First time
+                                                                    visit */}
+                                                                    {apt.client.email}
                                                                 </span>
                                                             </div>
                                                         </div>
                                                     </td>
                                                     <td className="p-4 align-middle">
                                                         <div className="flex flex-col gap-1">
-                                                            <span className="font-medium capitalize">{apt.services[0].name}</span>
-                                                            {apt.services?.length > 1 && (
-                                                                <span className="text-[10px] text-muted-foreground bg-muted w-fit px-1.5 py-0.5 rounded font-bold uppercase">
-                                                                    +{apt.services.length - 1} More
+                                                            <span className="font-medium capitalize">
+                                                                {
+                                                                    apt
+                                                                        .services[0]
+                                                                        .name
+                                                                }
+                                                            </span>
+                                                            {apt.services
+                                                                ?.length >
+                                                                1 && (
+                                                                <span className="w-fit rounded bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground uppercase">
+                                                                    +
+                                                                    {apt
+                                                                        .services
+                                                                        .length -
+                                                                        1}{' '}
+                                                                    More
                                                                 </span>
                                                             )}
                                                         </div>
@@ -216,19 +220,21 @@ export default function Appointments({ appointments, filters }: AppointmentListP
                                                     <td className="p-4 align-middle">
                                                         <div className="flex flex-col">
                                                             <span className="font-medium">
-                                                                {apt.date}
+                                                                {formatDate(apt.start_time)}
                                                             </span>
                                                             <span className="text-xs text-muted-foreground">
-                                                                {apt.time}
+                                                                {formatTime(apt.start_time)}
                                                             </span>
                                                         </div>
                                                     </td>
                                                     <td className="p-4 align-middle">
                                                         <div className="flex flex-col">
-                                                             <span>{apt.amount}</span>
-                                                             {/*<span className={`text-xs ${apt.paymentStatus === 'Paid' ? 'text-green-600' : 'text-red-500'}`}>*/}
-                                                             {/*   {apt.paymentStatus}*/}
-                                                             {/*</span>*/}
+                                                            <span>
+                                                                {formatPrice(apt.price)}
+                                                            </span>
+                                                            {/*<span className={`text-xs ${apt.paymentStatus === 'Paid' ? 'text-green-600' : 'text-red-500'}`}>*/}
+                                                            {/*   {apt.paymentStatus}*/}
+                                                            {/*</span>*/}
                                                         </div>
                                                     </td>
                                                     <td className="p-4 align-middle">
@@ -243,10 +249,10 @@ export default function Appointments({ appointments, filters }: AppointmentListP
                                                                       : 'secondary'
                                                             }
                                                         >
-                                                            {apt.status}
+                                                            {formatStatus(apt.status)}
                                                         </Badge>
                                                     </td>
-                                                    <td className="p-4 align-middle text-right">
+                                                    <td className="p-4 text-right align-middle">
                                                         <AppointmentActions
                                                             appointment={apt}
                                                         />

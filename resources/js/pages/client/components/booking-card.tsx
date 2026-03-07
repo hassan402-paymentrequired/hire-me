@@ -17,8 +17,10 @@ import {
     formatTime,
     formatStatus,
     formatPrice,
+    getStatusVariant,
 } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 interface BusinessProfile {
     id: string;
@@ -119,20 +121,7 @@ const BookingCard = ({ booking }: { booking: BookingCardBooking }) => {
 
                     {/* Status Badge Overlay - z-10 above gradient, solid bg for visibility */}
                     <div className="absolute top-3 right-3 z-10">
-                        <span
-                            className={cn(
-                                'inline-flex items-center rounded-lg px-3 py-1 text-xs font-semibold shadow-md',
-                                booking.status === 'confirmed' && 'bg-green-600 text-white',
-                                booking.status === 'pending' && 'bg-amber-500 text-white',
-                                booking.status === 'cancelled' && 'bg-red-600 text-white',
-                                booking.status === 'completed' && 'bg-slate-600 text-white',
-                                booking.status === 'no_show' && 'bg-red-600 text-white',
-                                !['confirmed', 'pending', 'cancelled', 'completed', 'pending_completion', 'no_show'].includes(booking.status) &&
-                                    'bg-white/95 text-foreground',
-                            )}
-                        >
-                            {formatStatus(booking.status)}
-                        </span>
+                        <Badge variant={getStatusVariant(booking.status)}> {formatStatus(booking.status)}</Badge>
                     </div>
 
                     {/* Today/Upcoming Indicator */}

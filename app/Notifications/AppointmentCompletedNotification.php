@@ -15,50 +15,51 @@ class AppointmentCompletedNotification extends Notification implements ShouldQue
     use Queueable, SendsWebPush;
 
     protected Appointment $appointment;
+    protected bool $hasReviewed;
 
-    /**
-     * Create a new notification instance.
-     */
     public function __construct(Appointment $appointment)
     {
-        $this->appointment = $appointment->load(['provider.businessProfile', 'service']);
+        $this->appointment = $appointment->load(['provider.businessProfile', 'services']);
     }
 
-    /**
-     * Get the notification's delivery channels.
-     *
-     * @return array<int, string>
-     */
     public function via(object $notifiable): array
     {
         return ['mail', 'database', WebPushChannel::class];
     }
 
-    /**
-     * Get the mail representation of the notification.
-     */
     public function toMail(object $notifiable): MailMessage
     {
-        $isFirstApp = $notifiable->isFirstAppointmentCompletedAsClient();
-        $subject = $isFirstApp ? 'How was your experience? - '.config('app.name') : 'Appointments completed '.config('app.name');
+        // Check if the client has already left a review for this provider
+        $hasReviewed = $notifiable->reviewsMade()
+            ->where('provider_id', $this->appointment->provider_id)
+            ->exists();
+
+        $isFirstAppointment = $notifiable->isFirstAppointmentCompletedAsClient();
+
+        $subject = $isFirstAppointment
+            ? 'How was your first experience? — ' . config('app.name')
+            : 'Your appointment is complete — ' . config('app.name');
 
         return (new MailMessage)
             ->subject($subject)
-            ->markdown('emails.client.appointment-completed', ['appointment' => $this->appointment]);
+            ->view('emails.client.appointment-completed', [
+                'appointment'     => $this->appointment,
+                'user'            => $notifiable,
+                'hasReviewed'     => $hasReviewed,
+                'isFirstAppointment' => $isFirstAppointment,
+            ]);
     }
 
-    /**
-     * Get the array representation of the notification.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(object $notifiable): array
     {
+        $providerName = $this->appointment->provider->businessProfile->name ?? 'your provider';
+        $serviceNames = $this->appointment->services->pluck('name')->join(', ');
+
         return [
-            'title' => 'Appointment Completed',
-            'message' => 'Your appointment is completed',
-            'action_url' => '/my-bookings/'.$this->appointment->id,
-            'type' => 'appointment_completed',
+            'title'      => 'Appointment Completed 🎉',
+            'message'    => "Your {$serviceNames} appointment with {$providerName} is complete. How did it go?",
+            'action_url' => '/my-bookings/' . $this->appointment->id,
+            'type'       => 'appointment_completed',
         ];
     }
 }

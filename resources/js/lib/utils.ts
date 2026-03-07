@@ -1,7 +1,7 @@
 import { InertiaLinkProps } from '@inertiajs/react';
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { differenceInHours, isPast, isToday, isTomorrow, format, parseISO } from 'date-fns';
+import { differenceInHours, isToday, isTomorrow, format, parseISO } from 'date-fns';
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -61,7 +61,6 @@ export function formatPrice(price: number | string | null | undefined): string {
 // Format status text
 export function formatStatus(status: string): string {
     if (!status) return 'Unknown';
-
     const statusMap: Record<string, string> = {
         'confirmed': 'Confirmed',
         'pending': 'Pending',
@@ -104,11 +103,4 @@ export function isUpcoming(dateString: string | Date): boolean {
     const hoursDiff = differenceInHours(date, now);
 
     return hoursDiff > 0 && hoursDiff <= 24;
-}
-
-
-export function formatCurrency(amount: string){
-
-    return amount;
-
 }

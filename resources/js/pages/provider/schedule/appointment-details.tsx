@@ -83,6 +83,9 @@ export default function AppointmentDetailsPage({
     const [reportReason, setReportReason] = React.useState('');
     const [reportDescription, setReportDescription] = React.useState('');
 
+    const isEscrowHeld = appointment.escrow_status === 'held';
+    const isPaymentReleased = appointment.escrow_status === 'released';
+
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: business.dashboard().url },
         { title: 'Schedule', href: '/schedule/appointments' },
@@ -197,7 +200,7 @@ export default function AppointmentDetailsPage({
                                         href={`mailto:${appointment.email}`}
                                         className="hover:text-primary"
                                     >
-                                        {appointment.email}
+                                        {appointment.email} 
                                     </a>
                                 </p>
                             )}
@@ -378,7 +381,7 @@ export default function AppointmentDetailsPage({
                                     <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
                                         Payment Status
                                     </p>
-                                    <div className="rounded-xl border border-muted bg-muted/30 p-4">
+                                    <div className="rounded-xl border border-muted bg-muted/30 p-4 space-y-1">
                                         <p className="text-sm font-medium capitalize">
                                             {appointment.escrow_status.replace(
                                                 '_',
@@ -386,19 +389,31 @@ export default function AppointmentDetailsPage({
                                             )}
                                         </p>
                                         {appointment.escrow_amount != null && (
-                                            <p className="mt-1 text-xs text-muted-foreground">
-                                                Amount held: ₦
+                                            <p className="text-xs text-muted-foreground">
+                                                Amount in escrow: ₦
                                                 {Number(
                                                     appointment.escrow_amount,
                                                 ).toLocaleString()}
                                             </p>
                                         )}
                                         {appointment.payment_released_at && (
-                                            <p className="mt-1 text-xs text-muted-foreground">
-                                                Released:{' '}
+                                            <p className="text-xs text-muted-foreground">
+                                                Released at:{' '}
                                                 {
                                                     appointment.payment_released_at
                                                 }
+                                            </p>
+                                        )}
+                                        {isEscrowHeld && (
+                                            <p className="text-xs text-muted-foreground">
+                                                Funds are currently held in escrow. They&apos;ll be released when the
+                                                client marks this appointment as completed, or automatically 15 minutes
+                                                after the appointment end time if the client doesn&apos;t respond.
+                                            </p>
+                                        )}
+                                        {isPaymentReleased && (
+                                            <p className="text-xs text-muted-foreground">
+                                                Payment has been released to your wallet.
                                             </p>
                                         )}
                                     </div>
@@ -431,23 +446,35 @@ export default function AppointmentDetailsPage({
                                         Accept Booking
                                     </Button>
                                 )}
-                                {canComplete &&
-                                    (waitingForClientApproval ? (
-                                        <p>Waiting for client approval</p>
-                                    ) : (
-                                        <Button
-                                            className="w-full bg-green-600 hover:bg-green-700"
-                                            onClick={handleComplete}
-                                            disabled={isProcessing}
-                                        >
-                                            {isProcessing ? (
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            ) : (
-                                                <CheckCircle2 className="mr-2 h-4 w-4" />
-                                            )}
-                                            Mark as Completed
-                                        </Button>
-                                    ))}
+                                {canComplete && waitingForClientApproval && (
+                                    <div className="flex gap-2 rounded-md border border-muted bg-muted/40 p-3 text-xs text-muted-foreground">
+                                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                                        <div>
+                                            <p className="font-medium text-foreground">
+                                                Waiting for client confirmation
+                                            </p>
+                                            <p>
+                                                Once the client marks this appointment as completed, payment will be
+                                                released. If they don&apos;t respond, funds are automatically released
+                                                15 minutes after the appointment end time.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                                {canComplete && !waitingForClientApproval && (
+                                    <Button
+                                        className="w-full bg-green-600 hover:bg-green-700"
+                                        onClick={handleComplete}
+                                        disabled={isProcessing}
+                                    >
+                                        {isProcessing ? (
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <CheckCircle2 className="mr-2 h-4 w-4" />
+                                        )}
+                                        Mark as Completed
+                                    </Button>
+                                )}
                                 {appointment.status !== 'cancelled' &&
                                     appointment.status !== 'completed' && (
                                         <Button
@@ -520,7 +547,7 @@ export default function AppointmentDetailsPage({
                 onOpenChange={setCompleteDialogOpen}
                 icon={<CheckCircle2 className="size-12 text-green-500" />}
                 title="Mark as Completed"
-                description="Mark this appointment as completed? Payment will be released once the client also confirms."
+                description="Mark this appointment as completed? This records that you have delivered the service. Payment is released when the client marks it as completed or automatically 15 minutes after the appointment end time."
                 acceptLabel="Mark Complete"
                 rejectLabel="Cancel"
                 onAccept={submitComplete}

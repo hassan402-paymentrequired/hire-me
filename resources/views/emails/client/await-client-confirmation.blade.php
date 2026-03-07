@@ -39,9 +39,9 @@
                 @foreach ($appointment->services as $service)
                     <p style="margin: 0 0 {{ !$loop->last ? '6px' : '0' }} 0; font-size: 14px; font-weight: 600; color: #1a1d16; font-family: 'Roboto Flex', sans-serif;">
                         {{ $service->name }}
-                        @if ($service->pivot->price ?? null)
+                        @if ($service->price ?? null)
                             <span style="font-weight: 400; font-size: 13px; color: #66725a;">
-                                — ₦{{ number_format($service->pivot->price, 2) }}
+                                — ₦{{ number_format($service->price, 2) }}
                             </span>
                         @endif
                     </p>
@@ -56,7 +56,7 @@
             </td>
             <td style="padding: 12px 20px; background: #ffffff;">
                 <p style="margin: 0; font-size: 14px; font-weight: 600; color: #1a1d16; font-family: 'Roboto Flex', sans-serif;">
-                    {{ $appointment->provider->businessProfile->name }}
+                    {{ $appointment->provider->businessProfile->business_name }}
                 </p>
             </td>
         </tr>
@@ -114,6 +114,8 @@
             held in escrow will only be released to
             <strong>{{ $appointment->provider->businessProfile->name }}</strong> once you confirm
             the appointment is complete. If anything went wrong, you can raise a dispute instead.
+            <br><br>
+            <span style="color: #b45309; font-size: 13px;"><strong>Note:</strong> If you take no action, the money will be automatically released to the provider 15 minutes after the appointment is marked as completed.</span>
         </p>
     </div>
 

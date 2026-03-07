@@ -40,7 +40,7 @@ class ScheduleController extends Controller
 
     public function appointments(Request $request)
     {
-        $user = auth()->user();
+        $user = auth_user();
         $search = $request->search ?? null;
         $status = $request->status ?? null;
 
@@ -52,23 +52,7 @@ class ScheduleController extends Controller
                 $q->where('status', $status);
             });
 
-        $appointments = $query->latest()->paginate(10)->withQueryString()->through(function ($apt) {
-            return [
-                'id' => $apt->id,
-                'client' => $apt->client->name,
-                'email' => $apt->client->email,
-                'services' => $apt->services,
-                'description' => $apt->services->pluck('name')->join(', '),
-                'amount' => '₦'.number_format($apt->price),
-                'date' => $apt->start_time->format('M d, Y'),
-                'time' => $apt->start_time->format('h:i A'),
-                'end_time' => $apt->end_time->format('h:i A'),
-                'status' => ucfirst($apt->status),
-                'notes' => $apt->notes,
-                'avatar' => 'https://ui-avatars.com/api/?name='.urlencode($apt->client_name ?? 'User'),
-                'paymentStatus' => 'Paid', // Mock for now
-            ];
-        });
+        $appointments = $query->latest()->paginate(10)->withQueryString();
 
         return Inertia::render('provider/schedule/appointments', [
             'appointments' => $appointments,
@@ -148,7 +132,7 @@ class ScheduleController extends Controller
         $appointment = Appointment::where('provider_id', auth()->id())
             ->whereIn('status', ['confirmed', 'pending', 'pending_completion'])
             ->findOrFail($id);
-
+        
         try {
             DB::beginTransaction();
 
@@ -161,21 +145,12 @@ class ScheduleController extends Controller
             // Refresh to get latest values
             $appointment->refresh();
 
-            // Check if both parties have approved - then release payment
-            if ($appointment->client_approved && $appointment->provider_approved) {
+            // If client has already approved, mark as completed, but do not handle payment here.
+            // Payment is either released immediately when the client completes,
+            // or automatically by the scheduled job after the grace period.
+            if ($appointment->client_approved) {
                 $appointment->update(['status' => 'completed']);
-
-                // Release held payment to provider
-                if ($appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
-                    $clientWallet = Wallet::firstOrCreate(['user_id' => $appointment->client_id]);
-                    $clientWallet->releaseHeldPayment($appointment->escrow_amount, $appointment, 'Payment released after dual approval');
-                    $appointment->update([
-                        'escrow_status' => 'released',
-                        'payment_released_at' => now(),
-                    ]);
-                }
             } else {
-
                 $appointment->update(['status' => 'pending_completion']);
                 $appointment->client->notify(new AwaitingClientConfirmation($appointment));
             }
@@ -183,10 +158,10 @@ class ScheduleController extends Controller
             DB::commit();
 
             if ($appointment->client_approved && $appointment->provider_approved) {
-                return back()->with('success-toast', 'Appointment completed and payment released to your wallet.');
-            } else {
-                return back()->with('success-toast', 'Your approval recorded. Waiting for client approval to release payment.');
+                return back()->with('success-toast', 'Appointment completed. Payment will be or has been released automatically.');
             }
+
+            return back()->with('success-toast', 'Your approval recorded. Waiting for client approval or automatic release after the grace period.');
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -214,7 +189,7 @@ class ScheduleController extends Controller
         return Inertia::render('provider/schedule/appointment-details', [
             'appointment' => [
                 'id' => $appointment->id,
-                'client_name' => $appointment->client?->name ?? $appointment->client_name ?? 'Guest',
+                'client_name' => $appointment->client?->name  ?? 'Guest',
                 'email' => $appointment->client?->email ?? $appointment->client_email ?? null,
                 'services' => $appointment->services->map(fn ($s) => [
                     'id' => $s->id,

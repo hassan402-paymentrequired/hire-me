@@ -13,13 +13,11 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 
-//Schedule::job(new AppointmentApproveDelayedJob())->everyThirtyMinutes();
 Schedule::job(new AppointmentApproveDelayedJob())->everyTwentySeconds();
 
-// Generate recurring appointments daily
 Schedule::job(new GenerateRecurringAppointments())->daily();
 
-// Auto-cancel pending appointments when provider doesn't confirm within 1 hour of start
 Schedule::job(new AutoCancelUnconfirmedAppointmentJob())->everyTwentySeconds();
 
-Schedule::job(new CreditCompletedAppointmentDeplay())->hourly();
+
+Schedule::command('app:release-funds-for-completed-appointments')->everyFifteenMinutes();

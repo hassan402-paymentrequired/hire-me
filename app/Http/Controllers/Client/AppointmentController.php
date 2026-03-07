@@ -25,7 +25,7 @@ class AppointmentController extends Controller
 {
     public function index(Request $request)
     {
-        $user = auth()->user();
+        $user = auth_user();
         $statusFilter = $request->get('status', 'active');
 
         $query = Appointment::where('client_id', $user->id)
@@ -348,11 +348,12 @@ class AppointmentController extends Controller
      */
     public function cancelRemainingRecurrences($id)
     {
-        $appointment = Appointment::where('client_id', auth()->id())
+        $user = auth_user();
+        $appointment = Appointment::where('client_id', $user->id)
             ->findOrFail($id);
 
         $parent = $appointment->recurrence_parent_id
-            ? Appointment::where('client_id', auth()->id())->find($appointment->recurrence_parent_id)
+            ? Appointment::where('client_id', $user->id)->find($appointment->recurrence_parent_id)
             : ($appointment->isRecurrenceParent() ? $appointment : null);
 
         if (!$parent) {
@@ -427,8 +428,15 @@ class AppointmentController extends Controller
             ->whereIn('status', ['confirmed', 'pending_completion'])
             ->findOrFail($id);
 
+        // Safety check: only allow completion after the appointment has ended
+        if ($appointment->end_time && $appointment->end_time->isFuture()) {
+            return back()->with('error-toast', 'You can only mark an appointment as completed after it has ended.');
+        }
+
         try {
             DB::beginTransaction();
+
+            $user = auth_user();
 
             // Mark client approval
             $appointment->update([
@@ -439,28 +447,27 @@ class AppointmentController extends Controller
             // Refresh to get latest values
             $appointment->refresh();
 
-            // Check if both parties have approved - then release payment
-            if ($appointment->client_approved && $appointment->provider_approved) {
-                $appointment->update(['status' => 'completed']);
-                
-                // Release held payment to provider
-                if ($appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
-                    $clientWallet = Wallet::firstOrCreate(['user_id' => auth()->id()]);
-                    $clientWallet->releaseHeldPayment($appointment->escrow_amount, $appointment, "Payment released after dual approval");
-                    $appointment->update([
-                        'escrow_status' => 'released',
-                        'payment_released_at' => now(),
-                    ]);
-                }
-            } else {
-                // Only client approved, waiting for provider
-                $appointment->update(['status' => 'pending_completion']);
+            // New rule: when client marks as completed, release funds immediately
+            if ($appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
+                $clientWallet = Wallet::firstOrCreate(['user_id' => $user->id]);
+                $clientWallet->releaseHeldPayment(
+                    $appointment->escrow_amount,
+                    $appointment,
+                    'Payment released after client completion'
+                );
+
+                $appointment->update([
+                    'escrow_status' => 'released',
+                    'payment_released_at' => now(),
+                ]);
             }
 
-            // Optional Review
-            if ($request->has('rating') && $request->has('comment')) {
+            // Mark appointment as completed for the client
+            $appointment->update(['status' => 'completed']);
+
+            if (isset($request->rating)) {
                 $appointment->review()->create([
-                    'client_id' => auth()->id(),
+                    'user_id' => $user->id,
                     'provider_id' => $appointment->provider_id,
                     'rating' => $request->rating,
                     'comment' => $request->comment,
@@ -469,14 +476,12 @@ class AppointmentController extends Controller
 
             DB::commit();
 
-            if ($appointment->client_approved && $appointment->provider_approved) {
-                $appointment->client->notify(new AppointmentCompletedNotification($appointment));
-                return back()->with('success-toast', 'Appointment completed and payment released to provider.');
-            } else {
-                return back()->with('success-toast', 'Your approval recorded. Waiting for provider approval to release payment.');
-            }
+            $appointment->client->notify(new AppointmentCompletedNotification($appointment));
+
+            return back()->with('success-toast', 'Appointment completed and payment released to provider.');
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Failed to complete appointment', ['error' => $e->getMessage()]);
             return back()->with('error-toast', 'Failed to complete appointment: ' . $e->getMessage());
         }
     }

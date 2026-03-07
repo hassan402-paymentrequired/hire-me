@@ -83,6 +83,7 @@ export interface Service {
 }
 
 export interface Appointment {
+    id?: string;
     provider_id: string,
     client_id: string,
     service_id: string,

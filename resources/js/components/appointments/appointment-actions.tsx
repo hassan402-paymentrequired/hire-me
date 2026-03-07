@@ -16,27 +16,11 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { router } from '@inertiajs/react';
-import { Check, MoreHorizontal, X, Eye, Calendar, Clock, Mail, User, FileText, Banknote } from 'lucide-react';
+import { Check, MoreHorizontal, X, Eye } from 'lucide-react';
 import { useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Appointment } from '@/types';
+import { isTomorrow, parseISO } from 'date-fns';
 
-interface Appointment {
-    id: number;
-    client: string;
-    email?: string;
-    service: string; // Keep for fallback
-    services: { id: string; name: string; price: string }[];
-    description?: string;
-    amount: string;
-    date: string;
-    time: string;
-    end_time: string;
-    status: string;
-    notes?: string;
-    avatar: string;
-    paymentStatus: string;
-}
 
 interface AppointmentActionsProps {
     appointment: Appointment;
@@ -44,7 +28,7 @@ interface AppointmentActionsProps {
 
 export function AppointmentActions({ appointment }: AppointmentActionsProps) {
     const [showCancelDialog, setShowCancelDialog] = useState(false);
-    const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+    const [_, setShowDetailsDialog] = useState(false);
     const [cancelReason, setCancelReason] = useState('');
 
     const status = appointment.status.toLowerCase();
@@ -76,6 +60,12 @@ export function AppointmentActions({ appointment }: AppointmentActionsProps) {
         });
     };
 
+    const canCancelAndReject = (): boolean => {
+            const date =  parseISO(appointment.start_time) 
+
+       return status !== 'cancelled' && status !== 'completed' && isTomorrow(date)
+    }
+
     return (
         <>
             <DropdownMenu>
@@ -98,7 +88,7 @@ export function AppointmentActions({ appointment }: AppointmentActionsProps) {
                             Confirm
                         </DropdownMenuItem>
                     )}
-                    {status !== 'cancelled' && status !== 'completed' && (
+                    {canCancelAndReject()  && ( //here
                         <DropdownMenuItem
                             onClick={() => setShowCancelDialog(true)}
                             className="text-destructive"

@@ -4,6 +4,7 @@ import { Star, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { formatDate } from '@/lib/utils';
 
 interface Review {
     id: string;
@@ -117,7 +118,7 @@ export const ReviewSection = ({ reviews, canReview, pendingAppointmentId }: Revi
                                         ))}
                                     </div>
                                 </div>
-                                <div className="text-xs text-muted-foreground">{review.created_at}</div>
+                                <div className="text-xs text-muted-foreground">{formatDate(review.created_at)}</div>
                             </div>
 
                             <p className="text-foreground leading-relaxed">{review.comment}</p>
