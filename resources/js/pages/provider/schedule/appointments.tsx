@@ -35,7 +35,7 @@ import business from '@/routes/business';
 import { router } from '@inertiajs/react';
 import { useState } from 'react';
 import { useDebouncedAppointmentSearch } from '@/hooks/use-debounce-appointment-search';
-import { formatPrice, formatTime, formatDate, formatStatus } from '@/lib/utils';
+import { formatPrice, formatTime, formatDate, formatStatus, getStatusVariant } from '@/lib/utils';
 
 
 interface AppointmentListProps {
@@ -240,13 +240,7 @@ export default function Appointments({
                                                     <td className="p-4 align-middle">
                                                         <Badge
                                                             variant={
-                                                                apt.status ===
-                                                                'Confirmed'
-                                                                    ? 'default'
-                                                                    : apt.status ===
-                                                                        'Cancelled'
-                                                                      ? 'destructive'
-                                                                      : 'secondary'
+                                                                getStatusVariant(apt.status)
                                                             }
                                                         >
                                                             {formatStatus(apt.status)}

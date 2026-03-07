@@ -29,16 +29,22 @@
 
         {{-- Service --}}
         <tr style="border-bottom: 1px solid #f0f2ee;">
-            <td style="padding: 12px 20px; width: 40%; background: #fafaf9;">
-                <p
-                    style="margin: 0; font-size: 12px; color: #808f70; text-transform: uppercase; letter-spacing: 1px; font-family: 'Roboto Flex', sans-serif;">
-                    Service</p>
+            <td style="padding: 12px 20px; width: 40%; background: #fafaf9; vertical-align: top;">
+                <p style="margin: 0; font-size: 12px; color: #808f70; text-transform: uppercase; letter-spacing: 1px; font-family: 'Roboto Flex', sans-serif;">
+                    {{ $appointment->services->count() > 1 ? 'Services' : 'Service' }}
+                </p>
             </td>
             <td style="padding: 12px 20px; background: #ffffff;">
-                <p
-                    style="margin: 0; font-size: 14px; font-weight: 600; color: #1a1d16; font-family: 'Roboto Flex', sans-serif;">
-                    {{ $appointment->service->name }}
-                </p>
+                @foreach ($appointment->services as $service)
+                    <p style="margin: 0 0 {{ !$loop->last ? '6px' : '0' }} 0; font-size: 14px; font-weight: 600; color: #1a1d16; font-family: 'Roboto Flex', sans-serif;">
+                        {{ $service->name }}
+                        @if ($service->price ?? null)
+                            <span style="font-weight: 400; font-size: 13px; color: #66725a;">
+                                — ₦{{ number_format($service->price, 2) }}
+                            </span>
+                        @endif
+                    </p>
+                @endforeach
             </td>
         </tr>
 

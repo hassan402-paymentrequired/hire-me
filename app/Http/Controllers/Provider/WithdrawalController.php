@@ -124,7 +124,7 @@ class WithdrawalController extends Controller
             'bank_name' => 'required|string',
         ]);
 
-        $user = auth()->user();
+        $user = auth_user();
         $wallet = Wallet::firstOrCreate(['user_id' => $user->id]);
 
         // Check if user has sufficient balance

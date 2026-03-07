@@ -13,7 +13,8 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 
-Schedule::job(new AppointmentApproveDelayedJob())->everyTwentySeconds();
+Schedule::command('app:appointment-approved-delay-command')->everyFifteenMinutes();
+
 
 Schedule::job(new GenerateRecurringAppointments())->daily();
 

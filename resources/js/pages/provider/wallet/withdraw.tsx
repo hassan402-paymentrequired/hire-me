@@ -154,7 +154,7 @@ export default function Withdraw({ wallet, bankAccount = null, withdrawals, bank
                         <CardHeader className="pb-3">
                             <CardDescription>Total Balance</CardDescription>
                             <CardTitle className="text-3xl font-bold">
-                                ₦{wallet.balance.toLocaleString()}
+                                ₦{(wallet.balance + wallet.pending_earnings).toLocaleString()}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>

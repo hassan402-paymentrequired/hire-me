@@ -102,9 +102,11 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
     // Client Appointments
     Route::prefix('appointments')->name('appointments.')->group(function () {
         Route::post('/', [\App\Http\Controllers\Client\AppointmentController::class, 'store'])->name('store');
+        Route::put('/{id}', [\App\Http\Controllers\Client\AppointmentController::class, 'update'])->name('update');
         Route::post('/{id}/cancel-remaining-recurrences', [\App\Http\Controllers\Client\AppointmentController::class, 'cancelRemainingRecurrences'])->name('cancel-remaining');
         Route::post('/{id}/cancel', [\App\Http\Controllers\Client\AppointmentController::class, 'cancel'])->name('cancel');
         Route::post('/{id}/complete', [\App\Http\Controllers\Client\AppointmentController::class, 'complete'])->name('complete');
+        Route::get('/{id}/edit', [\App\Http\Controllers\Client\AppointmentController::class, 'edit'])->name('edit');
         Route::get('/{id}/reschedule', [\App\Http\Controllers\Client\AppointmentController::class, 'reschedule'])->name('reschedule');
         Route::post('/{id}/report', [\App\Http\Controllers\Client\AppointmentController::class, 'report'])->name('report');
     });

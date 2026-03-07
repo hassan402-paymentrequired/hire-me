@@ -121,6 +121,9 @@ export default function BookingDetails({
         startTime > now &&
         booking.status !== 'cancelled' &&
         booking.status !== 'completed';
+    const canReschedule =
+        booking.status === 'confirmed' &&
+        startTime > fiveHoursFromNow;
 
     // Calculate total duration from all services
     const totalDuration =
@@ -176,7 +179,8 @@ export default function BookingDetails({
     };
 
     const handleRescheduleBooking = () => {
-        router.visit(`/appointments/${booking.id}/reschedule`);
+        if (!canReschedule) return;
+        router.visit(`/appointments/${booking.id}/edit`);
     };
 
     const handleComplete = (withReview: boolean) => {
@@ -771,8 +775,8 @@ export default function BookingDetails({
                                             </Dialog>
                                         )}
 
-                                        {/* Reschedule - Only for confirmed bookings */}
-                                        {booking.status === 'confirmed' && (
+                                        {/* Reschedule - Only for confirmed bookings and at least 5 hours before start */}
+                                        {canReschedule && (
                                             <Button
                                                 variant="outline"
                                                 className="w-full justify-start"

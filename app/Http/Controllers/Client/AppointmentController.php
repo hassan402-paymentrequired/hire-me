@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WorkHour;
 use App\Notifications\AppointmentCompletedNotification;
+use App\Notifications\AppointmentUpdatedNotification;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -67,6 +68,157 @@ class AppointmentController extends Controller
         ]);
     }
 
+    public function update(Request $request, $id)
+    {
+        $appointment = Appointment::where('client_id', auth()->id())
+            ->with(['provider.businessProfile', 'services'])
+            ->findOrFail($id);
+
+        // Safety: only allow editing future appointments and at least 5 hours before start
+        $hoursUntilStart = Carbon::now()->diffInHours($appointment->start_time, false);
+        if ($hoursUntilStart < 5 || $appointment->start_time->isPast()) {
+            return redirect()
+                ->route('client.bookings.show', $appointment->id)
+                ->with('error-toast', 'You can only edit this appointment up to 5 hours before it starts.');
+        }
+
+        $request->validate([
+            'service_ids' => 'required|array',
+            'service_ids.*' => 'exists:services,id',
+            'start_time' => 'required|date',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $provider = $appointment->provider->load('businessProfile');
+        $settings = $provider->businessProfile->settings ?? [];
+
+        $services = Service::whereIn('id', $request->service_ids)->get();
+
+        $originalPrice = (float) $appointment->price;
+        $totalPrice = (float) $services->sum('price');
+        $totalDuration = $services->sum('duration_minutes');
+        $maxBuffer = $services->max('buffer_time_minutes') ?? 0;
+
+        $startTime = Carbon::parse($request->start_time);
+        $endTime = $startTime->copy()->addMinutes($totalDuration);
+
+        $clientWallet = Wallet::firstOrCreate(['user_id' => auth()->id()]);
+
+        try {
+            DB::beginTransaction();
+
+            $changesSummary = [];
+
+            // Adjust escrow only by the difference, if payment is still held
+            if ($appointment->escrow_status === 'held' && $originalPrice !== $totalPrice) {
+                $priceDifference = $totalPrice - $originalPrice;
+
+                if ($priceDifference > 0) {
+                    // Client needs to pay more
+                    if (!$clientWallet->hasSufficientBalance($priceDifference)) {
+                        DB::rollBack();
+                        return back()
+                            ->with('error-toast', 'Insufficient wallet balance to cover the increased total. Please top up your wallet and try again.');
+                    }
+
+                    $clientWallet->holdPayment(
+                        $priceDifference,
+                        $appointment,
+                        'Additional payment held for updated appointment',
+                    );
+
+                    $appointment->escrow_amount = ((float) $appointment->escrow_amount) + $priceDifference;
+                    $appointment->save();
+                } else {
+                    // Refund the difference
+                    $refundAmount = abs($priceDifference);
+                    if ($appointment->escrow_amount >= $refundAmount) {
+                        $clientWallet->refundEscrow(
+                            $refundAmount,
+                            $appointment,
+                            'Partial refund for updated appointment (price reduction)',
+                        );
+                        $appointment->escrow_amount = ((float) $appointment->escrow_amount) - $refundAmount;
+                        $appointment->save();
+                    }
+                }
+            }
+
+            $autoConfirm = ($settings['autoConfirm'] ?? $settings['auto_confirm'] ?? false);
+            $originalAppointment = $appointment->replicate();
+            $originalServiceIds = $appointment->services->pluck('id')->toArray();
+
+            $appointment->update([
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'buffer_time_minutes' => $maxBuffer,
+                'status' => $autoConfirm ? 'confirmed' : 'pending',
+                'price' => $totalPrice,
+                'notes' => $request->notes,
+                'provider_approved' => $autoConfirm,
+                'provider_approved_at' => $autoConfirm ? now() : null,
+            ]);
+            $appointment->services()->sync($request->service_ids);
+
+            $message = 'Appointment updated successfully!';
+
+            // Build change summary for provider notification
+            $newServiceIds = $request->service_ids;
+            sort($originalServiceIds);
+            sort($newServiceIds);
+
+            if ($originalServiceIds !== $newServiceIds) {
+                $addedServiceIds = array_diff($newServiceIds, $originalServiceIds);
+                $removedServiceIds = array_diff($originalServiceIds, $newServiceIds);
+
+                $addedServices = $services->whereIn('id', $addedServiceIds)->pluck('name')->implode(', ');
+                $removedServices = Service::whereIn('id', $removedServiceIds)->pluck('name')->implode(', ');
+
+                if ($addedServices) {
+                    $changesSummary[] = "Client added service(s): {$addedServices}.";
+                }
+                if ($removedServices) {
+                    $changesSummary[] = "Client removed service(s): {$removedServices}.";
+                }
+            }
+
+            if (!$originalAppointment->start_time->equalTo($startTime)) {
+                $changesSummary[] = sprintf(
+                    'Start time changed from %s to %s.',
+                    $originalAppointment->start_time->format('M j, Y g:i A'),
+                    $startTime->format('M j, Y g:i A'),
+                );
+            }
+
+            if ($originalAppointment->notes !== $request->notes) {
+                $changesSummary[] = 'Appointment notes were updated.';
+            }
+
+            if ($originalPrice !== $totalPrice) {
+                $changesSummary[] = sprintf(
+                    'Total price changed from ₦%s to ₦%s.',
+                    number_format($originalPrice, 2),
+                    number_format($totalPrice, 2),
+                );
+            }
+
+            DB::commit();
+
+            if (!empty($changesSummary)) {
+                $appointment->provider->notify(new AppointmentUpdatedNotification($appointment, $changesSummary));
+            }
+
+            return redirect()
+                ->route('client.bookings.show', $appointment->id)
+                ->with('success-toast', $message);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Appointment update failed', ['error' => $e->getMessage()]);
+
+            return back()->with('error-toast', 'We could not update your appointment. Please try again.');
+        }
+    }
+
     public function show($id)
     {
         $appointment = Appointment::where('client_id', auth()->id())
@@ -98,7 +250,6 @@ class AppointmentController extends Controller
             'service_ids.*' => 'exists:services,id',
             'start_time' => 'required|date',
             'notes' => 'nullable|string|max:500',
-            'reschedule_id' => 'nullable|exists:appointments,id',
             'recurrence_pattern' => 'nullable|in:weekly,bi_weekly,monthly',
             'recurrence_end_date' => 'nullable|date|after:today',
             'recurrence_count' => 'nullable|integer|min:2|max:52',
@@ -164,91 +315,42 @@ class AppointmentController extends Controller
         try {
             DB::beginTransaction();
 
-            if ($request->reschedule_id) {
-                $appointment = Appointment::where('client_id', auth()->id())->findOrFail($request->reschedule_id);
+            $autoConfirm = ($settings['autoConfirm'] ?? $settings['auto_confirm'] ?? false);
+            $appointmentData = [
+                'client_id' => auth()->id(),
+                'provider_id' => $request->provider_id,
+                'service_id' => $request->service_ids[0],
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'buffer_time_minutes' => $maxBuffer,
+                'status' => $autoConfirm ? 'confirmed' : 'pending',
+                'price' => $totalPrice,
+                'notes' => $request->notes,
+                'provider_approved' => $autoConfirm,
+                'provider_approved_at' => $autoConfirm ? now() : null,
+            ];
+
+            // Add recurrence data if provided
+            if ($request->recurrence_pattern) {
+                $appointmentData['recurrence_pattern'] = $request->recurrence_pattern;
+                $appointmentData['original_price'] = $originalPrice;
+                $appointmentData['discount_percent'] = $discountPercent;
                 
-                // For rescheduling with payment hold system:
-                // If price changed, handle the difference
-                if ($appointment->price != $totalPrice) {
-                    $priceDifference = $totalPrice - $appointment->price;
-                    
-                    if ($priceDifference > 0) {
-                        // Client needs to pay more
-                        if (!$clientWallet->hasSufficientBalance($priceDifference)) {
-                            DB::rollBack();
-                            return redirect()->route('marketplace.booking', ['slug' => $provider->businessProfile->slug])
-                                ->with('error-toast', "Insufficient wallet balance. You need ₦" . number_format($priceDifference, 2) . " more to reschedule this appointment.")
-                                ->with('insufficient_balance', true)
-                                ->with('required_amount', $priceDifference);
-                        }
-                        
-                        $clientWallet->holdPayment($priceDifference, $appointment, "Additional payment held for rescheduled appointment");
-                        $appointment->update([
-                            'escrow_amount' => $appointment->escrow_amount + $priceDifference,
-                        ]);
-                    } else {
-                        // Refund the difference
-                        $refundAmount = abs($priceDifference);
-                        if ($appointment->escrow_status === 'held' && $appointment->escrow_amount >= $refundAmount) {
-                            $clientWallet->refundEscrow($refundAmount, $appointment, "Partial refund for rescheduled appointment (price reduction)");
-                            $appointment->update([
-                                'escrow_amount' => $appointment->escrow_amount - $refundAmount,
-                            ]);
-                        }
-                    }
+                if ($request->recurrence_end_date) {
+                    $appointmentData['recurrence_end_date'] = Carbon::parse($request->recurrence_end_date);
                 }
-
-                $autoConfirm = ($settings['autoConfirm'] ?? $settings['auto_confirm'] ?? false);
-                $appointment->update([
-                    'start_time' => $startTime,
-                    'end_time' => $endTime,
-                    'buffer_time_minutes' => $maxBuffer,
-                    'status' => $autoConfirm ? 'confirmed' : 'pending',
-                    'price' => $totalPrice,
-                    'notes' => $request->notes,
-                    'provider_approved' => $autoConfirm,
-                    'provider_approved_at' => $autoConfirm ? now() : null,
-                ]);
-                $appointment->services()->sync($request->service_ids);
-                $message = 'Appointment rescheduled successfully!';
-            } else {
-                $autoConfirm = ($settings['autoConfirm'] ?? $settings['auto_confirm'] ?? false);
-                $appointmentData = [
-                    'client_id' => auth()->id(),
-                    'provider_id' => $request->provider_id,
-                    'service_id' => $request->service_ids[0],
-                    'start_time' => $startTime,
-                    'end_time' => $endTime,
-                    'buffer_time_minutes' => $maxBuffer,
-                    'status' => $autoConfirm ? 'confirmed' : 'pending',
-                    'price' => $totalPrice,
-                    'notes' => $request->notes,
-                    'provider_approved' => $autoConfirm,
-                    'provider_approved_at' => $autoConfirm ? now() : null,
-                ];
-
-                // Add recurrence data if provided
-                if ($request->recurrence_pattern) {
-                    $appointmentData['recurrence_pattern'] = $request->recurrence_pattern;
-                    $appointmentData['original_price'] = $originalPrice;
-                    $appointmentData['discount_percent'] = $discountPercent;
-                    
-                    if ($request->recurrence_end_date) {
-                        $appointmentData['recurrence_end_date'] = Carbon::parse($request->recurrence_end_date);
-                    }
-                    
-                    if ($request->recurrence_count) {
-                        $appointmentData['recurrence_count'] = $request->recurrence_count;
-                    }
-                }
-
-                $appointment = Appointment::create($appointmentData);
-                $appointment->services()->attach($request->service_ids);
                 
-                $message = $request->recurrence_pattern 
-                    ? 'Recurring appointment booked successfully! Future appointments will be created automatically.'
-                    : 'Appointment booked successfully!';
+                if ($request->recurrence_count) {
+                    $appointmentData['recurrence_count'] = $request->recurrence_count;
+                }
             }
+
+            $appointment = Appointment::create($appointmentData);
+            $appointment->services()->attach($request->service_ids);
+            
+            $message = $request->recurrence_pattern 
+                ? 'Recurring appointment booked successfully! Future appointments will be created automatically.'
+                : 'Appointment booked successfully!';
 
             $escrowTransaction = $clientWallet->holdPayment($totalPrice, $appointment, "Payment held for appointment booking (pending dual approval)");
             $appointment->update([
@@ -492,15 +594,76 @@ class AppointmentController extends Controller
             ->with('services')
             ->findOrFail($id);
 
-        $slug = $appointment->provider->businessProfile->slug;
-        $serviceIds = $appointment->services->pluck('id')->toArray();
+        // Keep for backward compatibility: redirect to the new edit page
+        return redirect()->route('appointments.edit', ['id' => $appointment->id]);
+    }
 
-        // Redirect to marketplace booking page with services pre-selected
-        // We'll need to update marketplace.booking to handle pre-selected services if possible
-        return redirect()->route('marketplace.booking', [
-            'slug' => $slug,
-            'service_ids' => $serviceIds,
-            'reschedule_id' => $appointment->id
+    public function edit($id)
+    {
+        $appointment = Appointment::where('client_id', auth()->id())
+            ->with(['provider.businessProfile', 'services'])
+            ->findOrFail($id);
+
+        // Only allow editing for future appointments and at least 5 hours before start
+        $hoursUntilStart = Carbon::now()->diffInHours($appointment->start_time, false);
+        if ($hoursUntilStart < 5 || $appointment->start_time->isPast()) {
+            return redirect()
+                ->route('client.bookings.show', $appointment->id)
+                ->with('error-toast', 'You can only edit this appointment up to 5 hours before it starts.');
+        }
+
+        $provider = $appointment->provider;
+        $businessProfile = $provider->businessProfile;
+
+        $settings = $businessProfile->settings ?? [];
+
+        $walletBalance = null;
+        if (auth()->check()) {
+            $wallet = Wallet::firstOrCreate(['user_id' => auth()->id()]);
+            $walletBalance = $wallet->balance;
+        }
+
+        $services = $provider->services()
+            ->where('status', 'active')
+            ->get();
+
+        return Inertia::render('client/bookings/edit', [
+            'appointment' => [
+                'id' => $appointment->id,
+                'start_time' => $appointment->start_time->toIso8601String(),
+                'end_time' => $appointment->end_time?->toIso8601String(),
+                'notes' => $appointment->notes,
+                'price' => (float) $appointment->price,
+                'service_ids' => $appointment->services->pluck('id'),
+            ],
+            'provider' => [
+                'id' => $provider->id,
+                'name' => $provider->name,
+                'businessName' => $businessProfile->business_name,
+                'address' => $businessProfile->address,
+                'slug' => $businessProfile->slug,
+                'logo' => $businessProfile->images->where('is_logo', true)->first()?->image_path
+                    ? \App\Services\FileUploadService::url($businessProfile->images->where('is_logo', true)->first()->image_path, 'public')
+                    : null,
+            ],
+            'services' => $services->map(function ($service) {
+                return [
+                    'id' => $service->id,
+                    'name' => $service->name,
+                    'description' => $service->description,
+                    'duration' => $service->duration_minutes,
+                    'price' => $service->price,
+                ];
+            }),
+            'walletBalance' => $walletBalance,
+            'settings' => [
+                'advanceBooking' => $settings['advanceBooking'] ?? '30',
+                'minNotice' => $settings['minNotice'] ?? null,
+                'allowSameDay' => $settings['allowSameDay'] ?? false,
+                'autoConfirm' => $settings['autoConfirm'] ?? $settings['auto_confirm'] ?? false,
+                'max_bookings_per_week' => $settings['max_bookings_per_week'] ?? null,
+                'max_bookings_per_month' => $settings['max_bookings_per_month'] ?? null,
+            ],
         ]);
     }
 

@@ -11,22 +11,22 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { Link } from '@inertiajs/react';
-import { ChartArea, Folder } from 'lucide-react';
-import AppLogo from './app-logo';
-import schedule from '@/routes/schedule';
 import business, { dashboard } from '@/routes/business';
+import schedule from '@/routes/schedule';
 import {
     ArchiveBoxIcon,
     CalendarDaysIcon,
+    ChartBarIcon,
+    Cog6ToothIcon,
+    FireIcon,
+    PuzzlePieceIcon,
     RectangleStackIcon,
     UserGroupIcon,
     WalletIcon,
-    Cog6ToothIcon,
-    FireIcon,
-    ChartBarIcon,
-    PuzzlePieceIcon,
 } from '@heroicons/react/24/solid';
+import { Link } from '@inertiajs/react';
+import { ChartArea, Folder } from 'lucide-react';
+import AppLogo from './app-logo';
 
 const mainNavItems: any[] = [
     {
@@ -104,8 +104,8 @@ const mainNavItems: any[] = [
                 title: 'Google Calendar',
                 href: business.integration.index(),
                 icon: PuzzlePieceIcon,
-                isLocked: true
-            }
+                isLock: true,
+            },
         ],
     },
 ];

@@ -2,7 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import GuestLayout from '@/layouts/guest-layout';
 import BookingCard, { type BookingCardBooking } from '@/pages/client/components/booking-card';
-import { CalendarIcon } from '@heroicons/react/24/solid';
+// import { CalendarIcon } from '@heroicons/react/24/solid';
 import { cn } from '@/lib/utils';
 
 const STATUS_FILTERS = [

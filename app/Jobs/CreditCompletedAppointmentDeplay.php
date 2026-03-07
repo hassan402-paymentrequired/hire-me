@@ -29,7 +29,7 @@ class CreditCompletedAppointmentDeplay implements ShouldQueue
         // 15 minutes in the past and whose escrow is still held.
         Appointment::whereIn('status', ['confirmed', 'pending_completion'])
             ->whereNull('payment_released_at')
-            ->whereNull('provider_credited_at')
+            // ->whereNull('provider_credited_at') // we don't have the coloumn
             ->where('escrow_status', 'held')
             ->where('end_time', '<=', now()->subMinutes(15))
             ->chunk(1000, function ($appointments) {

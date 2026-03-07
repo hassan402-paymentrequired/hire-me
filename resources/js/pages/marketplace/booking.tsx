@@ -213,7 +213,6 @@ export default function Booking({
             service_ids: selectedServiceIds,
             start_time: selectedSlot,
             notes: notes,
-            reschedule_id: rescheduleId,
         };
 
         if (recurrencePattern) {
@@ -230,12 +229,29 @@ export default function Booking({
             bookingData.discount_percent = discountPercent;
         }
 
-        router.post(appointments.store().url, bookingData, {
-            onError: (errors) => {
-                const firstError = Object.values(errors)[0];
-                toast.error(typeof firstError === 'string' ? firstError : 'Please check your selection and try again.');
-            },
-        });
+        if (rescheduleId) {
+            router.put(`/appointments/${rescheduleId}`, bookingData, {
+                onError: (errors) => {
+                    const firstError = Object.values(errors)[0];
+                    toast.error(
+                        typeof firstError === 'string'
+                            ? firstError
+                            : 'Please check your selection and try again.',
+                    );
+                },
+            });
+        } else {
+            router.post(appointments.store().url, bookingData, {
+                onError: (errors) => {
+                    const firstError = Object.values(errors)[0];
+                    toast.error(
+                        typeof firstError === 'string'
+                            ? firstError
+                            : 'Please check your selection and try again.',
+                    );
+                },
+            });
+        }
     };
 
     return (

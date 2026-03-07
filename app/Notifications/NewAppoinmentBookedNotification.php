@@ -29,7 +29,7 @@ class NewAppoinmentBookedNotification extends Notification implements ShouldQueu
      */
     public function via(object $notifiable): array
     {
-        return ['mail','database', WebPushChannel::class];
+        return ['mail', 'database', WebPushChannel::class];
     }
 
     /**
@@ -37,7 +37,7 @@ class NewAppoinmentBookedNotification extends Notification implements ShouldQueu
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $appointment = $this->appointment->load(['client', 'service']);
+        $appointment = $this->appointment->load(['client', 'services']);
 
         return (new MailMessage)
             ->subject('New Booking Request - '.config('app.name'))
@@ -51,9 +51,13 @@ class NewAppoinmentBookedNotification extends Notification implements ShouldQueu
      */
     public function toArray(object $notifiable): array
     {
+        $serviceNames = $this->appointment->services
+            ->pluck('name')
+            ->join(', ');
+
         return [
             'title' => 'New Booking Request Received '.config('app.name'),
-            'message' => 'You have a new booking request from '.$this->appointment->client->name.' for '.$this->appointment->service->name.'.',
+            'message' => 'You have a new booking request from '.$this->appointment->client->name.' for '.$serviceNames.'.',
             'action_url' => '/schedule/appointments',
             'type' => 'new_appointment',
         ];

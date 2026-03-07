@@ -22,6 +22,7 @@ export function resolveUrl(url: NonNullable<InertiaLinkProps['href']>): string {
 
 // Format date nicely
 export function formatDate(dateString: string | Date): string {
+    // return dateString;
     if (!dateString) return 'Date TBA';
 
     const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;
@@ -75,7 +76,7 @@ export function formatStatus(status: string): string {
 }
 
 // Get status badge variant
-export function getStatusVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
+export function getStatusVariant(status: string): "default" | "secondary" | "destructive" | "outline" | "primary" {
     switch (status?.toLowerCase()) {
         case 'confirmed':
             return 'default'; // Green/Success - create custom variant if needed
@@ -83,9 +84,9 @@ export function getStatusVariant(status: string): "default" | "secondary" | "des
             return 'secondary'; // Yellow/Warning
         case 'cancelled':
         case 'no_show':
-            return 'destructive'; // Red
+            return 'destructive'; 
         case 'completed':
-            return 'outline'; // Gray/Muted
+            return 'primary'; 
         case 'rescheduled':
         case 'pending_completion':
             return 'secondary';

@@ -122,6 +122,10 @@ export default function Analytics({
 
     const maxRevenue = Math.max(...revenueData.map((d) => d.value), 1);
     const maxBookings = Math.max(...peakHours.map((h) => h.bookings), 1);
+    const totalServiceRevenue = topServices.reduce(
+        (sum, service) => sum + service.revenue,
+        0,
+    );
 
     const handleRangeChange = (newRange: string) => {
         setSelectedRange(newRange);
@@ -294,7 +298,8 @@ export default function Analytics({
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="flex h-[300px] items-end gap-1 px-4 pb-4">
+                                    <div className="overflow-x-auto pb-2">
+                                        <div className="flex h-[300px] min-w-[720px] items-end gap-1 px-4 pb-4 sm:min-w-0">
                                         {peakHours.map((hour, i) => (
                                             <div
                                                 key={i}
@@ -314,6 +319,7 @@ export default function Analytics({
                                                 </div>
                                             </div>
                                         ))}
+                                        </div>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -363,27 +369,39 @@ export default function Analytics({
                                     {topServices.map((service, i) => (
                                         <div
                                             key={i}
-                                            className="flex items-center justify-between"
+                                            className="flex flex-col gap-3 rounded-lg border border-border/60 p-4 sm:flex-row sm:items-center sm:justify-between"
                                         >
-                                            <div className="flex items-center gap-4">
+                                            <div className="flex min-w-0 items-start gap-4">
                                                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-primary font-bold">
                                                     {i + 1}
                                                 </div>
-                                                <div className="space-y-1">
-                                                    <p className="text-sm font-medium leading-none">
+                                                <div className="min-w-0 space-y-1">
+                                                    <p className="break-words text-sm font-medium leading-5 sm:leading-none">
                                                         {service.name}
                                                     </p>
-                                                    <p className="text-xs text-muted-foreground">
+                                                    <p className="break-words text-xs text-muted-foreground">
                                                         {service.bookings} bookings • Avg: ₦{service.avg_price.toLocaleString()}
                                                     </p>
+                                                    <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
+                                                        <div
+                                                            className="h-full rounded-full bg-primary transition-all"
+                                                            style={{
+                                                                width: `${totalServiceRevenue > 0 ? (service.revenue / totalServiceRevenue) * 100 : 0}%`,
+                                                            }}
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div className="text-right">
-                                                <div className="font-semibold text-sm">
+                                            <div className="text-left sm:text-right">
+                                                <div className="text-sm font-semibold">
                                                     {service.revenue_formatted}
                                                 </div>
                                                 <div className="text-xs text-muted-foreground">
-                                                    {((service.revenue / topServices.reduce((sum, s) => sum + s.revenue, 0)) * 100).toFixed(1)}% of total
+                                                    {(totalServiceRevenue > 0
+                                                        ? (service.revenue / totalServiceRevenue) * 100
+                                                        : 0
+                                                    ).toFixed(1)}
+                                                    % of total
                                                 </div>
                                             </div>
                                         </div>
