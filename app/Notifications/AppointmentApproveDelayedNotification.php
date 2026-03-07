@@ -3,59 +3,59 @@
 namespace App\Notifications;
 
 use App\Models\Appointment;
+use App\Notifications\Concerns\SendsWebPush;
+use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
-use App\Notifications\Concerns\SendsWebPush;
 
-class AppointmentApproveDelayedNotification extends Notification
+class AppointmentApproveDelayedNotification extends Notification implements ShouldQueue
 {
     use Queueable, SendsWebPush;
 
-    /**
-     * Create a new notification instance.
-     */
     public function __construct(public Appointment $appointment)
     {
-        //
+        $this->appointment = $appointment->load(['provider', 'services']);
     }
 
-    /**
-     * Get the notification's delivery channels.
-     *
-     * @return array<int, string>
-     */
     public function via(object $notifiable): array
     {
         return ['mail', 'database', WebPushChannel::class];
     }
 
-    /**
-     * Get the mail representation of the notification.
-     */
     public function toMail(object $notifiable): MailMessage
     {
+        $serviceNames   = $this->appointment->services->pluck('name')->join(', ');
+        $clientName     = $this->appointment->client->name ?? 'a client';
+        $hoursBooked    = Carbon::parse($this->appointment->created_at)->diffInHours(now());
+        $pendingLabel   = $hoursBooked >= 24
+            ? floor($hoursBooked / 24) . ' day' . (floor($hoursBooked / 24) > 1 ? 's' : '')
+            : $hoursBooked . ' hour' . ($hoursBooked !== 1 ? 's' : '');
+
         return (new MailMessage)
-            ->subject('Appointment Delayed - ' . config('app.name'))
-            ->markdown('emails.provider.appointment-delayed', [
-                'appointment' => $this->appointment
+            ->subject("Pending for {$pendingLabel}: {$clientName} is waiting — " . config('app.name'))
+            ->view('emails.provider.appointment-delayed', [
+                'appointment' => $this->appointment,
             ]);
     }
 
-    /**
-     * Get the array representation of the notification.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(object $notifiable): array
     {
+        $serviceNames = $this->appointment->services->pluck('name')->join(', ');
+        $clientName   = $this->appointment->client->name ?? 'A client';
+        $hoursBooked  = Carbon::parse($this->appointment->created_at)->diffInHours(now());
+
+        $pendingLabel = $hoursBooked >= 24
+            ? floor($hoursBooked / 24) . ' day' . (floor($hoursBooked / 24) > 1 ? 's' : '')
+            : $hoursBooked . ' hour' . ($hoursBooked !== 1 ? 's' : '');
+
         return [
-            'title' => 'Appointment approval delayed',
-            'message' => 'You have an appointment waiting for your confirmation.',
-            'action_url' => '/provider/appointments/'. $this->appointment->id,
-            'type' => 'appointment_delayed',
+            'title'      => "{$clientName} is still waiting ({$pendingLabel})",
+            'message'    => "Your {$serviceNames} booking has been pending for {$pendingLabel}. Please confirm or decline.",
+            'action_url' => '/provider/appointments/' . $this->appointment->id,
+            'type'       => 'appointment_delayed',
         ];
     }
 }
