@@ -87,6 +87,30 @@ export default function Welcome({
         }
     };
 
+    const handleHeroSearch = (search: string) => {
+        router.get(
+            '/',
+            { ...filters, search },
+            {
+                preserveState: true,
+                replace: true,
+                preserveScroll: true,
+            },
+        );
+    };
+
+    const handleHeroCategorySelect = (category: string) => {
+        router.get(
+            '/',
+            { ...filters, category },
+            {
+                preserveState: true,
+                replace: true,
+                preserveScroll: true,
+            },
+        );
+    };
+
     return (
         <>
             <Head title="Find Services Providers Near You | Clockra">
@@ -121,7 +145,13 @@ export default function Welcome({
             />
             <AppLayout>
                 <div className="m box-border flex w-full flex-col space-y-6 overflow-visible px-5">
-                    <Landing />
+                    <Landing
+                        categories={categories}
+                        initialSearch={filters.search || ''}
+                        onLocationRequest={requestLocation}
+                        onSearch={handleHeroSearch}
+                        onCategorySelect={handleHeroCategorySelect}
+                    />
 
                     {/* market place */}
                     <div id="marketplace" className="min-h-[calc(98vh-3rem)]">
