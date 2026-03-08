@@ -46,9 +46,12 @@ class ScheduleController extends Controller
 
         $query = $user->appointmentsAsProvider()->with(['services', 'client'])
             ->when($search, function ($q, $search) {
-                $q->whereLike('client_name', $search);
+                $q->whereHas('client', function($q2) use ($search) {
+                    $q2->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
             })
-            ->when($status && $status !== 'all', function ($q, $status) {
+            ->when($status && $status !== 'all', function ($q) use($status) {
                 $q->where('status', $status);
             });
 

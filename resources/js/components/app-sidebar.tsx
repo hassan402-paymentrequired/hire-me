@@ -104,7 +104,7 @@ const mainNavItems: any[] = [
                 title: 'Google Calendar',
                 href: business.integration.index(),
                 icon: PuzzlePieceIcon,
-                isLock: true,
+                isLocked: true,
             },
         ],
     },

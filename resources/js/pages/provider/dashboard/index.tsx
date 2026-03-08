@@ -18,7 +18,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, usePage } from '@inertiajs/react';
 import {
     ArchiveIcon,
-    ArrowUpRight,
+    BadgeAlert,
     Calendar,
     Clock,
     CreditCard,
@@ -26,6 +26,9 @@ import {
     Users,
     AlertCircle,
     ShieldCheck,
+    Wallet,
+    Siren,
+    Hourglass,
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Link } from '@inertiajs/react';
@@ -36,7 +39,6 @@ import {
     EmptyMedia,
     EmptyTitle,
 } from "@/components/ui/empty"
-import { formatDate } from '@/lib/utils';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -61,11 +63,14 @@ interface DashboardProps {
         status: string;
         avatar: string;
     }>;
-    recentActivity: Array<{
-        id: string;
-        action: string;
+    needsAttention: Array<{
+        type: string;
+        count: number;
+        label: string;
         description: string;
-        created_at: string;
+        href: string;
+        action_label: string;
+        tone: 'danger' | 'warning' | 'info';
     }>;
     is_verified?: boolean;
     verification_status?: {
@@ -75,7 +80,7 @@ interface DashboardProps {
     } | null;
 }
  
-export default function Index({ stats, upcomingAppointments, recentActivity, is_verified, verification_status }: DashboardProps) {
+export default function Index({ stats, upcomingAppointments, needsAttention, is_verified, verification_status }: DashboardProps) {
     const page = usePage();
     const auth = (page.props as any).auth;
     const statCards = [
@@ -115,7 +120,19 @@ export default function Index({ stats, upcomingAppointments, recentActivity, is_
         },
     ];
 
-    // console.log(recentActivity.pendingAttributes)
+    const attentionIconMap = {
+        urgent_bookings: Siren,
+        awaiting_confirmation: BadgeAlert,
+        pending_client_confirmation: Hourglass,
+        payout_issues: Wallet,
+        verification_issue: ShieldCheck,
+    } as const;
+
+    const toneClassMap = {
+        danger: 'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300',
+        warning: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300',
+        info: 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-300',
+    } as const;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -290,44 +307,73 @@ export default function Index({ stats, upcomingAppointments, recentActivity, is_
                         </CardContent>
                     </Card>
 
-                    {/* Recent Activity (3 cols) */}
+                    {/* Needs Attention (3 cols) */}
                     <Card className="lg:col-span-3">
                         <CardHeader>
-                            <CardTitle>Recent Activity</CardTitle>
+                            <CardTitle>Needs Attention</CardTitle>
                             <CardDescription>
-                                Latest improvements and updates.
+                                Priority items that need action right now.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="space-y-8">
-                                {recentActivity.length === 0 ? (
+                            <div className="space-y-3">
+                                {needsAttention.length === 0 ? (
                                     <Empty>
                                         <EmptyHeader>
                                             <EmptyMedia variant="default">
-                                                <ArchiveIcon />
+                                                <ShieldCheck />
                                             </EmptyMedia>
                                             <EmptyTitle>
-                                                No Recent Activity
+                                                No urgent items
                                             </EmptyTitle>
                                         </EmptyHeader>
                                     </Empty>
                                 ) : (
-                                    recentActivity.map((activity, i) => (
+                                    needsAttention.map((item, i) => {
+                                        const Icon =
+                                            attentionIconMap[
+                                                item.type as keyof typeof attentionIconMap
+                                            ] ?? BadgeAlert;
+
+                                        return (
                                         <div
                                             key={i}
-                                            className="flex items-start"
+                                            className="rounded-lg border p-4"
                                         >
-                                            <span className="relative mr-4 flex h-2 w-2 shrink-0 translate-y-2 rounded-full bg-sky-500" />
-                                            <div className="space-y-1">
-                                                <p className="text-sm leading-none font-medium">
-                                                    {activity.action}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {formatDate(activity.created_at)}
-                                                </p>
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex min-w-0 items-start gap-3">
+                                                    <div
+                                                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${toneClassMap[item.tone]}`}
+                                                    >
+                                                        <Icon className="h-4 w-4" />
+                                                    </div>
+                                                    <div className="min-w-0 space-y-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="text-sm font-medium">
+                                                                {item.label}
+                                                            </p>
+                                                            <Badge variant="secondary">
+                                                                {item.count}
+                                                            </Badge>
+                                                        </div>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {item.description}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    asChild
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="shrink-0"
+                                                >
+                                                    <Link href={item.href}>
+                                                        {item.action_label}
+                                                    </Link>
+                                                </Button>
                                             </div>
                                         </div>
-                                    ))
+                                    )})
                                 )}
                             </div>
                         </CardContent>
