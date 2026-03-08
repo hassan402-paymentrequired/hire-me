@@ -594,7 +594,6 @@ class AppointmentController extends Controller
             ->with('services')
             ->findOrFail($id);
 
-        // Keep for backward compatibility: redirect to the new edit page
         return redirect()->route('appointments.edit', ['id' => $appointment->id]);
     }
 

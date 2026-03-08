@@ -3,7 +3,6 @@ import { type BreadcrumbItem } from '@/types';
 import { type ReactNode } from 'react';
 import ToastNotification from '@/components/ui/toast-notification';
 import FavoriteSheet from '@/pages/client/favorite';
-import { PushNotificationSetup } from '@/components/push-notification-setup';
 
 interface ClientLayoutProps {
     children: ReactNode;
@@ -12,7 +11,6 @@ interface ClientLayoutProps {
 
 export default ({ children, breadcrumbs, ...props }: ClientLayoutProps) => (
     <AppLayoutTemplate breadcrumbs={breadcrumbs} {...props}>
-        <PushNotificationSetup />
         {children}
         <FavoriteSheet />
         <ToastNotification />

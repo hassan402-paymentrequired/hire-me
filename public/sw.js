@@ -11,13 +11,25 @@ self.addEventListener("activate", function(event) {
 
 self.addEventListener('push', function (event) {
     console.log(event)
-    if (!event.data) return;
     let payload;
-    try {
-        payload = event.data.json();
-    } catch {
-        payload = { title: 'Notification', body: '' };
+
+
+    if (!event.data) {
+        payload = {
+            title: 'Clockra test notification',
+            body: 'Push event received successfully.',
+            icon: '/logo/android-chrome-192x192.png',
+            data: { url: '/' },
+            tag: 'clockra-test',
+        };
+    } else {
+        try {
+            payload = event.data.json();
+        } catch {
+            payload = { title: 'Notification', body: '' };
+        }
     }
+
     const title = payload.title || 'Notification';
     const body = payload.body || '';
     const icon = payload.icon || '/logo/android-chrome-192x192.png';

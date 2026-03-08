@@ -4,7 +4,6 @@ import { type ReactNode } from 'react';
 import ToastNotification from '@/components/ui/toast-notification';
 import FavoriteSheet from '@/pages/client/favorite';
 import Footer from '@/layouts/footer';
-import { PushNotificationSetup } from '@/components/push-notification-setup';
 
 interface AppLayoutProps {
     children: ReactNode;
@@ -16,7 +15,6 @@ export default ({ children, breadcrumbs, ...props }: AppLayoutProps) => (
         {children}
         <FavoriteSheet />
         <ToastNotification />
-         <PushNotificationSetup />
         <Footer />
     </AppLayoutTemplate>
 );

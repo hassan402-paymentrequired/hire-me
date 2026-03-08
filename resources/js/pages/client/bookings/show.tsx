@@ -122,7 +122,7 @@ export default function BookingDetails({
         booking.status !== 'cancelled' &&
         booking.status !== 'completed';
     const canReschedule =
-        booking.status === 'confirmed' &&
+       ( booking.status === 'confirmed' || booking.status === 'pending') &&
         startTime > fiveHoursFromNow;
 
     // Calculate total duration from all services

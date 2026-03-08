@@ -6,6 +6,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { LoadingProvider } from '@/contexts/loading-context';
 import { LocationPermissionProvider } from '@/contexts/location-permission-context';
+import { PushNotificationSetup } from '@/components/push-notification-setup';
 import { GooeyToaster } from 'goey-toast'
 import "goey-toast/styles.css";
 
@@ -23,12 +24,21 @@ createInertiaApp({
         ),
      setup({ el, App, props }) {
         const root = createRoot(el);
+        const auth = (
+            props.initialPage.props as {
+                auth?: {
+                    user?: unknown;
+                    vapid_public_key?: string;
+                };
+            }
+        ).auth;
 
         root.render(
             <StrictMode>
                 <LoadingProvider>
                     <LocationPermissionProvider reminderInterval={10 * 60 * 1000}>
                         <App {...props} />
+                        <PushNotificationSetup auth={auth} />
                         <GooeyToaster position="top-center" />
 
                     </LocationPermissionProvider>

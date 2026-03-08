@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { usePage } from '@inertiajs/react';
+
+interface PushAuthState {
+    user?: unknown;
+    vapid_public_key?: string;
+}
 
 /**
  * Convert base64url VAPID key to Uint8Array for pushManager.subscribe().
@@ -24,10 +28,8 @@ function getCsrfToken(): string | null {
 /**
  * Register for Web Push and send subscription to backend so user gets notifications when not in the app.
  */
-export function usePushNotifications() {
-    const page = usePage();
+export function usePushNotifications(auth?: PushAuthState) {
     const attempted = useRef(false);
-    const auth = (page.props as { auth?: { user?: unknown; vapid_public_key?: string } }).auth;
     const user = auth?.user;
     const vapidPublicKey = auth?.vapid_public_key;
 
@@ -37,14 +39,22 @@ export function usePushNotifications() {
         }
 
         try {
-            const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+            await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+            const reg = await navigator.serviceWorker.ready;
             await reg.update();
+
             const permission = await Notification.requestPermission();
             if (permission !== 'granted') return;
-            const subscription = await reg.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-            });
+
+            let subscription = await reg.pushManager.getSubscription();
+
+            if (!subscription) {
+                subscription = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+                });
+            }
+
             const endpoint = subscription.endpoint;
             const p256dh = subscription.getKey('p256dh');
             const authKey = subscription.getKey('auth');
@@ -63,7 +73,7 @@ export function usePushNotifications() {
 
             const csrf = getCsrfToken();
 
-            await fetch('/push-subscription', {
+            const response = await fetch('/push-subscription', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -73,8 +83,12 @@ export function usePushNotifications() {
                 credentials: 'same-origin',
                 body: JSON.stringify(payload),
             });
-        } catch {
-            // Permission denied, push not supported, or network error – fail silently
+
+            if (!response.ok) {
+                throw new Error(`Failed to save push subscription: ${response.status}`);
+            }
+        } catch (error) {
+            console.error('Web push subscription failed:', error);
         }
     }, [user, vapidPublicKey]);
 
@@ -84,4 +98,3 @@ export function usePushNotifications() {
         subscribe();
     }, [user, vapidPublicKey, subscribe]);
 }
-
