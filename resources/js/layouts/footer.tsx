@@ -3,36 +3,17 @@ import { Link } from '@inertiajs/react';
 
 const Footer = () => {
     return (
-        <footer className="bg-white dark:bg-gray-900 mt-16 border-t">
-            <div className="w-full px-4 pt-16 pb-8 sm:px-6 lg:px-8">
-                {/* <div className="mx-auto max-w-md">
-                    <p className="block text-center text-xl font-bold text-gray-900 sm:text-3xl dark:text-white">
-                        Want us to email you with the latest blockbuster news?
-                    </p>
+        <footer className="relative mt-16 overflow-hidden border-t bg-white dark:bg-gray-900">
+            <img
+                alt=""
+                src="assets/illustrations/group.svg"
+                aria-hidden="true"
+                className="pointer-events-none absolute bottom-0 left-1/2 z-0 h-auto max-w-none -translate-x-1/2 object-contain"
+                style={{ width: 'min(1800px, 140vw)' }}
+            />
 
-                    <form className="mt-6">
-                        <div className="relative max-w-lg focus:outline-none">
-                            <label className="sr-only" htmlFor="email">
-                                {' '}
-                                Email{' '}
-                            </label>
-
-                            <input
-                                className="w-full rounded-full border border-gray-200 bg-gray-100 p-4 pe-32 text-sm font-medium dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                                id="email"
-                                type="email"
-                                placeholder="john@doe.com"
-                            />
-
-                            <button
-                                type="button"
-                                className="absolute end-1 top-1/2 -translate-y-1/2 rounded-full bg-primary px-5 py-3 text-sm font-medium text-white transition hover:bg-primary/90"
-                            >
-                                Subscribe
-                            </button>
-                        </div>
-                    </form>
-                </div> */}
+            <div className="relative z-10 w-full px-4 pt-16 pb-44 sm:px-6 sm:pb-52 lg:px-8 lg:pb-60">
+               
 
                 <div className=" grid grid-cols-1 gap-8 lg:grid-cols-3  ">
                     {/* Column 1: Logo, description, and social icons together */}
@@ -222,12 +203,6 @@ const Footer = () => {
                             </ul>
                         </div>
                     </div>
-                </div>
-
-                <div className="mt-16 border-t border-gray-100 pt-8 dark:border-gray-800">
-                    <p className="text-center text-xs/relaxed text-gray-500 dark:text-gray-400">
-                        © Clockra 2026. All rights reserved.
-                        </p>
                 </div>
             </div>
         </footer>

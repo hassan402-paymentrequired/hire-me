@@ -19,39 +19,11 @@ export default function Landing({
     onSearch,
     onCategorySelect,
 }: LandingProps) {
-    const [imageOpacity, setImageOpacity] = useState(1);
     const [query, setQuery] = useState(initialSearch);
 
     useEffect(() => {
         setQuery(initialSearch);
     }, [initialSearch]);
-
-    useEffect(() => {
-        const handleScroll = () => {
-            const marketplaceElement = document.getElementById('marketplace');
-            if (!marketplaceElement) return;
-
-            const marketplaceTop = marketplaceElement.getBoundingClientRect().top;
-            const windowHeight = window.innerHeight;
-
-            const fadeStart = windowHeight * 0.9;
-            const fadeEnd = windowHeight * 0.7;
-
-            if (marketplaceTop >= fadeStart) {
-                setImageOpacity(1);
-            } else if (marketplaceTop <= fadeEnd) {
-                setImageOpacity(0);
-            } else {
-                const range = fadeStart - fadeEnd;
-                const opacity = (marketplaceTop - fadeEnd) / range;
-                setImageOpacity(Math.max(0, Math.min(1, opacity)));
-            }
-        };
-
-        handleScroll();
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
 
     const scrollToMarketplace = () => {
         document.getElementById('marketplace')?.scrollIntoView({
@@ -151,7 +123,7 @@ export default function Landing({
                                 className="mt-8 animate-fade-in-up"
                                 style={{ animationDelay: '0.55s' }}
                             >
-                                <div className="flex max-w-3xl flex-col gap-3 rounded-[30px] border border-border/60 bg-background/85 p-3 shadow-xl backdrop-blur md:flex-row md:items-center">
+                                <div className="flex max-w-3xl flex-col gap-3 rounded-full border border-border/60 bg-background/85 p-1 backdrop-blur md:flex-row md:items-center">
                                     <div className="relative flex-1">
                                         <Search className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                         <input
@@ -169,7 +141,7 @@ export default function Landing({
                                         >
                                             Explore providers
                                         </Button>
-                                        <Button
+                                        {/* <Button
                                             type="button"
                                             variant="outline"
                                             size="lg"
@@ -178,7 +150,7 @@ export default function Landing({
                                         >
                                             <MapPin className="h-4 w-4" />
                                             Use my location
-                                        </Button>
+                                        </Button> */}
                                     </div>
                                 </div>
                             </form>
@@ -273,14 +245,6 @@ export default function Landing({
                     </div>
                 </div>
             </div>
-
-            <img
-                alt=""
-                src="assets/illustrations/group.svg"
-                aria-hidden="true"
-                className="pointer-events-none fixed bottom-0 left-1/2 z-0 min-w-screen -translate-x-1/2 transition-opacity duration-200 ease-out"
-                style={{ opacity: imageOpacity }}
-            />
         </div>
     );
 }

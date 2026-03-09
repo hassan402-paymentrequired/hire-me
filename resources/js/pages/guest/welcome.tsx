@@ -145,13 +145,15 @@ export default function Welcome({
             />
             <AppLayout>
                 <div className="m box-border flex w-full flex-col space-y-6 overflow-visible px-5">
-                    <Landing
-                        categories={categories}
-                        initialSearch={filters.search || ''}
-                        onLocationRequest={requestLocation}
-                        onSearch={handleHeroSearch}
-                        onCategorySelect={handleHeroCategorySelect}
-                    />
+                    <div className="hidden md:block">
+                        <Landing
+                            categories={categories}
+                            initialSearch={filters.search || ''}
+                            onLocationRequest={requestLocation}
+                            onSearch={handleHeroSearch}
+                            onCategorySelect={handleHeroCategorySelect}
+                        />
+                    </div>
 
                     {/* market place */}
                     <div id="marketplace" className="min-h-[calc(98vh-3rem)]">
