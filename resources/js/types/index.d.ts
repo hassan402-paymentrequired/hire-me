@@ -42,6 +42,7 @@ export interface User {
     email_verified_at: string | null;
     role: 'client' | 'provider';
     has_provider_setup?: boolean;
+    can_access_provider_workspace?: boolean;
     wallet?: {
         balance: number;
         escrow_balance: number;
@@ -115,7 +116,16 @@ export interface Appointment {
     original_price: number,
     discount_percent: number,
     recurrence_stopped_at: string,
-    team_member_id: string,
+    team_member_id: string | null,
+    team_member?: {
+        id: string;
+        role: 'admin' | 'staff';
+        user: {
+            id: string;
+            name: string;
+            email: string;
+        };
+    } | null,
     services: Service[],
     client: User
 }

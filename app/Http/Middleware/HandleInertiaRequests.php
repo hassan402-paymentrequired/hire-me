@@ -50,6 +50,7 @@ class HandleInertiaRequests extends Middleware
                     return [
                         ...$user->toArray(),
                         'has_provider_setup' => $user->hasProviderSetup(),
+                        'can_access_provider_workspace' => $user->canAccessProviderWorkspace(),
                         'wallet' => $wallet ? [
                             'balance' => $wallet->balance,
                             'escrow_balance' => $wallet->escrow_balance,

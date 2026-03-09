@@ -77,7 +77,7 @@ const mainNavItems: any[] = [
                 title: 'Team Members',
                 href: business.team.index(),
                 icon: UserGroupIcon,
-                isLocked: true,
+                isLocked: false,
             },
             {
                 title: 'Wallet',

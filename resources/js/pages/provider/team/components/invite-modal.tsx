@@ -1,5 +1,18 @@
-import { CustomAlertDialog } from '@/components/ui/custom-alert-dialog'
+import { ReactNode } from 'react';
 
+import { CustomAlertDialog } from '@/components/ui/custom-alert-dialog';
+
+interface InviteModalProps {
+    showDialog: boolean;
+    setShowDialog: (open: boolean) => void;
+    dialogIcon: ReactNode;
+    title: string;
+    description: string;
+    acceptLabel: string;
+    rejectLabel: string;
+    handleAccept: () => void;
+    handleReject: () => void;
+}
 
 const InviteModal = ({
     showDialog,
@@ -10,8 +23,8 @@ const InviteModal = ({
     acceptLabel,
     rejectLabel,
     handleAccept,
-    handleReject
-}) => {
+    handleReject,
+}: InviteModalProps) => {
     return (
         <CustomAlertDialog
             open={showDialog}

@@ -1,10 +1,12 @@
 <x-mail::message>
-# Introduction
+# Invitation Accepted
 
-The body of your message.
+Hello,
 
-<x-mail::button :url="''">
-Button Text
+**{{ $teamMember->user->name }}** has accepted your invitation to join **{{ $businessName }}** as a **{{ ucfirst($teamMember->role) }}** team member.
+
+<x-mail::button :url="url('/business/team')">
+View Team Members
 </x-mail::button>
 
 Thanks,<br>

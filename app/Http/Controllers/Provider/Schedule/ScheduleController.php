@@ -27,7 +27,7 @@ class ScheduleController extends Controller
         $endDate = $startDate->copy()->endOfWeek();
 
         $appointments = $user->appointmentsAsProvider()
-            ->with(['service', 'client'])
+            ->with(['service', 'client', 'teamMember.user'])
             ->whereBetween('start_time', [$startDate, $endDate])
             ->orderBy('start_time', 'asc')
             ->get();
@@ -44,7 +44,7 @@ class ScheduleController extends Controller
         $search = $request->search ?? null;
         $status = $request->status ?? null;
 
-        $query = $user->appointmentsAsProvider()->with(['services', 'client'])
+        $query = $user->appointmentsAsProvider()->with(['services', 'client', 'teamMember.user'])
             ->when($search, function ($q, $search) {
                 $q->whereHas('client', function($q2) use ($search) {
                     $q2->where('name', 'like', "%{$search}%")
@@ -175,7 +175,7 @@ class ScheduleController extends Controller
     public function showAppointment($id)
     {
         $appointment = Appointment::where('provider_id', auth()->id())
-            ->with(['client', 'services', 'provider.businessProfile'])
+            ->with(['client', 'services', 'provider.businessProfile', 'teamMember.user'])
             ->findOrFail($id);
 
         $provider = $appointment->provider;
@@ -206,6 +206,12 @@ class ScheduleController extends Controller
                 'status' => $appointment->status,
                 'price' => '₦'.number_format($appointment->price, 2),
                 'notes' => $appointment->notes,
+                'team_member' => $appointment->teamMember?->user ? [
+                    'id' => $appointment->teamMember->id,
+                    'name' => $appointment->teamMember->user->name,
+                    'email' => $appointment->teamMember->user->email,
+                    'role' => $appointment->teamMember->role,
+                ] : null,
                 'created_at' => $appointment->created_at->format('M d, Y'),
                 'escrow_status' => $appointment->escrow_status,
                 'escrow_amount' => $appointment->escrow_amount,

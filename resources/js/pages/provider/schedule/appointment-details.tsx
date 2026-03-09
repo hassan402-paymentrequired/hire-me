@@ -59,6 +59,12 @@ interface AppointmentDetails {
     location?: string | null;
     location_phone?: string | null;
     total_duration_minutes?: number;
+    team_member?: {
+        id: string;
+        name: string;
+        email: string;
+        role: 'admin' | 'staff';
+    } | null;
 }
 
 export default function AppointmentDetailsPage({
@@ -255,6 +261,24 @@ export default function AppointmentDetailsPage({
                                             <span className="text-lg font-bold">
                                                 {totalDuration} minutes
                                             </span>
+                                        </div>
+                                    </div>
+                                )}
+                                {appointment.team_member && (
+                                    <div className="space-y-1">
+                                        <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
+                                            Assigned Team Member
+                                        </p>
+                                        <div className="flex items-center gap-3">
+                                            <Mail className="h-5 w-5 text-primary" />
+                                            <div>
+                                                <span className="text-lg font-bold">
+                                                    {appointment.team_member.name}
+                                                </span>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {appointment.team_member.role}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                 )}

@@ -40,6 +40,13 @@ interface Provider {
     logo: string | null;
 }
 
+interface TeamMember {
+    id: string;
+    name: string;
+    email: string;
+    role: 'admin' | 'staff';
+}
+
 interface TimeSlot {
     start: string;
     end: string;
@@ -59,6 +66,7 @@ interface ProviderSettings {
 interface Props {
     provider: Provider;
     services: Service[];
+    teamMembers: TeamMember[];
     walletBalance?: number | null;
     settings?: ProviderSettings;
 }
@@ -66,6 +74,7 @@ interface Props {
 export default function Booking({
     provider,
     services,
+    teamMembers,
     walletBalance,
     settings,
 }: Props) {
@@ -74,6 +83,7 @@ export default function Booking({
     const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
     const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
     const [notes, setNotes] = useState('');
+    const [selectedTeamMemberId, setSelectedTeamMemberId] = useState('');
     const [loading, setLoading] = useState(false);
     const [rescheduleId, setRescheduleId] = useState<string | null>(null);
     const [apiMessage, setApiMessage] = useState<string | null>(null);
@@ -121,7 +131,7 @@ export default function Booking({
         if (selectedDate && selectedServiceIds.length > 0) {
             fetchAvailableSlots();
         }
-    }, [selectedDate, selectedServiceIds]);
+    }, [selectedDate, selectedServiceIds, selectedTeamMemberId]);
 
     const fetchAvailableSlots = async () => {
         setLoading(true);
@@ -132,6 +142,7 @@ export default function Booking({
                     provider_id: provider.id,
                     service_ids: selectedServiceIds,
                     date: format(selectedDate, 'yyyy-MM-dd'),
+                    team_member_id: selectedTeamMemberId || undefined,
                     reschedule_id: rescheduleId,
                 },
             });
@@ -213,6 +224,7 @@ export default function Booking({
             service_ids: selectedServiceIds,
             start_time: selectedSlot,
             notes: notes,
+            team_member_id: selectedTeamMemberId || null,
         };
 
         if (recurrencePattern) {
@@ -557,6 +569,46 @@ export default function Booking({
                                     ))}
                                 </div>
                             </div>
+
+                            {teamMembers.length > 0 && (
+                                <div className="space-y-3">
+                                    <div>
+                                        <h3 className="text-xl font-black tracking-tight">
+                                            Choose who attends to you
+                                        </h3>
+                                        <p className="text-sm text-muted-foreground">
+                                            Optional. Leave this set to provider
+                                            if you do not have a preference.
+                                        </p>
+                                    </div>
+                                    <Select
+                                        value={selectedTeamMemberId || 'provider'}
+                                        onValueChange={(value) => {
+                                            setSelectedTeamMemberId(
+                                                value === 'provider' ? '' : value,
+                                            );
+                                            setSelectedSlot('');
+                                        }}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Choose a team member (optional)" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="provider">
+                                                Provider
+                                            </SelectItem>
+                                            {teamMembers.map((member) => (
+                                                <SelectItem
+                                                    key={member.id}
+                                                    value={member.id}
+                                                >
+                                                    {member.name} ({member.role})
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
 
                             {/* Booking Notes */}
                             <div className="space-y-2">

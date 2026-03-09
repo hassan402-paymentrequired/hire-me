@@ -2,36 +2,30 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
-    public function register(): void
-    {
-        //
-    }
+    public function register(): void {}
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         Model::unguard();
-       $this->verifyMail();
+        $this->configureEmailVerification();
     }
 
-    private function verifyMail()
+    private function configureEmailVerification(): void
     {
-         VerifyEmail::toMailUsing(function (object $notifiable, string $url) {
-        return (new MailMessage)
-            ->subject('Verify Email Address')
-            ->view('emails.verify-email', ['url' => $url, 'user' => $notifiable]);
-    });
+        VerifyEmail::toMailUsing(function (object $notifiable, string $url): MailMessage {
+            return (new MailMessage)
+                ->subject('Verify your email address — ' . config('app.name'))
+                ->view('emails.verify-email', [
+                    'url'  => $url,
+                    'user' => $notifiable,
+                ]);
+        });
     }
 }

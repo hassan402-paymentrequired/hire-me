@@ -48,7 +48,7 @@ class EnsureSetup
         // If user has started provider setup but hasn't completed it
         // Only redirect if they're trying to access provider management routes
         if ($request->routeIs('business.*', 'provider.appointments.*', 'schedule.*')) {
-            if ($user->hasProviderSetup()) {
+            if ($user->canAccessProviderWorkspace()) {
                 return $next($request);
             }
             

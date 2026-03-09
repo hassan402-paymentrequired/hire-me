@@ -101,7 +101,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                         {auth?.user && (
                                             <>
                                                 <div className="my-2 border-t" />
-                                                {auth.user.has_provider_setup ? (
+                                                {auth.user.can_access_provider_workspace ? (
                                                     <Link
                                                         href={business.dashboard()}
                                                         className="flex items-center gap-2 rounded-lg px-3 py-2 font-medium hover:bg-muted"
@@ -208,7 +208,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                             <>
                                 {/* Desktop-only: Become Provider / Dashboard */}
                                 <div className="hidden sm:flex items-center gap-2">
-                                    {auth.user.has_provider_setup ? (
+                                    {auth.user.can_access_provider_workspace ? (
                                         <Link href={business.dashboard()} prefetch>
                                             <Button size="sm" className="rounded-2xl">
                                                 Dashboard

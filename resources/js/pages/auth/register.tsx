@@ -12,13 +12,19 @@ import { Separator } from '@/components/ui/separator';
 import AuthLayout from '@/layouts/auth-layout';
 import { register, login } from '@/routes';
 
-
-export default function Register() {
+export default function Register({
+    invitationToken,
+    invitationBusinessName,
+}: {
+    invitationToken?: string | null;
+    invitationBusinessName?: string | null;
+}) {
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '',
         email: '',
         password: '',
         password_confirmation: '',
+        invitation_token: invitationToken || '',
     });
 
     const [showPassword, setShowPassword] = useState(false);
@@ -35,7 +41,11 @@ export default function Register() {
     return (
         <AuthLayout
             title="Create an account"
-            description="Enter your details below to create your account"
+            description={
+                invitationToken
+                    ? `Complete your registration to join ${invitationBusinessName || 'this provider'} as staff.`
+                    : 'Enter your details below to create your account'
+            }
         >
             <Head title="Register" />
 
@@ -81,6 +91,16 @@ export default function Register() {
             </div>
 
             <form onSubmit={submit} className="flex flex-col gap-4 sm:gap-5">
+                {invitationToken && (
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700">
+                        You are registering through a team invitation for{' '}
+                        <span className="font-semibold">
+                            {invitationBusinessName || 'this provider'}
+                        </span>
+                        .
+                    </div>
+                )}
+
                 <div className="grid gap-4 sm:gap-5">
                     <div className="grid gap-1.5">
                         <Label htmlFor="name" className="text-sm font-medium">Name</Label>
@@ -214,7 +234,11 @@ export default function Register() {
                 <div className="text-center text-sm text-muted-foreground pt-2">
                     Already have an account?{' '}
                     <TextLink 
-                        href={login()} 
+                        href={
+                            invitationToken
+                                ? `/login?invitation=${encodeURIComponent(invitationToken)}`
+                                : login()
+                        } 
                         tabIndex={6}
                         className="font-medium text-foreground hover:underline"
                     >

@@ -1,6 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Button } from '@/components/ui/button';
 import { Calendar as DateCalendar } from '@/components/ui/calendar';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { CustomAlertDialog } from '@/components/ui/custom-alert-dialog';
 import GuestLayout from '@/layouts/guest-layout';
@@ -40,6 +47,13 @@ interface Provider {
     logo: string | null;
 }
 
+interface TeamMember {
+    id: string;
+    name: string;
+    email: string;
+    role: 'admin' | 'staff';
+}
+
 interface TimeSlot {
     start: string;
     end: string;
@@ -63,23 +77,42 @@ interface AppointmentPayload {
     notes?: string | null;
     price: number;
     service_ids: string[];
+    team_member_id?: string | null;
 }
 
 interface Props {
     appointment: AppointmentPayload;
     provider: Provider;
     services: Service[];
+    teamMembers: TeamMember[];
     walletBalance?: number | null;
     settings?: ProviderSettings;
 }
 
 export default function EditAppointment() {
-    const { props } = usePage<{ appointment: AppointmentPayload; provider: Provider; services: Service[]; walletBalance?: number | null; settings?: ProviderSettings }>();
-    const { appointment, provider, services, walletBalance, settings } = props;
+    const { props } = usePage<{
+        appointment: AppointmentPayload;
+        provider: Provider;
+        services: Service[];
+        teamMembers: TeamMember[];
+        walletBalance?: number | null;
+        settings?: ProviderSettings;
+    }>();
+    const {
+        appointment,
+        provider,
+        services,
+        teamMembers,
+        walletBalance,
+        settings,
+    } = props;
 
     const [selectedDate, setSelectedDate] = useState<Date>(new Date(appointment.start_time));
     const [selectedSlot, setSelectedSlot] = useState<string>(appointment.start_time);
     const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(appointment.service_ids || []);
+    const [selectedTeamMemberId, setSelectedTeamMemberId] = useState<string>(
+        appointment.team_member_id || '',
+    );
     const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
     const [notes, setNotes] = useState<string>(appointment.notes || '');
     const [loading, setLoading] = useState(false);
@@ -102,7 +135,7 @@ export default function EditAppointment() {
             fetchAvailableSlots();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedDate, selectedServiceIds]);
+    }, [selectedDate, selectedServiceIds, selectedTeamMemberId]);
 
     const fetchAvailableSlots = async () => {
         setLoading(true);
@@ -113,6 +146,7 @@ export default function EditAppointment() {
                     provider_id: provider.id,
                     service_ids: selectedServiceIds,
                     date: format(selectedDate, 'yyyy-MM-dd'),
+                    team_member_id: selectedTeamMemberId || undefined,
                     reschedule_id: appointment.id,
                 },
             });
@@ -203,6 +237,7 @@ export default function EditAppointment() {
             service_ids: selectedServiceIds,
             start_time: selectedSlot,
             notes,
+            team_member_id: selectedTeamMemberId || null,
         };
 
         router.put(`/appointments/${appointment.id}`, payload);
@@ -478,6 +513,47 @@ export default function EditAppointment() {
                                     className="text-sm"
                                 />
                             </div>
+
+                            {teamMembers.length > 0 && (
+                                <div className="space-y-3">
+                                    <div>
+                                        <h3 className="text-xl font-black tracking-tight">
+                                            Team member
+                                        </h3>
+                                        <p className="text-sm text-muted-foreground">
+                                            Optional. Leave this set to provider
+                                            if you do not want a specific team
+                                            member.
+                                        </p>
+                                    </div>
+                                    <Select
+                                        value={selectedTeamMemberId || 'provider'}
+                                        onValueChange={(value) => {
+                                            setSelectedTeamMemberId(
+                                                value === 'provider' ? '' : value,
+                                            );
+                                            setSelectedSlot('');
+                                        }}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Choose a team member (optional)" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="provider">
+                                                Provider
+                                            </SelectItem>
+                                            {teamMembers.map((member) => (
+                                                <SelectItem
+                                                    key={member.id}
+                                                    value={member.id}
+                                                >
+                                                    {member.name} ({member.role})
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
                         </div>
 
                         {/* Right Content: Summary */}
@@ -649,4 +725,3 @@ export default function EditAppointment() {
         </GuestLayout>
     );
 }
-

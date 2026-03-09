@@ -2,8 +2,8 @@
 
 namespace App\Notifications;
 
+use App\Models\TeamMember;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -14,9 +14,9 @@ class TeamMemberAcceptInvitationNotification extends Notification
     /**
      * Create a new notification instance.
      */
-    public function __construct()
+    public function __construct(public TeamMember $teamMember)
     {
-        //
+        $this->teamMember->loadMissing(['user', 'provider.businessProfile']);
     }
 
     /**
@@ -34,7 +34,16 @@ class TeamMemberAcceptInvitationNotification extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage)->markdown('emails.invitation-accepted-notification');
+        $provider = $this->teamMember->provider;
+        $businessName = $provider->businessProfile?->business_name ?? $provider->name . "'s Business";
+
+        return (new MailMessage)
+            ->subject($this->teamMember->user->name . ' accepted your team invitation - ' . config('app.name'))
+            ->markdown('emails.invitation-accepted-notification', [
+                'teamMember' => $this->teamMember,
+                'provider' => $provider,
+                'businessName' => $businessName,
+            ]);
     }
 
     /**
@@ -45,7 +54,11 @@ class TeamMemberAcceptInvitationNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            //
+            'title' => 'Team invitation accepted',
+            'message' => $this->teamMember->user->name . ' accepted your invitation.',
+            'action_url' => '/business/team',
+            'type' => 'team_invitation_accepted',
+            'team_member_id' => $this->teamMember->id,
         ];
     }
 }

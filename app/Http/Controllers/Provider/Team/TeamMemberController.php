@@ -7,8 +7,11 @@ use App\Http\Controllers\Controller;
 use App\Models\TeamMember;
 use App\Models\User;
 use App\Notifications\InviteUserNotification;
+use App\Notifications\TeamMemberAcceptInvitationNotification;
 use App\Notifications\TeamMemberInvitationNotification;
+use App\Services\ProviderTeamInvitationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -16,12 +19,18 @@ use App\Services\ProviderLogService;
 
 class TeamMemberController extends Controller
 {
+    public function __construct(
+        private ProviderTeamInvitationService $providerTeamInvitationService,
+    ) {
+    }
+
     /**
      * Display team members list
      */
     public function index(Request $request)
     {
         $provider = auth_user();
+        $providerInvitationLink = $this->providerInvitationLink($provider);
 
         $search = $request->search ??= null;
         $role = $request->role ??= null;
@@ -54,6 +63,7 @@ class TeamMemberController extends Controller
         return Inertia::render('provider/team/index', [
             'teamMembers' => $teamMembers,
             'stats' => $stats,
+            'providerInvitationLink' => $providerInvitationLink,
             'filters' => [
                 'search' => $search,
                 'role' => $request->role,
@@ -103,7 +113,7 @@ class TeamMemberController extends Controller
             }
 
             throw ValidationException::withMessages([
-                'exists' => true,
+                'exists' => 'The user already exists on the platform.',
             ]);
         }
 
@@ -155,6 +165,26 @@ class TeamMemberController extends Controller
             $user = User::where('email', $request->email)->first();
             $provider = auth()->user();
 
+            if (! $user) {
+                return back()->with('error-toast', 'User not found.');
+            }
+
+            if ($user->id === $provider->id) {
+                return back()->with('error-toast', 'You cannot add yourself as a team member.');
+            }
+
+            if ($user->isProvider()) {
+                return back()->with('error-toast', 'User already has a business profile.');
+            }
+
+            $existing = TeamMember::where('provider_id', $provider->id)
+                ->where('user_id', $user->id)
+                ->first();
+
+            if ($existing) {
+                return back()->with('error-toast', 'This user is already a team member.');
+            }
+
             $teamMember = TeamMember::create([
                 'provider_id' => $provider->id,
                 'user_id' => $user->id,
@@ -182,27 +212,40 @@ class TeamMemberController extends Controller
     public function acceptInvite(Request $request, string $link)
     {
         $member = TeamMember::query()->where('invitation_link', $link)
-        ->whereDate('invitation_expires_at', '>', now())
+        ->where('invitation_expires_at', '>', now())
+        ->with(['user', 'provider', 'inviter'])
         ->first();
 
         if(!$member){
-            abort(401);
+            abort(404);
         }
-        
-          \Illuminate\Support\Facades\DB::transaction(function () use ($request, $member) {
+
+        if ($member->hasAccepted()) {
+            return redirect()->route('login')
+                ->with('success-toast', 'Invitation already accepted. You can sign in to continue.');
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($member) {
             $member->update([
                 'is_active' => true,
+                'accepted_at' => now(),
                 'invitation_link' => null,
-                'invitation_expires_at' => null
+                'invitation_expires_at' => null,
             ]);
 
+            ProviderLogService::log(
+                $member->provider_id,
+                'Invitation accepted by ' . $member->user->name,
+                'Team invitation accepted'
+            );
 
-            ProviderLogService::log($member->provider_id, 'Invitation accepted by ' . $memeber->user->name, 'Invitation accepted');
-
-           $member->inviter->notify(new TeamMemberAcceptInvitation($member));
+            if ($member->inviter) {
+                $member->inviter->notify(new TeamMemberAcceptInvitationNotification($member));
+            }
         });
 
-        return back()->with('success-toast', 'Provider verified successfully!');
+        return redirect()->route('login')
+            ->with('success-toast', 'Invitation accepted successfully. You can now sign in.');
     }
 
     /**
@@ -308,5 +351,42 @@ class TeamMemberController extends Controller
             });
 
         return response()->json($teamMembers);
+    }
+
+    public function providerInvite(Request $request)
+    {
+        $token = $request->query('token');
+
+        if (! $token) {
+            return redirect()->route('register')
+                ->with('error-toast', 'This invitation link is invalid.');
+        }
+
+        if (! auth()->check()) {
+            return redirect()->route('register', ['invitation' => $token]);
+        }
+
+        $result = $this->providerTeamInvitationService->attachUserFromToken(auth()->user(), $token);
+
+        return redirect()->route('home')->with(
+            $result['status'] === 'success' ? 'success-toast' : 'error-toast',
+            $result['message'],
+        );
+    }
+
+    private function providerInvitationLink(User $provider): string
+    {
+        if (! $provider->invitation_link) {
+            $provider->forceFill([
+                'invitation_link' => generate_random(40),
+            ])->save();
+        }
+
+        $payload = Crypt::encryptString(json_encode([
+            'provider_id' => $provider->id,
+            'invitation_link' => $provider->invitation_link,
+        ]));
+
+        return route('business.team.provider-invite', ['token' => $payload]);
     }
 }

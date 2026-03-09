@@ -7,6 +7,7 @@ use App\Models\FavouriteBusiness;
 use App\Models\User;
 use App\Models\BusinessProfile;
 use App\Models\Appointment;
+use App\Models\TeamMember;
 use App\Models\Wallet;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -171,6 +172,12 @@ class MarketplaceController extends Controller
 
         // Get provider settings
         $settings = $businessProfile->settings ?? [];
+        $teamMembers = TeamMember::query()
+            ->where('provider_id', $provider->id)
+            ->where('is_active', true)
+            ->whereNotNull('accepted_at')
+            ->with('user:id,name,email')
+            ->get();
 
         return Inertia::render('marketplace/booking', [
             'provider' => [
@@ -191,6 +198,14 @@ class MarketplaceController extends Controller
                 'price' => $service->price,
             ]),
             'walletBalance' => $walletBalance,
+            'teamMembers' => $teamMembers->count() > 1
+                ? $teamMembers->map(fn ($member) => [
+                    'id' => $member->id,
+                    'name' => $member->user?->name,
+                    'email' => $member->user?->email,
+                    'role' => $member->role,
+                ])->values()
+                : [],
             'settings' => [
                 'advanceBooking' => $settings['advanceBooking'] ?? '30', // days
                 'minNotice' => $settings['minNotice'] ?? null, // hours

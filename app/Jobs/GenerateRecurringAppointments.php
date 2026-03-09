@@ -182,6 +182,7 @@ class GenerateRecurringAppointments implements ShouldQueue
                 'original_price' => $originalPrice,
                 'discount_percent' => $discountPercent,
                 'notes' => $parent->notes,
+                'team_member_id' => $parent->team_member_id,
                 'client_name' => $parent->client_name,
                 'client_email' => $parent->client_email,
                 'recurrence_pattern' => null, // Children don't have pattern
