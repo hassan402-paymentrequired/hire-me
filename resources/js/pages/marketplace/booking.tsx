@@ -1,3 +1,4 @@
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
@@ -45,6 +46,7 @@ interface TeamMember {
     name: string;
     email: string;
     role: 'admin' | 'staff';
+    avatar?: string | null;
 }
 
 interface TimeSlot {
@@ -581,32 +583,97 @@ export default function Booking({
                                             if you do not have a preference.
                                         </p>
                                     </div>
-                                    <Select
-                                        value={selectedTeamMemberId || 'provider'}
-                                        onValueChange={(value) => {
-                                            setSelectedTeamMemberId(
-                                                value === 'provider' ? '' : value,
-                                            );
-                                            setSelectedSlot('');
-                                        }}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Choose a team member (optional)" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="provider">
-                                                Provider
-                                            </SelectItem>
-                                            {teamMembers.map((member) => (
-                                                <SelectItem
-                                                    key={member.id}
-                                                    value={member.id}
-                                                >
-                                                    {member.name} ({member.role})
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedTeamMemberId('');
+                                                setSelectedSlot('');
+                                            }}
+                                            className={cn(
+                                                'rounded-xl border p-4 text-left transition-all',
+                                                !selectedTeamMemberId
+                                                    ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                                                    : 'border-border hover:border-primary/30',
+                                            )}
+                                        >
+                                            <div className="mb-3 flex items-center gap-3">
+                                                <Avatar className="h-12 w-12">
+                                                    <AvatarImage
+                                                        src={provider.logo || undefined}
+                                                        alt={provider.name}
+                                                    />
+                                                    <AvatarFallback>
+                                                        {provider.name
+                                                            .split(' ')
+                                                            .map((part) => part[0])
+                                                            .join('')
+                                                            .slice(0, 2)
+                                                            .toUpperCase()}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <p className="font-semibold">
+                                                        {provider.name}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Business owner
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <p className="text-sm text-muted-foreground">
+                                                Book directly with the provider.
+                                            </p>
+                                        </button>
+
+                                        {teamMembers.map((member) => (
+                                            <button
+                                                key={member.id}
+                                                type="button"
+                                                onClick={() => {
+                                                    setSelectedTeamMemberId(
+                                                        member.id,
+                                                    );
+                                                    setSelectedSlot('');
+                                                }}
+                                                className={cn(
+                                                    'rounded-xl border p-4 text-left transition-all',
+                                                    selectedTeamMemberId ===
+                                                        member.id
+                                                        ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                                                        : 'border-border hover:border-primary/30',
+                                                )}
+                                            >
+                                                <div className="mb-3 flex items-center gap-3">
+                                                    <Avatar className="h-12 w-12">
+                                                        <AvatarImage
+                                                            src={member.avatar || undefined}
+                                                            alt={member.name}
+                                                        />
+                                                        <AvatarFallback>
+                                                            {member.name
+                                                                .split(' ')
+                                                                .map((part) => part[0])
+                                                                .join('')
+                                                                .slice(0, 2)
+                                                                .toUpperCase()}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <div>
+                                                        <p className="font-semibold">
+                                                            {member.name}
+                                                        </p>
+                                                        <p className="text-xs capitalize text-muted-foreground">
+                                                            {member.role}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <p className="truncate text-sm text-muted-foreground">
+                                                    {member.email}
+                                                </p>
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
 

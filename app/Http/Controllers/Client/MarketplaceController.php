@@ -164,6 +164,7 @@ class MarketplaceController extends Controller
             ])
             ->firstOrFail();
 
+
         $walletBalance = null;
         if (auth()->check()) {
             $wallet = Wallet::firstOrCreate(['user_id' => auth()->id()]);
@@ -176,8 +177,12 @@ class MarketplaceController extends Controller
             ->where('provider_id', $provider->id)
             ->where('is_active', true)
             ->whereNotNull('accepted_at')
-            ->with('user:id,name,email')
+            ->with('user:id,name,email,avatar')
             ->get();
+        $bookableTeamMembers = $teamMembers
+            ->where('user_id', '!=', $provider->id)
+            ->values();
+
 
         return Inertia::render('marketplace/booking', [
             'provider' => [
@@ -198,12 +203,13 @@ class MarketplaceController extends Controller
                 'price' => $service->price,
             ]),
             'walletBalance' => $walletBalance,
-            'teamMembers' => $teamMembers->count() > 1
-                ? $teamMembers->map(fn ($member) => [
+            'teamMembers' => $teamMembers->count() > 0
+                ? $bookableTeamMembers->map(fn ($member) => [
                     'id' => $member->id,
                     'name' => $member->user?->name,
                     'email' => $member->user?->email,
                     'role' => $member->role,
+                    'avatar' => $member->user?->avatar ?? null,
                 ])->values()
                 : [],
             'settings' => [

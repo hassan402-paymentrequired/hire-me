@@ -8,6 +8,7 @@ use App\Jobs\SaveWorkHourJob;
 use App\Models\BusinessProfile;
 use App\Models\Category;
 use App\Models\Service;
+use App\Models\TeamMember;
 use App\Models\WorkHour;
 use App\Notifications\BusinessSetupCompleteNotification;
 use App\Services\ProviderLogService;
@@ -120,6 +121,8 @@ class OnboardingController extends Controller
                 }
             }
 
+            $this->ensureProviderTeamMember($user);
+
             DB::commit();
 
             return redirect()->route('onboarding.index');
@@ -207,6 +210,7 @@ class OnboardingController extends Controller
             'status' => 'active',
         ]);
 
+        $this->ensureProviderTeamMember($user);
         $user->notify(new BusinessSetupCompleteNotification);
 
         return redirect()->route('onboarding.success');
@@ -300,10 +304,28 @@ class OnboardingController extends Controller
 
         $user->businessProfile->update(['has_onboarded' => true]);
         $user->update(['role' => UserRoleEnum::PROVIDER->value]);
+        $this->ensureProviderTeamMember($user);
 
         $user->notify(new BusinessSetupCompleteNotification);
 
         return redirect()->route('onboarding.success');
 
+    }
+
+    private function ensureProviderTeamMember($user): void
+    {
+        TeamMember::firstOrCreate(
+            [
+                'provider_id' => $user->id,
+                'user_id' => $user->id,
+            ],
+            [
+                'role' => 'admin',
+                'is_active' => true,
+                'invited_by' => $user->id,
+                'invited_at' => now(),
+                'accepted_at' => now(),
+            ],
+        );
     }
 }
