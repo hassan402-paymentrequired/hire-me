@@ -211,14 +211,14 @@ export default function Welcome({
                                         </InfiniteScroll>
 
                                         {/* Guest gate: login to continue viewing more providers */}
-                                        {isGuest && (
+                                        {/* {isGuest && (
                                             <div className="mt-10">
                                                 <MiniLoginForm
                                                     gate
                                                     canRegister={canRegister}
                                                 />
                                             </div>
-                                        )}
+                                        )} */}
                                     </>
                                 )}
                             </div>

@@ -637,7 +637,7 @@ export default function Booking({
                                                     setSelectedSlot('');
                                                 }}
                                                 className={cn(
-                                                    'rounded-xl border p-4 text-left transition-all',
+                                                    'rounded-sm border p-4 text-left transition-all',
                                                     selectedTeamMemberId ===
                                                         member.id
                                                         ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
@@ -645,12 +645,12 @@ export default function Booking({
                                                 )}
                                             >
                                                 <div className="mb-3 flex items-center gap-3">
-                                                    <Avatar className="h-12 w-12">
+                                                    <Avatar className={cn("h-12 w-12", selectedTeamMemberId === member.id && "border-grey-300 shadow border-2")}>
                                                         <AvatarImage
                                                             src={member.avatar || undefined}
                                                             alt={member.name}
                                                         />
-                                                        <AvatarFallback>
+                                                        <AvatarFallback >
                                                             {member.name
                                                                 .split(' ')
                                                                 .map((part) => part[0])
@@ -660,7 +660,7 @@ export default function Booking({
                                                         </AvatarFallback>
                                                     </Avatar>
                                                     <div>
-                                                        <p className="font-semibold">
+                                                        <p className="font-semibold capitalize">
                                                             {member.name}
                                                         </p>
                                                         <p className="text-xs capitalize text-muted-foreground">

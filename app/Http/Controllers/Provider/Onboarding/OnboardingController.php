@@ -213,7 +213,8 @@ class OnboardingController extends Controller
         $this->ensureProviderTeamMember($user);
         $user->notify(new BusinessSetupCompleteNotification);
 
-        return redirect()->route('onboarding.success');
+        return redirect()->route('onboarding.success');   
+
     }
 
     public function success()
