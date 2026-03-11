@@ -565,14 +565,14 @@ export default function ProviderProfile({
                                     </p>
                                 </div>
                             ) : (
-                                <div className="grid gap-3">
+                                <div className="grid gap-3 sm:grid-cols-2">
                                     {services.map((service, index) => (
                                         <button
                                             key={service.id}
                                             onClick={() =>
                                                 setSelectedService(service)
                                             }
-                                            className="group w-full cursor-pointer rounded-xl border bg-card p-3 text-left transition-all hover:border-primary/50 hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none active:scale-[0.99] sm:p-4"
+                                            className="group w-full cursor-pointer rounded-lg border bg-card p-3 text-left transition-all hover:border-primary/50 hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none active:scale-[0.99] sm:p-4"
                                         >
                                             <div className="flex items-start justify-between gap-3">
                                                 {/* Number + details */}
