@@ -6,7 +6,7 @@ const Footer = () => {
         <footer className="relative mt-16 overflow-hidden border-t bg-white dark:bg-gray-900">
             <img
                 alt=""
-                src="assets/illustrations/group.svg"
+                src="/assets/illustrations/group.svg"
                 aria-hidden="true"
                 className="pointer-events-none absolute bottom-0 left-1/2 z-0 h-auto max-w-none -translate-x-1/2 object-contain"
                 style={{ width: 'min(1800px, 140vw)' }}

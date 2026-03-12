@@ -220,6 +220,13 @@ export default function ProviderProfile({
         provider.images?.find((img) => img.isLogo) || provider.images?.[0];
     const otherImages = provider.images?.filter((img) => img !== logo) || [];
     const allImages = logo ? [logo, ...otherImages] : otherImages;
+    const heroInitials = (provider.businessName || provider.name || 'P')
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase();
 
     const nextSlide = () =>
         setCurrentSlide((prev) => (prev + 1) % allImages.length);
@@ -475,12 +482,127 @@ export default function ProviderProfile({
                         </div>
                     </>
                 ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-muted">
-                        <div className="text-center">
-                            <ImageIcon className="mx-auto mb-4 h-16 w-16 opacity-30" />
-                            <p className="text-muted-foreground">
-                                No images available
-                            </p>
+                    <div className="relative h-full w-full overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/25 via-background to-muted" />
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.35),transparent_55%)]" />
+                        <img
+                            src="/assets/illustrations/group.svg"
+                            alt=""
+                            aria-hidden="true"
+                            className="pointer-events-none absolute -bottom-16 left-1/2 w-[1200px] max-w-none -translate-x-1/2 opacity-30"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-black/35 to-transparent" />
+
+                        {/* Top actions */}
+                        <div className="absolute top-4 right-4 flex gap-2">
+                            {isAuthenticated && (
+                                <button
+                                    onClick={handleFavourite}
+                                    className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md transition-all hover:scale-110 hover:bg-white/30 sm:h-10 sm:w-10"
+                                    aria-label={
+                                        isFavorite
+                                            ? 'Remove from favorites'
+                                            : 'Add to favorites'
+                                    }
+                                >
+                                    <Heart
+                                        className={`h-4 w-4 sm:h-5 sm:w-5 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`}
+                                    />
+                                </button>
+                            )}
+                            <button
+                                onClick={handleShare}
+                                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md transition-all hover:scale-110 hover:bg-white/30 sm:h-10 sm:w-10"
+                                aria-label="Share provider profile"
+                            >
+                                <Share2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                            </button>
+                        </div>
+
+                        {/* Center mark */}
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="">
+                                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-white/10 text-3xl font-black tracking-tight">
+                                    {heroInitials}
+                                </div>
+                                <p className="mt-3 text-sm text-white/80">
+                                    No photos yet. Still open for bookings.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Business info overlay */}
+                        <div className="absolute right-0 bottom-0 left-0 p-4 sm:p-6 md:p-8">
+                            <div className="mx-auto max-w-7xl">
+                                <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end md:gap-4">
+                                    <div className="space-y-2 sm:space-y-3">
+                                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                                            <h1 className="text-2xl leading-tight font-black text-white drop-shadow-lg sm:text-3xl md:text-5xl">
+                                                {provider.businessName}
+                                            </h1>
+                                            {todayHours !== undefined && (
+                                                <Badge
+                                                    className={`${isOpenNow ? 'bg-green-500/90' : 'bg-red-500/90'} border-none px-2 py-0.5 text-xs text-white backdrop-blur-sm sm:px-3 sm:py-1 sm:text-sm`}
+                                                >
+                                                    {isOpenNow
+                                                        ? '● Open Now'
+                                                        : '● Closed'}
+                                                </Badge>
+                                            )}
+                                        </div>
+
+                                        <div className="scrollbar-none flex flex-nowrap items-center gap-2 overflow-x-auto pb-1 text-white sm:flex-wrap sm:pb-0">
+                                            <div className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 backdrop-blur-md">
+                                                <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                                                <span className="text-sm font-bold">
+                                                    {(
+                                                        provider.rating ?? 0
+                                                    ).toFixed(1)}
+                                                </span>
+                                                <span className="text-xs opacity-90">
+                                                    ({provider.reviews_count || 0})
+                                                </span>
+                                            </div>
+
+                                            <div className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 backdrop-blur-md">
+                                                <MapPin className="h-3.5 w-3.5" />
+                                                <span className="text-xs sm:text-sm">
+                                                    {provider.address}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="hidden items-center gap-2 md:flex">
+                                        <Link
+                                            href={`/provider/${provider.slug}/gallery`}
+                                            className="block"
+                                        >
+                                            <Button
+                                                size="lg"
+                                                variant="outline"
+                                                className="h-12 border-white/30 bg-white/10 px-6 text-base text-white shadow-xl backdrop-blur-md transition-all hover:scale-105 hover:bg-white/20 hover:text-white hover:shadow-2xl lg:h-14 lg:px-8 lg:text-lg"
+                                            >
+                                                <ImageIcon className="mr-2 h-4 w-4 lg:h-5 lg:w-5" />
+                                                View Gallery
+                                            </Button>
+                                        </Link>
+                                        <Link
+                                            href={`/provider/${provider.slug}/book`}
+                                            className="block"
+                                        >
+                                            <Button
+                                                size="lg"
+                                                className="h-12 px-6 text-base shadow-xl transition-all hover:scale-105 hover:shadow-2xl lg:h-14 lg:px-8 lg:text-lg"
+                                            >
+                                                <Calendar className="mr-2 h-4 w-4 lg:h-5 lg:w-5" />
+                                                Book Appointment
+                                            </Button>
+                                        </Link>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -681,57 +803,6 @@ export default function ProviderProfile({
                             )}
                         </section>
 
-                        {/* Nearby providers */}
-                        {nearbyProviders?.length > 0 && (
-                            <section className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-1 w-8 rounded bg-primary sm:w-12" />
-                                        <h2 className="text-xl font-bold sm:text-2xl">
-                                            Providers nearby
-                                        </h2>
-                                    </div>
-
-                                    <div className="hidden items-center gap-2 sm:flex">
-                                        <button
-                                            type="button"
-                                            className="flex h-9 w-9 items-center justify-center rounded-full border bg-background shadow-sm transition hover:bg-muted"
-                                            onClick={() =>
-                                                scrollNearby('left')
-                                            }
-                                            aria-label="Scroll left"
-                                        >
-                                            <ChevronLeft className="h-4 w-4" />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="flex h-9 w-9 items-center justify-center rounded-full border bg-background shadow-sm transition hover:bg-muted"
-                                            onClick={() =>
-                                                scrollNearby('right')
-                                            }
-                                            aria-label="Scroll right"
-                                        >
-                                            <ChevronRight className="h-4 w-4" />
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div
-                                    ref={nearbyRef}
-                                    className="scrollbar-none flex snap-x snap-mandatory gap-6 overflow-x-auto pb-2"
-                                >
-                                    {nearbyProviders.map((p) => (
-                                        <div
-                                            key={p.id}
-                                            className="min-w-[260px] max-w-[260px] snap-start"
-                                        >
-                                            <BusinessCard provider={p} />
-                                        </div>
-                                    ))}
-                                </div>
-                            </section>
-                        )}
-
                         {/* Reviews */}
                         <section className="pb-20 sm:pb-10 md:pb-0">
                             <div className="mb-5 flex items-center justify-between sm:mb-6">
@@ -852,13 +923,62 @@ export default function ProviderProfile({
                             )}
                         </div>
                     </aside>
-                </div>
-            </div>
+	                </div>
+	            </div>
 
-            {/* ── Service Modal ────────────────────────────────────── */}
-            {selectedService && (
-                <ServiceModal
-                    service={selectedService}
+                {/* Nearby providers (comes last) */}
+                {nearbyProviders?.length > 0 && (
+                    <div className="mx-auto w-full max-w-7xl px-4 pb-24 sm:px-6 md:pb-16">
+                        <section className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-1 w-8 rounded bg-primary sm:w-12" />
+                                    <h2 className="text-xl font-bold sm:text-2xl">
+                                        Providers nearby
+                                    </h2>
+                                </div>
+
+                                <div className="hidden items-center gap-2 sm:flex">
+                                    <button
+                                        type="button"
+                                        className="flex h-9 w-9 items-center justify-center rounded-full border bg-background  transition hover:bg-muted"
+                                        onClick={() => scrollNearby('left')}
+                                        aria-label="Scroll left"
+                                    >
+                                        <ChevronLeft className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="flex h-9 w-9 items-center justify-center rounded-full border bg-background transition hover:bg-muted"
+                                        onClick={() => scrollNearby('right')}
+                                        aria-label="Scroll right"
+                                    >
+                                        <ChevronRight className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div
+                                ref={nearbyRef}
+                                className="scrollbar-none flex snap-x snap-mandatory gap-6 overflow-x-auto pb-2"
+                            >
+                                {nearbyProviders.map((p) => (
+                                    <div
+                                        key={p.id}
+                                        className="min-w-[260px] max-w-[260px] snap-start"
+                                    >
+                                        <BusinessCard provider={p} />
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    </div>
+                )}
+
+	            {/* ── Service Modal ────────────────────────────────────── */}
+	            {selectedService && (
+	                <ServiceModal
+	                    service={selectedService}
                     providerSlug={provider.slug}
                     onClose={() => setSelectedService(null)}
                 />
