@@ -112,6 +112,13 @@ class MarketplaceController extends Controller
         $yearsInBusiness = $businessProfile->created_at 
             ? round($businessProfile->created_at->diffInYears(now()), 1)
             : 0;
+
+        // Active team members that accepted the invite. If missing (older providers), default to 1 (the provider).
+        $teamMembersCount = TeamMember::query()
+            ->where('provider_id', $provider->id)
+            ->where('is_active', true)
+            ->whereNotNull('accepted_at')
+            ->count();
         
         // Calculate total service hours
         $totalServiceHours = $provider->services->sum('duration_minutes') / 60;
@@ -232,6 +239,7 @@ class MarketplaceController extends Controller
                     ->whereDoesntHave('review')
                     ->first()?->id : null,
                 'years_in_business' => $yearsInBusiness,
+                'team_members_count' => max(1, (int) $teamMembersCount),
                 'total_service_hours' => round($totalServiceHours, 1),
             ],
             'services' => $provider->services,

@@ -25,6 +25,7 @@ import {
     Share2,
     Star,
     TrendingUp,
+    Users,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -52,6 +53,7 @@ interface Provider {
     address: string;
     pending_appointment_id: string | null;
     years_in_business?: number;
+    team_members_count?: number;
     total_service_hours?: number;
 }
 
@@ -692,38 +694,15 @@ export default function ProviderProfile({
                                         Services
                                     </p>
                                 </div>
-                                {provider.years_in_business &&
-                                provider.years_in_business > 0 ? (
-                                    <div className="rounded-lg border bg-card p-3 text-center sm:p-4">
-                                        <TrendingUp className="mx-auto mb-1.5 h-5 w-5 text-primary sm:mb-2 sm:h-6 sm:w-6" />
-                                        <p className="text-xl font-bold sm:text-2xl">
-                                            {provider.years_in_business}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                            Years in Business
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <div className="rounded-lg border bg-card p-3 text-center sm:p-4">
-                                        <ClockIcon className="mx-auto mb-1.5 h-5 w-5 text-primary sm:mb-2 sm:h-6 sm:w-6" />
-                                        <p className="text-xl font-bold sm:text-2xl">
-                                            {services.length > 0
-                                                ? Math.round(
-                                                      services.reduce(
-                                                          (sum, s) =>
-                                                              sum +
-                                                              (s.duration_minutes ||
-                                                                  0),
-                                                          0,
-                                                      ) / 60,
-                                                  )
-                                                : 0}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                            Total Hours
-                                        </p>
-                                    </div>
-                                )}
+                                <div className="rounded-lg border bg-card p-3 text-center sm:p-4">
+                                    <Users className="mx-auto mb-1.5 h-5 w-5 text-primary sm:mb-2 sm:h-6 sm:w-6" />
+                                    <p className="text-xl font-bold sm:text-2xl">
+                                        {provider.team_members_count ?? 1}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Team Members
+                                    </p>
+                                </div>
                             </div>
                         </section>
 

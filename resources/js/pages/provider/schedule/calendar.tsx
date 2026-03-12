@@ -2,7 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import { Appointment, type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { ChevronLeft, ChevronRight, Clock, CalendarDays, Plus } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -61,6 +61,19 @@ export default function Calendar({ appointments, currentWeekStart }: CalendarPro
     const initialDate = currentWeekStart ? new Date(currentWeekStart) : new Date();
     const [currentDate, setCurrentDate] = useState(initialDate);
 
+    // Avoid off-by-one from toISOString() (UTC). We want a local YYYY-MM-DD for the server.
+    const toYmd = (d: Date) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    };
+
+    // Keep UI week in sync with server-provided week start.
+    useEffect(() => {
+        if (currentWeekStart) setCurrentDate(new Date(currentWeekStart));
+    }, [currentWeekStart]);
+
     const getWeekDates = (base: Date) => {
         const start = new Date(base);
         const day = start.getDay();
@@ -83,8 +96,10 @@ export default function Calendar({ appointments, currentWeekStart }: CalendarPro
         setCurrentDate(newDate);
         const weekStart = getWeekDates(newDate)[0];
         router.reload({
-            data: { start_date: weekStart.toISOString().split('T')[0] },
+            data: { start_date: toYmd(weekStart) },
             only: ['appointments', 'currentWeekStart'],
+            preserveState: true,
+            preserveScroll: true,
         });
     };
 
@@ -92,8 +107,10 @@ export default function Calendar({ appointments, currentWeekStart }: CalendarPro
         setCurrentDate(new Date());
         const weekStart = getWeekDates(new Date())[0];
         router.reload({
-            data: { start_date: weekStart.toISOString().split('T')[0] },
+            data: { start_date: toYmd(weekStart) },
             only: ['appointments', 'currentWeekStart'],
+            preserveState: true,
+            preserveScroll: true,
         });
     };
 
