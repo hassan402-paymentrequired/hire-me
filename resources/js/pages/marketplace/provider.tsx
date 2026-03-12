@@ -2,6 +2,7 @@ import { ReviewSection } from '@/components/reviews/review-section';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import GuestLayout from '@/layouts/guest-layout';
+import BusinessCard from '@/pages/guest/components/business-card';
 import ReviewDrawal from '@/pages/marketplace/components/review-drawal';
 import ServiceModal from '@/pages/marketplace/components/service-modal';
 import favourite from '@/routes/favourite';
@@ -25,7 +26,7 @@ import {
     Star,
     TrendingUp,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface Service {
     id: string;
@@ -76,6 +77,22 @@ interface Props {
     reviews: Review[];
     canEdit: boolean;
     isFavourite: boolean;
+    nearbyProviders: Array<{
+        id: string;
+        name: string;
+        address: string;
+        businessName: string;
+        slug: string;
+        logo?: string | null;
+        avatar?: string | null;
+        distance?: number | null;
+        servicesCount: number;
+        rating: number;
+        reviewsCount: number;
+        minPrice: number | string;
+        category?: string;
+        isVerified?: boolean;
+    }>;
 }
 
 function calculateDistance(
@@ -147,6 +164,7 @@ export default function ProviderProfile({
     reviews,
     canEdit,
     isFavourite,
+    nearbyProviders,
 }: Props) {
     const [userLocation, setUserLocation] = useState<{
         lat: number;
@@ -159,6 +177,14 @@ export default function ProviderProfile({
         null,
     );
     const isAuthenticated = canEdit;
+    const nearbyRef = useRef<HTMLDivElement | null>(null);
+
+    const scrollNearby = (direction: 'left' | 'right') => {
+        const el = nearbyRef.current;
+        if (!el) return;
+        const delta = direction === 'left' ? -360 : 360;
+        el.scrollBy({ left: delta, behavior: 'smooth' });
+    };
 
     useEffect(() => {
         if ('geolocation' in navigator) {
@@ -417,18 +443,33 @@ export default function ProviderProfile({
                                     </div>
 
                                     {/* Desktop book button */}
-                                    <Link
-                                        href={`/provider/${provider.slug}/book`}
-                                        className="hidden md:block"
-                                    >
-                                        <Button
-                                            size="lg"
-                                            className="h-12 px-6 text-base shadow-xl transition-all hover:scale-105 hover:shadow-2xl lg:h-14 lg:px-8 lg:text-lg"
+                                    <div className="hidden items-center gap-2 md:flex">
+                                        <Link
+                                            href={`/provider/${provider.slug}/gallery`}
+                                            className="block"
                                         >
-                                            <Calendar className="mr-2 h-4 w-4 lg:h-5 lg:w-5" />
-                                            Book Appointment
-                                        </Button>
-                                    </Link>
+                                            <Button
+                                                size="lg"
+                                                variant="outline"
+                                                className="h-12 border-white/30 bg-white/10 px-6 text-base text-white shadow-xl backdrop-blur-md transition-all hover:scale-105 hover:bg-white/20 hover:text-white hover:shadow-2xl lg:h-14 lg:px-8 lg:text-lg"
+                                            >
+                                                <ImageIcon className="mr-2 h-4 w-4 lg:h-5 lg:w-5" />
+                                                View Gallery
+                                            </Button>
+                                        </Link>
+                                        <Link
+                                            href={`/provider/${provider.slug}/book`}
+                                            className="block"
+                                        >
+                                            <Button
+                                                size="lg"
+                                                className="h-12 px-6 text-base shadow-xl transition-all hover:scale-105 hover:shadow-2xl lg:h-14 lg:px-8 lg:text-lg"
+                                            >
+                                                <Calendar className="mr-2 h-4 w-4 lg:h-5 lg:w-5" />
+                                                Book Appointment
+                                            </Button>
+                                        </Link>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -447,18 +488,33 @@ export default function ProviderProfile({
 
             {/* ── Mobile sticky book button ────────────────────────── */}
             <div className="fixed right-0 bottom-0 left-0 z-50 border-t bg-background/95 p-3 backdrop-blur-md md:hidden">
-                <Link
-                    href={`/provider/${provider.slug}/book`}
-                    className="block"
-                >
-                    <Button
-                        size="lg"
-                        className="h-12 w-full text-base font-bold"
+                <div className="grid grid-cols-2 gap-2">
+                    <Link
+                        href={`/provider/${provider.slug}/gallery`}
+                        className="block"
                     >
-                        <Calendar className="mr-2 h-4 w-4" />
-                        Book Appointment
-                    </Button>
-                </Link>
+                        <Button
+                            size="lg"
+                            variant="outline"
+                            className="h-12 w-full text-base"
+                        >
+                            <ImageIcon className="mr-2 h-4 w-4" />
+                            Gallery
+                        </Button>
+                    </Link>
+                    <Link
+                        href={`/provider/${provider.slug}/book`}
+                        className="block"
+                    >
+                        <Button
+                            size="lg"
+                            className="h-12 w-full text-base font-bold"
+                        >
+                            <Calendar className="mr-2 h-4 w-4" />
+                            Book
+                        </Button>
+                    </Link>
+                </div>
             </div>
 
             {/* ── Main Content ─────────────────────────────────────── */}
@@ -624,6 +680,57 @@ export default function ProviderProfile({
                                 </div>
                             )}
                         </section>
+
+                        {/* Nearby providers */}
+                        {nearbyProviders?.length > 0 && (
+                            <section className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-1 w-8 rounded bg-primary sm:w-12" />
+                                        <h2 className="text-xl font-bold sm:text-2xl">
+                                            Providers nearby
+                                        </h2>
+                                    </div>
+
+                                    <div className="hidden items-center gap-2 sm:flex">
+                                        <button
+                                            type="button"
+                                            className="flex h-9 w-9 items-center justify-center rounded-full border bg-background shadow-sm transition hover:bg-muted"
+                                            onClick={() =>
+                                                scrollNearby('left')
+                                            }
+                                            aria-label="Scroll left"
+                                        >
+                                            <ChevronLeft className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="flex h-9 w-9 items-center justify-center rounded-full border bg-background shadow-sm transition hover:bg-muted"
+                                            onClick={() =>
+                                                scrollNearby('right')
+                                            }
+                                            aria-label="Scroll right"
+                                        >
+                                            <ChevronRight className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div
+                                    ref={nearbyRef}
+                                    className="scrollbar-none flex snap-x snap-mandatory gap-6 overflow-x-auto pb-2"
+                                >
+                                    {nearbyProviders.map((p) => (
+                                        <div
+                                            key={p.id}
+                                            className="min-w-[260px] max-w-[260px] snap-start"
+                                        >
+                                            <BusinessCard provider={p} />
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
 
                         {/* Reviews */}
                         <section className="pb-20 sm:pb-10 md:pb-0">

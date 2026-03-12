@@ -55,4 +55,9 @@ class BusinessProfile extends Model
     {
         return $this->hasOne(BusinessImage::class)->where('is_logo', true);
     }
+
+    public function galleryItems()
+    {
+        return $this->hasMany(ProviderGalleryItem::class);
+    }
 }

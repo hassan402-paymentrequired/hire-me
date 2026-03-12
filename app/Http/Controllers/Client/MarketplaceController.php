@@ -3,13 +3,17 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ProviderGalleryItemResource;
 use App\Models\FavouriteBusiness;
 use App\Models\User;
 use App\Models\BusinessProfile;
 use App\Models\Appointment;
 use App\Models\TeamMember;
 use App\Models\Wallet;
+use App\Models\ProviderGalleryItem;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Carbon\Carbon;
 
@@ -112,6 +116,98 @@ class MarketplaceController extends Controller
         // Calculate total service hours
         $totalServiceHours = $provider->services->sum('duration_minutes') / 60;
 
+        $nearbyProviders = collect();
+        if (!empty($businessProfile->category)) {
+            $targetLat = $businessProfile->latitude ? (float) $businessProfile->latitude : null;
+            $targetLng = $businessProfile->longitude ? (float) $businessProfile->longitude : null;
+
+            $nearbyQuery = User::query()
+                ->select([
+                    'users.id',
+                    'users.name',
+                    'users.is_verified',
+                ])
+                ->where('users.is_verified', true)
+                ->where('users.id', '!=', $provider->id)
+                ->whereHas('services', fn ($q) => $q->where('status', 'active'))
+                ->join('business_profiles', 'users.id', '=', 'business_profiles.user_id')
+                ->where('business_profiles.category', $businessProfile->category)
+                ->addSelect([
+                    'business_profiles.business_name',
+                    'business_profiles.slug',
+                    'business_profiles.address',
+                    'business_profiles.category',
+                ])
+                ->addSelect([
+                    'avg_rating' => DB::table('reviews')
+                        ->selectRaw('COALESCE(AVG(rating), 0)')
+                        ->whereColumn('provider_id', 'users.id'),
+                    'reviews_count' => DB::table('reviews')
+                        ->selectRaw('COUNT(*)')
+                        ->whereColumn('provider_id', 'users.id'),
+                    'min_price' => DB::table('services')
+                        ->selectRaw('MIN(price)')
+                        ->whereColumn('provider_id', 'users.id')
+                        ->where('status', 'active'),
+                    'services_count' => DB::table('services')
+                        ->selectRaw('COUNT(*)')
+                        ->whereColumn('provider_id', 'users.id')
+                        ->where('status', 'active'),
+                    // Prefer logo, fallback to first image.
+                    'image_path' => DB::table('business_images')
+                        ->select('image_path')
+                        ->whereColumn('business_profile_id', 'business_profiles.id')
+                        ->orderByDesc('is_logo')
+                        ->orderBy('id')
+                        ->limit(1),
+                ]);
+
+            if ($targetLat && $targetLng) {
+                $nearbyQuery
+                    ->whereNotNull('business_profiles.latitude')
+                    ->whereNotNull('business_profiles.longitude')
+                    ->selectRaw('
+                        (6371 * acos(
+                            cos(radians(?))
+                            * cos(radians(business_profiles.latitude))
+                            * cos(radians(business_profiles.longitude) - radians(?))
+                            + sin(radians(?))
+                            * sin(radians(business_profiles.latitude))
+                        )) AS distance
+                    ', [$targetLat, $targetLng, $targetLat])
+                    ->orderBy('distance', 'asc');
+            } else {
+                $nearbyQuery->orderByRaw('COALESCE(avg_rating, 0) DESC');
+            }
+
+            $nearbyProviders = $nearbyQuery
+                ->limit(10)
+                ->get()
+                ->map(function ($row) {
+                    $logoUrl = null;
+                    if (!empty($row->image_path)) {
+                        $logoUrl = \App\Services\FileUploadService::url($row->image_path, 'public');
+                    }
+
+                    return [
+                        'id' => (string) $row->id,
+                        'name' => (string) $row->name,
+                        'businessName' => (string) $row->business_name,
+                        'slug' => (string) $row->slug,
+                        'address' => (string) $row->address,
+                        'logo' => $logoUrl,
+                        'distance' => property_exists($row, 'distance') ? (float) $row->distance : null,
+                        'servicesCount' => (int) ($row->services_count ?? 0),
+                        'rating' => isset($row->avg_rating) ? round((float) $row->avg_rating, 1) : 0,
+                        'reviewsCount' => (int) ($row->reviews_count ?? 0),
+                        'minPrice' => (float) ($row->min_price ?? 0),
+                        'category' => (string) ($row->category ?? ''),
+                        'isVerified' => (bool) $row->is_verified,
+                    ];
+                })
+                ->values();
+        }
+
         return Inertia::render('marketplace/provider', [
             'provider' => [
                 'id' => $provider->id,
@@ -148,7 +244,8 @@ class MarketplaceController extends Controller
                 'created_at' => $r->created_at->diffForHumans(),
             ]),
             'canEdit' => Auth::check(),
-            'isFavourite' => $isFavourite
+            'isFavourite' => $isFavourite,
+            'nearbyProviders' => $nearbyProviders,
         ]);
     }
 
@@ -203,7 +300,7 @@ class MarketplaceController extends Controller
                 'price' => $service->price,
             ]),
             'walletBalance' => $walletBalance,
-            'teamMembers' => $teamMembers->count() > 0
+            'teamMembers' => $bookableTeamMembers->count() > 0
                 ? $bookableTeamMembers->map(fn ($member) => [
                     'id' => $member->id,
                     'name' => $member->user?->name,
@@ -220,6 +317,36 @@ class MarketplaceController extends Controller
                 'max_bookings_per_week' => $settings['max_bookings_per_week'] ?? null,
                 'max_bookings_per_month' => $settings['max_bookings_per_month'] ?? null,
             ],
+        ]);
+    }
+
+    public function gallery(Request $request, string $slug)
+    {
+        $businessProfile = BusinessProfile::where('slug', $slug)->firstOrFail();
+
+        $provider = $businessProfile->user()->firstOrFail();
+
+        $items = ProviderGalleryItem::query()
+            ->where('provider_id', $provider->id)
+            ->where('business_profile_id', $businessProfile->id)
+            ->with('images')
+            ->latest()
+            ->paginate(6)
+            ->withQueryString()
+            ->through(fn (ProviderGalleryItem $item) => (new ProviderGalleryItemResource($item))->toArray($request));
+
+        return Inertia::render('marketplace/gallery', [
+            'provider' => [
+                'id' => $provider->id,
+                'name' => $provider->name,
+                'businessName' => $businessProfile->business_name,
+                'slug' => $businessProfile->slug,
+                'logo' => $businessProfile->images->where('is_logo', true)->first()?->image_path
+                    ? \App\Services\FileUploadService::url($businessProfile->images->where('is_logo', true)->first()->image_path, 'public')
+                    : null,
+            ],
+            // Required for @inertiajs/react <InfiniteScroll /> to track/restore scroll state.
+            'items' => Inertia::scroll(fn () => $items),
         ]);
     }
 }

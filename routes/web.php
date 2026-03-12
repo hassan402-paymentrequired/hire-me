@@ -9,6 +9,7 @@ Route::middleware(['provider.setup'])->group(function () {
     Route::get('/', [\App\Http\Controllers\Guest\GuestController::class, 'welcome'])->name('home');
     Route::get('/find-on-map', [\App\Http\Controllers\Guest\GuestController::class, 'findOnMap'])->name('find-on-map');
     Route::get('/provider/{slug}', [\App\Http\Controllers\Client\MarketplaceController::class, 'show'])->name('provider.show');
+    Route::get('/provider/{slug}/gallery', [\App\Http\Controllers\Client\MarketplaceController::class, 'gallery'])->name('provider.gallery');
     
     // Widget embed page (public, no auth required)
     Route::get('/widget/{slug}', [\App\Http\Controllers\Widget\WidgetEmbedController::class, 'embed'])->name('widget.embed');
@@ -54,6 +55,9 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
         // Provider Business Management
         Route::prefix('business')->name('business.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Provider\Dashboard\DashboardController::class, 'dashboard'])->name('dashboard');
+            Route::get('/gallery', [\App\Http\Controllers\Provider\Business\GalleryController::class, 'index'])->name('gallery.index');
+            Route::post('/gallery', [\App\Http\Controllers\Provider\Business\GalleryController::class, 'store'])->name('gallery.store');
+            Route::delete('/gallery/{id}', [\App\Http\Controllers\Provider\Business\GalleryController::class, 'destroy'])->name('gallery.destroy');
             // Hours & Config
             Route::get('/hours', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'businessHours'])->name('hours');
             Route::post('/hours', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateBusinessHours'])->name('hours.update');
