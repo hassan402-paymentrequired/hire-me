@@ -67,7 +67,7 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                     </DropdownMenuItem>
                 )}
 
-                {user.has_provider_setup ? (
+                {user.can_access_provider_workspace ? (
                     <DropdownMenuItem asChild>
                         <Link
                             className="block w-full"

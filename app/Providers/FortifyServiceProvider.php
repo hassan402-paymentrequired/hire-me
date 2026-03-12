@@ -4,15 +4,15 @@ namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
+use App\Actions\Response\LoginResponse;
 use App\Actions\Response\RegisterResponse;
-use App\Enum\UserRoleEnum;
+use App\Services\ProviderTeamInvitationService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
-use Laravel\Fortify\Contracts\LoginResponse;
 use Laravel\Fortify\Contracts\LogoutResponse;
 use Laravel\Fortify\Contracts\RegisterResponse as RegisterResponseContract;
 use Laravel\Fortify\Features;
@@ -25,19 +25,7 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->instance(LoginResponse::class, new class implements LoginResponse
-        {
-            public function toResponse($request)
-            {
-                $user = $request->user();
-
-                if ($user->role === UserRoleEnum::PROVIDER) {
-                    return redirect()->intended(route('business.dashboard'))->with('success-toast', 'Login successful!');
-                }
-
-                return redirect()->intended(route('home'))->with('success-toast', 'Login successful!');
-            }
-        });
+        $this->app->singleton(\Laravel\Fortify\Contracts\LoginResponse::class, LoginResponse::class);
 
         $this->app->instance(LogoutResponse::class, new class implements LogoutResponse
         {
@@ -76,10 +64,14 @@ class FortifyServiceProvider extends ServiceProvider
      */
     private function configureViews(): void
     {
+        $teamInvitationService = app(ProviderTeamInvitationService::class);
+
         Fortify::loginView(fn (Request $request) => Inertia::render('auth/login', [
             'canResetPassword' => Features::enabled(Features::resetPasswords()),
             'canRegister' => Features::enabled(Features::registration()),
             'status' => $request->session()->get('status'),
+            'invitationToken' => $request->query('invitation'),
+            'invitationBusinessName' => $teamInvitationService->invitationContext($request->query('invitation'))['businessName'] ?? null,
         ]));
 
         Fortify::resetPasswordView(fn (Request $request) => Inertia::render('auth/reset-password', [
@@ -95,7 +87,10 @@ class FortifyServiceProvider extends ServiceProvider
             'status' => $request->session()->get('status'),
         ]));
 
-        Fortify::registerView(fn () => Inertia::render('auth/register'));
+        Fortify::registerView(fn (Request $request) => Inertia::render('auth/register', [
+            'invitationToken' => $request->query('invitation'),
+            'invitationBusinessName' => $teamInvitationService->invitationContext($request->query('invitation'))['businessName'] ?? null,
+        ]));
 
         Fortify::twoFactorChallengeView(fn () => Inertia::render('auth/two-factor-challenge'));
 

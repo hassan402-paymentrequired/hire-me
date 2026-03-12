@@ -12,6 +12,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -36,7 +44,7 @@ import {
     UsersIcon,
 } from '@heroicons/react/24/solid';
 import { Head, router, useForm } from '@inertiajs/react';
-import { Calendar, Edit2, Mail, Plus, Search, Trash2 } from 'lucide-react';
+import { Calendar, Copy, Edit2, Mail, Plus, Search, Trash2 } from 'lucide-react';
 import { useState, useRef } from 'react';
 
 interface TeamMember {
@@ -48,7 +56,7 @@ interface TeamMember {
     };
     role: 'admin' | 'staff';
     is_active: boolean;
-    invited_by: {
+    inviter: {
         id: string;
         name: string;
     } | null;
@@ -68,6 +76,7 @@ interface Stats {
 interface Props {
     teamMembers: TeamMember[];
     stats: Stats;
+    providerInvitationLink: string;
     filters: {
         search?: string,
         role?: string
@@ -85,7 +94,12 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function TeamIndex({ teamMembers, stats, filters }: Props) {
+export default function TeamIndex({
+    teamMembers,
+    stats,
+    providerInvitationLink,
+    filters,
+}: Props) {
     const [deletingMember, setDeletingMember] = useState<TeamMember | null>(
         null,
     );
@@ -93,9 +107,11 @@ export default function TeamIndex({ teamMembers, stats, filters }: Props) {
         id: string;
         role: string;
     } | null>(null);
-      const [search, setSearch] = useState(filters?.search || '');
-      const [role, setRole] = useState(filters?.role || '');
-        const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [inviteOptionsOpen, setInviteOptionsOpen] = useState(false);
+    const [copiedInviteLink, setCopiedInviteLink] = useState(false);
+    const [search, setSearch] = useState(filters?.search || '');
+    const [role, setRole] = useState(filters?.role || '');
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const { put, delete: deleteMethod, processing } = useForm();
 
@@ -125,29 +141,41 @@ export default function TeamIndex({ teamMembers, stats, filters }: Props) {
         });
     };
 
-        const handleSearch = (value: string) => {
-            setSearch(value);
-    
-            if (debounceRef.current) {
-                clearTimeout(debounceRef.current);
-            }
-    
-            debounceRef.current = setTimeout(() => {
-                router.get(
-                    team.index().url,
-                    { ...filters, search: value },
-                    { preserveState: true, replace: true, preserveScroll: true },
-                );
-            }, 500); 
-        };
-    
-       const handleRoleChange = (role: string) => {
-        setRole(role);
+    const handleSearch = (value: string) => {
+        setSearch(value);
+
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+
+        debounceRef.current = setTimeout(() => {
+            router.get(
+                team.index().url,
+                { ...filters, search: value, role },
+                { preserveState: true, replace: true, preserveScroll: true },
+            );
+        }, 500);
+    };
+
+    const handleRoleChange = (nextRole: string) => {
+        const normalizedRole = nextRole === 'all' ? '' : nextRole;
+
+        setRole(normalizedRole);
         router.get(
             team.index().url,
-            { ...filters, role },
+            { ...filters, search, role: normalizedRole },
             { preserveState: true, replace: true, preserveScroll: true },
         );
+    };
+
+    const handleCopyInviteLink = async () => {
+        try {
+            await navigator.clipboard.writeText(providerInvitationLink);
+            setCopiedInviteLink(true);
+            window.setTimeout(() => setCopiedInviteLink(false), 2000);
+        } catch (_error) {
+            setCopiedInviteLink(false);
+        }
     };
 
 
@@ -157,20 +185,87 @@ export default function TeamIndex({ teamMembers, stats, filters }: Props) {
             <div className="space-y-6 p-4 font-heading">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">
+                        <h1 className="text-2xl font-bold tracking-tight">
                             Team Members
                         </h1>
                         <p className="text-muted-foreground">
                             Manage your team members and their permissions
                         </p>
                     </div>
-                    <Button
-                        onClick={() => router.visit(business.team.create().url)}
-                    >
+                    <Button onClick={() => setInviteOptionsOpen(true)}>
                         <Plus className="mr-2 h-4 w-4" />
                         Add Team Member
                     </Button>
                 </div>
+
+                <Dialog
+                    open={inviteOptionsOpen}
+                    onOpenChange={setInviteOptionsOpen}
+                >
+                    <DialogContent className="sm:max-w-lg">
+                        <DialogHeader>
+                            <DialogTitle>Add Team Member</DialogTitle>
+                            <DialogDescription>
+                                Choose how you want to invite the next member of
+                                your team.
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="space-y-4">
+                            <div className="rounded-lg border p-4">
+                                <div className="mb-2 flex items-center gap-2">
+                                    <Copy className="h-4 w-4" />
+                                    <h3 className="font-semibold">
+                                        Invite by link
+                                    </h3>
+                                </div>
+                                <p className="mb-3 text-sm text-muted-foreground">
+                                    Copy a secure invite link and send it to any
+                                    staff member. They will register or log in
+                                    and be added as staff automatically.
+                                </p>
+                                <div className="rounded border bg-muted/30 p-3 text-xs break-all">
+                                    {providerInvitationLink}
+                                </div>
+                            </div>
+
+                            <div className="rounded-lg border p-4">
+                                <div className="mb-2 flex items-center gap-2">
+                                    <Mail className="h-4 w-4" />
+                                    <h3 className="font-semibold">
+                                        Manual invite
+                                    </h3>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                    Enter the person's details yourself and send
+                                    a direct invitation from the existing manual
+                                    flow.
+                                </p>
+                            </div>
+                        </div>
+
+                        <DialogFooter className="gap-2 sm:justify-between">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleCopyInviteLink}
+                            >
+                                <Copy className="mr-2 h-4 w-4" />
+                                {copiedInviteLink ? 'Copied' : 'Copy Invite Link'}
+                            </Button>
+                            <Button
+                                type="button"
+                                onClick={() => {
+                                    setInviteOptionsOpen(false);
+                                    router.visit(business.team.create().url);
+                                }}
+                            >
+                                <Mail className="mr-2 h-4 w-4" />
+                                Manual Invite
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
 
                 {/* Stats Cards */}
                 <div className="grid gap-4 md:grid-cols-3">
@@ -186,7 +281,7 @@ export default function TeamIndex({ teamMembers, stats, filters }: Props) {
                                 {stats.total}
                             </div>
                             <p className="text-xs text-muted-foreground">
-                                {stats.active} active, {stats.deactivated}{' '}
+                                {stats.active ?? 0} active, {stats.deactivated ?? 0}{' '}
                                 deactivated
                             </p>
                         </CardContent>
@@ -200,7 +295,7 @@ export default function TeamIndex({ teamMembers, stats, filters }: Props) {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">
-                                {stats.admins}
+                                {stats.admins ?? 0}
                             </div>
                             <p className="text-xs text-muted-foreground">
                                 Full access
@@ -216,7 +311,7 @@ export default function TeamIndex({ teamMembers, stats, filters }: Props) {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">
-                                {stats.staffs}
+                                {stats.staffs ?? 0}
                             </div>
                             <p className="text-xs text-muted-foreground">
                                 Limited access
@@ -242,11 +337,17 @@ export default function TeamIndex({ teamMembers, stats, filters }: Props) {
 
                             {/* Filter Section */}
                             <div className="w-full md:w-48">
-                                <Select onValueChange={v => handleRoleChange(v)}>
+                                <Select
+                                    value={role || 'all'}
+                                    onValueChange={handleRoleChange}
+                                >
                                     <SelectTrigger className="w-full">
                                         <SelectValue placeholder="Filter by role" />
                                     </SelectTrigger>
                                     <SelectContent>
+                                        <SelectItem value="all">
+                                            All roles
+                                        </SelectItem>
                                         <SelectItem value="admin">
                                             Admin
                                         </SelectItem>
@@ -263,7 +364,7 @@ export default function TeamIndex({ teamMembers, stats, filters }: Props) {
                         {teamMembers.length === 0 ? (
                             <div className="py-8 text-center text-muted-foreground">
                                 <UsersIcon className="mx-auto mb-4 h-12 w-12 opacity-50" />
-                                <p>No active team members yet.</p>
+                                <p>No team members yet.</p>
                                 <Button
                                     variant="outline"
                                     className="mt-4"
@@ -391,16 +492,28 @@ export default function TeamIndex({ teamMembers, stats, filters }: Props) {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant="default">
-                                                    Active
-                                                </Badge>
+                                                {!member.accepted_at ? (
+                                                    <Badge variant="secondary">
+                                                        Invitation pending
+                                                    </Badge>
+                                                ) : member.is_active ? (
+                                                    <Badge variant="default">
+                                                        Active
+                                                    </Badge>
+                                                ) : (
+                                                    <Badge variant="outline">
+                                                        Inactive
+                                                    </Badge>
+                                                )}
                                             </TableCell>
                                             <TableCell>
                                                 {member.accepted_at
                                                     ? new Date(
                                                           member.accepted_at,
                                                       ).toLocaleDateString()
-                                                    : 'Pending'}
+                                                    : member.invited_at
+                                                      ? `Invited ${new Date(member.invited_at).toLocaleDateString()}`
+                                                      : 'Pending'}
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex items-center justify-end gap-2">
@@ -413,7 +526,7 @@ export default function TeamIndex({ teamMembers, stats, filters }: Props) {
                                                             )
                                                         }
                                                     >
-                                                        Deactivate
+                                                        {member.is_active ? 'Deactivate' : 'Activate'}
                                                     </Button>
                                                     <Button
                                                         variant="destructive"

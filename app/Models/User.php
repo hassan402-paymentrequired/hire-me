@@ -37,6 +37,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'referral_code',
         'referred_by',
         'is_verified',
+        'invitation_link',
     ];
 
     public function isProvider(): bool
@@ -164,6 +165,13 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(TeamMember::class, 'provider_id');
     }
 
+    public function activeTeamMembership()
+    {
+        return $this->teamMemberships()
+            ->where('is_active', true)
+            ->whereNotNull('accepted_at');
+    }
+
     /**
      * Check if user is a team member of a provider
      */
@@ -194,6 +202,23 @@ class User extends Authenticatable implements MustVerifyEmail
             ->first();
 
         return $teamMember && $teamMember->isAdmin();
+    }
+
+    public function managedProvider(): ?User
+    {
+        if ($this->hasProviderSetup()) {
+            return $this;
+        }
+
+        return $this->activeTeamMembership()
+            ->with('provider.businessProfile')
+            ->first()
+            ?->provider;
+    }
+
+    public function canAccessProviderWorkspace(): bool
+    {
+        return $this->hasProviderSetup() || $this->activeTeamMembership()->exists();
     }
 
     public function canManageAppointment(Appointment $appointment): bool

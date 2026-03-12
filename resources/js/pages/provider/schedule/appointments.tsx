@@ -203,6 +203,11 @@ export default function Appointments({
                                                                         .name
                                                                 }
                                                             </span>
+                                                            {apt.team_member && (
+                                                                <span className="w-fit rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold uppercase text-primary">
+                                                                    {apt.team_member.user.name}
+                                                                </span>
+                                                            )}
                                                             {apt.services
                                                                 ?.length >
                                                                 1 && (

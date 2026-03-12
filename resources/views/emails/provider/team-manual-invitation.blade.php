@@ -23,7 +23,7 @@
             <li>Update appointment statuses</li>
             <li>Communicate with clients</li>
         @endif
-    </ul
+    </ul>
 
     <p>Please note: this invitation expires in 7 days.</p>
 
@@ -32,5 +32,5 @@
     <p>Welcome to the team!</p>
 @endsection
 
-@section('cta_url', route('team.invite.accept', ['link' => $teamMember->invitation_link]))
+@section('cta_url', route('business.team.invite.accept', ['link' => $teamMember->invitation_link]))
 @section('cta_text', 'Accept Invitation')

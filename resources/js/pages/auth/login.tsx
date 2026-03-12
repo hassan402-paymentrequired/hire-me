@@ -17,12 +17,16 @@ interface LoginProps {
     status?: string;
     canResetPassword: boolean;
     canRegister: boolean;
+    invitationToken?: string | null;
+    invitationBusinessName?: string | null;
 }
 
 export default function Login({
     status,
     canResetPassword,
     canRegister,
+    invitationToken,
+    invitationBusinessName,
 }: LoginProps) {
     const [showPassword, setShowPassword] = useState(false);
 
@@ -30,7 +34,11 @@ export default function Login({
     return (
         <AuthLayout
             title="Log in to your account"
-            description="Enter your email and password below to log in"
+            description={
+                invitationToken
+                    ? `Log in to join ${invitationBusinessName || 'this provider'} as staff with your existing account.`
+                    : 'Enter your email and password below to log in'
+            }
         >
             <Head title="Log in" />
 
@@ -84,6 +92,23 @@ export default function Login({
             >
                 {({ processing, errors }) => (
                     <>
+                        {invitationToken && (
+                            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700">
+                                This invitation is for{' '}
+                                <span className="font-semibold">
+                                    {invitationBusinessName || 'this provider'}
+                                </span>
+                                . Log in and you will be added as staff
+                                automatically.
+                            </div>
+                        )}
+
+                        <input
+                            type="hidden"
+                            name="invitation_token"
+                            value={invitationToken || ''}
+                        />
+
                         <div className="grid gap-4 sm:gap-5">
                             <div className="grid gap-1.5">
                                 <Label htmlFor="email" className="text-sm font-medium">Email address</Label>
@@ -177,7 +202,11 @@ export default function Login({
                             <div className="text-center text-sm text-muted-foreground pt-2">
                                 Don't have an account?{' '}
                                 <TextLink 
-                                    href={register()} 
+                                    href={
+                                        invitationToken
+                                            ? `/register?invitation=${encodeURIComponent(invitationToken)}`
+                                            : register()
+                                    } 
                                     tabIndex={5}
                                     className="font-medium text-foreground hover:underline"
                                 >

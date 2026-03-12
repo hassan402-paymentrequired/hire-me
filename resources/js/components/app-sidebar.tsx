@@ -25,7 +25,7 @@ import {
     WalletIcon,
 } from '@heroicons/react/24/solid';
 import { Link } from '@inertiajs/react';
-import { ChartArea, Folder } from 'lucide-react';
+import { ChartArea, Folder, Images } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: any[] = [
@@ -74,10 +74,16 @@ const mainNavItems: any[] = [
                 icon: RectangleStackIcon,
             },
             {
+                title: 'Gallery',
+                href: business.gallery.index(),
+                icon: Images,
+                isLocked: false,
+            },
+            {
                 title: 'Team Members',
                 href: business.team.index(),
                 icon: UserGroupIcon,
-                isLocked: true,
+                isLocked: false,
             },
             {
                 title: 'Wallet',

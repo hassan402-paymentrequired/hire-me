@@ -9,7 +9,24 @@ function app_name(string $name): string
 
 function auth_user(string $guard = 'web')
 {
-    return auth($guard)->user();
+    $user = auth($guard)->user();
+
+    if (! $user) {
+        return null;
+    }
+
+    if (
+        request()->routeIs(
+            'business.*',
+            'schedule.*',
+            'provider.appointments.*',
+            'wallet.withdraw.*'
+        )
+    ) {
+        return $user->managedProvider() ?? $user;
+    }
+
+    return $user;
 }
 
 function is_admin(string $guard = 'admin')

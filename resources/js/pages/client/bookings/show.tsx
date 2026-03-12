@@ -96,6 +96,15 @@ interface Booking {
     created_at: string;
     updated_at: string;
     review?: any[];
+    team_member?: {
+        id: string;
+        user: {
+            id: string;
+            name: string;
+            email: string;
+        };
+        role: 'admin' | 'staff';
+    } | null;
 }
 
 export default function BookingDetails({
@@ -457,6 +466,20 @@ export default function BookingDetails({
                                             }
                                         </p>
                                     </div>
+
+                                    {booking.team_member?.user && (
+                                        <div className="space-y-1">
+                                            <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground">
+                                                <Star className="h-4 w-4" />
+                                                <span className="font-medium">
+                                                    Team Member
+                                                </span>
+                                            </div>
+                                            <p className="text-sm leading-relaxed font-medium">
+                                                {booking.team_member.user.name}
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>

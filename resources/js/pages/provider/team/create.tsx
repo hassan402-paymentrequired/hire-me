@@ -56,8 +56,12 @@ export default function TeamCreate() {
     };
 
     const handleAccept = () => {
-         router.post(business.team.invite.accept().url, data, {
+        router.post(business.team.invite().url, data, {
             preserveScroll: true,
+            onSuccess: () => {
+                setInviteModalOpen(false);
+                reset();
+            },
         });
     };
 
@@ -70,12 +74,12 @@ export default function TeamCreate() {
                     <InboxArrowDownIcon className="size-12" />
                 }
                 title="Invite team member"
-                description="The user you are trying to add to team lready exists on the system, will you like to send them an invite?"
+                description="The user you are trying to add already exists on the platform. Do you want to send them a team invitation instead?"
                 acceptLabel="Send invite"
-                rejectLabel="cancel"
+                rejectLabel="Cancel"
                 handleAccept={handleAccept}
                 handleReject={() => {
-                    setInviteModalOpen(false)
+                    setInviteModalOpen(false);
                     reset();
                 }}
             />
@@ -84,7 +88,7 @@ export default function TeamCreate() {
             <div className="mx-auto w-full max-w-6xl space-y-6 p-4">
                 <div className="flex items-center gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">
+                        <h1 className="text-2xl font-bold tracking-tight">
                             Add Team Member
                         </h1>
                         <p className="text-muted-foreground">

@@ -18,9 +18,7 @@ class BusinessProviderMiddleware
     {
         $user = auth()->user();
 
-        // Check if user has set up as provider (has business profile)
-        if(!$user->hasProviderSetup())
-        {
+        if (! $user || ! $user->canAccessProviderWorkspace()) {
             return redirect()->route('home')
                 ->with('error-toast', 'Please set up your provider profile first.');
         }

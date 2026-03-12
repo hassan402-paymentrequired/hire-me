@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\Report;
 use App\Models\Service;
+use App\Models\TeamMember;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WorkHour;
@@ -87,9 +88,17 @@ class AppointmentController extends Controller
             'service_ids.*' => 'exists:services,id',
             'start_time' => 'required|date',
             'notes' => 'nullable|string|max:500',
+            'team_member_id' => 'nullable|exists:team_members,id',
         ]);
 
         $provider = $appointment->provider->load('businessProfile');
+        $selectedTeamMember = $this->resolveSelectedTeamMember($provider->id, $request->team_member_id);
+        if ($request->filled('team_member_id') && ! $selectedTeamMember) {
+            return back()->withErrors([
+                'team_member_id' => 'The selected team member is no longer available.',
+            ]);
+        }
+
         $settings = $provider->businessProfile->settings ?? [];
 
         $services = Service::whereIn('id', $request->service_ids)->get();
@@ -155,6 +164,7 @@ class AppointmentController extends Controller
                 'status' => $autoConfirm ? 'confirmed' : 'pending',
                 'price' => $totalPrice,
                 'notes' => $request->notes,
+                'team_member_id' => $selectedTeamMember?->id,
                 'provider_approved' => $autoConfirm,
                 'provider_approved_at' => $autoConfirm ? now() : null,
             ]);
@@ -222,7 +232,7 @@ class AppointmentController extends Controller
     public function show($id)
     {
         $appointment = Appointment::where('client_id', auth()->id())
-            ->with(['provider.businessProfile', 'services', 'review'])
+            ->with(['provider.businessProfile', 'services', 'review', 'teamMember.user'])
             ->findOrFail($id);
 
         $parent = $appointment->recurrence_parent_id
@@ -250,6 +260,7 @@ class AppointmentController extends Controller
             'service_ids.*' => 'exists:services,id',
             'start_time' => 'required|date',
             'notes' => 'nullable|string|max:500',
+            'team_member_id' => 'nullable|exists:team_members,id',
             'recurrence_pattern' => 'nullable|in:weekly,bi_weekly,monthly',
             'recurrence_end_date' => 'nullable|date|after:today',
             'recurrence_count' => 'nullable|integer|min:2|max:52',
@@ -264,6 +275,13 @@ class AppointmentController extends Controller
         ]);
 
         $provider = User::with('businessProfile')->findOrFail($request->provider_id);
+        $selectedTeamMember = $this->resolveSelectedTeamMember($provider->id, $request->team_member_id);
+        if ($request->filled('team_member_id') && ! $selectedTeamMember) {
+            return back()->withErrors([
+                'team_member_id' => 'The selected team member is no longer available.',
+            ]);
+        }
+
         $settings = $provider->businessProfile->settings ?? [];
         $maxPerWeek = $settings['max_bookings_per_week'] ?? null;
         $maxPerMonth = $settings['max_bookings_per_month'] ?? null;
@@ -326,6 +344,7 @@ class AppointmentController extends Controller
                 'status' => $autoConfirm ? 'confirmed' : 'pending',
                 'price' => $totalPrice,
                 'notes' => $request->notes,
+                'team_member_id' => $selectedTeamMember?->id,
                 'provider_approved' => $autoConfirm,
                 'provider_approved_at' => $autoConfirm ? now() : null,
             ];
@@ -634,6 +653,7 @@ class AppointmentController extends Controller
                 'notes' => $appointment->notes,
                 'price' => (float) $appointment->price,
                 'service_ids' => $appointment->services->pluck('id'),
+                'team_member_id' => $appointment->team_member_id,
             ],
             'provider' => [
                 'id' => $provider->id,
@@ -655,6 +675,7 @@ class AppointmentController extends Controller
                 ];
             }),
             'walletBalance' => $walletBalance,
+            'teamMembers' => $this->eligibleTeamMembersForProvider($provider),
             'settings' => [
                 'advanceBooking' => $settings['advanceBooking'] ?? '30',
                 'minNotice' => $settings['minNotice'] ?? null,
@@ -692,10 +713,19 @@ class AppointmentController extends Controller
             'service_ids' => 'required|array',
             'service_ids.*' => 'exists:services,id',
             'date' => 'required|date',
+            'team_member_id' => 'nullable|exists:team_members,id',
             'reschedule_id' => 'nullable|exists:appointments,id',
         ]);
 
         $provider = User::with('businessProfile')->findOrFail($request->provider_id);
+        $selectedTeamMember = $this->resolveSelectedTeamMember($provider->id, $request->team_member_id);
+        if ($request->filled('team_member_id') && ! $selectedTeamMember) {
+            return response()->json([
+                'slots' => [],
+                'message' => 'The selected team member is no longer available.',
+            ], 422);
+        }
+
         $services = Service::whereIn('id', $request->service_ids)->get();
         $totalDuration = $services->sum('duration_minutes');
         $maxBuffer = $services->max('buffer_time_minutes') ?? 0;
@@ -766,6 +796,11 @@ class AppointmentController extends Controller
         $existingAppointments = Appointment::where('provider_id', $provider->id)
             ->whereDate('start_time', $date)
             ->whereIn('status', ['pending', 'confirmed'])
+            ->when(
+                $selectedTeamMember,
+                fn ($q) => $q->where('team_member_id', $selectedTeamMember->id),
+                fn ($q) => $q->whereNull('team_member_id'),
+            )
             ->when($request->reschedule_id, function ($q) use ($request) {
                 return $q->where('id', '!=', $request->reschedule_id);
             })
@@ -856,5 +891,40 @@ class AppointmentController extends Controller
             'slots' => $slots,
             'message' => empty($slots) ? 'No available slots found for the selected services and date.' : null
         ]);
+    }
+
+    private function resolveSelectedTeamMember(string $providerId, ?string $teamMemberId): ?TeamMember
+    {
+        if (! $teamMemberId) {
+            return null;
+        }
+
+        return TeamMember::query()
+            ->whereKey($teamMemberId)
+            ->where('provider_id', $providerId)
+            ->where('is_active', true)
+            ->whereNotNull('accepted_at')
+            ->first();
+    }
+
+    private function eligibleTeamMembersForProvider(User $provider): array
+    {
+        $teamMembers = TeamMember::query()
+            ->where('provider_id', $provider->id)
+            ->where('is_active', true)
+            ->whereNotNull('accepted_at')
+            ->with('user:id,name,email')
+            ->get();
+
+        if ($teamMembers->count() <= 1) {
+            return [];
+        }
+
+        return $teamMembers->map(fn ($member) => [
+            'id' => $member->id,
+            'name' => $member->user?->name,
+            'email' => $member->user?->email,
+            'role' => $member->role,
+        ])->values()->all();
     }
 }
