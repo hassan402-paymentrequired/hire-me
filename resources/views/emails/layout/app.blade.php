@@ -7,13 +7,29 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>@yield('title', config('app.name'))</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Hedvig+Letters+San&Figtree:ital,wght@0,300..900;1,300..900s&family=Josefin+Sans:ital,wght@0,100..700;1,100..700&family=Sekuya&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=Roboto+Flex:opsz,wght,XOPQ,XTRA,YOPQ,YTDE,YTFI,YTLC,YTUC@8..144,100..1000,96,468,79,-203,738,514,712&display=swap');
+        /*
+         * Email client note:
+         * Many email clients strip @import / external fonts. Keep to system fonts.
+         */
+
+        body,
+        table,
+        td,
+        a {
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+
+        table,
+        td {
+            mso-table-lspace: 0pt;
+            mso-table-rspace: 0pt;
+        }
 
         body {
             margin: 0;
             padding: 0;
-            font-family: Roboto, 'Josefin Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background-color: #f2f4f1;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
@@ -36,6 +52,13 @@
             text-decoration: none;
         }
 
+        a[x-apple-data-detectors],
+        a[href^="tel"],
+        a[href^="sms"] {
+            color: inherit !important;
+            text-decoration: none !important;
+        }
+
         ul {
             line-height: 1.8;
             background: #f3f4f6;
@@ -45,7 +68,7 @@
 
         li,
         p {
-            font-family: 'Roboto Flex', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         }
 
         p {
@@ -55,14 +78,14 @@
 
 
         .email-main-wrapper {
-            padding: 20px;
-            margin-top: 20px;
+            padding: 20px 12px;
         }
 
         /* Container */
         .email-wrapper {
+            width: 100%;
             max-width: 600px;
-            margin: 0 auto;
+            margin: 0 auto !important;
             background-color: #ffffff;
             border-radius: 3px;
             overflow: hidden;
@@ -71,18 +94,13 @@
 
         /* Header with gradient accent */
         .email-header {
-            display: flex;
-            align-items: center;
-            font-family: 'Sekuya';
             padding: 20px 10px 10px 15px;
+            text-align: center;
         }
 
 
         /* Logo styling */
         .email-logo-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
             width: 100%;
         }
 
@@ -100,7 +118,7 @@
             font-weight: 700;
             text-decoration: none;
             display: inline-block;
-            font-family: 'Sekuya', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             letter-spacing: 2px;
         }
 
@@ -116,14 +134,12 @@
             font-weight: 700;
             color: #1a1d16;
             line-height: 1.3;
-            font-family: 'Roboto Flex', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         }
 
         /* Content */
         .email-content {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
+            display: block;
         }
 
         .email-content p {
@@ -164,8 +180,8 @@
 
         /* Info box for important notices */
         .info-box {
-            background: linear-gradient(135deg, #f2f4f1 0%, #e6e9e2 100%);
-            border-left: 4px solid #808f70;
+            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+            border-left: 4px solid #99a1af;
             padding: 20px 24px;
             margin: 24px 0;
             border-radius: 6px;
@@ -179,19 +195,12 @@
 
         /* CTA Button */
         .email-button-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            text-align: center;
             margin: 36px 0 24px;
         }
 
         .email-button {
-            display: flex;
-            align-items: center;
-            height: 2.5em;
-            width: auto;
-            align-items: center;
-            justify-content: center;
+            display: inline-block;
             background-color: #100C08;
             border-radius: 3px;
             letter-spacing: 1px;
@@ -200,8 +209,9 @@
             border: none;
             color: white;
             text-align: center;
-            font-family: 'Roboto Flex', sans-serif;
-            padding-inline: 12px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            padding: 12px 18px;
+            line-height: 1.2;
         }
 
 
@@ -214,7 +224,7 @@
         }
 
         .help-text {
-            font-family: 'Roboto Flex', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             text-align: center;
             font-size: 14px;
         }
@@ -231,7 +241,9 @@
             background: #f3f4f6;
             padding: 32px 40px;
             text-align: center;
-            font-family: 'Roboto Flex', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
         }
 
         .email-footer-branding {
@@ -239,7 +251,7 @@
             font-weight: 700;
             color: #1a1d16;
             margin: 0 0 16px 0;
-            font-family: 'Sekuya', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             letter-spacing: 2px;
         }
 
@@ -290,11 +302,11 @@
             .email-header,
             .email-body,
             .email-footer {
-                padding: 32px 24px !important;
+                padding: 24px 16px !important;
             }
 
             .email-heading {
-                font-size: 24px !important;
+                font-size: 22px !important;
             }
 
             .email-content {
@@ -302,7 +314,11 @@
             }
 
             .email-button {
-                padding: 14px 32px !important;
+                display: block !important;
+                width: 100% !important;
+                max-width: 420px !important;
+                margin: 0 auto !important;
+                padding: 14px 16px !important;
                 font-size: 15px !important;
             }
 
@@ -326,17 +342,14 @@
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="email-main-wrapper">
         <tr>
             <td align="center">
-                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600"
-                    class="email-wrapper">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="email-wrapper" style="max-width:600px;">
 
                     <!-- Header -->
                     <tr>
-                        <td class="email-header">
-                            <div class="email-logo-container">
-                                <a href="#">
-                                    <img src="{{  asset('logo.png') }}" alt="{{ config('app.name') }}" class="email-logo" />
-                                </a>
-                            </div>
+                        <td class="email-header" align="center">
+                            <a href="{{ config('app.url') }}" target="_blank">
+                                <img src="{{ asset('logo.png') }}" alt="{{ config('app.name') }}" class="email-logo" />
+                            </a>
                         </td>
                     </tr>
 
@@ -360,8 +373,8 @@
 
                             <p class="help-text">
                                 Need help? Our support team is available 24/7 at
-                                <a href="mailto:support@{{ parse_url(config('app.url'), PHP_URL_HOST) }}" class="help-text-link">
-                                    support@{{ parse_url(config('app.url'), PHP_URL_HOST) }}
+                                <a href="mailto:support@proxideck" class="help-text-link">
+                                    support@proxideck
                                 </a>
                             </p>
 
@@ -380,13 +393,13 @@
                             </p>
 
                             <div class="email-footer-links">
-                                <a href="{{ route('privacy-policy')}}/privacy">Privacy Policy</a>
+                                <a href="{{ route('privacy-policy') }}">Privacy Policy</a>
                                 <span>&bull;</span>
-                                <a href="{{ route('terms') }}/terms">Terms of Service</a>
+                                <a href="{{ route('terms') }}">Terms of Service</a>
                                 <span>&bull;</span>
-                                <a href="mailto:support@{{ config('app.url') }}">Contact Support</a>
-                                <span>&bull;</span>
-                                <a href="#">Unsubscribe</a>
+                                <a href="mailto:support@{{ parse_url(config('app.url'), PHP_URL_HOST) }}">Contact Support</a>
+                                {{--  <span>&bull;</span>
+                                <a href="#">Unsubscribe</a>  --}}
                             </div>
 
                             <p class="email-footer-disclaimer">

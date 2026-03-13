@@ -240,4 +240,12 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->appointmentsAsClient()->where('status', 'completed')->count() === 1;
     }
+
+    /**
+     * Send the email verification notification via queue.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new \App\Notifications\QueuedVerifyEmail());
+    }
 }

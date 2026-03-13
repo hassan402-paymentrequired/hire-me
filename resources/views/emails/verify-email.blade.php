@@ -16,7 +16,7 @@
     <div class="info-box">
         <p>
             ⏱ &nbsp;This verification link expires in <strong>24 hours</strong>.
-            If it expires.
+            If it expires, you can request a new one.
         </p>
     </div>
 
@@ -30,4 +30,3 @@
 
 @section('cta_label', 'Verify Email Address →')
 @section('cta_url', $url)
-
