@@ -27,6 +27,25 @@ Route::middleware(['provider.setup'])->group(function () {
     Route::get('/terms', [\App\Http\Controllers\Guest\StaticPageController::class, 'termsAndConditions'])->name('terms');
 });
 
+// Email verification (OTP) for authenticated but unverified users.
+Route::middleware(['auth', 'provider.setup'])->group(function () {
+    // Force the Inertia verify screen (Fortify's default may render a Blade view).
+    Route::get('/email/verify', function (\Illuminate\Http\Request $request) {
+        return \Inertia\Inertia::render('auth/verify-email', [
+            'status' => $request->session()->get('status'),
+        ]);
+    })->name('verification.notice');
+
+    // Resend OTP (keeps the Fortify-compatible endpoint for existing frontend route helpers).
+    Route::post('/email/verification-notification', [\App\Http\Controllers\EmailVerificationOtpController::class, 'send'])
+        ->middleware('throttle:10,1')
+        ->name('verification.send');
+
+    Route::post('/email/verify/otp', [\App\Http\Controllers\EmailVerificationOtpController::class, 'verify'])
+        ->middleware('throttle:10,1')
+        ->name('verification.otp.verify');
+});
+
 Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
 
     Route::get('/provider/{slug}/book', [\App\Http\Controllers\Client\MarketplaceController::class, 'booking'])->name('marketplace.booking');

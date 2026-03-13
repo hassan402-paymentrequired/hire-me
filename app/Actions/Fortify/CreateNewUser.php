@@ -64,6 +64,9 @@ class CreateNewUser implements CreatesNewUsers
                 );
             }
 
+            // OTP verification email should be sent immediately after successful registration.
+            DB::afterCommit(fn () => $user->sendEmailVerificationNotification());
+
             return $user;
         });
     }

@@ -242,10 +242,16 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Send the email verification notification via queue.
+     * Send the email verification OTP immediately (no queue worker required).
      */
     public function sendEmailVerificationNotification(): void
     {
-        $this->notify(new \App\Notifications\QueuedVerifyEmail());
+        $otpService = app(\App\Services\EmailVerificationOtpService::class);
+        $code = $otpService->issue($this);
+
+        $entryUrl = url('/email/verify');
+
+        // Use notifyNow to bypass any queue configuration (e.g. redis) for OTP verification.
+        $this->notifyNow(new \App\Notifications\EmailVerificationOtpNotification($code, $entryUrl));
     }
 }
