@@ -242,16 +242,23 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Send the email verification OTP immediately (no queue worker required).
+     * Send the email verification OTP.
+     *
+     * This can be triggered by Laravel's Registered event listener; we apply a short cooldown
+     * to avoid accidentally dispatching duplicate OTP emails.
      */
     public function sendEmailVerificationNotification(): void
     {
         $otpService = app(\App\Services\EmailVerificationOtpService::class);
-        $code = $otpService->issue($this);
+        try {
+            $code = $otpService->issue($this, true);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Cooldown hit; don't send a duplicate OTP.
+            return;
+        }
 
         $entryUrl = url('/email/verify');
 
-        // Use notifyNow to bypass any queue configuration (e.g. redis) for OTP verification.
-        $this->notifyNow(new \App\Notifications\EmailVerificationOtpNotification($code, $entryUrl));
+        $this->notify(new \App\Notifications\EmailVerificationOtpNotification($code, $entryUrl));
     }
 }

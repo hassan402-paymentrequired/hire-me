@@ -22,8 +22,7 @@ class EmailVerificationOtpController extends Controller
         }
 
         $code = $otpService->issue($user, true);
-        // Send immediately; we don't want OTP delivery to depend on a queue worker.
-        $user->notifyNow(new \App\Notifications\EmailVerificationOtpNotification(
+        $user->notify(new \App\Notifications\EmailVerificationOtpNotification(
             $code,
             url('/email/verify'),
         ));
