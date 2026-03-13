@@ -12,6 +12,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 import notifications from '@/routes/notifications';
 import { Link, router } from '@inertiajs/react';
 import { Bell } from 'lucide-react';
@@ -144,8 +145,8 @@ export function NotificationBell() {
                     <TooltipContent>
                         <p>Notifications</p>
                     </TooltipContent>
-                    <DropdownMenuContent align="end" className="w-96 p-0 font-heading shadow-none rounded">
-                        <div className="flex items-center justify-between border-b px-3 py-2 bg-gray-100">
+                    <DropdownMenuContent align="end" className="w-96 p-0 font-heading shadow-none rounded-2xl">
+                        <div className="flex items-center justify-between border-b px-3 py-2 bg-gray-50">
                             <span className="font-medium">Notifications</span>
                             {unreadCount > 0 && (
                                 <Button
@@ -172,8 +173,8 @@ export function NotificationBell() {
                                 No notifications yet
                             </div>
                         ) : (
-                            <ScrollArea className="h-[280px]">
-                                <ul className="py-1">
+                            <ScrollArea className="h-[300px]">
+                                <ul className="py-2">
                                     {notifications.map((n) => {
                                         const data = n.data || {};
                                         const title =
@@ -184,7 +185,7 @@ export function NotificationBell() {
                                         return (
                                             <li
                                                 key={n.id}
-                                                className="border-b last:border-0"
+                                                className="border-b border-dashed last:border-0 hover:bg-gray-100"
                                             >
                                                 {actionUrl ? (
                                                     <Link
@@ -200,10 +201,11 @@ export function NotificationBell() {
                                                         }}
                                                     >
                                                         <div
-                                                            className={
+                                                            className={cn(
                                                                 isUnread
                                                                     ? 'font-medium'
-                                                                    : 'text-muted-foreground'
+                                                                    : 'text-muted-foreground', 'text-sm'
+                                                                    )
                                                             }
                                                         >
                                                             {title}

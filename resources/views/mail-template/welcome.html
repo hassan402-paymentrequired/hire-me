@@ -82,11 +82,16 @@
         .email-logo-container {
             display: flex;
             align-items: center;
+            justify-content: center;
+            width: 100%;
         }
 
         .email-logo {
-            height: 48px;
+            margin-bottom: 10px;
+            height: 45px;
             width: auto;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         .email-logo-text {
@@ -326,10 +331,8 @@
                     <tr>
                         <td class="email-header">
                             <div class="email-logo-container">
-                                <img src="/public/logo.png" alt="{{ config('app.name') }}" class="email-logo" />
-
-                                <a href="#" class="email-logo-text">
-                                    Clockra
+                                <a href="#">
+                                    <img src="/public/logo.png" alt="{{ config('app.name') }}" class="email-logo" />
                                 </a>
                             </div>
                         </td>
@@ -369,7 +372,7 @@
                             </ul>
 
                             <div class="email-content">
-                                <p >
+                                <p>
                                     Ready to get started? Explore our marketplace and discover professionals who can
                                     bring your projects to life.
                                 </p>
@@ -395,7 +398,7 @@
                     <tr>
                         <td class="email-footer">
                             <div class="email-footer-branding">
-                                Clockra
+                                <img src="/public/logo.png" alt="{{ config('app.name') }}" class="email-logo" />
                             </div>
 
                             <p class="email-footer-text">

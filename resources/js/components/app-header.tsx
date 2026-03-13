@@ -80,7 +80,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                             <SheetContent side="left" className="flex h-full w-72 flex-col bg-sidebar p-0">
                                 <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                                 <SheetHeader className="flex items-start p-4 pb-2">
-                                    <AppLogoIcon className="h-6 w-6 fill-current text-black dark:text-white" />
+                                    <AppLogoIcon/>
                                 </SheetHeader>
 
                                 <div className="flex flex-1 flex-col justify-between overflow-y-auto p-4 text-sm">
@@ -171,12 +171,12 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                     </div>
 
                     {/* ── Logo ── */}
-                    <Link href="/" prefetch className="flex items-center space-x-2 shrink-0">
+                    <Link href="/#marketplace" prefetch className="flex items-center shrink-0">
                         <AppLogo />
                     </Link>
 
                     {/* ── Desktop nav links ── */}
-                    <div className="ml-4 hidden h-full items-center lg:flex">
+                    <div className="hidden h-full items-center lg:flex">
                         <NavigationMenu className="flex h-full items-stretch">
                             <NavigationMenuList className="flex h-full items-stretch space-x-2">
                                 {mainNavItems(auth).map((item, index) => (

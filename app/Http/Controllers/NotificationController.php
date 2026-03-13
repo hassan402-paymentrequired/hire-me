@@ -17,6 +17,7 @@ class NotificationController extends Controller
 
         $notifications = $user->notifications()
             ->orderBy('created_at', 'desc')
+            ->whereNull('read_at')
             ->paginate($perPage);
 
         return response()->json([

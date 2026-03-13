@@ -38,6 +38,3 @@
 @section('cta_label', 'Browse Marketplace')
 @section('cta_url', route('home'))
 
-@section('unsubscribe_url', '#'))
-
-@section('footer_note', 'If this wasn\'t you, you can safely ignore this email.')

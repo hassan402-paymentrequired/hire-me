@@ -19,7 +19,9 @@
             -moz-osx-font-smoothing: grayscale;
         }
 
-        table { border-collapse: collapse; }
+        table {
+            border-collapse: collapse;
+        }
 
         img {
             border: 0;
@@ -30,7 +32,9 @@
             -ms-interpolation-mode: bicubic;
         }
 
-        a { text-decoration: none; }
+        a {
+            text-decoration: none;
+        }
 
         ul {
             line-height: 1.8;
@@ -39,7 +43,8 @@
             padding: 10px;
         }
 
-        li, p {
+        li,
+        p {
             font-family: 'Roboto Flex', sans-serif;
         }
 
@@ -47,6 +52,7 @@
             font-size: 14px;
             line-height: 1.5;
         }
+
 
         .email-main-wrapper {
             padding: 20px;
@@ -63,7 +69,7 @@
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
         }
 
-        /* Header */
+        /* Header with gradient accent */
         .email-header {
             display: flex;
             align-items: center;
@@ -71,14 +77,21 @@
             padding: 20px 10px 10px 15px;
         }
 
+
+        /* Logo styling */
         .email-logo-container {
             display: flex;
             align-items: center;
+            justify-content: center;
+            width: 100%;
         }
 
         .email-logo {
-            height: 48px;
+            margin-bottom: 10px;
+            height: 45px;
             width: auto;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         .email-logo-text {
@@ -98,6 +111,7 @@
         }
 
         .email-heading {
+            text-transform: capitalize;
             font-size: 22px;
             font-weight: 700;
             color: #1a1d16;
@@ -148,7 +162,7 @@
             font-weight: 600;
         }
 
-        /* Info box */
+        /* Info box for important notices */
         .info-box {
             background: linear-gradient(135deg, #f2f4f1 0%, #e6e9e2 100%);
             border-left: 4px solid #808f70;
@@ -176,6 +190,7 @@
             align-items: center;
             height: 2.5em;
             width: auto;
+            align-items: center;
             justify-content: center;
             background-color: #100C08;
             border-radius: 3px;
@@ -189,11 +204,13 @@
             padding-inline: 12px;
         }
 
+
         /* Divider */
         .email-divider {
             height: 1px;
             background: linear-gradient(90deg, transparent 0%, #ccd2c6 50%, transparent 100%);
             margin: 32px 0;
+
         }
 
         .help-text {
@@ -205,10 +222,12 @@
         .help-text .help-text-link {
             text-decoration: underline;
             color: #100C08;
+
         }
 
         /* Footer */
         .email-footer {
+            /*background-color: #f2f4f1;*/
             background: #f3f4f6;
             padding: 32px 40px;
             text-align: center;
@@ -242,6 +261,11 @@
             text-decoration: none;
             margin: 0 12px;
             font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .email-footer-links a:hover {
+            color: #1a1d16;
         }
 
         .email-footer-links span {
@@ -256,7 +280,7 @@
             line-height: 1.5;
         }
 
-        /* Mobile */
+        /* Mobile Responsive */
         @media only screen and (max-width: 600px) {
             .email-wrapper {
                 width: 100% !important;
@@ -295,8 +319,6 @@
                 padding: 16px 20px !important;
             }
         }
-
-        @yield('styles')
     </style>
 </head>
 
@@ -304,15 +326,15 @@
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="email-main-wrapper">
         <tr>
             <td align="center">
-                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="email-wrapper">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600"
+                    class="email-wrapper">
 
                     <!-- Header -->
                     <tr>
                         <td class="email-header">
                             <div class="email-logo-container">
-                                <img src="{{ asset('logo.png') }}" alt="{{ config('app.name') }}" class="email-logo" />
-                                <a href="{{ config('app.url') }}" class="email-logo-text">
-                                    {{ config('app.name') }}
+                                <a href="#">
+                                    <img src="{{  asset('logo.png') }}" alt="{{ config('app.name') }}" class="email-logo" />
                                 </a>
                             </div>
                         </td>
@@ -349,8 +371,8 @@
                     <!-- Footer -->
                     <tr>
                         <td class="email-footer">
-                            <div class="email-footer-branding">
-                                {{ config('app.name') }}
+                             <div class="email-footer-branding">
+                                <img src="{{ asset('logo.png') }}" alt="{{ config('app.name') }}" class="email-logo" />
                             </div>
 
                             <p class="email-footer-text">
@@ -358,17 +380,18 @@
                             </p>
 
                             <div class="email-footer-links">
-                                <a href="{{ config('app.url') }}/privacy">Privacy Policy</a>
+                                <a href="{{ route('privacy-policy')}}/privacy">Privacy Policy</a>
                                 <span>&bull;</span>
-                                <a href="{{ config('app.url') }}/terms">Terms of Service</a>
+                                <a href="{{ route('terms') }}/terms">Terms of Service</a>
                                 <span>&bull;</span>
                                 <a href="mailto:support@{{ config('app.url') }}">Contact Support</a>
                                 <span>&bull;</span>
-                                <a href="@yield('unsubscribe_url', '#')">Unsubscribe</a>
+                                <a href="#">Unsubscribe</a>
                             </div>
 
                             <p class="email-footer-disclaimer">
-                                You're receiving this email because you created an account on {{ config('app.name') }}.<br>
+                                You're receiving this email because you created an account on
+                                {{ config('app.name') }}.<br>
                                 @yield('footer_note', 'If you have questions, please don\'t hesitate to reach out.')
                             </p>
                         </td>
