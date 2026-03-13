@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { BreadcrumbItem } from '@/types';
 import {
     ArrowLeft,
@@ -110,8 +112,18 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function UserShow({ user }: Props) {
     const [showSuspendDialog, setShowSuspendDialog] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [isEditingWallet, setIsEditingWallet] = useState(false);
 
     const { post, delete: deleteMethod, processing } = useForm();
+    const walletForm = useForm<{
+        balance: string;
+        escrow_balance: string;
+        reason: string;
+    }>({
+        balance: String(user.wallet?.balance ?? 0),
+        escrow_balance: String(user.wallet?.escrow_balance ?? 0),
+        reason: '',
+    });
 
     const handleSuspend = () => {
         post(`/admin/users/${user.id}/suspend`, {
@@ -128,6 +140,41 @@ export default function UserShow({ user }: Props) {
             },
         });
     };
+
+    const startEditWallet = () => {
+        setIsEditingWallet(true);
+        walletForm.setData({
+            balance: String(user.wallet?.balance ?? 0),
+            escrow_balance: String(user.wallet?.escrow_balance ?? 0),
+            reason: '',
+        });
+        walletForm.clearErrors();
+    };
+
+    const cancelEditWallet = () => {
+        setIsEditingWallet(false);
+        walletForm.reset();
+        walletForm.clearErrors();
+    };
+
+    const saveWallet = () => {
+        walletForm.put(`/admin/users/${user.id}/wallet`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setIsEditingWallet(false);
+                walletForm.reset('reason');
+            },
+        });
+    };
+
+    const currentBalance = Number(user.wallet?.balance ?? 0);
+    const currentEscrow = Number(user.wallet?.escrow_balance ?? 0);
+    const currentAvailable = Math.max(0, currentBalance - currentEscrow);
+
+    const draftBalance = Number(walletForm.data.balance || 0);
+    const draftEscrow = Number(walletForm.data.escrow_balance || 0);
+    const draftAvailable = Math.max(0, draftBalance - draftEscrow);
+
 
     return (
         <AdminLayout breadcrumbs={breadcrumbs}>
@@ -310,42 +357,158 @@ export default function UserShow({ user }: Props) {
                         </Card>
                     )}
 
-                    {user.wallet && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Wallet Information</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div>
-                                    <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                                        <DollarSign className="h-3 w-3" />
-                                        Total Balance
-                                    </label>
-                                    <p className="text-2xl font-bold">
-                                        ₦{user.wallet.balance.toLocaleString()}
-                                    </p>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle>Wallet Information</CardTitle>
+                            {!isEditingWallet ? (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={startEditWallet}
+                                >
+                                    Edit wallet
+                                </Button>
+                            ) : (
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={cancelEditWallet}
+                                        disabled={walletForm.processing}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        onClick={saveWallet}
+                                        disabled={walletForm.processing}
+                                    >
+                                        Save
+                                    </Button>
                                 </div>
-                                <div>
-                                    <label className="text-sm font-medium text-muted-foreground">
-                                        Escrow Balance
-                                    </label>
-                                    <p className="text-sm">
-                                        ₦
-                                        {user.wallet.escrow_balance.toLocaleString()}
-                                    </p>
-                                </div>
-                                <div>
-                                    <label className="text-sm font-medium text-muted-foreground">
-                                        Available Balance
-                                    </label>
-                                    <p className="text-sm">
-                                        ₦
-                                        {user.wallet.available_balance.toLocaleString()}
-                                    </p>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
+                            )}
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {!isEditingWallet ? (
+                                <>
+                                    <div>
+                                        <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                                            <DollarSign className="h-3 w-3" />
+                                            Total Balance
+                                        </label>
+                                        <p className="text-2xl font-bold">
+                                            ₦{currentBalance.toLocaleString()}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-muted-foreground">
+                                            Escrow Balance
+                                        </label>
+                                        <p className="text-sm">
+                                            ₦{currentEscrow.toLocaleString()}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-muted-foreground">
+                                            Available Balance
+                                        </label>
+                                        <p className="text-sm">
+                                            ₦{currentAvailable.toLocaleString()}
+                                        </p>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="balance">
+                                                Total balance
+                                            </Label>
+                                            <Input
+                                                id="balance"
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                value={walletForm.data.balance}
+                                                onChange={(e) =>
+                                                    walletForm.setData(
+                                                        'balance',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                            {walletForm.errors.balance && (
+                                                <p className="text-sm text-destructive">
+                                                    {walletForm.errors.balance}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="escrow_balance">
+                                                Escrow balance
+                                            </Label>
+                                            <Input
+                                                id="escrow_balance"
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                value={
+                                                    walletForm.data.escrow_balance
+                                                }
+                                                onChange={(e) =>
+                                                    walletForm.setData(
+                                                        'escrow_balance',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                            {walletForm.errors.escrow_balance && (
+                                                <p className="text-sm text-destructive">
+                                                    {
+                                                        walletForm.errors
+                                                            .escrow_balance
+                                                    }
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="rounded-md border bg-muted/20 p-3 text-sm">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-muted-foreground">
+                                                Available (computed)
+                                            </span>
+                                            <span className="font-semibold">
+                                                ₦{draftAvailable.toLocaleString()}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="reason">
+                                            Reason (optional)
+                                        </Label>
+                                        <Input
+                                            id="reason"
+                                            value={walletForm.data.reason}
+                                            onChange={(e) =>
+                                                walletForm.setData(
+                                                    'reason',
+                                                    e.target.value,
+                                                )
+                                            }
+                                            placeholder="e.g. Manual correction"
+                                        />
+                                        {walletForm.errors.reason && (
+                                            <p className="text-sm text-destructive">
+                                                {walletForm.errors.reason}
+                                            </p>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </CardContent>
+                    </Card>
 
                     <Card>
                         <CardHeader>

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Wallet;
+use App\Models\WalletTransaction;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -98,13 +100,63 @@ class UserManagementController extends Controller
         return back()->with('success-toast', 'User updated successfully.');
     }
 
+    public function updateWallet(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+
+        $validated = $request->validate([
+            'balance' => ['required', 'numeric', 'min:0'],
+            'escrow_balance' => ['required', 'numeric', 'min:0', 'lte:balance'],
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $wallet = Wallet::firstOrCreate(
+                ['user_id' => $user->id],
+                ['balance' => 0, 'escrow_balance' => 0],
+            );
+
+            $beforeBalance = (float) $wallet->balance;
+            $beforeEscrow = (float) $wallet->escrow_balance;
+
+            $wallet->balance = $validated['balance'];
+            $wallet->escrow_balance = $validated['escrow_balance'];
+            $wallet->save();
+
+            WalletTransaction::create([
+                'wallet_id' => $wallet->id,
+                'user_id' => $user->id,
+                'type' => 'admin_adjustment',
+                'amount' => (float) $wallet->balance - $beforeBalance,
+                'balance_before' => $beforeBalance,
+                'balance_after' => (float) $wallet->balance,
+                'status' => WalletTransaction::STATUS_COMPLETED,
+                'description' => $validated['reason']
+                    ? "Admin wallet adjustment: {$validated['reason']}"
+                    : 'Admin wallet adjustment',
+                'metadata' => [
+                    'admin_id' => auth()->id(),
+                    'escrow_before' => $beforeEscrow,
+                    'escrow_after' => (float) $wallet->escrow_balance,
+                ],
+            ]);
+
+            DB::commit();
+            return back()->with('success-toast', 'Wallet updated successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error-toast', 'Failed to update wallet: ' . $e->getMessage());
+        }
+    }
+
     public function suspend($id)
     {
         $user = User::findOrFail($id);
 
         // TODO: Add suspended_at field to users table
         // For now, we can use a settings field or create a separate table
-        $user->update(['email_verified_at' => null]); // Temporary measure
+        $user->update(['email_verified_at' => null]); 
 
         return back()->with('success-toast', 'User suspended successfully.');
     }

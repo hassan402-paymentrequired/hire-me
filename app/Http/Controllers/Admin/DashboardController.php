@@ -23,8 +23,10 @@ class DashboardController extends Controller
         $startOfWeek = $now->copy()->startOfWeek();
         $startOfDay = $now->copy()->startOfDay();
 
+        $monthlyStats = [];
+
         // Cached Statistics (15 minutes)
-        $stats = \Illuminate\Support\Facades\Cache::remember('admin.dashboard.stats', 60 * 15, function () use ($now, $startOfMonth, $startOfWeek, $startOfDay) {
+        $stats = \Illuminate\Support\Facades\Cache::remember('admin.dashboard.stats', 60 * 15, function () use ($now, $startOfMonth, $startOfWeek, $startOfDay, $monthlyStats) {
             // User Statistics
             $totalUsers = User::count();
             $newUsersThisMonth = User::where('created_at', '>=', $startOfMonth)->count();
@@ -68,7 +70,7 @@ class DashboardController extends Controller
             $totalReviews = Review::count();
 
             // Growth Trends (Last 6 months)
-            $monthlyStats = [];
+            
             for ($i = 5; $i >= 0; $i--) {
                 $monthStart = $now->copy()->subMonths($i)->startOfMonth();
                 $monthEnd = $now->copy()->subMonths($i)->endOfMonth();

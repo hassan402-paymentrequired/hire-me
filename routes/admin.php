@@ -35,6 +35,7 @@ Route::middleware(['admin'])->group(function () {
         Route::get('/', [UserManagementController::class, 'index'])->name('index');
         Route::get('/{id}', [UserManagementController::class, 'show'])->name('show');
         Route::put('/{id}', [UserManagementController::class, 'update'])->name('update');
+        Route::put('/{id}/wallet', [UserManagementController::class, 'updateWallet'])->name('wallet.update');
         Route::post('/{id}/suspend', [UserManagementController::class, 'suspend'])->name('suspend');
         Route::delete('/{id}', [UserManagementController::class, 'delete'])->name('delete');
     });

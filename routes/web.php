@@ -171,8 +171,6 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
         Route::post('/verification/submit', [\App\Http\Controllers\Provider\VerificationController::class, 'store'])->name('verification.submit');
     });
 
-    // Admin routes are now in routes/admin.php
-
     Route::post('/mark-as-favourite', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'markFavourites'])->name('favourite.update');
     Route::get('/service/favourite', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'getUserFav'])->name('favourite.index');
 

@@ -112,7 +112,7 @@ export default function ProviderGallery({ provider, items }: Props) {
 
                 {flat.length === 0 ? (
                     <EmptyCard
-                        title="No gallery images yet."
+                        title={provider.businessName + " has'nt upload any images yet."}
                         image="/assets/gifs/empty.svg"
                         className="size-74"
                     />
