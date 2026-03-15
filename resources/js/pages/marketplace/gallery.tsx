@@ -10,7 +10,7 @@ import GuestLayout from '@/layouts/guest-layout';
 import { cn, formatDate } from '@/lib/utils';
 import { Head, InfiniteScroll } from '@inertiajs/react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 interface GalleryImage {
     id: string;
@@ -61,6 +61,68 @@ export default function ProviderGallery({ provider, items }: Props) {
 
     const [open, setOpen] = useState(false);
     const [active, setActive] = useState<number>(0);
+
+    const masonryRef = useRef<HTMLDivElement | null>(null);
+    const [columnCount, setColumnCount] = useState(1);
+
+    useEffect(() => {
+        const el = masonryRef.current;
+        if (!el) return;
+
+        const compute = () => {
+            const viewportWidth =
+                typeof window !== 'undefined'
+                    ? window.innerWidth
+                    : el.clientWidth;
+
+            // Keep images visually large: never go beyond 3 columns, and if there
+            // are only a few images, cap at 2 columns.
+            const minColWidth = 360;
+            const maxColsByWidth = Math.max(
+                1,
+                Math.floor(el.clientWidth / minColWidth),
+            );
+
+            let maxCols = Math.min(3, maxColsByWidth);
+            if (viewportWidth < 640) maxCols = 1;
+            if (flat.length <= 4) maxCols = Math.min(maxCols, 2);
+
+            // Never allocate more columns than we have items, otherwise we leave empty space.
+            const next = Math.max(1, Math.min(maxCols, flat.length || 1));
+            setColumnCount((prev) => (prev === next ? prev : next));
+        };
+
+        compute();
+
+        const onResize = () => compute();
+        if (typeof window !== 'undefined') {
+            window.addEventListener('resize', onResize);
+        }
+
+        let ro: ResizeObserver | null = null;
+        if (typeof ResizeObserver !== 'undefined') {
+            ro = new ResizeObserver(() => compute());
+            ro.observe(el);
+        }
+
+        return () => {
+            ro?.disconnect();
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('resize', onResize);
+            }
+        };
+    }, [flat.length]);
+
+    const masonryColumns = useMemo(() => {
+        const cols: Array<Array<{ entry: (typeof flat)[number]; idx: number }>> =
+            Array.from({ length: columnCount }, () => []);
+
+        flat.forEach((entry, idx) => {
+            cols[idx % columnCount].push({ entry, idx });
+        });
+
+        return cols;
+    }, [flat, columnCount]);
 
     const activeEntry = flat[active];
     const canPrev = active > 0;
@@ -131,31 +193,48 @@ export default function ProviderGallery({ provider, items }: Props) {
                                     )}
                                 </div>
                             )
-                        }
-                    >
-                        <div className="columns-1 gap-4 sm:columns-2 lg:columns-3">
-                            {flat.map((entry, idx) => (
-                                <button
-                                    key={`${entry.image.id}-${idx}`}
-                                    type="button"
-                                    className="mb-4 w-full break-inside-avoid overflow-hidden rounded-lg border bg-muted/10 text-left hover:opacity-95"
-                                    onClick={() => {
-                                        setActive(idx);
-                                        setOpen(true);
-                                    }}
-                                    title={entry.item.title}
-                                >
-                                    <img
-                                        src={entry.image.url}
-                                        alt={entry.item.title}
-                                        className="h-auto w-full object-cover"
-                                        loading="lazy"
-                                    />
-                                </button>
-                            ))}
-                        </div>
-                    </InfiniteScroll>
-                )}
+	                        }
+	                    >
+	                        <div ref={masonryRef} className="w-full">
+	                            <div
+	                                className={cn(
+	                                    'flex w-full items-start gap-4',
+	                                    columnCount === 1 && 'flex-col',
+	                                )}
+	                            >
+	                                {masonryColumns.map((col, colIdx) => (
+	                                    <div
+	                                        key={colIdx}
+	                                        className={cn(
+	                                            'flex min-w-0 flex-1 flex-col gap-4',
+	                                            columnCount === 1 && 'w-full',
+	                                        )}
+	                                    >
+	                                        {col.map(({ entry, idx }) => (
+	                                            <button
+	                                                key={`${entry.image.id}-${idx}`}
+	                                                type="button"
+	                                                className="w-full overflow-hidden rounded-lg border bg-muted/10 text-left hover:opacity-95"
+	                                                onClick={() => {
+	                                                    setActive(idx);
+	                                                    setOpen(true);
+	                                                }}
+	                                                title={entry.item.title}
+	                                            >
+	                                                <img
+	                                                    src={entry.image.url}
+	                                                    alt={entry.item.title}
+	                                                    className="h-auto w-full object-cover"
+	                                                    loading="lazy"
+	                                                />
+	                                            </button>
+	                                        ))}
+	                                    </div>
+	                                ))}
+	                            </div>
+	                        </div>
+	                    </InfiniteScroll>
+	                )}
 
                 <Dialog open={open} onOpenChange={setOpen}>
                     <DialogContent className="h-[85dvh] max-h-[85dvh] w-[calc(100vw-1.5rem)] max-w-[calc(100vw-1.5rem)] overflow-hidden p-0 sm:h-[80vh] sm:max-h-[80vh] sm:!w-[80vw] sm:!max-w-[80vw]">

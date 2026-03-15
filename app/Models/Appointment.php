@@ -35,6 +35,9 @@ class Appointment extends Model
         'escrow_status',
         'escrow_transaction_id',
         'payment_released_at',
+        'platform_fee_percent',
+        'platform_fee_amount',
+        'provider_payout_amount',
         'recurrence_pattern',
         'recurrence_parent_id',
         'recurrence_end_date',
@@ -59,6 +62,9 @@ class Appointment extends Model
         'provider_approved' => 'boolean',
         'client_approved_at' => 'datetime',
         'provider_approved_at' => 'datetime',
+        'platform_fee_percent' => 'decimal:2',
+        'platform_fee_amount' => 'decimal:2',
+        'provider_payout_amount' => 'decimal:2',
     ];
 
     public function provider()

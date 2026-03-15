@@ -254,8 +254,19 @@ class Wallet extends Model
             throw new \Exception('Insufficient escrow balance');
         }
 
+        $feePercent = (float) config('fees.booking_fee_percent', 10);
+        $platformFeeAmount = round(($amount * $feePercent) / 100, 2);
+        $providerPayoutAmount = max(0, round($amount - $platformFeeAmount, 2));
+
         $this->escrow_balance -= $amount;
         $this->save();
+
+        // Persist fee details for reporting (single source of truth for what was charged at the time).
+        $appointment->forceFill([
+            'platform_fee_percent' => $feePercent,
+            'platform_fee_amount' => $platformFeeAmount,
+            'provider_payout_amount' => $providerPayoutAmount,
+        ])->save();
 
         // Create transaction for client (escrow release)
         WalletTransaction::create([
@@ -268,12 +279,18 @@ class Wallet extends Model
             'balance_after' => $this->balance,
             'status' => 'completed',
             'description' => $description ?? "Payment released to provider for appointment #{$appointment->id}",
+            'metadata' => [
+                'gross_amount' => $amount,
+                'platform_fee_percent' => $feePercent,
+                'platform_fee_amount' => $platformFeeAmount,
+                'provider_payout_amount' => $providerPayoutAmount,
+            ],
         ]);
 
         // Credit provider's wallet
         $providerWallet = Wallet::firstOrCreate(['user_id' => $appointment->provider_id]);
         $providerBalanceBefore = $providerWallet->balance;
-        $providerWallet->balance += $amount;
+        $providerWallet->balance += $providerPayoutAmount;
         $providerWallet->save();
 
         WalletTransaction::create([
@@ -281,11 +298,17 @@ class Wallet extends Model
             'user_id' => $appointment->provider_id,
             'appointment_id' => $appointment->id,
             'type' => 'payment_release',
-            'amount' => $amount,
+            'amount' => $providerPayoutAmount,
             'balance_before' => $providerBalanceBefore,
             'balance_after' => $providerWallet->balance,
             'status' => 'completed',
             'description' => $description ?? "Payment received for appointment #{$appointment->id} (dual approval completed)",
+            'metadata' => [
+                'gross_amount' => $amount,
+                'platform_fee_percent' => $feePercent,
+                'platform_fee_amount' => $platformFeeAmount,
+                'provider_payout_amount' => $providerPayoutAmount,
+            ],
         ]);
 
         return $this->transactions()->latest()->first();

@@ -54,6 +54,9 @@ interface AppointmentDetails {
     escrow_status?: string | null;
     escrow_amount?: string | number | null;
     payment_released_at?: string | null;
+    platform_fee_percent?: string | number | null;
+    platform_fee_amount?: string | number | null;
+    provider_payout_amount?: string | number | null;
     cancelled_by?: string | null;
     cancellation_reason?: string | null;
     location?: string | null;
@@ -91,6 +94,22 @@ export default function AppointmentDetailsPage({
 
     const isEscrowHeld = appointment.escrow_status === 'held';
     const isPaymentReleased = appointment.escrow_status === 'released';
+
+    const feePercent =
+        appointment.platform_fee_percent !== undefined &&
+        appointment.platform_fee_percent !== null
+            ? Number(appointment.platform_fee_percent)
+            : null;
+    const feeAmount =
+        appointment.platform_fee_amount !== undefined &&
+        appointment.platform_fee_amount !== null
+            ? Number(appointment.platform_fee_amount)
+            : null;
+    const payoutAmount =
+        appointment.provider_payout_amount !== undefined &&
+        appointment.provider_payout_amount !== null
+            ? Number(appointment.provider_payout_amount)
+            : null;
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: business.dashboard().url },
@@ -283,6 +302,40 @@ export default function AppointmentDetailsPage({
                                     </div>
                                 )}
                             </div>
+
+                            {(feePercent !== null || feeAmount !== null || payoutAmount !== null) && (
+                                <div className="rounded-lg border bg-muted/20 p-4">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
+                                            Payout Breakdown
+                                        </p>
+                                        {isPaymentReleased && (
+                                            <Badge variant="secondary">Released</Badge>
+                                        )}
+                                    </div>
+
+                                    <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                                        <div>
+                                            <p className="text-xs text-muted-foreground">Gross</p>
+                                            <p className="text-sm font-bold">{appointment.price}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-muted-foreground">
+                                                Platform fee{feePercent !== null ? ` (${feePercent}%)` : ''}
+                                            </p>
+                                            <p className="text-sm font-bold">
+                                                {feeAmount !== null ? `₦${feeAmount.toLocaleString()}` : '—'}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-muted-foreground">Net payout</p>
+                                            <p className="text-sm font-bold">
+                                                {payoutAmount !== null ? `₦${payoutAmount.toLocaleString()}` : '—'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Location */}
                             {(appointment.location ||

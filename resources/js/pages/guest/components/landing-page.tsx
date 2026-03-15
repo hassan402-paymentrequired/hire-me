@@ -89,7 +89,7 @@ export default function Landing({
                                 Discover providers with clarity
                             </div>
 
-                            <h1 className="animate-fade-in-up text-5xl font-semibold tracking-tight text-balance text-gray-900 sm:text-7xl dark:text-white">
+                            <h1 className="animate-fade-in-up text-5xl capitalize font-semibold tracking-tight text-balance text-gray-900 sm:text-7xl dark:text-white">
                                 Book with more{' '}
                                 <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
                                     confidence
