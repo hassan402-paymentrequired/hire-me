@@ -16,7 +16,7 @@ class AdminSeeder extends Seeder
     {
         // Create super admin
         Admin::firstOrCreate(
-            ['email' => 'admin@clockra.com'],
+            ['email' => 'admin@proxideck.com'],
             [
                 'name' => 'Super Admin',
                 'email' => 'admin@hireme.com',
@@ -29,10 +29,10 @@ class AdminSeeder extends Seeder
 
         // Create regular admin
         Admin::firstOrCreate(
-            ['email' => 'admin2@clockra.com'],
+            ['email' => 'admin2@proxideck.com'],
             [
                 'name' => 'Admin User',
-                'email' => 'admin2@clockra.com',
+                'email' => 'admin2@proxideck.com',
                 'password' => Hash::make('1234567890'), // Change this in production!
                 'role' => 'admin',
                 'is_active' => true,
@@ -42,7 +42,7 @@ class AdminSeeder extends Seeder
 
         // Create moderator
         Admin::firstOrCreate(
-            ['email' => 'moderator@clockra.com'],
+            ['email' => 'moderator@proxideck.com'],
             [
                 'name' => 'Moderator',
                 'email' => 'moderator@hireme.com',
@@ -63,9 +63,9 @@ class AdminSeeder extends Seeder
         });
 
         $this->command->info('Admin users created successfully!');
-        $this->command->info('Super Admin: admin@clockra.com / 1234567890');
-        $this->command->info('Admin: admin2@clockra.com / 1234567890');
-        $this->command->info('Moderator: moderator@clockra.com / 1234567890');
+        $this->command->info('Super Admin: admin@proxideck.com / 1234567890');
+        $this->command->info('Admin: admin2@proxideck.com / 1234567890');
+        $this->command->info('Moderator: moderator@proxideck.com / 1234567890');
         $this->command->warn('⚠️  Please change these passwords in production!');
     }
 }

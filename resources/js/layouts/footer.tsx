@@ -13,18 +13,20 @@ const Footer = () => {
             />
 
             <div className="relative z-10 w-full px-4 pt-16 pb-44 sm:px-6 sm:pb-52 lg:px-8 lg:pb-60">
-               
-
-                <div className=" grid grid-cols-1 gap-8 lg:grid-cols-3  ">
+                <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
                     {/* Column 1: Logo, description, and social icons together */}
-                    <div className="flex flex-col items-center text-center lg:items-start lg:text-left col-span-2">
+                    <div className="col-span-2 flex flex-col items-center text-center lg:items-start lg:text-left">
                         <AppLogo />
                         <p className="mt-4 max-w-xl text-gray-500 lg:text-lg dark:text-gray-400">
-                            Discover local service providers near your location with Clockra. Browse trusted professionals, view service offerings, ratings, and book your next appointment with ease. Find the right expert for your needs quickly and securely.
+                            Discover local service providers near your location
+                            with proxideck. Browse trusted professionals, view
+                            service offerings, ratings, and book your next
+                            appointment with ease. Find the right expert for
+                            your needs quickly and securely.
                         </p>
                         <div className="mt-6 flex justify-center gap-4 lg:justify-start">
                             <a
-                                className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75 font-heading"
+                                className="font-heading text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
                                 href="#"
                                 target="_blank"
                                 rel="noreferrer"
@@ -44,7 +46,7 @@ const Footer = () => {
                                 </svg>
                             </a>
                             <a
-                                className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75 font-heading"
+                                className="font-heading text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
                                 href="#"
                                 target="_blank"
                                 rel="noreferrer"
@@ -64,7 +66,7 @@ const Footer = () => {
                                 </svg>
                             </a>
                             <a
-                                className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75 font-heading"
+                                className="font-heading text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
                                 href="#"
                                 target="_blank"
                                 rel="noreferrer"
@@ -80,7 +82,7 @@ const Footer = () => {
                                 </svg>
                             </a>
                             <a
-                                className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75 font-heading"
+                                className="font-heading text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
                                 href="#"
                                 target="_blank"
                                 rel="noreferrer"
@@ -100,7 +102,7 @@ const Footer = () => {
                                 </svg>
                             </a>
                             <a
-                                className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75 font-heading"
+                                className="font-heading text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
                                 href="#"
                                 target="_blank"
                                 rel="noreferrer"
@@ -125,23 +127,23 @@ const Footer = () => {
                     {/* Column 2: Link groups */}
                     <div className="grid grid-cols-2 gap-8 text-center sm:grid-cols-3 sm:text-left">
                         <div>
-                            <strong className=" text-lg font-heading font-bold text-gray-900 dark:text-white">
-                                Clockra
+                            <strong className="font-heading text-lg font-bold text-gray-900 dark:text-white">
+                                proxideck
                             </strong>
                             <ul className="mt-6 space-y-3">
                                 <li>
                                     <Link
                                         href="/about"
-                                        className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75 font-heading"
+                                        className="font-heading text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
                                     >
                                         About
                                     </Link>
                                 </li>
-                              
+
                                 <li>
                                     <Link
                                         href="/history"
-                                        className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75 font-heading"
+                                        className="font-heading text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
                                     >
                                         History
                                     </Link>
@@ -149,7 +151,7 @@ const Footer = () => {
                                 <li>
                                     <Link
                                         href="/our-team"
-                                        className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75 font-heading"
+                                        className="font-heading text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
                                     >
                                         Our Team
                                     </Link>
@@ -157,14 +159,14 @@ const Footer = () => {
                             </ul>
                         </div>
                         <div>
-                            <strong className="text-lg font-heading font-bold text-gray-900 dark:text-white">
+                            <strong className="font-heading text-lg font-bold text-gray-900 dark:text-white">
                                 Support
                             </strong>
                             <ul className="mt-6 space-y-3">
                                 <li>
                                     <Link
                                         href="/faqs"
-                                        className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75 font-heading"
+                                        className="font-heading text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
                                     >
                                         FAQs
                                     </Link>
@@ -172,7 +174,7 @@ const Footer = () => {
                                 <li>
                                     <Link
                                         href="/contact"
-                                        className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75 font-heading"
+                                        className="font-heading text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
                                     >
                                         Contact
                                     </Link>
@@ -180,14 +182,14 @@ const Footer = () => {
                             </ul>
                         </div>
                         <div>
-                             <strong className="text-lg font-heading font-bold text-gray-900 dark:text-white">
+                            <strong className="font-heading text-lg font-bold text-gray-900 dark:text-white">
                                 Legal
                             </strong>
                             <ul className="mt-6 space-y-3">
                                 <li>
                                     <Link
                                         href="/privacy-policy"
-                                        className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75 font-heading"
+                                        className="font-heading text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
                                     >
                                         Privacy Policy
                                     </Link>
@@ -195,7 +197,7 @@ const Footer = () => {
                                 <li>
                                     <Link
                                         href="/terms"
-                                        className="text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75 font-heading"
+                                        className="font-heading text-gray-700 transition hover:text-gray-700/75 dark:text-white dark:hover:text-white/75"
                                     >
                                         Terms and Conditions
                                     </Link>
@@ -206,7 +208,7 @@ const Footer = () => {
                 </div>
             </div>
         </footer>
-    )
-}
+    );
+};
 
-export default Footer
+export default Footer;

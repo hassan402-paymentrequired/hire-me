@@ -6,11 +6,12 @@
 
         {{-- SEO Meta Tags --}}
         <meta name="description" content="{{ $metaDescription ?? 'Simple, powerful booking management for service professionals. Manage appointments, reduce no-shows, and grow your business with our all-in-one scheduling platform.' }}">
-        <meta name="keywords" content="{{ $metaKeywords ?? 'booking software, appointment scheduling, salon booking, barbershop appointments, Nigeria booking system, online scheduling, service booking' }}">
+        <meta name="keywords" content="{{ $metaKeywords ?? 'booking software, appointment scheduling, salon booking, barbershop appointments, Nigeria booking system, online scheduling, service booking, Verified Professionals, Trusted Services, Business Directory, Sales Tracker, Nearby Services, Service Marketplace' }}">
         <meta name="author" content="{{ config('app.name') }}">
         <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
         <link rel="canonical" href="{{ url()->current() }}">
 
+    
         {{-- Open Graph / Facebook --}}
         <meta property="og:type" content="website">
         <meta property="og:url" content="{{ url()->current() }}">

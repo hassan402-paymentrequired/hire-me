@@ -8,7 +8,7 @@ import AppLogoIcon from './app-logo-icon';
 //             </div>
 //             <div className="ml-1 flex-1 text-left text-sm hidden md:block ">
 //                 <span className="mb-0.5 truncate leading-tight font-semibold font-logo tracking-widest">
-//                     Clockra.
+//                     proxideck.
 //                 </span>
 //             </div>
 //         </div>
@@ -17,7 +17,7 @@ import AppLogoIcon from './app-logo-icon';
 export default function AppLogo() {
     return (
         <div>
-          <AppLogoIcon />
+            <AppLogoIcon />
         </div>
     );
 }

@@ -11,7 +11,7 @@ export default function TermsAndConditions({ title }: Props) {
             <Head title={title} />
             <AppLayout>
                 <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
+                    <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl dark:text-white">
                         Terms and Conditions
                     </h1>
                     <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
@@ -23,9 +23,10 @@ export default function TermsAndConditions({ title }: Props) {
                                 Acceptance of Terms
                             </h2>
                             <p className="mt-4 leading-relaxed">
-                                By accessing or using Clockra, you agree to be bound by these Terms and
-                                Conditions. If you do not agree with any part of these terms, you may not
-                                use our platform.
+                                By accessing or using proxideck, you agree to be
+                                bound by these Terms and Conditions. If you do
+                                not agree with any part of these terms, you may
+                                not use our platform.
                             </p>
                         </section>
                         <section>
@@ -33,10 +34,11 @@ export default function TermsAndConditions({ title }: Props) {
                                 Use of the Platform
                             </h2>
                             <p className="mt-4 leading-relaxed">
-                                You agree to use Clockra only for lawful purposes. You must provide accurate
-                                information when creating an account and booking services. You are
-                                responsible for maintaining the confidentiality of your account
-                                credentials.
+                                You agree to use proxideck only for lawful
+                                purposes. You must provide accurate information
+                                when creating an account and booking services.
+                                You are responsible for maintaining the
+                                confidentiality of your account credentials.
                             </p>
                         </section>
                         <section>
@@ -44,10 +46,13 @@ export default function TermsAndConditions({ title }: Props) {
                                 Bookings and Payments
                             </h2>
                             <p className="mt-4 leading-relaxed">
-                                When you book a service, you enter into an agreement with the service
-                                provider. Clockra facilitates the connection but is not a party to the
-                                service contract. Payments are processed in accordance with our payment
-                                policies. Cancellation and refund policies may vary by provider.
+                                When you book a service, you enter into an
+                                agreement with the service provider. proxideck
+                                facilitates the connection but is not a party to
+                                the service contract. Payments are processed in
+                                accordance with our payment policies.
+                                Cancellation and refund policies may vary by
+                                provider.
                             </p>
                         </section>
                         <section>
@@ -55,9 +60,11 @@ export default function TermsAndConditions({ title }: Props) {
                                 Provider Services
                             </h2>
                             <p className="mt-4 leading-relaxed">
-                                Service providers listed on our platform are independent. We verify providers
-                                but do not guarantee the quality of their services. Any disputes regarding
-                                services should be raised with the provider or through our support team.
+                                Service providers listed on our platform are
+                                independent. We verify providers but do not
+                                guarantee the quality of their services. Any
+                                disputes regarding services should be raised
+                                with the provider or through our support team.
                             </p>
                         </section>
                         <section>
@@ -65,9 +72,11 @@ export default function TermsAndConditions({ title }: Props) {
                                 Limitation of Liability
                             </h2>
                             <p className="mt-4 leading-relaxed">
-                                Clockra is provided &quot;as is&quot;. We are not liable for any indirect,
-                                incidental, or consequential damages arising from your use of the platform.
-                                Our liability is limited to the extent permitted by applicable law.
+                                proxideck is provided &quot;as is&quot;. We are
+                                not liable for any indirect, incidental, or
+                                consequential damages arising from your use of
+                                the platform. Our liability is limited to the
+                                extent permitted by applicable law.
                             </p>
                         </section>
                         <section>
@@ -75,12 +84,13 @@ export default function TermsAndConditions({ title }: Props) {
                                 Contact
                             </h2>
                             <p className="mt-4 leading-relaxed">
-                                For questions about these Terms and Conditions, contact us at{' '}
+                                For questions about these Terms and Conditions,
+                                contact us at{' '}
                                 <a
-                                    href="mailto:support@clockra.com"
+                                    href="mailto:support@proxideck.com"
                                     className="text-primary hover:underline"
                                 >
-                                    support@clockra.com
+                                    support@proxideck.com
                                 </a>
                                 .
                             </p>

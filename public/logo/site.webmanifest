@@ -1,7 +1,7 @@
 {
-    "name": "Clockra",
-    "short_name": "Clockra",
-    "description": "Clockra is a platform for booking appointments and managing your time.",
+    "name": "Proxideck",
+    "short_name": "proxideck",
+    "description": "Proxideck is a digital storefront and trust platform that helps local service providers get seen by the world. We bridge the gap between skilled professionals and customers by offering verified business profiles, seamless online appointment booking, and a secure way to build a global reputation.",
     "icons": [
         {
             "src": "/android-chrome-192x192.png",

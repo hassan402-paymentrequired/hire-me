@@ -1,19 +1,16 @@
 import '../css/app.css';
 
+import { PushNotificationSetup } from '@/components/push-notification-setup';
+import { LoadingProvider } from '@/contexts/loading-context';
+import { LocationPermissionProvider } from '@/contexts/location-permission-context';
 import { createInertiaApp } from '@inertiajs/react';
+import { GooeyToaster } from 'goey-toast';
+import 'goey-toast/styles.css';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { LoadingProvider } from '@/contexts/loading-context';
-import { LocationPermissionProvider } from '@/contexts/location-permission-context';
-import { PushNotificationSetup } from '@/components/push-notification-setup';
-import { GooeyToaster } from 'goey-toast'
-import "goey-toast/styles.css";
 
-
-
-
-const appName = import.meta.env.VITE_APP_NAME || 'Clockra';
+const appName = import.meta.env.VITE_APP_NAME || 'proxideck';
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
@@ -22,7 +19,7 @@ createInertiaApp({
             `./pages/${name}.tsx`,
             import.meta.glob('./pages/**/*.tsx'),
         ),
-     setup({ el, App, props }) {
+    setup({ el, App, props }) {
         const root = createRoot(el);
         const auth = (
             props.initialPage.props as {
@@ -36,14 +33,15 @@ createInertiaApp({
         root.render(
             <StrictMode>
                 <LoadingProvider>
-                    <LocationPermissionProvider reminderInterval={10 * 60 * 1000}>
+                    <LocationPermissionProvider
+                        reminderInterval={10 * 60 * 1000}
+                    >
                         <App {...props} />
                         <PushNotificationSetup auth={auth} />
                         <GooeyToaster position="top-center" />
-
                     </LocationPermissionProvider>
                 </LoadingProvider>
-            </StrictMode>
+            </StrictMode>,
         );
     },
     progress: {

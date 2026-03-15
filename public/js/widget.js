@@ -1,5 +1,5 @@
 /**
- * Clockra Booking Widget Loader
+ * proxideck Booking Widget Loader
  * 
  * Usage:
  * <script src="https://yourdomain.com/js/widget.js" data-slug="provider-slug"></script>
@@ -11,16 +11,16 @@
  * - data-height: Container height (e.g., auto, 800px)
  */
 
-(function() {
+(function () {
     'use strict';
 
     // Find all script tags with widget.js
     const scripts = document.querySelectorAll('script[src*="widget.js"]');
-    
-    scripts.forEach(function(script) {
+
+    scripts.forEach(function (script) {
         const slug = script.getAttribute('data-slug');
         if (!slug) {
-            console.error('Clockra Widget: data-slug attribute is required');
+            console.error('proxideck Widget: data-slug attribute is required');
             return;
         }
 
@@ -36,7 +36,7 @@
 
         // Create container div
         const container = document.createElement('div');
-        container.id = 'clockra-widget-' + slug;
+        container.id = 'proxideck-widget-' + slug;
         container.style.width = width;
         container.style.height = height;
         container.style.minHeight = '600px';
@@ -55,7 +55,7 @@
         iframe.setAttribute('allowtransparency', 'true');
 
         // Handle iframe resize
-        iframe.onload = function() {
+        iframe.onload = function () {
             try {
                 // Try to get iframe content height and adjust
                 const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
@@ -69,11 +69,11 @@
         };
 
         // Listen for resize messages from iframe
-        window.addEventListener('message', function(event) {
+        window.addEventListener('message', function (event) {
             // Verify origin (you should set this to your domain)
             // if (event.origin !== baseUrl) return;
-            
-            if (event.data && event.data.type === 'clockra-widget-resize') {
+
+            if (event.data && event.data.type === 'proxideck-widget-resize') {
                 iframe.style.height = event.data.height + 'px';
             }
         });

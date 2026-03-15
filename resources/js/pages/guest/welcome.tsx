@@ -5,10 +5,8 @@ import BusinessCard from '@/pages/guest/components/business-card';
 import { HeaderFilter } from '@/pages/guest/components/filter';
 import { Provider } from '@/types';
 import { Head, InfiniteScroll, router, usePage } from '@inertiajs/react';
-import { useRef } from 'react';
-import Landing from './components/landing-page';
-import { MiniLoginForm } from './mini-login-form';
 import { toast } from 'sonner';
+import Landing from './components/landing-page';
 
 interface Props {
     providers: {
@@ -41,7 +39,6 @@ export default function Welcome({
 }: Props) {
     const { auth } = usePage().props as { auth?: { user?: unknown } };
     const isGuest = !auth?.user;
-   
 
     const requestLocation = () => {
         if ('geolocation' in navigator) {
@@ -64,14 +61,18 @@ export default function Welcome({
                 },
                 (error) => {
                     console.error('Error getting location:', error);
-                    let errorMessage = 'Could not determine your location. Please try searching manually.';
+                    let errorMessage =
+                        'Could not determine your location. Please try searching manually.';
 
                     if (error.code === error.PERMISSION_DENIED) {
-                        errorMessage = 'Location access was denied. Please allow location access in your browser settings.';
+                        errorMessage =
+                            'Location access was denied. Please allow location access in your browser settings.';
                     } else if (error.code === error.POSITION_UNAVAILABLE) {
-                        errorMessage = 'Your location is currently unavailable. This might be a device or network issue.';
+                        errorMessage =
+                            'Your location is currently unavailable. This might be a device or network issue.';
                     } else if (error.code === error.TIMEOUT) {
-                        errorMessage = 'Location request timed out. Please try again.';
+                        errorMessage =
+                            'Location request timed out. Please try again.';
                     }
 
                     toast.error(errorMessage, { id: 'location-toast' });
@@ -79,8 +80,8 @@ export default function Welcome({
                 {
                     enableHighAccuracy: true,
                     timeout: 10000,
-                    maximumAge: 0
-                }
+                    maximumAge: 0,
+                },
             );
         } else {
             toast.error('Geolocation is not supported by your browser.');
@@ -113,16 +114,16 @@ export default function Welcome({
 
     return (
         <>
-            <Head title="Find Services Providers Near You | Clockra">
+            <Head title="Find Services Providers Near You | proxideck">
                 <meta
                     name="description"
-                    content="Discover local service providers near your location with Clockra. Browse trusted professionals, view service offerings, ratings, and book your next appointment with ease. Find the right expert for your needs quickly and securely."
+                    content="Discover local service providers near your location with proxideck. Browse trusted professionals, view service offerings, ratings, and book your next appointment with ease. Find the right expert for your needs quickly and securely."
                 />
                 <meta
                     name="keywords"
                     content="service providers, local providers, find providers, hire providers, book appointments, find services, hire services, book services, find professionals, hire professionals, book professionals, find experts, hire experts, book experts"
                 />
-                <meta name="author" content="Clockra" />
+                <meta name="author" content="proxideck" />
                 <meta name="robots" content="index, follow" />
                 <meta
                     name="viewport"
@@ -130,11 +131,11 @@ export default function Welcome({
                 />
                 <meta
                     property="og:title"
-                    content="Find Services Providers Near You | Clockra"
+                    content="Find Services Providers Near You | proxideck"
                 />
                 <meta
                     property="og:description"
-                    content="Discover local service providers near your location with Clockra. Browse trusted professionals, view service offerings, ratings, and book your next appointment with ease. Find the right expert for your needs quickly and securely."
+                    content="Discover local service providers near your location with proxideck. Browse trusted professionals, view service offerings, ratings, and book your next appointment with ease. Find the right expert for your needs quickly and securely."
                 />
                 <meta property="og:image" content="/logo/site.webmanifest" />
             </Head>
@@ -167,7 +168,7 @@ export default function Welcome({
                         {/* Main Content Grid */}
                         <div>
                             <div className="px-1 py-4">
-                                {providers?.data?.length === 0  ? (
+                                {providers?.data?.length === 0 ? (
                                     <EmptyCard
                                         title="No providers available at the moment."
                                         // description="No providers available at the moment."
@@ -180,14 +181,9 @@ export default function Welcome({
                                         <InfiniteScroll
                                             data="providers"
                                             buffer={300}
-                                            next={({
-                                                loading,
-                                                hasNext
-                                            }) =>
+                                            next={({ loading, hasNext }) =>
                                                 hasNext && (
-                                                    <div
-                                                        className="mt-8 flex h-10 items-center justify-center"
-                                                    >
+                                                    <div className="mt-8 flex h-10 items-center justify-center">
                                                         {loading && (
                                                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                                                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />

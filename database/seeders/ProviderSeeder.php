@@ -43,7 +43,7 @@ class ProviderSeeder extends Seeder
 
         for ($i = 0; $i < self::COUNT; $i++) {
             $name = fake()->name();
-            $email = 'provider' . ($i + 1) . '@clockra.test';
+            $email = 'provider' . ($i + 1) . '@proxideck.test';
 
             $user = User::firstOrCreate(
                 ['email' => $email],
@@ -80,7 +80,7 @@ class ProviderSeeder extends Seeder
             $this->seedWorkHours($user);
         }
 
-        $this->command->info('Seeded ' . self::COUNT . ' providers. Login: provider1@clockra.test … provider' . self::COUNT . '@clockra.test / password');
+        $this->command->info('Seeded ' . self::COUNT . ' providers. Login: provider1@proxideck.test … provider' . self::COUNT . '@proxideck.test / password');
     }
 
     private function uniqueBusinessName(int $index): string

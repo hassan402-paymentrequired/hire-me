@@ -1,8 +1,14 @@
-import { ArrowDownIcon } from '@heroicons/react/24/solid';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, MapPin, Search, ShieldCheck, Sparkles, Star } from 'lucide-react';
-import Cubes from './cube';
+import { ArrowDownIcon } from '@heroicons/react/24/solid';
+import {
+    CheckCircle2,
+    Search,
+    ShieldCheck,
+    Sparkles,
+    Star,
+} from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
+import Cubes from './cube';
 
 interface LandingProps {
     categories?: { name: string; slug: string }[];
@@ -48,14 +54,14 @@ export default function Landing({
             />
 
             <div
-                className="absolute left-1/2 top-24 -z-10 h-72 w-72 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl"
+                className="absolute top-24 left-1/2 -z-10 h-72 w-72 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl"
                 aria-hidden
             />
 
             <div className="relative z-10 mx-auto max-w-7xl px-6 py-8 lg:px-8">
                 <div className="mx-auto max-w-6xl">
                     <div
-                        className="relative mx-auto h-[18px] w-20 animate-fade-in-up opacity-80"
+                        className="animate-fade-in-up relative mx-auto h-[18px] w-20 opacity-80"
                         style={{ animationDelay: '0.1s' }}
                     >
                         <Cubes
@@ -76,7 +82,7 @@ export default function Landing({
                     >
                         <div className="text-center lg:text-left">
                             <div
-                                className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-4 py-2 text-xs font-semibold tracking-[0.18em] text-primary uppercase animate-fade-in-up"
+                                className="animate-fade-in-up mb-5 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-4 py-2 text-xs font-semibold tracking-[0.18em] text-primary uppercase"
                                 style={{ animationDelay: '0.25s' }}
                             >
                                 <Sparkles className="h-3.5 w-3.5" />
@@ -92,7 +98,7 @@ export default function Landing({
                             </h1>
 
                             <p
-                                className="mx-auto mt-6 max-w-2xl animate-fade-in-up text-sm font-medium text-pretty text-gray-500 sm:text-base dark:text-gray-400 lg:mx-0"
+                                className="animate-fade-in-up mx-auto mt-6 max-w-2xl text-sm font-medium text-pretty text-gray-500 sm:text-base lg:mx-0 dark:text-gray-400"
                                 style={{ animationDelay: '0.4s' }}
                             >
                                 Discover verified providers, see clear pricing,
@@ -101,7 +107,7 @@ export default function Landing({
                             </p>
 
                             <div
-                                className="mt-7 flex flex-wrap items-center justify-center gap-3 lg:justify-start animate-fade-in-up"
+                                className="animate-fade-in-up mt-7 flex flex-wrap items-center justify-center gap-3 lg:justify-start"
                                 style={{ animationDelay: '0.5s' }}
                             >
                                 <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/75 px-4 py-2 text-sm text-foreground">
@@ -120,7 +126,7 @@ export default function Landing({
 
                             <form
                                 onSubmit={handleSearchSubmit}
-                                className="mt-8 animate-fade-in-up"
+                                className="animate-fade-in-up mt-8"
                                 style={{ animationDelay: '0.55s' }}
                             >
                                 <div className="flex max-w-3xl flex-col gap-3 rounded-full border border-border/60 bg-background/85 p-1 backdrop-blur md:flex-row md:items-center">
@@ -128,11 +134,13 @@ export default function Landing({
                                         <Search className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                         <input
                                             value={query}
-                                            onChange={(e) => setQuery(e.target.value)}
+                                            onChange={(e) =>
+                                                setQuery(e.target.value)
+                                            }
                                             placeholder="Search providers, services, or locations"
-                                            className="h-12 w-full rounded-full border-none bg-muted/40 pr-4 pl-11 text-sm shadow-none outline-none ring-0"
+                                            className="h-12 w-full rounded-full border-none bg-muted/40 pr-4 pl-11 text-sm shadow-none ring-0 outline-none"
                                         />
-                                            </div>
+                                    </div>
                                     <div className="flex flex-col gap-2 sm:flex-row">
                                         <Button
                                             type="submit"
@@ -156,7 +164,7 @@ export default function Landing({
                             </form>
 
                             <div
-                                className="mt-5 flex flex-wrap items-center justify-center gap-2 lg:justify-start animate-fade-in-up"
+                                className="animate-fade-in-up mt-5 flex flex-wrap items-center justify-center gap-2 lg:justify-start"
                                 style={{ animationDelay: '0.6s' }}
                             >
                                 {featuredCategories.map((category) => (
@@ -176,12 +184,12 @@ export default function Landing({
                         </div>
 
                         <div
-                            className="animate-fade-in-up rounded-[32px] border border-border/60 bg-background/80 p-5 text-left shadow-2xl backdrop-blur"
+                            className="animate-fade-in-up rounded-[32px] border border-border/60 bg-background/80 p-5 text-left border-2 border-gray-100 backdrop-blur"
                             style={{ animationDelay: '0.45s' }}
                         >
                             <div className="rounded-[24px] bg-primary/6 p-5">
-                                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">
-                                    Why Clockra
+                                <p className="text-xs font-semibold tracking-[0.24em] text-primary uppercase">
+                                    Why proxideck
                                 </p>
                                 <div className="mt-5 space-y-4">
                                     <div className="rounded-2xl border border-border/50 bg-background/80 p-4">
@@ -189,7 +197,9 @@ export default function Landing({
                                             Know who you are booking
                                         </p>
                                         <p className="mt-1 text-xs text-muted-foreground">
-                                            Business profiles, ratings, and service details are visible before you decide.
+                                            Business profiles, ratings, and
+                                            service details are visible before
+                                            you decide.
                                         </p>
                                     </div>
                                     <div className="rounded-2xl border border-border/50 bg-background/80 p-4">
@@ -197,7 +207,9 @@ export default function Landing({
                                             Reduce booking uncertainty
                                         </p>
                                         <p className="mt-1 text-xs text-muted-foreground">
-                                            Compare pricing, availability, and provider fit without bouncing between pages.
+                                            Compare pricing, availability, and
+                                            provider fit without bouncing
+                                            between pages.
                                         </p>
                                     </div>
                                     <div className="rounded-2xl border border-border/50 bg-background/80 p-4">
@@ -205,7 +217,9 @@ export default function Landing({
                                             Move straight into discovery
                                         </p>
                                         <p className="mt-1 text-xs text-muted-foreground">
-                                            Use location, search, or featured categories to reach the marketplace faster.
+                                            Use location, search, or featured
+                                            categories to reach the marketplace
+                                            faster.
                                         </p>
                                     </div>
                                 </div>
@@ -213,7 +227,9 @@ export default function Landing({
 
                             <div className="mt-5 flex items-center justify-between rounded-2xl border border-border/60 bg-background/70 px-4 py-3">
                                 <div>
-                                    <p className="text-sm font-semibold">Ready to browse?</p>
+                                    <p className="text-sm font-semibold">
+                                        Ready to browse?
+                                    </p>
                                     <p className="text-xs text-muted-foreground">
                                         Jump into nearby providers now.
                                     </p>
@@ -231,7 +247,7 @@ export default function Landing({
                     </div>
 
                     <div
-                        className="mt-8 flex flex-col items-center gap-4 animate-fade-in-up"
+                        className="animate-fade-in-up mt-8 flex flex-col items-center gap-4"
                         style={{ animationDelay: '0.7s' }}
                     >
                         <button

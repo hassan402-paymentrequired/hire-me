@@ -1,9 +1,9 @@
-self.addEventListener("install", function(event) {
+self.addEventListener("install", function (event) {
     console.log(event)
     self.skipWaiting();
 });
 
-self.addEventListener("activate", function(event) {
+self.addEventListener("activate", function (event) {
     console.log(event)
     event.waitUntil(self.clients.claim());
 });
@@ -16,11 +16,11 @@ self.addEventListener('push', function (event) {
 
     if (!event.data) {
         payload = {
-            title: 'Clockra test notification',
+            title: 'proxideck test notification',
             body: 'Push event received successfully.',
             icon: '/logo/android-chrome-192x192.png',
             data: { url: '/' },
-            tag: 'clockra-test',
+            tag: 'proxideck-test',
         };
     } else {
         try {

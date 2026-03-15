@@ -253,7 +253,6 @@ class User extends Authenticatable implements MustVerifyEmail
         try {
             $code = $otpService->issue($this, true);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            // Cooldown hit; don't send a duplicate OTP.
             return;
         }
 
