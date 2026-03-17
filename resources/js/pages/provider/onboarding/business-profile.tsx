@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useForm } from '@inertiajs/react';
-import { LoadScript, GoogleMap, Marker } from '@react-google-maps/api';
+import { LoadScript, GoogleMap } from '@react-google-maps/api';
 import OnboardingLayout from '@/layouts/onboarding-layout';
 import { Button } from '@/components/ui/button';
 import { X, MapPin, PencilLine, Map, AlertCircle, CheckCircle2, LocateFixed } from 'lucide-react';
@@ -65,6 +65,10 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
     const [markerPosition, setMarkerPosition] = useState<{ lat: number; lng: number } | null>(null);
     const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
     const [isLocating, setIsLocating] = useState(false);
+    const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
+    const advancedMarkerRef = useRef<any>(null);
+    const advancedMarkerListenerRef = useRef<any>(null);
+    const classicMarkerRef = useRef<google.maps.Marker | null>(null);
 
     // Track if user typed something but Google never confirmed
     const addressTypedRef = useRef(false);
@@ -420,6 +424,125 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
         });
     };
 
+    // Keep AdvancedMarkerElement in sync with markerPosition
+    useEffect(() => {
+        if (!isScriptLoaded || !mapInstance) return;
+
+        let cancelled = false;
+        const sync = async () => {
+            try {
+                const g: any = window.google;
+                if (!g?.maps) return;
+
+                const cleanupAdvanced = () => {
+                    if (advancedMarkerListenerRef.current?.remove) {
+                        advancedMarkerListenerRef.current.remove();
+                    }
+                    advancedMarkerListenerRef.current = null;
+                    if (advancedMarkerRef.current) {
+                        advancedMarkerRef.current.map = null;
+                    }
+                    advancedMarkerRef.current = null;
+                };
+
+                const cleanupClassic = () => {
+                    if (classicMarkerRef.current) {
+                        classicMarkerRef.current.setMap(null);
+                    }
+                    classicMarkerRef.current = null;
+                };
+
+                if (!markerPosition) {
+                    cleanupAdvanced();
+                    cleanupClassic();
+                    return;
+                }
+
+                if (cancelled) return;
+
+                // Prefer advanced markers only when configured. Google requires a mapId for AdvancedMarkerElement.
+                const mapId = (import.meta as any).env?.VITE_GOOGLE_MAP_ID as string | undefined;
+                const canTryAdvanced = Boolean(mapId && g.maps.importLibrary);
+
+                if (canTryAdvanced) {
+                    try {
+                        await g.maps.importLibrary('marker');
+                        if (cancelled) return;
+
+                        const AdvancedMarkerElement = g.maps.marker?.AdvancedMarkerElement;
+                        if (AdvancedMarkerElement) {
+                            cleanupClassic();
+
+                            if (!advancedMarkerRef.current) {
+                                const marker = new AdvancedMarkerElement({
+                                    map: mapInstance,
+                                    position: markerPosition,
+                                    gmpDraggable: true,
+                                });
+                                advancedMarkerRef.current = marker;
+
+                                const listener = marker.addListener?.('dragend', (e: any) => {
+                                    const ll = e?.latLng || marker.position;
+                                    if (!ll) return;
+                                    const lat = typeof ll.lat === 'function' ? ll.lat() : ll.lat;
+                                    const lng = typeof ll.lng === 'function' ? ll.lng() : ll.lng;
+                                    if (typeof lat === 'number' && typeof lng === 'number') {
+                                        setMarkerPosition({ lat, lng });
+                                    }
+                                });
+                                advancedMarkerListenerRef.current = listener || null;
+                            } else {
+                                advancedMarkerRef.current.map = mapInstance;
+                                advancedMarkerRef.current.position = markerPosition;
+                            }
+                            return;
+                        }
+                    } catch {
+                        // fall through to classic marker
+                    }
+                }
+
+                // Fallback: classic marker (deprecated but stable and doesn't require mapId).
+                cleanupAdvanced();
+                if (!classicMarkerRef.current) {
+                    classicMarkerRef.current = new g.maps.Marker({
+                        map: mapInstance,
+                        position: markerPosition,
+                        draggable: true,
+                    });
+                    classicMarkerRef.current.addListener('dragend', () => {
+                        const pos = classicMarkerRef.current?.getPosition?.();
+                        if (!pos) return;
+                        setMarkerPosition({ lat: pos.lat(), lng: pos.lng() });
+                    });
+                } else {
+                    classicMarkerRef.current.setMap(mapInstance);
+                    classicMarkerRef.current.setPosition(markerPosition);
+                }
+            } catch {
+                // ignore; map picker still works without advanced marker
+            }
+        };
+
+        sync();
+
+        return () => {
+            cancelled = true;
+            if (advancedMarkerListenerRef.current?.remove) {
+                advancedMarkerListenerRef.current.remove();
+            }
+            advancedMarkerListenerRef.current = null;
+            if (advancedMarkerRef.current) {
+                advancedMarkerRef.current.map = null;
+            }
+            advancedMarkerRef.current = null;
+            if (classicMarkerRef.current) {
+                classicMarkerRef.current.setMap(null);
+            }
+            classicMarkerRef.current = null;
+        };
+    }, [isScriptLoaded, mapInstance, markerPosition]);
+
     // ─── Manual Mode ────────────────────────────────────────────────────────────
 
     const switchToManual = () => {
@@ -494,9 +617,7 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
         .filter((x) => x.i !== selectedIndex);
 
     const shouldShowFallbackActions =
-        !googleResolved &&
-        !isManualMode &&
-        (showFallbackHint || addressAutocompleteUi === 'new');
+        !googleResolved && !isManualMode && addressDraft.trim().length > 0 && (showFallbackHint || addressDraft.trim().length > 3);
 
     return (
         <OnboardingLayout title="Business Profile" steps={getStepsWithStatus('profile')} currentStepId="profile">
@@ -877,28 +998,19 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                                 center={mapCenter}
                                 zoom={14}
                                 onClick={handleMapClick}
+                                onLoad={(map) => setMapInstance(map)}
+                                onUnmount={() => setMapInstance(null)}
                                 options={{
                                     disableDefaultUI: false,
                                     zoomControl: true,
                                     streetViewControl: false,
                                     mapTypeControl: false,
                                     fullscreenControl: false,
+                                    // Required for AdvancedMarkerElement. If not set, we fall back to classic marker.
+                                    mapId: (import.meta as any).env?.VITE_GOOGLE_MAP_ID,
                                 }}
                             >
-                                {markerPosition && (
-                                    <Marker
-                                        position={markerPosition}
-                                        draggable
-                                        onDragEnd={(e) => {
-                                            if (e.latLng) {
-                                                setMarkerPosition({
-                                                    lat: e.latLng.lat(),
-                                                    lng: e.latLng.lng(),
-                                                });
-                                            }
-                                        }}
-                                    />
-                                )}
+                                {/* Marker is managed via google.maps.marker.AdvancedMarkerElement (see effect above). */}
                             </GoogleMap>
                         ) : (
                             <div className="flex items-center justify-center h-[400px] bg-muted">
