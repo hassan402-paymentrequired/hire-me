@@ -61,6 +61,7 @@ interface ProviderSettings {
     minNotice: string | number | null; // hours
     allowSameDay: boolean;
     autoConfirm?: boolean;
+    allowOffHoursRequests?: boolean;
     max_bookings_per_week: string | number | null;
     max_bookings_per_month: string | number | null;
 }
@@ -99,6 +100,8 @@ export default function Booking({
     const [insufficientBalanceDialogOpen, setInsufficientBalanceDialogOpen] = useState(false);
     const [paymentConfirmDialogOpen, setPaymentConfirmDialogOpen] = useState(false);
     const [pendingShortfall, setPendingShortfall] = useState<number>(0);
+    const [useCustomTime, setUseCustomTime] = useState(false);
+    const [customTime, setCustomTime] = useState('');
 
     // Provider settings with defaults
     const providerSettings: ProviderSettings = settings || {
@@ -106,9 +109,17 @@ export default function Booking({
         minNotice: null,
         allowSameDay: false,
         autoConfirm: false,
+        allowOffHoursRequests: false,
         max_bookings_per_week: null,
         max_bookings_per_month: null,
     };
+
+    useEffect(() => {
+        // Changing the date invalidates any selected time (slot or custom).
+        setSelectedSlot('');
+        setCustomTime('');
+        setUseCustomTime(false);
+    }, [selectedDate]);
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -169,6 +180,8 @@ export default function Booking({
                 : [...prev, id],
         );
         setSelectedSlot('');
+        setCustomTime('');
+        setUseCustomTime(false);
     };
 
     const selectedServices = services.filter((s) =>
@@ -311,29 +324,35 @@ export default function Booking({
                     </div>
 
                     {/* Provider Settings Info */}
-                    {(providerSettings.minNotice ||
-                        !providerSettings.allowSameDay ||
-                        providerSettings.max_bookings_per_week ||
-                        providerSettings.max_bookings_per_month) && (
-                        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:bg-blue-950/20">
-                            <p className="mb-2 text-xs font-medium text-blue-900 dark:text-blue-100">
-                                Provider Booking Policies:
-                            </p>
-                            <ul className="space-y-1 text-xs text-blue-800 dark:text-blue-200">
+                        {(providerSettings.minNotice ||
+                            !providerSettings.allowSameDay ||
+                            providerSettings.allowOffHoursRequests ||
+                            providerSettings.max_bookings_per_week ||
+                            providerSettings.max_bookings_per_month) && (
+                            <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:bg-blue-950/20">
+                                <p className="mb-2 text-xs font-medium text-blue-900 dark:text-blue-100">
+                                    Provider Booking Policies:
+                                </p>
+                                <ul className="space-y-1 text-xs text-blue-800 dark:text-blue-200">
                                 {providerSettings.minNotice && (
                                     <li>
                                         • Minimum notice:{' '}
                                         {providerSettings.minNotice} hours
                                     </li>
                                 )}
-                                {!providerSettings.allowSameDay && (
-                                    <li>• Same-day bookings are not allowed (book tomorrow upward) </li>
-                                )}
-                                {providerSettings.max_bookings_per_week && (
-                                    <li>
-                                        • Maximum{' '}
-                                        {providerSettings.max_bookings_per_week}{' '}
-                                        booking
+                                    {!providerSettings.allowSameDay && (
+                                        <li>• Same-day bookings are not allowed (book tomorrow upward) </li>
+                                    )}
+                                    {providerSettings.allowOffHoursRequests && (
+                                        <li>
+                                            • Off-hours requests are allowed (requires provider confirmation)
+                                        </li>
+                                    )}
+                                    {providerSettings.max_bookings_per_week && (
+                                        <li>
+                                            • Maximum{' '}
+                                            {providerSettings.max_bookings_per_week}{' '}
+                                            booking
                                         {Number(
                                             providerSettings.max_bookings_per_week,
                                         ) > 1
@@ -440,6 +459,32 @@ export default function Booking({
                                                     Try selecting fewer services
                                                     or picking another date.
                                                 </p>
+                                                {providerSettings.allowOffHoursRequests && (
+                                                    <div className="mt-4 w-full max-w-xs rounded-lg border bg-background p-3 text-left">
+                                                        <p className="text-xs font-bold text-foreground">
+                                                            Request an off-hours time
+                                                        </p>
+                                                        <p className="mt-1 text-[11px] text-muted-foreground">
+                                                            The provider will need to confirm. Your booking will be pending.
+                                                        </p>
+                                                        <div className="mt-3 flex items-center gap-2">
+                                                            <Input
+                                                                type="time"
+                                                                value={customTime}
+                                                                onChange={(e) => {
+                                                                    const t = e.target.value;
+                                                                    setUseCustomTime(true);
+                                                                    setCustomTime(t);
+                                                                    setSelectedSlot(
+                                                                        t
+                                                                            ? `${format(selectedDate, 'yyyy-MM-dd')}T${t}:00`
+                                                                            : '',
+                                                                    );
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         ) : (
                                             <ScrollArea className="h-96 pr-4">
@@ -488,11 +533,13 @@ export default function Booking({
                                                                                         ? 'scale-[1.05] border-primary'
                                                                                         : 'hover:border-primary/30 hover:bg-primary/5',
                                                                                 )}
-                                                                                onClick={() =>
+                                                                                onClick={() => {
+                                                                                    setUseCustomTime(false);
+                                                                                    setCustomTime('');
                                                                                     setSelectedSlot(
                                                                                         slot.datetime,
-                                                                                    )
-                                                                                }
+                                                                                    );
+                                                                                }}
                                                                             >
                                                                                 {
                                                                                     slot.display
@@ -504,6 +551,50 @@ export default function Booking({
                                                             </div>
                                                         );
                                                     })}
+                                                    {providerSettings.allowOffHoursRequests && (
+                                                        <div className="rounded-lg border bg-background p-3">
+                                                            <div className="flex items-center justify-between gap-3">
+                                                                <div>
+                                                                    <p className="text-xs font-bold text-foreground">
+                                                                        Request off-hours time
+                                                                    </p>
+                                                                    <p className="mt-1 text-[11px] text-muted-foreground">
+                                                                        If you can’t find a slot, request a custom time. It will be pending.
+                                                                    </p>
+                                                                </div>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => {
+                                                                        setUseCustomTime((v) => !v);
+                                                                        setSelectedSlot('');
+                                                                        setCustomTime('');
+                                                                    }}
+                                                                >
+                                                                    {useCustomTime ? 'Cancel' : 'Request'}
+                                                                </Button>
+                                                            </div>
+
+                                                            {useCustomTime && (
+                                                                <div className="mt-3 flex items-center gap-2">
+                                                                    <Input
+                                                                        type="time"
+                                                                        value={customTime}
+                                                                        onChange={(e) => {
+                                                                            const t = e.target.value;
+                                                                            setCustomTime(t);
+                                                                            setSelectedSlot(
+                                                                                t
+                                                                                    ? `${format(selectedDate, 'yyyy-MM-dd')}T${t}:00`
+                                                                                    : '',
+                                                                            );
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </ScrollArea>
                                         )}

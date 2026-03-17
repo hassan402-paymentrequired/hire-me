@@ -55,7 +55,10 @@ export default function Register({
                 variant="outline"
                 className="w-full h-10 font-medium"
                 onClick={() => {
-                    alert('This feature is not ready yet. Google authentication will be available soon!');
+                    const url = invitationToken
+                        ? `/auth/google/redirect?invitation=${encodeURIComponent(invitationToken)}`
+                        : '/auth/google/redirect';
+                    window.location.href = url;
                 }}
             >
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">

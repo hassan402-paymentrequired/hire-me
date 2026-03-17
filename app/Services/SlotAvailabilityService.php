@@ -33,6 +33,8 @@ class SlotAvailabilityService
         $advanceBooking = (int) ($settings['advanceBooking'] ?? 30);
         $minNotice = isset($settings['minNotice']) ? (int) $settings['minNotice'] : null;
         $allowSameDay = $settings['allowSameDay'] ?? false;
+        $providerBufferTimeMinutes = (int) ($settings['bufferTime'] ?? 0);
+        $maxBuffer += $providerBufferTimeMinutes;
 
         $maxDate = Carbon::now()->addDays(min($advanceBooking, $maxDaysToSearch));
         $searchDate = $startFromDate->copy()->startOfDay();

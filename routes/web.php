@@ -5,6 +5,12 @@ use Illuminate\Support\Facades\Route;
 Route::get('/team/accept-invite/{link}', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'acceptInvite'])->name('business.team.invite.accept');
 Route::get('/team/provider-invite', [\App\Http\Controllers\Provider\Team\TeamMemberController::class, 'providerInvite'])->name('business.team.provider-invite');
 
+Route::middleware('guest')->prefix('/auth/google')->group(function () {
+    Route::get('/redirect', [\App\Http\Controllers\GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
+    Route::get('/callback', [\App\Http\Controllers\GoogleAuthController::class, 'callback'])->name('auth.google.callback');
+});
+
+
 Route::middleware(['provider.setup'])->group(function () {
     Route::get('/', [\App\Http\Controllers\Guest\GuestController::class, 'welcome'])->name('home');
     Route::get('/find-on-map', [\App\Http\Controllers\Guest\GuestController::class, 'findOnMap'])->name('find-on-map');

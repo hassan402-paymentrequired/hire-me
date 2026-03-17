@@ -13,6 +13,7 @@ interface AdvancedSettingsProps {
         maxDaily?: string | number;
         allowSameDay?: boolean;
         autoConfirm?: boolean;
+        allowOffHoursRequests?: boolean;
         max_bookings_per_week?: string | number;
         max_bookings_per_month?: string | number;
         auto_release_payment?: boolean;
@@ -196,6 +197,23 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
                                 </Label>
                                 <p className="text-xs text-muted-foreground">
                                     Automatically confirm without manual approval
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <Checkbox
+                                id="allowOffHoursRequests"
+                                checked={settings?.allowOffHoursRequests ?? false}
+                                onCheckedChange={(checked) =>
+                                    onSettingsChange('allowOffHoursRequests', checked)
+                                }
+                            />
+                            <div className="space-y-1 flex-1">
+                                <Label htmlFor="allowOffHoursRequests" className="cursor-pointer">
+                                    Allow off-hours requests
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                    Clients can request times outside your work hours. These requests will always be pending, even if auto-confirm is enabled.
                                 </p>
                             </div>
                         </div>
