@@ -137,12 +137,12 @@ class OnboardingController extends Controller
     public function workHours()
     {
         $user = auth_user();
-         if(!$user->businessProfile)
-         {
-            return to_route('home')->with('error-toast', 'You. already have a business profile.');
-         }
+        if (! $user->businessProfile) {
+            return to_route('onboarding.business-profile')
+                ->with('error-toast', 'Please create your business profile before setting work hours.');
+        }
 
-         if ($user->businessProfile->has_onboarded) {
+        if ($user->businessProfile->has_onboarded) {
             return to_route('business.dashboard')->with('error-toast', 'You. already have a business profile.');
         }
         return Inertia::render('provider/onboarding/work-hours', ['step' => 'hours']);
@@ -162,9 +162,55 @@ class OnboardingController extends Controller
         ]);
         $user = auth_user();
 
-        SaveWorkHourJob::dispatch($validated['schedule'], $user);
+        // Additional sanity checks (avoid invalid times silently saving).
+        foreach ($validated['schedule'] as $day => $dayData) {
+            if (! ($dayData['isOpen'] ?? false)) {
+                continue;
+            }
 
-        return redirect()->route('onboarding.index');
+            $shift = $dayData['shifts'][0] ?? null;
+            if (! $shift) {
+                return back()->withErrors([
+                    "schedule.$day.shifts" => 'Please add a shift for this day.',
+                ]);
+            }
+
+            $start = (string) ($shift['start'] ?? '');
+            $end = (string) ($shift['end'] ?? '');
+
+            if ($start === '' || $end === '' || $start >= $end) {
+                return back()->withErrors([
+                    "schedule.$day.shifts.0.start" => 'Start time must be before end time.',
+                ]);
+            }
+
+            foreach (($shift['breaks'] ?? []) as $breakIndex => $break) {
+                $bStart = (string) ($break['start'] ?? '');
+                $bEnd = (string) ($break['end'] ?? '');
+                if ($bStart === '' || $bEnd === '' || $bStart >= $bEnd) {
+                    return back()->withErrors([
+                        "schedule.$day.shifts.0.breaks.$breakIndex.start" => 'Break start must be before break end.',
+                    ]);
+                }
+                if ($bStart < $start || $bEnd > $end) {
+                    return back()->withErrors([
+                        "schedule.$day.shifts.0.breaks.$breakIndex.start" => 'Break must be within the shift time.',
+                    ]);
+                }
+            }
+        }
+
+        try {
+            SaveWorkHourJob::dispatch($validated['schedule'], $user);
+        } catch (\Throwable $e) {
+            Log::error('Error saving work hours', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+            return back()->with('error-toast', 'Could not save your work hours. Please try again.');
+        }
+
+        return redirect()->route('onboarding.index')->with('success-toast', 'Work hours saved.');
     }
 
     public function services()
