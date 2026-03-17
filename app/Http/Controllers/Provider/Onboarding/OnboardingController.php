@@ -72,9 +72,20 @@ class OnboardingController extends Controller
         $request->validate([
             'business_name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'images' => 'required|array|min:2|max:3',
+            'images' => 'required|array|min:1|max:3',
             'images.*' => 'image|max:5120',
-            'logo_index' => 'required|integer|min:0|max:2',
+            'logo_index' => [
+                'required',
+                'integer',
+                'min:0',
+                'max:2',
+                function (string $attribute, mixed $value, \Closure $fail) use ($request) {
+                    $count = is_array($request->images) ? count($request->images) : 0;
+                    if ($count > 0 && (int) $value >= $count) {
+                        $fail('Invalid logo selection.');
+                    }
+                },
+            ],
             'address' => 'required|string|max:500',
             'city' => 'nullable|string|max:100',
             'state' => 'nullable|string|max:100',

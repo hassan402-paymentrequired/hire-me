@@ -23,9 +23,10 @@ const libraries: ('places')[] = ['places'];
 
 // Address resolution mode
 type AddressMode = 'autocomplete' | 'manual' | 'map';
+type AddressAutocompleteUi = 'new' | 'legacy';
 
 const mapContainerStyle = { width: '100%', height: '400px' };
-const defaultCenter = { lat: 6.5244, lng: 3.3792 }; // Lagos as default; adjustable
+const defaultCenter = { lat: 6.5244, lng: 3.3792 };
 
 export default function BusinessProfile({ categories }: BusinessProfileProps) {
     const { data, setData, post, processing, errors } = useForm({
@@ -46,9 +47,14 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
     const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
     const inputRef = useRef<HTMLInputElement | null>(null);
     const geocoderRef = useRef<google.maps.Geocoder | null>(null);
+    const imageInputRef = useRef<HTMLInputElement | null>(null);
+    const placeAutocompleteContainerRef = useRef<HTMLDivElement | null>(null);
+    const placeAutocompleteElRef = useRef<HTMLElement | null>(null);
 
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const [isScriptLoaded, setIsScriptLoaded] = useState(false);
+    const [addressAutocompleteUi, setAddressAutocompleteUi] = useState<AddressAutocompleteUi>('legacy');
+    const [addressDraft, setAddressDraft] = useState('');
 
     // Address UX state
     const [addressMode, setAddressMode] = useState<AddressMode>('autocomplete');
@@ -63,6 +69,21 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
     // Track if user typed something but Google never confirmed
     const addressTypedRef = useRef(false);
     const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const scheduleFallbackHint = useCallback(
+        (value: string) => {
+            // Reset fallback hint while actively typing
+            setShowFallbackHint(false);
+
+            if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+            if (value.length > 5) {
+                fallbackTimerRef.current = setTimeout(() => {
+                    if (!googleResolved) setShowFallbackHint(true);
+                }, 2500);
+            }
+        },
+        [googleResolved],
+    );
 
     // ─── Google Autocomplete ────────────────────────────────────────────────────
 
@@ -109,6 +130,72 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
         [setData]
     );
 
+    const fillAddressFromNewPlace = useCallback(
+        (place: any) => {
+            const components = Array.isArray(place?.addressComponents) ? place.addressComponents : [];
+            if (!components.length) return false;
+
+            let city = '';
+            let state = '';
+            let zipCode = '';
+
+            components.forEach((component: any) => {
+                const types: string[] = component?.types || [];
+                const longName = component?.longText ?? component?.long_name ?? '';
+                const shortName =
+                    component?.shortText ??
+                    component?.short_name ??
+                    component?.longText ??
+                    component?.long_name ??
+                    '';
+
+                if (!city) {
+                    if (types.includes('locality')) city = longName;
+                    else if (types.includes('sublocality') || types.includes('sublocality_level_1')) city = longName;
+                    else if (types.includes('administrative_area_level_2')) city = longName;
+                }
+                if (!state && types.includes('administrative_area_level_1')) {
+                    state = shortName || longName;
+                }
+                if (!zipCode && types.includes('postal_code')) {
+                    zipCode = longName;
+                }
+            });
+
+            const formattedAddress = place?.formattedAddress || place?.formatted_address;
+            if (!formattedAddress) return false;
+
+            const loc = place?.location;
+            const lat =
+                typeof loc?.lat === 'function'
+                    ? loc.lat()
+                    : typeof loc?.lat === 'number'
+                      ? loc.lat
+                      : null;
+            const lng =
+                typeof loc?.lng === 'function'
+                    ? loc.lng()
+                    : typeof loc?.lng === 'number'
+                      ? loc.lng
+                      : null;
+
+            setData((prev: typeof data) => ({
+                ...prev,
+                address: formattedAddress,
+                city: city || prev.city,
+                state: state || prev.state,
+                zip_code: zipCode || prev.zip_code,
+                latitude: lat,
+                longitude: lng,
+            }));
+            setGoogleResolved(true);
+            setShowFallbackHint(false);
+            setAddressMode('autocomplete');
+            return true;
+        },
+        [setData],
+    );
+
     const onPlaceChanged = useCallback(() => {
         if (autocompleteRef.current) {
             const place = autocompleteRef.current.getPlace();
@@ -122,20 +209,11 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
     // Show fallback hint if user stops typing and hasn't selected a suggestion
     const handleAddressInput = (e: React.ChangeEvent<HTMLInputElement>) => {
         setData('address', e.target.value);
+        setAddressDraft(e.target.value);
         setGoogleResolved(false);
         addressTypedRef.current = true;
 
-        // Reset fallback hint while actively typing
-        setShowFallbackHint(false);
-
-        if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
-        if (e.target.value.length > 5) {
-            fallbackTimerRef.current = setTimeout(() => {
-                if (!googleResolved) {
-                    setShowFallbackHint(true);
-                }
-            }, 2500);
-        }
+        scheduleFallbackHint(e.target.value);
     };
 
     const handleAddressBlur = () => {
@@ -147,25 +225,136 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
 
     // Init autocomplete once script loads
     useEffect(() => {
-        if (isScriptLoaded && inputRef.current && !autocompleteRef.current && window.google?.maps?.places) {
-            const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
-                types: ['address'],
-                fields: ['address_components', 'formatted_address', 'geometry'],
-            });
-            autocomplete.addListener('place_changed', onPlaceChanged);
-            autocompleteRef.current = autocomplete;
+        if (!isScriptLoaded || !window.google?.maps) return;
 
-            // Init geocoder for reverse geocoding
+        // Always ensure geocoder exists for map reverse geocoding.
+        if (!geocoderRef.current) {
             geocoderRef.current = new window.google.maps.Geocoder();
         }
+
+        let isActive = true;
+        let newElCleanup: (() => void) | null = null;
+
+        const trySetupNewAutocomplete = async () => {
+            try {
+                const g = window.google;
+                const container = placeAutocompleteContainerRef.current;
+                if (!container || placeAutocompleteElRef.current) return false;
+
+                const placesLib = g.maps.importLibrary
+                    ? ((await g.maps.importLibrary('places')) as any)
+                    : null;
+
+                const PlaceAutocompleteElement =
+                    placesLib?.PlaceAutocompleteElement ||
+                    g.maps.places?.PlaceAutocompleteElement;
+
+                if (!PlaceAutocompleteElement) return false;
+
+                const el: any = new PlaceAutocompleteElement();
+                el.placeholder = 'Start typing your address...';
+                el.style.width = '100%';
+                // Ensure the component uses the light color scheme (prevents black UI in light pages).
+                // `color-scheme` affects internal UA styling; it also influences Google’s web component.
+                el.style.colorScheme = 'only light';
+                // We provide the outer border/background; keep the element itself visually transparent.
+                el.style.backgroundColor = 'transparent';
+                el.style.border = '0';
+
+                const onSelect = async (ev: any) => {
+                    try {
+                        const prediction = ev?.placePrediction;
+                        if (!prediction) return;
+
+                        const place = await prediction.toPlace();
+                        await place.fetchFields({
+                            fields: ['formattedAddress', 'location', 'addressComponents'],
+                        });
+
+                        if (!isActive) return;
+                        const resolved = fillAddressFromNewPlace(place);
+                        if (!resolved) setShowFallbackHint(true);
+                        setAddressDraft(place?.formattedAddress || place?.formatted_address || '');
+                    } catch {
+                        if (!isActive) return;
+                        setShowFallbackHint(true);
+                    }
+                };
+
+                const onTyping = () => {
+                    try {
+                        // Depending on the implementation, the element may expose `value`.
+                        const next = String((el as any).value ?? '');
+                        if (next) {
+                            addressTypedRef.current = true;
+                            setGoogleResolved(false);
+                            setAddressDraft(next);
+                            scheduleFallbackHint(next);
+                        }
+                    } catch {
+                        // ignore
+                    }
+                };
+
+                // Event naming differs across samples; support both.
+                el.addEventListener('gmp-select', onSelect);
+                el.addEventListener('gmp-placeselect', onSelect);
+                el.addEventListener('input', onTyping);
+                el.addEventListener('change', onTyping);
+                container.replaceChildren(el);
+
+                placeAutocompleteElRef.current = el as HTMLElement;
+                newElCleanup = () => {
+                    el.removeEventListener('gmp-select', onSelect);
+                    el.removeEventListener('gmp-placeselect', onSelect);
+                    el.removeEventListener('input', onTyping);
+                    el.removeEventListener('change', onTyping);
+                };
+
+                return true;
+            } catch {
+                return false;
+            }
+        };
+
+        const setup = async () => {
+            const didSetupNew = await trySetupNewAutocomplete();
+            if (!isActive) return;
+
+            if (didSetupNew) {
+                setAddressAutocompleteUi('new');
+                // If legacy autocomplete was created previously, tear it down.
+                if (autocompleteRef.current) {
+                    window.google?.maps?.event?.clearInstanceListeners?.(autocompleteRef.current);
+                    autocompleteRef.current = null;
+                }
+                return;
+            }
+
+            setAddressAutocompleteUi('legacy');
+            if (inputRef.current && !autocompleteRef.current && window.google?.maps?.places?.Autocomplete) {
+                const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
+                    types: ['address'],
+                    fields: ['address_components', 'formatted_address', 'geometry'],
+                });
+                autocomplete.addListener('place_changed', onPlaceChanged);
+                autocompleteRef.current = autocomplete;
+            }
+        };
+
+        setup();
+
         return () => {
+            isActive = false;
+            if (newElCleanup) newElCleanup();
+            placeAutocompleteElRef.current = null;
             if (autocompleteRef.current) {
                 window.google?.maps?.event?.clearInstanceListeners?.(autocompleteRef.current);
                 autocompleteRef.current = null;
             }
             if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
         };
-    }, [isScriptLoaded, onPlaceChanged]);
+    }, [isScriptLoaded, onPlaceChanged, fillAddressFromNewPlace]);
 
     // ─── Map Picker ─────────────────────────────────────────────────────────────
 
@@ -242,31 +431,44 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
 
     const handleImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
-        if (files.length > 0) {
-            const newImages = [...data.images, ...files].slice(0, 3);
-            setData('images', newImages);
+        if (files.length === 0) return;
 
-            const newPreviews: string[] = [];
-            newImages.forEach((file) => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    newPreviews.push(reader.result as string);
-                    if (newPreviews.length === newImages.length) {
-                        setImagePreviews([...newPreviews]);
-                    }
-                };
-                reader.readAsDataURL(file);
-            });
-        }
+        const merged = [...data.images, ...files].slice(0, 3);
+        setData((prev: typeof data) => ({
+            ...prev,
+            images: merged,
+            logo_index: Math.min(prev.logo_index, Math.max(0, merged.length - 1)),
+        }));
+
+        Promise.all(
+            merged.map(
+                (file) =>
+                    new Promise<string>((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(String(reader.result || ''));
+                        reader.readAsDataURL(file);
+                    }),
+            ),
+        ).then((previews) => setImagePreviews(previews));
+
+        // Allow selecting the same file again.
+        e.target.value = '';
     };
 
     const removeImage = (index: number) => {
         const newImages = data.images.filter((_, i) => i !== index);
         const newPreviews = imagePreviews.filter((_, i) => i !== index);
+        const nextLogoIndex =
+            data.logo_index === index
+                ? 0
+                : data.logo_index > index
+                  ? data.logo_index - 1
+                  : data.logo_index;
+
         setData({
             ...data,
             images: newImages,
-            logo_index: data.logo_index >= newImages.length ? 0 : data.logo_index,
+            logo_index: Math.min(nextLogoIndex, Math.max(0, newImages.length - 1)),
         });
         setImagePreviews(newPreviews);
     };
@@ -283,6 +485,18 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
     // ─── Render ──────────────────────────────────────────────────────────────────
 
     const isManualMode = addressMode === 'manual';
+    const selectedIndex = Math.min(
+        Math.max(0, data.logo_index ?? 0),
+        Math.max(0, imagePreviews.length - 1),
+    );
+    const otherThumbs = imagePreviews
+        .map((src, i) => ({ src, i }))
+        .filter((x) => x.i !== selectedIndex);
+
+    const shouldShowFallbackActions =
+        !googleResolved &&
+        !isManualMode &&
+        (showFallbackHint || addressAutocompleteUi === 'new');
 
     return (
         <OnboardingLayout title="Business Profile" steps={getStepsWithStatus('profile')} currentStepId="profile">
@@ -297,67 +511,97 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                 <form onSubmit={submit} className="gap-4 grid">
                     {/* ── Images Upload ────────────────────────────────────────── */}
                     <div className="space-y-3">
-                        <div>
-                            <h6 className="text-base font-medium">Business Images (Min 2, Max 3)</h6>
+                        {/* <div>
+                            <h6 className="text-base font-medium">Business Images (Min 1, Max 3)</h6>
                             <p className="text-xs text-muted-foreground mt-1">
-                                Upload at least 2 images. Select one to use as your business logo.
+                                Upload at least 1 image. Tap a thumbnail to set your logo image.
                             </p>
-                        </div>
+                        </div> */}
 
-                        <div className="grid grid-cols-3 gap-4">
-                            {imagePreviews.map((preview, index) => (
-                                <div
-                                    key={index}
-                                    className={cn(
-                                        'relative group h-[150px] rounded overflow-hidden border-2 transition-all',
-                                        data.logo_index === index
-                                            ? 'border-primary shadow-md'
-                                            : 'border-border'
-                                    )}
+                        <div className="relative overflow-hidden rounded-2xl border bg-muted/15">
+                            <input
+                                ref={imageInputRef}
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                className="hidden"
+                                onChange={handleImagesChange}
+                            />
+
+                            {imagePreviews.length === 0 ? (
+                                <button
+                                    type="button"
+                                    onClick={() => imageInputRef.current?.click()}
+                                    className="flex h-[220px] w-full flex-col items-center justify-center gap-2 px-6 text-center transition-colors hover:bg-muted/25 sm:h-[260px]"
                                 >
-                                    <img src={preview} alt="" className="w-full h-full object-cover" />
-                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                    <div className="flex size-14 items-center justify-center rounded-2xl border bg-background/60">
+                                        <CloudArrowUpIcon className="h-7 w-7 text-muted-foreground" />
+                                    </div>
+                                    <div className="text-sm font-semibold">Upload your banner</div>
+                                    <div className="max-w-md text-xs text-muted-foreground">
+                                        Click to upload up to 3 images. After uploading, pick the one you want clients to see first as your logo.
+                                    </div>
+                                </button>
+                            ) : (
+                                <div className="relative h-[220px] sm:h-[360px]">
+                                    <img
+                                        src={imagePreviews[selectedIndex]}
+                                        alt=""
+                                        className="h-full w-full object-cover"
+                                    />
+
+                                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/65 to-transparent" />
+
+                                    <div className="absolute left-3 top-3 flex items-center gap-2">
+                                        {imagePreviews.length < 3 && (
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                className="h-8"
+                                                onClick={() => imageInputRef.current?.click()}
+                                            >
+                                                Add image
+                                            </Button>
+                                        )}
                                         <Button
                                             type="button"
-                                            variant={data.logo_index === index ? 'default' : 'secondary'}
                                             size="sm"
-                                            onClick={() => setData('logo_index', index)}
+                                            variant="secondary"
+                                            className="h-8"
+                                            onClick={() => removeImage(selectedIndex)}
                                         >
-                                            {data.logo_index === index ? 'Logo' : 'Set as Logo'}
+                                            Remove
                                         </Button>
-                                        <button
-                                            type="button"
-                                            onClick={() => removeImage(index)}
-                                            className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 transition-colors"
-                                            aria-label="Remove image"
-                                        >
-                                            <X className="w-3 h-3" />
-                                        </button>
                                     </div>
-                                    {data.logo_index === index && (
-                                        <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">
-                                            LOGO
+
+                                    <div className="absolute bottom-3 left-3 rounded-full bg-black/55 px-3 py-1 text-[11px] font-semibold tracking-wide text-white">
+                                        LOGO
+                                    </div>
+
+                                    {otherThumbs.length > 0 && (
+                                        <div className="absolute bottom-3 right-3 flex items-end gap-2">
+                                            {otherThumbs.map(({ src, i }) => (
+                                                <button
+                                                    key={i}
+                                                    type="button"
+                                                    onClick={() => setData('logo_index', i)}
+                                                    className="group relative overflow-hidden rounded-xl border border-white/20 bg-black/30 shadow-sm backdrop-blur-sm transition-transform hover:-translate-y-0.5"
+                                                    aria-label="Set as logo"
+                                                >
+                                                    <img
+                                                        src={src}
+                                                        alt=""
+                                                        className="h-14 w-16 object-cover sm:h-16 sm:w-20"
+                                                    />
+                                                    <div className="absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100 bg-black/35" />
+                                                </button>
+                                            ))}
                                         </div>
                                     )}
                                 </div>
-                            ))}
-
-                            {imagePreviews.length < 3 && (
-                                <label className="rounded h-[150px] w-full border-2 border-dashed border-border flex flex-col items-center justify-center bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors">
-                                    <CloudArrowUpIcon className="w-8 h-8 text-muted-foreground mb-2" />
-                                    <span className="text-xs font-medium font-buttons text-muted-foreground">
-                                        Add Image
-                                    </span>
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        multiple
-                                        className="hidden"
-                                        onChange={handleImagesChange}
-                                    />
-                                </label>
                             )}
                         </div>
+
                         {errors.images && <p className="text-sm text-destructive mt-1">{errors.images}</p>}
                         {errors.logo_index && <p className="text-sm text-destructive mt-1">{errors.logo_index}</p>}
                     </div>
@@ -459,6 +703,19 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                                                         : 'text-muted-foreground'
                                                 )}
                                             />
+                                            {/* New Places Autocomplete (recommended) */}
+                                            <div
+                                                className={cn(
+                                                    'h-10 rounded-md border bg-background pl-9 pr-3 flex items-center',
+                                                    googleResolved && 'border-emerald-500 focus-visible:ring-emerald-500/30',
+                                                    addressAutocompleteUi !== 'new' && 'hidden'
+                                                )}
+                                                style={{ colorScheme: 'only light' }}
+                                            >
+                                                <div ref={placeAutocompleteContainerRef} className="w-full" />
+                                            </div>
+
+                                            {/* Legacy Autocomplete fallback (Google may restrict for new customers) */}
                                             <Input
                                                 ref={inputRef}
                                                 value={data.address}
@@ -468,7 +725,8 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                                                 autoComplete="off"
                                                 className={cn(
                                                     'h-10 pl-9 pr-4',
-                                                    googleResolved && 'border-emerald-500 focus-visible:ring-emerald-500/30'
+                                                    googleResolved && 'border-emerald-500 focus-visible:ring-emerald-500/30',
+                                                    addressAutocompleteUi === 'new' && 'hidden'
                                                 )}
                                                 required
                                             />
@@ -494,7 +752,7 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                         </div>
 
                         {/* ── Fallback Hint ────────────────────────────────────── */}
-                        {showFallbackHint && !googleResolved && (
+                        {shouldShowFallbackActions && !isManualMode && (
                             <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 py-3 px-4">
                                 <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                                 <AlertDescription className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 ml-2">
@@ -531,7 +789,7 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                         {/* Only visible in manual mode OR after Google resolved (read-only confirmation) */}
                         <div
                             className={cn(
-                                'grid grid-cols-1 md:grid-cols-3 gap-3 overflow-hidden transition-all duration-300 ease-in-out',
+                                'grid grid-cols-1 md:grid-cols-2 gap-3 overflow-hidden transition-all duration-300 ease-in-out',
                                 isManualMode || googleResolved
                                     ? 'max-h-40 opacity-100'
                                     : 'max-h-0 opacity-0 pointer-events-none'
@@ -557,16 +815,6 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                                     readOnly={googleResolved && !isManualMode}
                                 />
                             </div>
-                            <div className="space-y-1.5">
-                                <Label className="text-sm font-medium">ZIP / Postal Code</Label>
-                                <Input
-                                    value={data.zip_code}
-                                    onChange={(e) => setData('zip_code', e.target.value)}
-                                    placeholder="ZIP code"
-                                    className={cn('h-10', googleResolved && !isManualMode && 'bg-muted/50 text-muted-foreground cursor-default')}
-                                    readOnly={googleResolved && !isManualMode}
-                                />
-                            </div>
                         </div>
 
                         {/* When Google resolves, show a subtle "edit fields" link */}
@@ -576,7 +824,7 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                                 onClick={() => setAddressMode('manual')}
                                 className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors w-fit"
                             >
-                                Edit city / state / ZIP
+                                Edit city / state
                             </button>
                         )}
                     </div>
