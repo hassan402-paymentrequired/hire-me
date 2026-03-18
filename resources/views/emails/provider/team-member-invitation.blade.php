@@ -1,4 +1,4 @@
-@extends('emails.layout')
+@extends('emails.layout.app')
 
 @section('title', 'You\'ve been invited to join ' . $businessName . ' — ' . config('app.name'))
 
