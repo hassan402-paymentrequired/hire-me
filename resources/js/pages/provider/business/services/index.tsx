@@ -23,13 +23,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import { Head, useForm, router } from '@inertiajs/react';
 import {
@@ -37,6 +30,8 @@ import {
     Plus,
     Trash2,
     LayoutGrid,
+    CheckCircle2,
+    XCircle,
     Star,
     Search,
     Clock,
@@ -45,7 +40,6 @@ import {
 import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { BreadcrumbItem } from '@/types';
-import business from '@/routes/business';
 import { Spinner } from '@/components/ui/spinner';
 
 interface Service {
@@ -59,7 +53,7 @@ interface Service {
     status: 'active' | 'inactive';
 }
 
-interface Category {
+interface BusinessCategory {
     id: string;
     name: string;
     slug: string;
@@ -72,10 +66,12 @@ interface StatsValue {
 
 interface Props {
     services: Service[];
-    categories: Category[];
+    businessCategory: BusinessCategory | null;
     stats: {
         totalServices: StatsValue;
         activeCategories: number;
+        activeServices: number;
+        inactiveServices: number;
         mostBooked: {
             name: string;
             change: string;
@@ -94,9 +90,8 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function ServicesIndex({ services, categories, stats }: Props) {
+export default function ServicesIndex({ services, businessCategory, stats }: Props) {
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState('all');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingService, setEditingService] = useState<Service | null>(null);
 
@@ -105,17 +100,15 @@ export default function ServicesIndex({ services, categories, stats }: Props) {
         description: '',
         price: '',
         duration_minutes: '',
-        category_id: '',
     });
 
     const filteredServices = useMemo(() => {
         return services.filter(service => {
             const matchesSearch = service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                                  (service.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
-            const matchesCategory = selectedCategory === 'all' || service.category_id === selectedCategory;
-            return matchesSearch && matchesCategory;
+            return matchesSearch;
         });
-    }, [services, searchQuery, selectedCategory]);
+    }, [services, searchQuery]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -143,7 +136,6 @@ export default function ServicesIndex({ services, categories, stats }: Props) {
             description: service.description || '',
             price: service.price.toString(),
             duration_minutes: service.duration_minutes.toString(),
-            category_id: service.category_id || '',
         });
     };
 
@@ -166,11 +158,26 @@ export default function ServicesIndex({ services, categories, stats }: Props) {
             time: 'vs last month'
         },
         {
-            name: 'Active Categories',
-            icon: LayoutGrid,
-            value: stats.activeCategories,
+            name: 'Active Services',
+            icon: CheckCircle2,
+            value: stats.activeServices,
             change: '',
-            time: 'categories listed'
+            time: ''
+        },
+        {
+            name: 'Inactive Services',
+            icon: XCircle,
+            value: stats.inactiveServices,
+            change: '',
+            time: ''
+        },
+        {
+            name: 'Business Category',
+            icon: LayoutGrid,
+            value: businessCategory?.name ?? 'Not set',
+            change: '',
+            time: '',
+            hidden: true,
         },
         {
             name: 'Most booked service',
@@ -249,19 +256,14 @@ export default function ServicesIndex({ services, categories, stats }: Props) {
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="category" >Category</Label>
-                                    <Select value={data.category_id} onValueChange={val => setData('category_id', val)}>
-                                        <SelectTrigger >
-                                            <SelectValue placeholder="Select a category" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {categories.map(cat => (
-                                                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    {errors.category_id && <p className="text-xs text-destructive font-bold">{errors.category_id}</p>}
+                                <div className="space-y-2 hidden">
+                                    <Label htmlFor="category" >Business Category</Label>
+                                    <div className="rounded-xl border bg-muted/20 px-3 py-2 text-sm font-semibold">
+                                        {businessCategory?.name ?? 'Not set'}
+                                    </div>
+                                    {errors.category_id && (
+                                        <p className="text-xs text-destructive font-bold">{errors.category_id}</p>
+                                    )}
                                 </div>
 
                                 <div className="space-y-2">
@@ -291,8 +293,8 @@ export default function ServicesIndex({ services, categories, stats }: Props) {
                 </div>
 
                 {/* Stats Section */}
-                <div className="grid gap-6 md:grid-cols-3">
-                    {statsCard.map((stat, i) => (
+                <div className="grid gap-6 md:grid-cols-4">
+                    {statsCard.filter((s: any) => !s.hidden).map((stat: any, i: number) => (
                         <Card key={i}>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">
@@ -314,28 +316,6 @@ export default function ServicesIndex({ services, categories, stats }: Props) {
 
                 {/* Filtering Section */}
                 <div className="flex flex-col gap-4">
-                    <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                        <Button
-                            size={"sm"}
-                            variant={selectedCategory === 'all' ? 'default' : 'outline'}
-                            className={cn("rounded-full px-6 transition-all", selectedCategory === 'all' && "shadow-sm shadow-primary/20")}
-                            onClick={() => setSelectedCategory('all')}
-                        >
-                            All Categories
-                        </Button>
-                        {categories.map(cat => (
-                            <Button
-                                size={"sm"}
-                                key={cat.id}
-                                variant={selectedCategory === cat.id ? 'default' : 'outline'}
-                                className={cn("rounded-full px-6 transition-all whitespace-nowrap", selectedCategory === cat.id && "shadow-sm shadow-primary/20")}
-                                onClick={() => setSelectedCategory(cat.id)}
-                            >
-                                {cat.name}
-                            </Button>
-                        ))}
-                    </div>
-
                     <div className="flex items-center justify-between gap-4">
                         <div className="relative flex-1 max-w-sm">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -352,16 +332,16 @@ export default function ServicesIndex({ services, categories, stats }: Props) {
                 {/* Services Table */}
                 <div className="bg-card rounded border overflow-hidden">
                     <Table>
-                        <TableHeader className="bg-muted/30">
-                            <TableRow className="hover:bg-transparent border-b-2">
-                                <TableHead className="py-5 font-black uppercase tracking-widest text-[10px]">Service Name</TableHead>
-                                <TableHead className="py-5 font-black uppercase tracking-widest text-[10px]">Category</TableHead>
-                                <TableHead className="py-5 font-black uppercase tracking-widest text-[10px]">Duration</TableHead>
-                                <TableHead className="py-5 font-black uppercase tracking-widest text-[10px]">Price</TableHead>
-                                <TableHead className="py-5 font-black uppercase tracking-widest text-[10px]">Status</TableHead>
-                                <TableHead className="py-5 font-black uppercase tracking-widest text-[10px] text-right px-8">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
+	                        <TableHeader className="bg-muted/30">
+	                            <TableRow className="hover:bg-transparent border-b-2">
+	                                <TableHead className="py-5 font-black uppercase tracking-widest text-[10px]">Service Name</TableHead>
+	                                <TableHead className="py-5 font-black uppercase tracking-widest text-[10px] hidden">Category</TableHead>
+	                                <TableHead className="py-5 font-black uppercase tracking-widest text-[10px]">Duration</TableHead>
+	                                <TableHead className="py-5 font-black uppercase tracking-widest text-[10px]">Price</TableHead>
+	                                <TableHead className="py-5 font-black uppercase tracking-widest text-[10px]">Status</TableHead>
+	                                <TableHead className="py-5 font-black uppercase tracking-widest text-[10px] text-right px-8">Actions</TableHead>
+	                            </TableRow>
+	                        </TableHeader>
                         <TableBody >
                             {filteredServices.map((service) => (
                                 <TableRow key={service.id} className="group hover:bg-muted/5 transition-colors ">
@@ -378,11 +358,11 @@ export default function ServicesIndex({ services, categories, stats }: Props) {
                                             </div>
                                         </div>
                                     </TableCell>
-                                    <TableCell>
-                                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-muted text-[10px] font-black uppercase tracking-widest text-muted-foreground border-2 border-muted">
-                                            {service.category_name || 'Uncategorized'}
-                                        </span>
-                                    </TableCell>
+	                                    <TableCell className="hidden">
+	                                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-muted text-[10px] font-black uppercase tracking-widest text-muted-foreground border-2 border-muted">
+	                                            {service.category_name || 'Uncategorized'}
+	                                        </span>
+	                                    </TableCell>
                                     <TableCell>
                                         <div className="flex items-center gap-2 text-muted-foreground font-bold">
                                             <Clock className="size-4" />

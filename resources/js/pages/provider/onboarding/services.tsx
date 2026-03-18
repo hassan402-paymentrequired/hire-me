@@ -6,20 +6,18 @@ import onboarding from '@/routes/onboarding';
 import { useForm } from '@inertiajs/react';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '@/components/ui/spinner';
-import { SearchableSelect } from '@/components/ui/searchable-select';
 import { getStepsWithStatus } from './onboarding-steps';
 
 interface ServicesProps {
-    categories: { id: string; name: string }[];
+    businessCategory: { id: string; name: string } | null;
 }
 
-export default function Services({ categories }: ServicesProps) {
+export default function Services({ businessCategory }: ServicesProps) {
     const { data, setData, post, processing, errors } = useForm({
         name: '',
         price: '',
         duration_minutes: '60',
         description: '',
-        category_id: '',
     });
 
     const submit = (e: React.FormEvent) => {
@@ -50,6 +48,18 @@ export default function Services({ categories }: ServicesProps) {
 
                 <form onSubmit={submit} className="space-y-6">
                     <div className="space-y-4">
+                        {/* Keep category wired in the background (auto-derived from business profile). */}
+                        <div className="hidden">
+                            <div>{businessCategory?.id}</div>
+                            <div>{businessCategory?.name}</div>
+                        </div>
+
+                        {errors.category_id && (
+                            <p className="text-xs text-destructive">
+                                {errors.category_id}
+                            </p>
+                        )}
+
                         <div className="space-y-1.5">
                             <Label htmlFor="name" className="text-sm font-medium">
                                 Service Name <span className="text-destructive">*</span>
@@ -69,19 +79,6 @@ export default function Services({ categories }: ServicesProps) {
                                     {errors.name}
                                 </p>
                             )}
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <SearchableSelect
-                                required={true}
-                                label="Category"
-                                options={categories.map(c => ({value: c.id, label: c.name}))}
-                                value={data.category_id}
-                                onChange={(value: string) => setData('category_id', value)}
-                                placeholder="Select a category"
-                                searchPlaceholder="Search categories..."
-                                error={errors.category_id}
-                            />
                         </div>
 
                         <div className="space-y-1.5">

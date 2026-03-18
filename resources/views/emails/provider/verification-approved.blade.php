@@ -25,3 +25,4 @@
 
 @section('cta_url', route('business.dashboard'))
 @section('cta_text', 'Go to Dashboard')
+laramicclockra.2

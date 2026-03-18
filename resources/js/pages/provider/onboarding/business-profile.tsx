@@ -55,6 +55,8 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
     const [isScriptLoaded, setIsScriptLoaded] = useState(false);
     const [addressAutocompleteUi, setAddressAutocompleteUi] = useState<AddressAutocompleteUi>('legacy');
     const [addressDraft, setAddressDraft] = useState('');
+    const [phoneDisplay, setPhoneDisplay] = useState('');
+    const [phoneLocalError, setPhoneLocalError] = useState<string | null>(null);
 
     // Address UX state
     const [addressMode, setAddressMode] = useState<AddressMode>('autocomplete');
@@ -73,6 +75,32 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
     // Track if user typed something but Google never confirmed
     const addressTypedRef = useRef(false);
     const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const isValidNgE164 = (phone: string) => /^\+234\d{10}$/.test(phone);
+
+    const formatNgPhoneForInput = (raw: string) => {
+        const digits = raw.replace(/\D/g, '');
+        if (!digits) return { display: '', e164: '' };
+
+        // Accept: 0XXXXXXXXXX (11 digits), 234XXXXXXXXXX (13 digits), or just XXXXXXXXXX (10 digits).
+        let national = digits;
+        if (national.startsWith('234')) national = national.slice(3);
+        if (national.startsWith('0')) national = national.slice(1);
+        national = national.slice(0, 10);
+
+        const e164 = national ? `+234${national}` : '';
+
+        const a = national.slice(0, 3);
+        const b = national.slice(3, 6);
+        const c = national.slice(6, 10);
+
+        const displayParts = ['+234'];
+        if (a) displayParts.push(a);
+        if (b) displayParts.push(b);
+        if (c) displayParts.push(c);
+
+        return { display: displayParts.join(' '), e164 };
+    };
 
     const scheduleFallbackHint = useCallback(
         (value: string) => {
@@ -600,6 +628,10 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+        if (data.phone && !isValidNgE164(data.phone)) {
+            setPhoneLocalError('Enter a valid Nigerian phone number.');
+            return;
+        }
         post('/onboarding/business-profile', { forceFormData: true });
     };
 
@@ -955,11 +987,26 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                         <Label className="text-sm font-medium">Business Phone</Label>
                         <Input
                             type="tel"
-                            value={data.phone}
-                            onChange={(e) => setData('phone', e.target.value)}
-                            placeholder="(+234) 123-4567..."
+                            inputMode="numeric"
+                            value={phoneDisplay}
+                            onChange={(e) => {
+                                const nextRaw = e.target.value;
+                                const { display, e164 } = formatNgPhoneForInput(nextRaw);
+                                setPhoneDisplay(display);
+                                setData('phone', e164);
+                                setPhoneLocalError(null);
+                            }}
+                            onBlur={() => {
+                                if (data.phone && !isValidNgE164(data.phone)) {
+                                    setPhoneLocalError('Enter a valid Nigerian phone number.');
+                                }
+                            }}
+                            placeholder="+234 801 234 5678"
                             className="h-10"
                         />
+                        {phoneLocalError && (
+                            <p className="text-xs text-destructive mt-1">{phoneLocalError}</p>
+                        )}
                         {errors.phone && <p className="text-xs text-destructive mt-1">{errors.phone}</p>}
                     </div>
 

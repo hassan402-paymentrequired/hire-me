@@ -227,7 +227,7 @@ class OnboardingController extends Controller
     public function services()
     {
 
-         $user = auth_user();
+	         $user = auth_user();
 
          if(!$user->businessProfile)
          {
@@ -239,9 +239,20 @@ class OnboardingController extends Controller
             return to_route('business.dashboard')->with('error-toast', 'You. already have a business profile.');
         }
 
+        $businessCategory = null;
+        if ($user->businessProfile?->category) {
+            $cat = Category::where('slug', $user->businessProfile->category)->select(['id', 'name'])->first();
+            if ($cat) {
+                $businessCategory = [
+                    'id' => $cat->id,
+                    'name' => $cat->name,
+                ];
+            }
+        }
+
         return Inertia::render('provider/onboarding/services', [
             'step' => 'services',
-            'categories' => Category::orderBy('name')->select(['id', 'name'])->get(),
+            'businessCategory' => $businessCategory,
         ]);
     }
 
@@ -251,15 +262,23 @@ class OnboardingController extends Controller
             'name' => 'required|string|max:255',
             'price' => 'required|numeric',
             'duration_minutes' => 'required|integer',
-            'category_id' => 'required|exists:categories,id',
             'description' => 'nullable|string',
         ]);
 
         $user = auth_user();
+        $categoryId = null;
+        if ($user->businessProfile?->category) {
+            $categoryId = Category::where('slug', $user->businessProfile->category)->value('id');
+        }
+        if (! $categoryId) {
+            return back()->withErrors([
+                'category_id' => 'Please select a valid business category in your business profile first.',
+            ]);
+        }
 
         Service::create([
             'provider_id' => $user->id,
-            'category_id' => $request->category_id,
+            'category_id' => $categoryId,
             'name' => $request->name,
             'description' => $request->description,
             'duration_minutes' => $request->duration_minutes,

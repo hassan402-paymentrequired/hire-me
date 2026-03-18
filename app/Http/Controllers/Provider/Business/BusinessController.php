@@ -117,13 +117,26 @@ class BusinessController extends Controller
     {
         $user = auth()->user();
         $services = $user->services()->with('category')->get();
-        $categories = \App\Models\Category::orderBy('name')->get();
+        $businessCategory = null;
+        if ($user->businessProfile?->category) {
+            $cat = \App\Models\Category::where('slug', $user->businessProfile->category)->select(['id', 'name', 'slug'])->first();
+            if ($cat) {
+                $businessCategory = [
+                    'id' => $cat->id,
+                    'name' => $cat->name,
+                    'slug' => $cat->slug,
+                ];
+            }
+        }
 
         // 1. Total Services with "change" (mocked change for now)
         $totalServices = $services->count();
 
         // 2. Active Categories listed
         $activeCategoriesCount = $services->whereNotNull('category_id')->pluck('category_id')->unique()->count();
+
+        $activeServicesCount = $services->where('status', 'active')->count();
+        $inactiveServicesCount = $services->where('status', 'inactive')->count();
 
         // 3. Most Booked Service
         $mostBookedService = $user->appointmentsAsProvider()
@@ -145,13 +158,15 @@ class BusinessController extends Controller
                 'category_name' => $s->category?->name,
                 'status' => $s->status,
             ]),
-            'categories' => $categories,
+            'businessCategory' => $businessCategory,
             'stats' => [
                 'totalServices' => [
                     'value' => $totalServices,
                     'change' => '+12%', // Mock
                 ],
                 'activeCategories' => $activeCategoriesCount,
+                'activeServices' => $activeServicesCount,
+                'inactiveServices' => $inactiveServicesCount,
                 'mostBooked' => [
                     'name' => $mostBookedService?->name ?? 'N/A',
                     'change' => '+5%', // Mock
@@ -166,12 +181,22 @@ class BusinessController extends Controller
             'name' => 'required|string|max:255',
             'price' => 'required|numeric|min:0',
             'duration_minutes' => 'required|integer|min:1',
-            'category_id' => 'nullable|exists:categories,id',
         ]);
+
+        $user = auth()->user();
+        $categoryId = null;
+        if ($user?->businessProfile?->category) {
+            $categoryId = \App\Models\Category::where('slug', $user->businessProfile->category)->value('id');
+        }
+        if (! $categoryId) {
+            return back()->withErrors([
+                'category_id' => 'Please set a valid business category in your business profile first.',
+            ]);
+        }
 
         \App\Models\Service::create([
             'provider_id' => auth()->id(),
-            'category_id' => $request->category_id,
+            'category_id' => $categoryId,
             'name' => $request->name,
             'description' => $request->description,
             'price' => $request->price,
@@ -190,10 +215,9 @@ class BusinessController extends Controller
             'name' => 'required|string|max:255',
             'price' => 'required|numeric|min:0',
             'duration_minutes' => 'required|integer|min:1',
-            'category_id' => 'nullable|exists:categories,id',
         ]);
 
-        $service->update($request->only(['name', 'description', 'price', 'duration_minutes', 'category_id']));
+        $service->update($request->only(['name', 'description', 'price', 'duration_minutes']));
 
         return back()->with('success-toast', 'Service updated successfully.');
     }
