@@ -12,7 +12,7 @@ export default function About({ title }: Props) {
             <AppLayout>
                 <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
                     <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl dark:text-white">
-                        About proxideck
+                        About <span className='font-bold font-logo uppercase tracking-widest ml-2'>proxideck</span>
                     </h1>
                     <div className="mt-8 space-y-6 text-gray-600 dark:text-gray-400">
                         <p className="text-lg leading-relaxed">

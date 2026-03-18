@@ -35,6 +35,7 @@ class MarketplaceController extends Controller
                 return [
                     'id' => $provider->id,
                     'name' => $provider->name,
+                    'isVerified' => (bool) $provider->is_verified,
                     'businessName' => $provider->businessProfile->business_name,
                     'slug' => $provider->businessProfile->slug,
                     'description' => $provider->businessProfile->description,
@@ -219,6 +220,7 @@ class MarketplaceController extends Controller
             'provider' => [
                 'id' => $provider->id,
                 'name' => $provider->name,
+                'isVerified' => (bool) $provider->is_verified,
                 'businessId' => $businessProfile->id,
                 'businessName' => $businessProfile->business_name,
                 'address' => $businessProfile->address,
@@ -293,6 +295,7 @@ class MarketplaceController extends Controller
             'provider' => [
                 'id' => $provider->id,
                 'name' => $provider->name,
+                'isVerified' => (bool) $provider->is_verified,
                 'businessName' => $businessProfile->business_name,
                 'address' => $businessProfile->address,
                 'slug' => $businessProfile->slug,

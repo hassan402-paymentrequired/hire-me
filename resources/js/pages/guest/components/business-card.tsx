@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link } from '@inertiajs/react';
-import { MapPin, Star, BadgeCheck, Clock } from 'lucide-react';
+import { MapPin, Star, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import VerifiedProviderBadge from '@/components/verified-provider-badge';
 // import {  } "@/heroicons/react/24/solid"
 
 interface ProviderProps {
@@ -135,7 +136,7 @@ const BusinessCard = ({ provider }: { provider: ProviderProps }) => {
                                 {provider.businessName}
                             </h3>
                             {provider.isVerified && (
-                                <BadgeCheck className="h-3 w-3 text-primary shrink-0" />
+                                <VerifiedProviderBadge className="shrink-0" />
                             )}
                         </div>
                         <span className="line-clamp-1 text-xs text-muted-foreground ">

@@ -23,6 +23,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { CustomAlertDialog } from '@/components/ui/custom-alert-dialog';
 import {ShieldExclamationIcon} from "@heroicons/react/24/solid"
 import appointments from '@/routes/appointments';
+import VerifiedProviderBadge from '@/components/verified-provider-badge';
 
 interface Service {
     id: string;
@@ -39,6 +40,7 @@ interface Provider {
     address: string;
     slug: string;
     logo: string | null;
+    isVerified?: boolean;
 }
 
 interface TeamMember {
@@ -973,15 +975,20 @@ export default function Booking({
 
                                     {/* Details Grid */}
                                     <div className="space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <span className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-                                                <CheckCircle2 className="size-4 text-primary" />{' '}
-                                                Professional
-                                            </span>
-                                            <span className="text-sm font-black">
-                                                {provider.businessName}
-                                            </span>
-                                        </div>
+	                                        <div className="flex items-center justify-between">
+	                                            <span className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
+	                                                <CheckCircle2 className="size-4 text-primary" />{' '}
+	                                                Professional
+	                                            </span>
+	                                            <span className="text-sm font-black">
+	                                                <span className="inline-flex items-center gap-2">
+	                                                    {provider.businessName}
+	                                                    {provider.isVerified && (
+	                                                        <VerifiedProviderBadge />
+	                                                    )}
+	                                                </span>
+	                                            </span>
+	                                        </div>
                                         <div className="flex items-center justify-between">
                                             <span className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
                                                 <CheckCircle2 className="size-4 text-primary" />{' '}

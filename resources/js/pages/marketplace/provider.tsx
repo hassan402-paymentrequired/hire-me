@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import GuestLayout from '@/layouts/guest-layout';
 import BusinessCard from '@/pages/guest/components/business-card';
+import VerifiedProviderBadge from '@/components/verified-provider-badge';
 import ReviewDrawal from '@/pages/marketplace/components/review-drawal';
 import ServiceModal from '@/pages/marketplace/components/service-modal';
 import favourite from '@/routes/favourite';
@@ -368,8 +369,8 @@ export default function ProviderProfile({
                             </div>
                         )}
 
-                        {/* Top actions */}
-                        <div className="absolute top-4 right-4 flex gap-2">
+	                        {/* Top actions */}
+	                        <div className="absolute top-4 right-4 flex gap-2">
                             {isAuthenticated && (
                                 <button
                                     onClick={handleFavourite}
@@ -392,23 +393,30 @@ export default function ProviderProfile({
                             >
                                 <Share2 className="h-4 w-4 sm:h-5 sm:w-5" />
                             </button>
-                        </div>
+	                        </div>
 
-                        {/* Business info overlay */}
-                        <div className="absolute right-0 bottom-0 left-0 p-4 sm:p-6 md:p-8">
-                            <div className="mx-auto max-w-7xl">
-                                <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end md:gap-4">
-                                    <div className="space-y-2 sm:space-y-3">
-                                        {/* Name + open badge */}
-                                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                                            <h1 className="text-2xl leading-tight font-black text-white drop-shadow-lg sm:text-3xl md:text-5xl">
-                                                {provider.businessName}
-                                            </h1>
-                                            {todayHours !== undefined && (
-                                                <Badge
-                                                    className={`${isOpenNow ? 'bg-green-500/90' : 'bg-red-500/90'} border-none px-2 py-0.5 text-xs text-white backdrop-blur-sm sm:px-3 sm:py-1 sm:text-sm`}
-                                                >
-                                                    {isOpenNow
+                            {/* Verified badge (top-left) */}
+                            {provider.isVerified && (
+                                <div className="absolute top-4 left-4 z-10">
+                                    <VerifiedProviderBadge size="lg" tone="onDark" />
+                                </div>
+                            )}
+
+	                        {/* Business info overlay */}
+	                        <div className="absolute right-0 bottom-0 left-0 p-4 sm:p-6 md:p-8">
+	                            <div className="mx-auto max-w-7xl">
+	                                <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end md:gap-4">
+	                                    <div className="space-y-2 sm:space-y-3">
+	                                        {/* Name + open badge */}
+		                                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+		                                            <h1 className="text-2xl leading-tight font-black text-white drop-shadow-lg sm:text-3xl md:text-5xl">
+		                                                {provider.businessName}
+		                                            </h1>
+		                                            {todayHours !== undefined && (
+		                                                <Badge
+		                                                    className={`${isOpenNow ? 'bg-green-500/90' : 'bg-red-500/90'} border-none px-2 py-0.5 text-xs text-white backdrop-blur-sm sm:px-3 sm:py-1 sm:text-sm`}
+		                                                >
+	                                                    {isOpenNow
                                                         ? '● Open Now'
                                                         : '● Closed'}
                                                 </Badge>
@@ -496,8 +504,8 @@ export default function ProviderProfile({
                         <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
                         <div className="absolute inset-0 bg-gradient-to-r from-black/35 to-transparent" />
 
-                        {/* Top actions */}
-                        <div className="absolute top-4 right-4 flex gap-2">
+	                        {/* Top actions */}
+	                        <div className="absolute top-4 right-4 flex gap-2">
                             {isAuthenticated && (
                                 <button
                                     onClick={handleFavourite}
@@ -532,22 +540,29 @@ export default function ProviderProfile({
                                     No photos yet. Still open for bookings.
                                 </p>
                             </div>
-                        </div>
+	                        </div>
 
-                        {/* Business info overlay */}
-                        <div className="absolute right-0 bottom-0 left-0 p-4 sm:p-6 md:p-8">
-                            <div className="mx-auto max-w-7xl">
-                                <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end md:gap-4">
-                                    <div className="space-y-2 sm:space-y-3">
-                                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                                            <h1 className="text-2xl leading-tight font-black text-white drop-shadow-lg sm:text-3xl md:text-5xl">
-                                                {provider.businessName}
-                                            </h1>
-                                            {todayHours !== undefined && (
-                                                <Badge
-                                                    className={`${isOpenNow ? 'bg-green-500/90' : 'bg-red-500/90'} border-none px-2 py-0.5 text-xs text-white backdrop-blur-sm sm:px-3 sm:py-1 sm:text-sm`}
-                                                >
-                                                    {isOpenNow
+                            {/* Verified badge (top-left) */}
+                            {provider.isVerified && (
+                                <div className="absolute top-4 left-4 z-10">
+                                    <VerifiedProviderBadge size="lg" tone="onDark" />
+                                </div>
+                            )}
+
+	                        {/* Business info overlay */}
+	                        <div className="absolute right-0 bottom-0 left-0 p-4 sm:p-6 md:p-8">
+	                            <div className="mx-auto max-w-7xl">
+	                                <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end md:gap-4">
+	                                    <div className="space-y-2 sm:space-y-3">
+	                                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+	                                            <h1 className="text-2xl leading-tight font-black text-white drop-shadow-lg sm:text-3xl md:text-5xl">
+	                                                {provider.businessName}
+	                                            </h1>
+	                                            {todayHours !== undefined && (
+	                                                <Badge
+	                                                    className={`${isOpenNow ? 'bg-green-500/90' : 'bg-red-500/90'} border-none px-2 py-0.5 text-xs text-white backdrop-blur-sm sm:px-3 sm:py-1 sm:text-sm`}
+	                                                >
+	                                                    {isOpenNow
                                                         ? '● Open Now'
                                                         : '● Closed'}
                                                 </Badge>
