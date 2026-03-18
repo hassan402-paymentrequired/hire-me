@@ -166,7 +166,7 @@ export default function OnboardingLayout({
 
             {/* Main Content / Right Panel — flex-1 + min-h-0 keeps scroll contained */}
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                <main className="min-h-0 flex-1 overflow-y-auto">
+                <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
                     <div className="relative mx-auto w-full max-w-5xl p-5 md:p-8 lg:p-10">
                         {/* Mobile header */}
                         <div className="mb-6 flex items-center justify-between lg:hidden">

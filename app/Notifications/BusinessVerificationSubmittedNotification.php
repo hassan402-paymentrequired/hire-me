@@ -13,49 +13,34 @@ class BusinessVerificationSubmittedNotification extends Notification implements 
 {
     use Queueable, SendsWebPush;
 
-    /**
-     * Create a new notification instance.
-     */
-    public function __construct()
-    {
-        //
-    }
+    public function __construct() {}
 
-    /**
-     * Get the notification's delivery channels.
-     *
-     * @return array<int, string>
-     */
     public function via(object $notifiable): array
     {
         return ['mail', WebPushChannel::class];
     }
 
-    /**
-     * Get the mail representation of the notification.
-     */
     public function toMail(object $notifiable): MailMessage
     {
+        $businessName = $notifiable->businessProfile?->business_name ?? 'Your Business';
+
         return (new MailMessage)
-            ->subject('Business Verification Received')
-            ->markdown('emails.provider.verification-sent-notification', [
-                'user' => $notifiable,
-                'businessName' => $notifiable->businessProfile?->business_name ?? 'your business',
+            ->subject('Verification documents received — ' . config('app.name'))
+            ->view('emails.provider.verification-sent-notification', [
+                'user'         => $notifiable,
+                'businessName' => $businessName,
             ]);
     }
 
-    /**
-     * Get the array representation of the notification.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(object $notifiable): array
     {
+        $businessName = $notifiable->businessProfile?->business_name ?? 'Your business';
+
         return [
-            'title' => 'Business Verification Submitted',
-            'message' => 'Your business verification request has been submitted successfully.',
+            'title'      => 'Documents received ✓',
+            'message'    => "We've received your verification documents for {$businessName}. Our team will review them within 1–3 business days.",
             'action_url' => route('business.dashboard'),
-            'type' => 'business_verification_submitted',
+            'type'       => 'business_verification_submitted',
         ];
     }
 }
