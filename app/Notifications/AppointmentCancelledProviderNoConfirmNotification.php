@@ -3,12 +3,12 @@
 namespace App\Notifications;
 
 use App\Models\Appointment;
+use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
-use App\Notifications\Concerns\SendsWebPush;
 
 class AppointmentCancelledProviderNoConfirmNotification extends Notification implements ShouldQueue
 {
@@ -26,8 +26,13 @@ class AppointmentCancelledProviderNoConfirmNotification extends Notification imp
 
     public function toMail(object $notifiable): MailMessage
     {
+        $serviceNames = $this->appointment->services->pluck('name')->join(', ');
+        $providerName = $this->appointment->provider->businessProfile->business_name
+                        ?? $this->appointment->provider->name
+                        ?? 'your provider';
+
         return (new MailMessage)
-            ->subject('Appointment cancelled – provider did not confirm in time')
+            ->subject("Your {$serviceNames} appointment was cancelled — ".config('app.name'))
             ->view('emails.client.appointment-cancelled-provider-no-confirm', [
                 'appointment' => $this->appointment,
                 'similarProviders' => $this->similarProviders,
@@ -36,9 +41,17 @@ class AppointmentCancelledProviderNoConfirmNotification extends Notification imp
 
     public function toArray(object $notifiable): array
     {
+        $serviceNames = $this->appointment->services->pluck('name')->join(', ');
+        $providerName = $this->appointment->provider->businessProfile->business_name
+                        ?? $this->appointment->provider->name
+                        ?? 'your provider';
+
+        $hasSimilar = count($this->similarProviders) > 0;
+
         return [
-            'title' => 'Appointment cancelled',
-            'message' => 'Your appointment was cancelled because the provider did not confirm in time.',
+            'title' => 'Appointment cancelled — refund issued',
+            'message' => "Your {$serviceNames} with {$providerName} was auto-cancelled (provider didn't confirm). Your payment has been refunded."
+                          .($hasSimilar ? ' We found similar providers for you.' : ''),
             'action_url' => '/my-bookings/'.$this->appointment->id,
             'type' => 'appointment_cancelled',
         ];

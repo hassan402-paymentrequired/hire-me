@@ -37,7 +37,7 @@ class AutoCancelUnconfirmedAppointmentJob implements ShouldQueue
             ->where('status', 'pending')
             ->where('start_time', '>', now())
             ->where('start_time', '<=', $threshold)
-            ->where('created_at', '<=', $graceCutoff) // Provider has had at least 1 hour to confirm
+            ->where('created_at', '<=', $graceCutoff)
             ->chunk(100, function ($appointments) {
                 $appointments->each(function (Appointment $appointment) {
                     try {

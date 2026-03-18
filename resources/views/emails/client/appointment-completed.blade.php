@@ -157,5 +157,3 @@
 @section('cta_url', route('client.bookings.show', $appointment->id))
 
 @section('unsubscribe_url', '#')
-
-@section('footer_note', 'You\'re receiving this because you completed an appointment on ' . config('app.name') . '.')
