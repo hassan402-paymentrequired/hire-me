@@ -140,7 +140,7 @@
     <div class="email-content">
         <p>
             Your profile is currently visible but will display as <strong>unverified</strong> until
-            the review is complete. We'll be in touch within 1–3 business days.
+            the review is complete. We'll be in touch within 1–2 business days.
             If you have any questions in the meantime, don't hesitate to reach out.
         </p>
     </div>

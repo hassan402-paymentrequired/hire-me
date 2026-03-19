@@ -91,7 +91,7 @@ const mainNavItems: any[] = [
                 icon: WalletIcon,
             },
             {
-                title: 'Settings',
+                title: 'Business Settings',
                 href: business.settings(),
                 icon: Cog6ToothIcon,
             },
@@ -102,12 +102,6 @@ const mainNavItems: any[] = [
         links: [
             {
                 title: 'Booking Widget',
-                href: business.integration.index(),
-                icon: PuzzlePieceIcon,
-                isLocked: true,
-            },
-            {
-                title: 'Google Calendar',
                 href: business.integration.index(),
                 icon: PuzzlePieceIcon,
                 isLocked: true,

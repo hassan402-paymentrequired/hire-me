@@ -156,9 +156,8 @@ export default function VerificationShow({
     recent_reviews,
 }: Props) {
     const [rejectingVerification, setRejectingVerification] = useState(false);
-    const [rejectionReason, setRejectionReason] = useState('');
 
-    const { post, processing } = useForm();
+    const { post, processing, errors, data, setData } = useForm({rejection_reason: ''});
 
     const handleApprove = () => {
         post(`/admin/verifications/${verification.id}/approve`, {
@@ -168,12 +167,8 @@ export default function VerificationShow({
 
     const handleReject = () => {
         post(`/admin/verifications/${verification.id}/reject`, {
-            data: {
-                rejection_reason: rejectionReason,
-            },
             onSuccess: () => {
                 setRejectingVerification(false);
-                setRejectionReason('');
             },
         });
     };
@@ -224,6 +219,7 @@ export default function VerificationShow({
         };
         return days[day.toLowerCase()] || day;
     };
+    
 
     return (
         <AdminLayout breadcrumbs={breadcrumbs}>
@@ -761,9 +757,9 @@ export default function VerificationShow({
                                 <Textarea
                                     id="rejection_reason"
                                     placeholder="Explain why this verification is being rejected..."
-                                    value={rejectionReason}
+                                    value={data.rejection_reason}
                                     onChange={(e) =>
-                                        setRejectionReason(e.target.value)
+                                        setData("rejection_reason",e.target.value)
                                     }
                                     rows={4}
                                     required
@@ -776,7 +772,6 @@ export default function VerificationShow({
                                 variant="outline"
                                 onClick={() => {
                                     setRejectingVerification(false);
-                                    setRejectionReason('');
                                 }}
                             >
                                 Cancel
@@ -784,7 +779,7 @@ export default function VerificationShow({
                             <Button
                                 variant="destructive"
                                 onClick={handleReject}
-                                disabled={!rejectionReason || processing}
+                                disabled={!data.rejection_reason || processing}
                             >
                                 Reject Verification
                             </Button>

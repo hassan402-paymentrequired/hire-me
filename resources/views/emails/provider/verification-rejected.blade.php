@@ -103,22 +103,13 @@
                     Accepted documents
                 </p>
                 <p style="margin: 0; font-size: 13px; color: #4d5643; font-family: 'Roboto Flex', sans-serif; line-height: 1.8;">
-                    • Government-issued ID (National ID, Driver's Licence, Passport)<br>
-                    • Business registration certificate (CAC certificate)<br>
+                    • Government-issued ID (National ID, Passport)<br>
+                    • Business registration certificate (CAC certificate) if registered<br>
                     • Proof of address (utility bill or bank statement — not older than 3 months)
                 </p>
             </td>
         </tr>
     </table>
-
-    {{-- Info box --}}
-    <div class="info-box">
-        <p>
-            ⚠️ &nbsp;Your business profile will remain <strong>hidden from clients</strong> until
-            your verification is approved. Resubmitting promptly ensures you don't miss out on
-            potential bookings.
-        </p>
-    </div>
 
     <div class="email-content">
         <p>

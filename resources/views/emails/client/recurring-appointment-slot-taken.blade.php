@@ -19,12 +19,12 @@
         </p>
         <p>
             The original slot on <strong>{{ $proposedDateFormatted }}</strong> was taken by
-            another client, and we were unable to find any available alternative time within
+            another client, and we were unable to find any available alternative time within 
             the next 30 days. You'll need to manually book a new slot when you're ready.
         </p>
     </div>
 
-    {{-- Skipped appointment card --}}
+    {{-- Skipped appointment card --}}  
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
         style="margin: 20px 0; border: 1px solid #fde68a; border-radius: 8px; overflow: hidden;">
 

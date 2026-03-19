@@ -165,7 +165,7 @@ class VerificationController extends Controller
     public function reject(\App\Models\ProviderVerification $verification, \Illuminate\Http\Request $request)
     {
         $validated = $request->validate([
-            'rejection_reason' => 'required|string|max:500',
+            'rejection_reason' => 'required|string|max:200',
         ]);
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $verification) {

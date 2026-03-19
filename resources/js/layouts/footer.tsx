@@ -128,9 +128,9 @@ const Footer = () => {
                     <div className="grid grid-cols-2 gap-8 text-center sm:grid-cols-3 sm:text-left">
                         <div>
                             <strong className="font-heading text-lg font-bold text-gray-900 dark:text-white">
-                                proxideck
+                                Proxideck
                             </strong>
-                            <ul className="mt-6 space-y-3">
+                            <ul className="mt-3 space-y-3">
                                 <li>
                                     <Link
                                         href="/about"
@@ -162,7 +162,7 @@ const Footer = () => {
                             <strong className="font-heading text-lg font-bold text-gray-900 dark:text-white">
                                 Support
                             </strong>
-                            <ul className="mt-6 space-y-3">
+                            <ul className="mt-3 space-y-3">
                                 <li>
                                     <Link
                                         href="/faqs"
@@ -185,7 +185,7 @@ const Footer = () => {
                             <strong className="font-heading text-lg font-bold text-gray-900 dark:text-white">
                                 Legal
                             </strong>
-                            <ul className="mt-6 space-y-3">
+                            <ul className="mt-3 space-y-3">
                                 <li>
                                     <Link
                                         href="/privacy-policy"
