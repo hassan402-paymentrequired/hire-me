@@ -1,10 +1,11 @@
+import KeenIcon from '@/components/keen-icon';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import { Head, router, useForm } from '@inertiajs/react';
-import { Wallet, ArrowDown, Loader2, Building2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -59,6 +60,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function Withdraw({ wallet, bankAccount = null, withdrawals, banks }: Props) {
     const [showAddBank, setShowAddBank] = useState(false);
     const hasBankAccount = !!bankAccount;
+    const totalBalance = wallet.balance + wallet.pending_earnings;
 
     const { data: withdrawalData, setData: setWithdrawalData, post: postWithdrawal, transform: transformWithdrawal, processing: processingWithdrawal, errors: withdrawalErrors } = useForm({
         amount: '',
@@ -123,68 +125,87 @@ export default function Withdraw({ wallet, bankAccount = null, withdrawals, bank
         label: bank.name,
     }));
 
+    const walletStats = [
+        {
+            title: 'Available balance',
+            value: `₦${wallet.available_balance.toLocaleString()}`,
+            note: 'Ready to withdraw now',
+            icon: 'receipt-square',
+        },
+        {
+            title: 'Total balance',
+            value: `₦${totalBalance.toLocaleString()}`,
+            note: 'Available plus pending earnings',
+            icon: 'status',
+        },
+        {
+            title: 'Pending earnings',
+            value: `₦${(wallet.pending_earnings ?? 0).toLocaleString()}`,
+            note: 'Held until appointments complete',
+            icon: 'electronic-clock',
+        },
+    ];
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Withdraw Funds" />
             <div className="flex flex-col gap-6 p-4">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Withdraw Funds</h1>
-                    <p className="text-muted-foreground mt-2">
-                        Transfer money from your wallet to your bank account
-                    </p>
-                </div>
+                <section className="overflow-hidden rounded-3xl border border-border/70 bg-background">
+                    <div className="relative">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.06),_transparent_24%),radial-gradient(circle_at_left,_rgba(16,185,129,0.06),_transparent_24%)]" />
+                        <div className="relative space-y-5 px-6 py-6 lg:px-8 lg:py-8">
+                            <div className="flex flex-wrap items-center gap-3">
+                                <Badge className="border-border bg-muted px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-foreground/70 hover:bg-muted">
+                                    Wallet workspace
+                                </Badge>
+                                <Badge variant="secondary" className="rounded-full px-3 py-1">
+                                    {hasBankAccount ? 'Bank account connected' : 'Bank setup needed'}
+                                </Badge>
+                            </div>
 
-                {/* Wallet Balance Cards */}
-                <div className="grid gap-4 md:grid-cols-3">
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardDescription>Available Balance</CardDescription>
-                            <CardTitle className="text-3xl font-bold">
-                                ₦{wallet.available_balance.toLocaleString()}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-xs text-muted-foreground">
-                                Ready to withdraw
-                            </p>
-                        </CardContent>
-                    </Card>
+                            <div className="max-w-2xl space-y-2">
+                                <h1 className="text-3xl font-semibold tracking-tight text-foreground lg:text-4xl">
+                                    Withdraw funds
+                                </h1>
+                                <p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+                                    Move your available earnings to a connected bank account, keep track of pending releases, and review every withdrawal request from one place.
+                                </p>
+                            </div>
 
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardDescription>Total Balance</CardDescription>
-                            <CardTitle className="text-3xl font-bold">
-                                ₦{(wallet.balance + wallet.pending_earnings).toLocaleString()}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-xs text-muted-foreground">
-                                Including escrow funds
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardDescription>Pending Earnings</CardDescription>
-                            <CardTitle className="text-3xl font-bold">
-                                ₦{(wallet.pending_earnings ?? 0).toLocaleString()}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-xs text-muted-foreground">
-                                Held by clients for active appointments; released when completed
-                            </p>
-                        </CardContent>
-                    </Card>
-                </div>
+                            <div className="grid gap-3 sm:grid-cols-3">
+                                {walletStats.map((stat) => (
+                                    <div key={stat.title} className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="space-y-1">
+                                                <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                                                    {stat.title}
+                                                </p>
+                                                <p className="mt-3 text-3xl font-semibold text-foreground">
+                                                    {stat.value}
+                                                </p>
+                                            </div>
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-background text-foreground">
+                                                <KeenIcon name={stat.icon} className="text-base" />
+                                            </div>
+                                        </div>
+                                        <p className="mt-1 text-sm text-muted-foreground">
+                                            {stat.note}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
                 <div className="grid gap-6 md:grid-cols-2">
                     {/* Withdrawal Form */}
-                    <Card>
-                        <CardHeader>
+                    <Card className="overflow-hidden rounded-3xl border border-border/70 shadow-none">
+                        <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
                             <CardTitle className="flex items-center gap-2">
-                                <ArrowDown className="h-5 w-5" />
+                                <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/70 bg-background text-emerald-600 dark:text-emerald-300">
+                                    <KeenIcon name="receipt-square" className="text-base" />
+                                </span>
                                 Withdraw Funds
                             </CardTitle>
                             <CardDescription>
@@ -202,7 +223,7 @@ export default function Withdraw({ wallet, bankAccount = null, withdrawals, bank
                                         onClick={() => setShowAddBank(true)}
                                         className="w-full"
                                     >
-                                        <Building2 className="mr-2 h-4 w-4" />
+                                        <KeenIcon name="book-square" className="mr-2 text-sm" />
                                         Add Bank Account
                                     </Button>
                                 </div>
@@ -259,13 +280,13 @@ export default function Withdraw({ wallet, bankAccount = null, withdrawals, bank
                                     </div>
 
                                     <div className="flex gap-2">
-                                        <Button
-                                            type="submit"
-                                            disabled={processingBank}
-                                            className="flex-1"
-                                        >
+                                    <Button
+                                        type="submit"
+                                        disabled={processingBank}
+                                        className="flex-1"
+                                    >
                                             {processingBank && (
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                             )}
                                             {hasBankAccount ? 'Update Bank Account' : 'Add Bank Account'}
                                         </Button>
@@ -335,7 +356,7 @@ export default function Withdraw({ wallet, bankAccount = null, withdrawals, bank
                                             </>
                                         ) : (
                                             <>
-                                                <ArrowDown className="mr-2 h-4 w-4" />
+                                                <KeenIcon name="receipt-square" className="mr-2 text-sm" />
                                                 Withdraw Funds
                                             </>
                                         )}
@@ -355,23 +376,30 @@ export default function Withdraw({ wallet, bankAccount = null, withdrawals, bank
                     </Card>
 
                     {/* Withdrawal History */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Withdrawal History</CardTitle>
+                    <Card className="overflow-hidden rounded-3xl border border-border/70 shadow-none">
+                        <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
+                            <CardTitle className="flex items-center gap-2">
+                                <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/70 bg-background text-sky-600 dark:text-sky-300">
+                                    <KeenIcon name="electronic-clock" className="text-base" />
+                                </span>
+                                Withdrawal History
+                            </CardTitle>
                             <CardDescription>
                                 View your past withdrawal requests
                             </CardDescription>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="pt-5">
                             {withdrawals.data.length === 0 ? (
-                                <div className="text-center py-12">
-                                    <Wallet className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                                <div className="py-12 text-center">
+                                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-3xl border border-border/70 bg-muted/30 text-muted-foreground">
+                                        <KeenIcon name="receipt-square" className="text-lg" />
+                                    </div>
                                     <p className="text-muted-foreground">No withdrawals yet</p>
                                 </div>
                             ) : (
-                                <div className="overflow-x-auto">
+                                <div className="overflow-x-auto rounded-2xl border border-border/70">
                                     <Table>
-                                        <TableHeader>
+                                        <TableHeader className="bg-muted/20">
                                             <TableRow>
                                                 <TableHead>Date</TableHead>
                                                 <TableHead>Amount</TableHead>
@@ -403,7 +431,7 @@ export default function Withdraw({ wallet, bankAccount = null, withdrawals, bank
 
                             {/* Pagination */}
                             {withdrawals.links && withdrawals.links.length > 3 && (
-                                <div className="flex items-center justify-between mt-4">
+                                <div className="mt-4 flex items-center justify-between">
                                     <div className="text-sm text-muted-foreground">
                                         Showing {withdrawals.meta.from} to {withdrawals.meta.to} of {withdrawals.meta.total} withdrawals
                                     </div>

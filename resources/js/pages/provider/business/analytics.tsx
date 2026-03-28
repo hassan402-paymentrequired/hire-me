@@ -171,8 +171,10 @@ export default function Analytics({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Analytics" />
             <div className="flex flex-col gap-6 p-4">
-                <section className="overflow-hidden rounded-3xl border border-border/70 bg-gradient-to-br from-background via-background to-muted/30">
-                    <div className="flex flex-col gap-5 px-5 py-6 lg:flex-row lg:items-start lg:justify-between lg:px-7">
+                <section className="overflow-hidden rounded-3xl border border-border/70 bg-background">
+                    <div className="relative">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.06),_transparent_24%),radial-gradient(circle_at_left,_rgba(16,185,129,0.06),_transparent_24%)]" />
+                        <div className="relative flex flex-col gap-5 px-5 py-6 lg:flex-row lg:items-start lg:justify-between lg:px-7">
                         <div className="space-y-4">
                             <div className="inline-flex w-fit items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground">
                                 <KeenIcon name="status" className="text-sm text-primary" />
@@ -219,37 +221,32 @@ export default function Analytics({
                                 Export soon
                             </Button>
                         </div>
-                    </div>
-                </section>
+                        </div>
+                        <div className="relative grid gap-3 px-5 pb-6 lg:grid-cols-3 lg:px-7">
+                        {overviewCards.map((card) => {
+                            const isPositive = card.positiveTone
+                                ? card.changeValue >= 0
+                                : card.changeValue < 0;
 
-                <div className="grid gap-4 md:grid-cols-3">
-                    {overviewCards.map((card) => {
-                        const isPositive = card.positiveTone
-                            ? card.changeValue >= 0
-                            : card.changeValue < 0;
-
-                        return (
-                            <Card key={card.title} className="border-border/70 shadow-none">
-                                <CardHeader className="space-y-4 pb-3">
+                            return (
+                                <div key={card.title} className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="space-y-1">
-                                            <CardTitle className="text-sm font-medium text-muted-foreground">
+                                            <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
                                                 {card.title}
-                                            </CardTitle>
-                                            <div className="text-2xl font-semibold tracking-tight">
+                                            </p>
+                                            <p className="mt-3 text-3xl font-semibold text-foreground">
                                                 {card.value}
-                                            </div>
+                                            </p>
                                         </div>
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-muted text-foreground">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-background text-foreground">
                                             <KeenIcon name={card.icon} className="text-base" />
                                         </div>
                                     </div>
-                                    <CardDescription className="text-xs leading-5">
+                                    <p className="mt-1 text-sm text-muted-foreground">
                                         {card.note}
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="pt-0">
-                                    <p className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
+                                    </p>
+                                    <p className={`mt-3 inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
                                         isPositive
                                             ? 'bg-emerald-50 text-emerald-700'
                                             : 'bg-rose-50 text-rose-700'
@@ -261,11 +258,12 @@ export default function Analytics({
                                         )}
                                         {card.change} from last period
                                     </p>
-                                </CardContent>
-                            </Card>
-                        );
-                    })}
-                </div>
+                                </div>
+                            );
+                        })}
+                        </div>
+                    </div>
+                </section>
 
                 <Tabs defaultValue="revenue" className="space-y-4">
                     <div className="overflow-x-auto pb-1">
