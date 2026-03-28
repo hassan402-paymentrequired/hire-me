@@ -49,6 +49,7 @@ interface AppointmentDetails {
     end_time: string;
     status: string;
     price: string;
+    payment_method?: 'online' | 'offline' | null;
     notes: string | null;
     created_at: string;
     escrow_status?: string | null;
@@ -94,6 +95,12 @@ export default function AppointmentDetailsPage({
 
     const isEscrowHeld = appointment.escrow_status === 'held';
     const isPaymentReleased = appointment.escrow_status === 'released';
+    const paymentStateLabel =
+        appointment.payment_method === 'offline'
+            ? 'Unpaid'
+            : appointment.escrow_status
+              ? formatStatus(appointment.escrow_status)
+              : 'Pending';
 
     const feePercent =
         appointment.platform_fee_percent !== undefined &&
@@ -231,9 +238,14 @@ export default function AppointmentDetailsPage({
                             )}
                         </div>
                     </div>
-                    <Badge variant={getStatusVariant(appointment.status)}>
-                        {formatStatus(appointment.status)}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                        <Badge variant={appointment.payment_method === 'offline' ? 'secondary' : 'outline'}>
+                            {paymentStateLabel}
+                        </Badge>
+                        <Badge variant={getStatusVariant(appointment.status)}>
+                            {formatStatus(appointment.status)}
+                        </Badge>
+                    </div>
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-3">
@@ -453,19 +465,22 @@ export default function AppointmentDetailsPage({
                                 )}
 
                             {/* Payment Status */}
-                            {appointment.escrow_status && (
+                            {(appointment.escrow_status || appointment.payment_method === 'offline') && (
                                 <div className="space-y-3">
                                     <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
                                         Payment Status
                                     </p>
                                     <div className="rounded-xl border border-muted bg-muted/30 p-4 space-y-1">
                                         <p className="text-sm font-medium capitalize">
-                                            {appointment.escrow_status.replace(
-                                                '_',
-                                                ' ',
-                                            )}
+                                            {appointment.payment_method === 'offline'
+                                                ? 'unpaid'
+                                                : appointment.escrow_status?.replace('_', ' ')}
                                         </p>
-                                        {appointment.escrow_amount != null && (
+                                        {appointment.payment_method === 'offline' ? (
+                                            <p className="text-xs text-muted-foreground">
+                                                This appointment was booked without upfront payment. Confirm only when you're ready to take the booking.
+                                            </p>
+                                        ) : appointment.escrow_amount != null && (
                                             <p className="text-xs text-muted-foreground">
                                                 Amount in escrow: ₦
                                                 {Number(
@@ -473,7 +488,7 @@ export default function AppointmentDetailsPage({
                                                 ).toLocaleString()}
                                             </p>
                                         )}
-                                        {appointment.payment_released_at && (
+                                        {appointment.payment_method !== 'offline' && appointment.payment_released_at && (
                                             <p className="text-xs text-muted-foreground">
                                                 Released at:{' '}
                                                 {
@@ -481,14 +496,14 @@ export default function AppointmentDetailsPage({
                                                 }
                                             </p>
                                         )}
-                                        {isEscrowHeld && (
+                                        {appointment.payment_method !== 'offline' && isEscrowHeld && (
                                             <p className="text-xs text-muted-foreground">
                                                 Funds are currently held in escrow. They&apos;ll be released when the
                                                 client marks this appointment as completed, or automatically 15 minutes
                                                 after the appointment end time if the client doesn&apos;t respond.
                                             </p>
                                         )}
-                                        {isPaymentReleased && (
+                                        {appointment.payment_method !== 'offline' && isPaymentReleased && (
                                             <p className="text-xs text-muted-foreground">
                                                 Payment has been released to your wallet.
                                             </p>

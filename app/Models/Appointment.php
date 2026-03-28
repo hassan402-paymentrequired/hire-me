@@ -23,6 +23,7 @@ class Appointment extends Model
         'client_approved_at',
         'provider_approved_at',
         'price',
+        'payment_method',
         'notes',
         'client_name',
         'client_email',

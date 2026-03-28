@@ -82,6 +82,7 @@ interface Booking {
     end_time: string;
     status: string;
     price: string;
+    payment_method?: 'online' | 'offline' | null;
     notes: string | null;
     cancelled_by: string | null;
     cancellation_reason: string | null;
@@ -148,6 +149,12 @@ export default function BookingDetails({
 
     const isEscrowHeld = booking.escrow_status === 'held';
     const isPaymentReleased = booking.escrow_status === 'released';
+    const paymentStateLabel =
+        booking.payment_method === 'offline'
+            ? 'Unpaid'
+            : booking.escrow_status
+              ? formatStatus(booking.escrow_status)
+              : 'Pending';
 
     const handleCancelBooking = () => {
         if (!canCancel) return;
@@ -265,13 +272,18 @@ export default function BookingDetails({
                                 </span>
                             </p>
                         </div>
-                        <Badge
-                            variant={getStatusVariant(booking.status)}
-                            className="flex items-center gap-2 px-4 py-1.5 text-sm"
-                        >
-                            {getStatusIcon(booking.status)}
-                            {formatStatus(booking.status)}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                            <Badge variant={booking.payment_method === 'offline' ? 'secondary' : 'outline'}>
+                                {paymentStateLabel}
+                            </Badge>
+                            <Badge
+                                variant={getStatusVariant(booking.status)}
+                                className="flex items-center gap-2 px-4 py-1.5 text-sm"
+                            >
+                                {getStatusIcon(booking.status)}
+                                {formatStatus(booking.status)}
+                            </Badge>
+                        </div>
                     </div>
                 </div>
 
@@ -550,7 +562,7 @@ export default function BookingDetails({
                         )}
 
                         {/* Payment Status Card */}
-                        {booking.escrow_status && (
+                        {(booking.escrow_status || booking.payment_method === 'offline') && (
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="text-base">
@@ -560,12 +572,18 @@ export default function BookingDetails({
                                 <Separator />
                                 <CardContent className="space-y-2 pt-4 text-sm">
                                     <p className="font-medium capitalize">
-                                        {booking.escrow_status.replace(
-                                            '_',
-                                            ' ',
-                                        )}
+                                        {booking.payment_method === 'offline'
+                                            ? 'unpaid'
+                                            : booking.escrow_status?.replace(
+                                                  '_',
+                                                  ' ',
+                                              )}
                                     </p>
-                                    {booking.escrow_amount != null && (
+                                    {booking.payment_method === 'offline' ? (
+                                        <p className="text-xs text-muted-foreground">
+                                            This booking was sent without upfront payment. The provider still needs to review and confirm it.
+                                        </p>
+                                    ) : booking.escrow_amount != null && (
                                         <p className="text-xs text-muted-foreground">
                                             Amount: ₦
                                             {Number(
@@ -573,13 +591,13 @@ export default function BookingDetails({
                                             ).toLocaleString()}
                                         </p>
                                     )}
-                                    {booking.payment_released_at && (
+                                    {booking.payment_method !== 'offline' && booking.payment_released_at && (
                                         <p className="text-xs text-muted-foreground">
                                             Released at:{' '}
                                             {formatDate(booking.payment_released_at)}
                                         </p>
                                     )}
-                                    {!isPaymentReleased && isEscrowHeld && (
+                                    {booking.payment_method !== 'offline' && !isPaymentReleased && isEscrowHeld && (
                                         <p className="text-xs text-muted-foreground">
                                             Your payment is currently held in
                                             escrow. Once you mark the
@@ -591,7 +609,7 @@ export default function BookingDetails({
                                             time.
                                         </p>
                                     )}
-                                    {isPaymentReleased && (
+                                    {booking.payment_method !== 'offline' && isPaymentReleased && (
                                         <p className="text-xs text-muted-foreground">
                                             Payment has been released to the
                                             provider.

@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Carbon\Carbon;
+use App\Support\ProviderSettings;
 
 class MarketplaceController extends Controller
 {
@@ -279,7 +280,7 @@ class MarketplaceController extends Controller
         }
 
         // Get provider settings
-        $settings = $businessProfile->settings ?? [];
+        $settings = ProviderSettings::resolve($businessProfile->settings ?? []);
         $teamMembers = TeamMember::query()
             ->where('provider_id', $provider->id)
             ->where('is_active', true)
@@ -328,6 +329,8 @@ class MarketplaceController extends Controller
                 'allowOffHoursRequests' => $settings['allowOffHoursRequests'] ?? false,
                 'max_bookings_per_week' => $settings['max_bookings_per_week'] ?? null,
                 'max_bookings_per_month' => $settings['max_bookings_per_month'] ?? null,
+                'accept_online_payment' => $settings['accept_online_payment'] ?? true,
+                'accept_offline_booking' => $settings['accept_offline_booking'] ?? false,
             ],
         ]);
     }

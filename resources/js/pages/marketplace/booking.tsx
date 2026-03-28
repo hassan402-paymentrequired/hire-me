@@ -66,6 +66,8 @@ interface ProviderSettings {
     allowOffHoursRequests?: boolean;
     max_bookings_per_week: string | number | null;
     max_bookings_per_month: string | number | null;
+    accept_online_payment?: boolean;
+    accept_offline_booking?: boolean;
 }
 
 interface Props {
@@ -104,6 +106,7 @@ export default function Booking({
     const [pendingShortfall, setPendingShortfall] = useState<number>(0);
     const [useCustomTime, setUseCustomTime] = useState(false);
     const [customTime, setCustomTime] = useState('');
+    const [paymentOption, setPaymentOption] = useState<'online' | 'offline'>('online');
 
     // Provider settings with defaults
     const providerSettings: ProviderSettings = settings || {
@@ -114,7 +117,23 @@ export default function Booking({
         allowOffHoursRequests: false,
         max_bookings_per_week: null,
         max_bookings_per_month: null,
+        accept_online_payment: true,
+        accept_offline_booking: false,
     };
+
+    const supportsOnlinePayment = providerSettings.accept_online_payment ?? true;
+    const supportsOfflineBooking = providerSettings.accept_offline_booking ?? false;
+
+    useEffect(() => {
+        if (supportsOnlinePayment) {
+            setPaymentOption('online');
+            return;
+        }
+
+        if (supportsOfflineBooking) {
+            setPaymentOption('offline');
+        }
+    }, [supportsOfflineBooking, supportsOnlinePayment]);
 
     useEffect(() => {
         // Changing the date invalidates any selected time (slot or custom).
@@ -220,19 +239,22 @@ export default function Booking({
         if (!selectedDate || !selectedSlot || selectedServiceIds.length === 0)
             return;
 
-        // Check wallet balance - payment is required upfront
-        if (
-            walletBalance !== null &&
-            walletBalance !== undefined &&
-            walletBalance < totalPrice
-        ) {
-            setPendingShortfall(totalPrice - walletBalance);
-            setInsufficientBalanceDialogOpen(true);
+        if (paymentOption === 'online') {
+            if (
+                walletBalance !== null &&
+                walletBalance !== undefined &&
+                walletBalance < totalPrice
+            ) {
+                setPendingShortfall(totalPrice - walletBalance);
+                setInsufficientBalanceDialogOpen(true);
+                return;
+            }
+
+            setPaymentConfirmDialogOpen(true);
             return;
         }
 
-        // Show payment confirmation
-        setPaymentConfirmDialogOpen(true);
+        submitBooking();
     };
 
     const submitBooking = () => {
@@ -242,6 +264,7 @@ export default function Booking({
             start_time: selectedSlot,
             notes: notes,
             team_member_id: selectedTeamMemberId || null,
+            payment_option: paymentOption,
         };
 
         if (recurrencePattern) {
@@ -376,6 +399,11 @@ export default function Booking({
                                             ? 's'
                                             : ''}{' '}
                                         per month
+                                    </li>
+                                )}
+                                {supportsOfflineBooking && (
+                                    <li>
+                                        • You can also send a booking request without paying upfront
                                     </li>
                                 )}
                             </ul>
@@ -1021,28 +1049,72 @@ export default function Booking({
 
                                     <div className="border-t-2 border-dashed border-muted" />
 
-                                    {/* Payment Info */}
-                                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-                                        <div className="mb-2 flex items-start gap-2">
-                                            <CheckCircle2 className="mt-0.5 size-4 text-primary" />
-                                            <div className="flex-1">
-                                                <p className="text-xs font-semibold text-primary">
-                                                    Payment Security System
+                                    {(supportsOnlinePayment || supportsOfflineBooking) && (
+                                        <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
+                                            <div>
+                                                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                                                    Payment option
                                                 </p>
-                                                <p className="mt-1 text-xs text-muted-foreground">
-                                                    Payment will be held
-                                                    securely and released to the
-                                                    provider only after both you
-                                                    and the provider confirm the
-                                                    service is completed. This
-                                                    protects both parties.
+                                                <p className="mt-1 text-sm text-foreground">
+                                                    Choose how you want to secure this booking.
                                                 </p>
                                             </div>
+                                            <div className="grid gap-3">
+                                                {supportsOnlinePayment && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setPaymentOption('online')}
+                                                        className={cn(
+                                                            'rounded-lg border p-3 text-left transition',
+                                                            paymentOption === 'online'
+                                                                ? 'border-primary bg-primary/5 ring-2 ring-primary/15'
+                                                                : 'border-border hover:border-primary/30',
+                                                        )}
+                                                    >
+                                                        <div className="flex items-start justify-between gap-3">
+                                                            <div>
+                                                                <p className="text-sm font-semibold text-foreground">
+                                                                    Pay online now
+                                                                </p>
+                                                                <p className="mt-1 text-xs text-muted-foreground">
+                                                                    Payment is held securely and released only after service completion is confirmed.
+                                                                </p>
+                                                            </div>
+                                                            <CheckCircle2 className={cn('size-4', paymentOption === 'online' ? 'text-primary' : 'text-muted-foreground/40')} />
+                                                        </div>
+                                                    </button>
+                                                )}
+                                                {supportsOfflineBooking && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setPaymentOption('offline')}
+                                                        className={cn(
+                                                            'rounded-lg border p-3 text-left transition',
+                                                            paymentOption === 'offline'
+                                                                ? 'border-primary bg-primary/5 ring-2 ring-primary/15'
+                                                                : 'border-border hover:border-primary/30',
+                                                        )}
+                                                    >
+                                                        <div className="flex items-start justify-between gap-3">
+                                                            <div>
+                                                                <p className="text-sm font-semibold text-foreground">
+                                                                    Book and pay later
+                                                                </p>
+                                                                <p className="mt-1 text-xs text-muted-foreground">
+                                                                    This sends a pending request to the provider without charging your wallet now.
+                                                                </p>
+                                                            </div>
+                                                            <CheckCircle2 className={cn('size-4', paymentOption === 'offline' ? 'text-primary' : 'text-muted-foreground/40')} />
+                                                        </div>
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
 
                                     {/* Wallet Balance Info */}
-                                    {walletBalance !== null &&
+                                    {paymentOption === 'online' &&
+                                        walletBalance !== null &&
                                         walletBalance !== undefined && (
                                             <div className="rounded-lg border border-border bg-muted/30 p-3">
                                                 <div className="mb-1 flex items-center justify-between text-sm">
@@ -1117,32 +1189,40 @@ export default function Booking({
                                             </div>
                                         </div>
 
-                                        {providerSettings.autoConfirm && (
+                                        {providerSettings.autoConfirm && paymentOption === 'online' && (
                                             <p className="rounded-lg bg-green-50 dark:bg-green-950/20 px-3 py-2 text-xs text-green-700 dark:text-green-400 border border-green-200 dark:border-green-900/50">
                                                 This provider auto-confirms bookings – no need to wait for approval.
+                                            </p>
+                                        )}
+                                        {paymentOption === 'offline' && (
+                                            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
+                                                This request will stay pending until the provider reviews it, even if auto-confirm is enabled.
                                             </p>
                                         )}
                                         <Button
                                             className="w-full"
                                             disabled={
                                                 !selectedSlot ||
-                                                selectedServiceIds.length ===
-                                                    0 ||
-                                                (walletBalance !== null &&
+                                                selectedServiceIds.length === 0 ||
+                                                (paymentOption === 'online' &&
+                                                    walletBalance !== null &&
                                                     walletBalance !==
                                                         undefined &&
                                                     walletBalance < totalPrice)
                                             }
                                             onClick={handleBooking}
                                         >
-                                            {walletBalance !== null &&
-                                            walletBalance !== undefined &&
-                                            walletBalance < totalPrice
-                                                ? 'Insufficient Balance'
-                                                : 'Book & Pay Now'}
+                                            {paymentOption === 'online'
+                                                ? walletBalance !== null &&
+                                                  walletBalance !== undefined &&
+                                                  walletBalance < totalPrice
+                                                    ? 'Insufficient Balance'
+                                                    : 'Book & Pay Now'
+                                                : 'Send Booking Request'}
                                             <CheckCircle2 className="size-6" />
                                         </Button>
-                                        {walletBalance !== null &&
+                                        {paymentOption === 'online' &&
+                                            walletBalance !== null &&
                                             walletBalance !== undefined &&
                                             walletBalance >= totalPrice && (
                                                 <p className="text-center text-xs text-muted-foreground">
@@ -1152,6 +1232,11 @@ export default function Booking({
                                                     parties approve completion
                                                 </p>
                                             )}
+                                        {paymentOption === 'offline' && (
+                                            <p className="text-center text-xs text-muted-foreground">
+                                                No wallet charge will happen now. The provider will decide whether to accept this unpaid request.
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
                             </div>

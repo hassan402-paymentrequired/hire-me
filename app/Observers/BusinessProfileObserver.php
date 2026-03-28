@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Models\BusinessProfile;
 use App\Services\Cache\CacheService;
+use App\Support\ProviderSettings;
 
 class BusinessProfileObserver
 {
@@ -20,6 +21,10 @@ class BusinessProfileObserver
      */
     public function updated(BusinessProfile $businessProfile): void
     {
+         if ($businessProfile->wasChanged('has_onboarded') && $businessProfile->has_onboarded) {
+            ProviderSettings::ensurePersisted($businessProfile);
+        }
+
          if ($businessProfile->isDirty([
             'business_name',
             'description',

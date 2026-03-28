@@ -96,7 +96,13 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
 
             Route::get('/analytics', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'analytics'])->name('analytics');
             Route::get('/settings', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'settings'])->name('settings');
-            Route::post('/settings', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateSettings'])->name('settings.update');
+            Route::get('/settings/location', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'settingsLocation'])->name('settings.location');
+            Route::get('/settings/advanced', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'settingsAdvanced'])->name('settings.advanced');
+            Route::get('/settings/appearance', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'settingsAppearance'])->name('settings.appearance');
+            Route::post('/settings', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateGeneralSettings'])->name('settings.update');
+            Route::post('/settings/location', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateLocationSettings'])->name('settings.location.update');
+            Route::post('/settings/advanced', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateAdvancedSettings'])->name('settings.advanced.update');
+            Route::post('/settings/appearance', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateAppearanceSettings'])->name('settings.appearance.update');
             
             // Integration (Widget)
             Route::get('/integration', [\App\Http\Controllers\Provider\Integration\IntegrationController::class, 'index'])->name('integration.index');

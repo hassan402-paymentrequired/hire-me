@@ -298,3 +298,8 @@ The feature can be considered complete for v1 when:
 - appointment stores and displays `team_member_id`
 - deactivated/invalid team members cannot be selected for new bookings
 - existing appointments remain safe when team members are updated
+
+
+#### next step
+- make gallery page dynamic
+- add google api key

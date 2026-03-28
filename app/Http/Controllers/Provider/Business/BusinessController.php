@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
+use App\Support\ProviderSettings;
 
 class BusinessController extends Controller
 {
@@ -20,7 +21,7 @@ class BusinessController extends Controller
     {
         $user = auth()->user();
         $businessProfile = $user->businessProfile;
-        $settings = $businessProfile?->settings ?? [];
+        $settings = ProviderSettings::resolve($businessProfile?->settings);
 
         // Fetch WorkHours from DB
         $workHours = \App\Models\WorkHour::where('provider_id', $user->id)->get();
@@ -547,6 +548,26 @@ class BusinessController extends Controller
 
     public function settings()
     {
+        return $this->renderBusinessSettingsPage('provider/business/settings/index');
+    }
+
+    public function settingsLocation()
+    {
+        return $this->renderBusinessSettingsPage('provider/business/settings/location');
+    }
+
+    public function settingsAdvanced()
+    {
+        return $this->renderBusinessSettingsPage('provider/business/settings/advanced');
+    }
+
+    public function settingsAppearance()
+    {
+        return $this->renderBusinessSettingsPage('provider/business/settings/appearance');
+    }
+
+    private function renderBusinessSettingsPage(string $page)
+    {
         $user = auth()->user();
         $profile = $user->businessProfile()->with('images')->first();
         $categories = Category::orderBy('name')->get()->map(function ($category) {
@@ -556,7 +577,7 @@ class BusinessController extends Controller
             ];
         });
 
-        return Inertia::render('provider/business/settings', [
+        return Inertia::render($page, [
             'profile' => $profile ? [
                 'id' => $profile->id,
                 'business_name' => $profile->business_name,
@@ -569,7 +590,7 @@ class BusinessController extends Controller
                 'category' => $profile->category,
                 'latitude' => $profile->latitude,
                 'longitude' => $profile->longitude,
-                'settings' => $profile->settings ?? [],
+                'settings' => ProviderSettings::resolve($profile->settings ?? []),
                 'widget_enabled' => $profile->widget_enabled ?? false,
                 'widget_settings' => $profile->widget_settings ?? [],
                 'widget_domains' => $profile->widget_domains ?? [],
@@ -586,24 +607,94 @@ class BusinessController extends Controller
 
     public function updateSettings(Request $request)
     {
+        return $this->updateGeneralSettings($request);
+    }
+
+    public function updateGeneralSettings(Request $request)
+    {
         $user = auth()->user();
         $profile = $user->businessProfile;
 
         $request->validate([
             'business_name' => 'required|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'category' => 'nullable|string|max:50',
             'description' => 'nullable|string',
+        ]);
+
+        try {
+            $profile->update([
+                'business_name' => $request->business_name,
+                'description' => $request->description,
+                'phone' => $request->phone,
+                'category' => $request->category,
+            ]);
+
+            return back()->with('success-toast', 'General business information updated successfully.');
+        } catch (\Exception $e) {
+            Log::error("Error updating business general settings: {$e->getMessage()}");
+            return back()->with('error-toast', 'Error updating business settings. Please try again.');
+        }
+    }
+
+    public function updateLocationSettings(Request $request)
+    {
+        $user = auth()->user();
+        $profile = $user->businessProfile;
+
+        $request->validate([
             'address' => 'nullable|string|max:500',
             'city' => 'nullable|string|max:100',
             'state' => 'nullable|string|max:100',
             'zip_code' => 'nullable|string|max:20',
-            'phone' => 'nullable|string|max:20',
-            'category' => 'nullable|string|max:50',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
+        ]);
+
+        try {
+            $profile->update([
+                'address' => $request->address,
+                'city' => $request->city,
+                'state' => $request->state,
+                'zip_code' => $request->zip_code,
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
+            ]);
+
+            return back()->with('success-toast', 'Business location updated successfully.');
+        } catch (\Exception $e) {
+            Log::error("Error updating business location settings: {$e->getMessage()}");
+            return back()->with('error-toast', 'Error updating business location. Please try again.');
+        }
+    }
+
+    public function updateAdvancedSettings(Request $request)
+    {
+        $user = auth()->user();
+        $profile = $user->businessProfile;
+
+        $request->validate([
             'settings' => 'nullable|array',
-            'widget_enabled' => 'nullable|boolean',
-            'widget_settings' => 'nullable|array',
-            'widget_domains' => 'nullable|array',
+        ]);
+
+        try {
+            $profile->update([
+                'settings' => ProviderSettings::sanitize(array_merge($profile->settings ?? [], $request->settings ?? [])),
+            ]);
+
+            return back()->with('success-toast', 'Advanced business settings updated successfully.');
+        } catch (\Exception $e) {
+            Log::error("Error updating business advanced settings: {$e->getMessage()}");
+            return back()->with('error-toast', 'Error updating advanced settings. Please try again.');
+        }
+    }
+
+    public function updateAppearanceSettings(Request $request)
+    {
+        $user = auth()->user();
+        $profile = $user->businessProfile;
+
+        $request->validate([
             'logo' => 'nullable|image|max:2048',
             'new_images' => 'nullable|array',
             'new_images.*' => 'image|max:5120',
@@ -614,26 +705,7 @@ class BusinessController extends Controller
         try {
             DB::beginTransaction();
 
-            $profile->update([
-                'business_name' => $request->business_name,
-                'description' => $request->description,
-                'address' => $request->address,
-                'city' => $request->city,
-                'state' => $request->state,
-                'zip_code' => $request->zip_code,
-                'phone' => $request->phone,
-                'category' => $request->category,
-                'latitude' => $request->latitude,
-                'longitude' => $request->longitude,
-                'settings' => array_merge($profile->settings ?? [], $request->settings ?? []),
-                'widget_enabled' => $request->has('widget_enabled') ? (bool)$request->widget_enabled : $profile->widget_enabled,
-                'widget_settings' => $request->widget_settings ?? $profile->widget_settings,
-                'widget_domains' => $request->widget_domains ?? $profile->widget_domains,
-            ]);
-
-            // Handle Logo Upload
             if ($request->hasFile('logo')) {
-                // Delete old logo
                 $oldLogo = $profile->images()->where('is_logo', true)->first();
                 if ($oldLogo) {
                     \App\Services\FileUploadService::delete($oldLogo->image_path, 'public');
@@ -651,7 +723,6 @@ class BusinessController extends Controller
                 ]);
             }
 
-            // Handle New Images
             if ($request->hasFile('new_images')) {
                 foreach ($request->file('new_images') as $image) {
                     $path = \App\Services\FileUploadService::upload(
@@ -666,9 +737,7 @@ class BusinessController extends Controller
                 }
             }
 
-            // Handle Image Deletion
             if ($request->delete_image_ids) {
-                // Get image paths first
                 $imagesToDelete = BusinessImage::whereIn('id', $request->delete_image_ids)
                     ->where('business_profile_id', $profile->id)
                     ->get();
@@ -680,11 +749,11 @@ class BusinessController extends Controller
             }
 
             DB::commit();
-            return to_route('business.settings')->with('success-toast', 'Business settings updated successfully.');
+            return back()->with('success-toast', 'Business appearance updated successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Error updating business settings: {$e->getMessage()}");
-            return to_route('business.settings')->with('error-toast', 'Error updating business settings. Please try again.');
+            Log::error("Error updating business appearance settings: {$e->getMessage()}");
+            return back()->with('error-toast', 'Error updating business appearance. Please try again.');
         }
     }
 

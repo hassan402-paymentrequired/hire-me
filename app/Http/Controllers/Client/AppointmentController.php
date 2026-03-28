@@ -22,6 +22,7 @@ use App\Mail\NewBookingMail;
 use App\Mail\AppointmentCancelledMail;
 use App\Mail\AppointmentCompletedMail;
 use App\Notifications\NewAppoinmentBookedNotification;
+use App\Support\ProviderSettings;
 
 class AppointmentController extends Controller
 {
@@ -280,6 +281,7 @@ class AppointmentController extends Controller
             'service_ids' => 'required|array',
             'service_ids.*' => 'exists:services,id',
             'start_time' => 'required|date',
+            'payment_option' => 'nullable|in:online,offline',
             'notes' => 'nullable|string|max:500',
             'team_member_id' => 'nullable|exists:team_members,id',
             'recurrence_pattern' => 'nullable|in:weekly,bi_weekly,monthly',
@@ -303,7 +305,7 @@ class AppointmentController extends Controller
             ]);
         }
 
-        $settings = $provider->businessProfile->settings ?? [];
+        $settings = ProviderSettings::resolve($provider->businessProfile->settings ?? []);
         $maxPerWeek = $settings['max_bookings_per_week'] ?? null;
         $maxPerMonth = $settings['max_bookings_per_month'] ?? null;
         $maxDaily = $settings['maxDaily'] ?? null;
@@ -312,6 +314,25 @@ class AppointmentController extends Controller
         $allowSameDay = (bool) ($settings['allowSameDay'] ?? false);
         $providerBufferTimeMinutes = (int) ($settings['bufferTime'] ?? 0);
         $allowOffHoursRequests = (bool) ($settings['allowOffHoursRequests'] ?? false);
+        $acceptOnlinePayment = (bool) ($settings['accept_online_payment'] ?? true);
+        $acceptOfflineBooking = (bool) ($settings['accept_offline_booking'] ?? false);
+
+        $paymentOption = $request->input('payment_option');
+        if (! $paymentOption) {
+            $paymentOption = $acceptOnlinePayment ? 'online' : 'offline';
+        }
+
+        if ($paymentOption === 'online' && ! $acceptOnlinePayment) {
+            return back()->withErrors([
+                'payment_option' => 'This provider is not accepting online payment for bookings right now.',
+            ]);
+        }
+
+        if ($paymentOption === 'offline' && ! $acceptOfflineBooking) {
+            return back()->withErrors([
+                'payment_option' => 'This provider is not accepting unpaid booking requests right now.',
+            ]);
+        }
 
         if ($maxPerWeek) {
             $weekStart = Carbon::now()->startOfWeek();
@@ -393,15 +414,16 @@ class AppointmentController extends Controller
             return back()->with('error-toast', 'This time slot was just booked. Please select another time.');
         }
 
-        // Get or create client wallet
-        $clientWallet = Wallet::firstOrCreate(['user_id' => auth()->id()]);
+        $clientWallet = null;
+        if ($paymentOption === 'online') {
+            $clientWallet = Wallet::firstOrCreate(['user_id' => auth()->id()]);
 
-        // Check wallet balance
-        if (!$clientWallet->hasSufficientBalance($totalPrice)) {
-            return redirect()->route('marketplace.booking', ['slug' => $provider->businessProfile->slug])
-                ->with('error-toast', "Insufficient wallet balance. Please top up your wallet with at least ₦" . number_format($totalPrice, 2) . " to book this appointment.")
-                ->with('insufficient_balance', true)
-                ->with('required_amount', $totalPrice);
+            if (! $clientWallet->hasSufficientBalance($totalPrice)) {
+                return redirect()->route('marketplace.booking', ['slug' => $provider->businessProfile->slug])
+                    ->with('error-toast', "Insufficient wallet balance. Please top up your wallet with at least ₦" . number_format($totalPrice, 2) . " to book this appointment.")
+                    ->with('insufficient_balance', true)
+                    ->with('required_amount', $totalPrice);
+            }
         }
 
         try {
@@ -409,7 +431,9 @@ class AppointmentController extends Controller
 
             $autoConfirm = ($settings['autoConfirm'] ?? $settings['auto_confirm'] ?? false);
             if (! $inWorkHours && $allowOffHoursRequests) {
-                // Off-hours requests are always pending, even if auto-confirm is enabled.
+                $autoConfirm = false;
+            }
+            if ($paymentOption === 'offline') {
                 $autoConfirm = false;
             }
             $appointmentData = [
@@ -421,6 +445,7 @@ class AppointmentController extends Controller
                 'buffer_time_minutes' => $maxBuffer,
                 'status' => $autoConfirm ? 'confirmed' : 'pending',
                 'price' => $totalPrice,
+                'payment_method' => $paymentOption,
                 'notes' => $request->notes,
                 'team_member_id' => $selectedTeamMember?->id,
                 'provider_approved' => $autoConfirm,
@@ -449,12 +474,18 @@ class AppointmentController extends Controller
                 ? 'Recurring appointment booked successfully! Future appointments will be created automatically.'
                 : 'Appointment booked successfully!';
 
-            $escrowTransaction = $clientWallet->holdPayment($totalPrice, $appointment, "Payment held for appointment booking (pending dual approval)");
-            $appointment->update([
-                'escrow_amount' => $totalPrice,
-                'escrow_status' => 'held',
-                'escrow_transaction_id' => $escrowTransaction->id,
-            ]);
+            if ($paymentOption === 'online') {
+                $escrowTransaction = $clientWallet->holdPayment($totalPrice, $appointment, "Payment held for appointment booking (pending dual approval)");
+                $appointment->update([
+                    'escrow_amount' => $totalPrice,
+                    'escrow_status' => 'held',
+                    'escrow_transaction_id' => $escrowTransaction->id,
+                ]);
+            } else {
+                $message = $request->recurrence_pattern
+                    ? 'Recurring booking request submitted successfully. Future appointments will stay pending until reviewed.'
+                    : 'Booking request submitted successfully. The provider will review it before confirming.';
+            }
 
             DB::commit();
 

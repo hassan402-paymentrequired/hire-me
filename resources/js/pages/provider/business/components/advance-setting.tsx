@@ -17,6 +17,8 @@ interface AdvancedSettingsProps {
         max_bookings_per_week?: string | number;
         max_bookings_per_month?: string | number;
         auto_release_payment?: boolean;
+        accept_online_payment?: boolean;
+        accept_offline_booking?: boolean;
         [key: string]: any;
     };
     onSettingsChange: (field: string, value: any) => void;
@@ -160,6 +162,38 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
                                 </p>
                                 <p className="mt-2 text-xs text-muted-foreground">
                                     <strong>Late cancellation policy:</strong> If a client cancels less than 5 hours before the appointment, 10% of the held payment is forfeited to you. The system handles this automatically.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="space-y-4">
+                        <div className="flex items-start gap-3">
+                            <Checkbox
+                                id="accept_online_payment"
+                                checked={settings?.accept_online_payment ?? true}
+                                onCheckedChange={(checked) => onSettingsChange('accept_online_payment', checked)}
+                            />
+                            <div className="space-y-1 flex-1">
+                                <Label htmlFor="accept_online_payment" className="cursor-pointer">
+                                    Accept online payment before booking
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                    Clients can pay through Proxideck before the booking goes through.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <Checkbox
+                                id="accept_offline_booking"
+                                checked={settings?.accept_offline_booking ?? false}
+                                onCheckedChange={(checked) => onSettingsChange('accept_offline_booking', checked)}
+                            />
+                            <div className="space-y-1 flex-1">
+                                <Label htmlFor="accept_offline_booking" className="cursor-pointer">
+                                    Allow unpaid booking requests
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                    Clients can request an appointment first and pay you later. These requests always stay pending for review.
                                 </p>
                             </div>
                         </div>

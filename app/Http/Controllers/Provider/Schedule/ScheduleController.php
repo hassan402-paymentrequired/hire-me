@@ -205,6 +205,7 @@ class ScheduleController extends Controller
                 'total_duration_minutes' => $appointment->services->sum('duration_minutes'),
                 'status' => $appointment->status,
                 'price' => '₦'.number_format($appointment->price, 2),
+                'payment_method' => $appointment->payment_method,
                 'notes' => $appointment->notes,
                 'team_member' => $appointment->teamMember?->user ? [
                     'id' => $appointment->teamMember->id,
