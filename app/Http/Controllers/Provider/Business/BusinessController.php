@@ -128,10 +128,22 @@ class BusinessController extends Controller
         }
     }
 
-    public function services()
+    public function services(Request $request)
     {
         $user = auth()->user();
-        $services = $user->services()->with('category')->get();
+        $search = trim((string) $request->get('search', ''));
+
+        $servicesQuery = $user->services()
+            ->with('category')
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($inner) use ($search) {
+                    $inner->where('name', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%");
+                });
+            });
+
+        $services = $servicesQuery->latest()->paginate(12)->withQueryString();
+        $allServices = $user->services()->with('category')->get();
         $businessCategory = null;
         if ($user->businessProfile?->category) {
             $cat = \App\Models\Category::where('slug', $user->businessProfile->category)->select(['id', 'name', 'slug'])->first();
@@ -145,13 +157,13 @@ class BusinessController extends Controller
         }
 
         // 1. Total Services with "change" (mocked change for now)
-        $totalServices = $services->count();
+        $totalServices = $allServices->count();
 
         // 2. Active Categories listed
-        $activeCategoriesCount = $services->whereNotNull('category_id')->pluck('category_id')->unique()->count();
+        $activeCategoriesCount = $allServices->whereNotNull('category_id')->pluck('category_id')->unique()->count();
 
-        $activeServicesCount = $services->where('status', 'active')->count();
-        $inactiveServicesCount = $services->where('status', 'inactive')->count();
+        $activeServicesCount = $allServices->where('status', 'active')->count();
+        $inactiveServicesCount = $allServices->where('status', 'inactive')->count();
 
         // 3. Most Booked Service
         $mostBookedService = $user->appointmentsAsProvider()
@@ -163,7 +175,7 @@ class BusinessController extends Controller
             ->first();
 
         return Inertia::render('provider/business/services/index', [
-            'services' => $services->map(fn($s) => [
+            'services' => $services->through(fn($s) => [
                 'id' => $s->id,
                 'name' => $s->name,
                 'description' => $s->description,
@@ -174,6 +186,7 @@ class BusinessController extends Controller
                 'status' => $s->status,
             ]),
             'businessCategory' => $businessCategory,
+            'filters' => $request->only(['search']),
             'stats' => [
                 'totalServices' => [
                     'value' => $totalServices,

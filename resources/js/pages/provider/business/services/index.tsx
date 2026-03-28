@@ -1,4 +1,5 @@
 import KeenIcon from '@/components/keen-icon';
+import { Pagination } from '@/components/pagination';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import {
@@ -8,14 +9,6 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import {
     Dialog,
     DialogContent,
@@ -37,7 +30,7 @@ import {
     Search,
     Trash2,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BreadcrumbItem } from '@/types';
 
 interface Service {
@@ -63,8 +56,18 @@ interface StatsValue {
 }
 
 interface Props {
-    services: Service[];
+    services: {
+        data: Service[];
+        links: {
+            url: string | null;
+            label: string;
+            active: boolean;
+        }[];
+    };
     businessCategory: BusinessCategory | null;
+    filters: {
+        search?: string;
+    };
     stats: {
         totalServices: StatsValue;
         activeCategories: number;
@@ -88,8 +91,8 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function ServicesIndex({ services, businessCategory, stats }: Props) {
-    const [searchQuery, setSearchQuery] = useState('');
+export default function ServicesIndex({ services, businessCategory, filters, stats }: Props) {
+    const [searchQuery, setSearchQuery] = useState(filters.search || '');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingService, setEditingService] = useState<Service | null>(null);
 
@@ -100,18 +103,24 @@ export default function ServicesIndex({ services, businessCategory, stats }: Pro
         duration_minutes: '',
     });
 
-    const filteredServices = useMemo(() => {
-        return services.filter((service) => {
-            const matchesSearch =
-                service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (service.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+    useEffect(() => {
+        const timeout = window.setTimeout(() => {
+            if (searchQuery === (filters.search || '')) {
+                return;
+            }
 
-            return matchesSearch;
-        });
-    }, [services, searchQuery]);
+            router.get(
+                '/business/services',
+                { search: searchQuery || undefined },
+                { preserveState: true, replace: true, preserveScroll: true },
+            );
+        }, 350);
 
-    const averagePrice = services.length
-        ? Math.round(services.reduce((sum, service) => sum + Number(service.price || 0), 0) / services.length)
+        return () => window.clearTimeout(timeout);
+    }, [searchQuery, filters.search]);
+
+    const averagePrice = services.data.length
+        ? Math.round(services.data.reduce((sum, service) => sum + Number(service.price || 0), 0) / services.data.length)
         : 0;
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -169,7 +178,7 @@ export default function ServicesIndex({ services, businessCategory, stats }: Pro
                                     Service catalog
                                 </span>
                                 <span className="inline-flex rounded-full border border-border/70 bg-background px-3 py-1 text-xs font-medium text-muted-foreground">
-                                    {services.length} services configured
+                                    {stats.totalServices.value} services configured
                                 </span>
                             </div>
 
@@ -365,103 +374,109 @@ export default function ServicesIndex({ services, businessCategory, stats }: Pro
                         </div>
                     </CardHeader>
                     <CardContent className="pt-5">
-                        <div className="overflow-hidden rounded-2xl border border-border/70">
-                            <Table>
-                                <TableHeader className="bg-muted/20">
-                                    <TableRow className="border-b border-border/60 hover:bg-transparent">
-                                        <TableHead className="py-5 text-[10px] font-black uppercase tracking-widest">Service Name</TableHead>
-                                        <TableHead className="py-5 text-[10px] font-black uppercase tracking-widest">Duration</TableHead>
-                                        <TableHead className="py-5 text-[10px] font-black uppercase tracking-widest">Price</TableHead>
-                                        <TableHead className="py-5 text-[10px] font-black uppercase tracking-widest">Status</TableHead>
-                                        <TableHead className="px-8 py-5 text-right text-[10px] font-black uppercase tracking-widest">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {filteredServices.length > 0 ? (
-                                        filteredServices.map((service) => (
-                                            <TableRow key={service.id} className="group border-b border-border/60 transition-colors hover:bg-muted/20">
-                                                <TableCell className="py-6">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-border/70 bg-muted/20 text-primary transition-transform group-hover:scale-105">
-                                                            <KeenIcon name="menu" className="text-lg" />
-                                                        </div>
-                                                        <div className="min-w-0">
-                                                            <p className="max-w-[220px] truncate font-semibold leading-tight capitalize sm:max-w-[280px]">
+                        <div className="space-y-4">
+                            {services.data.length > 0 ? (
+                                services.data.map((service) => (
+                                    <div
+                                        key={service.id}
+                                        className="rounded-2xl border border-border/70 bg-gradient-to-br from-background to-muted/20 p-5 transition-colors hover:bg-muted/20"
+                                    >
+                                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-start gap-4">
+                                                    <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-border/70 bg-muted/20 text-primary">
+                                                        <KeenIcon name="menu" className="text-lg" />
+                                                    </div>
+                                                    <div className="min-w-0 space-y-2">
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            <h3 className="max-w-[240px] truncate text-base font-semibold capitalize sm:max-w-[360px]">
                                                                 {service.name}
-                                                            </p>
-                                                            {service.description && (
-                                                                <p className="mt-1 max-w-[240px] truncate text-sm text-muted-foreground sm:max-w-[320px]">
-                                                                    {service.description}
-                                                                </p>
-                                                            )}
+                                                            </h3>
+                                                            <span
+                                                                className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize ${
+                                                                    service.status === 'active'
+                                                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300'
+                                                                        : 'bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300'
+                                                                }`}
+                                                            >
+                                                                {service.status}
+                                                            </span>
                                                         </div>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="py-6">
-                                                    <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1.5 text-sm font-medium text-foreground/80">
-                                                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                                                        {service.duration_minutes} mins
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="py-6">
-                                                    <div className="space-y-1">
-                                                        <p className="font-semibold">₦{Number(service.price).toLocaleString()}</p>
-                                                        <p className="text-xs text-muted-foreground">Base price</p>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="py-6">
-                                                    <span
-                                                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize ${
-                                                            service.status === 'active'
-                                                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300'
-                                                                : 'bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300'
-                                                        }`}
-                                                    >
-                                                        {service.status}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell className="px-6 py-6 text-right">
-                                                    <div className="flex justify-end gap-2">
-                                                        <Button variant="outline" size="sm" onClick={() => toggleStatus(service.id)} className="rounded-full">
-                                                            <ArrowUpRight className="mr-2 h-3.5 w-3.5" />
-                                                            {service.status === 'active' ? 'Deactivate' : 'Activate'}
-                                                        </Button>
-                                                        <Button variant="outline" size="icon" onClick={() => handleEdit(service)} className="rounded-full">
-                                                            <Edit2 className="size-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => handleDelete(service.id)}
-                                                            className="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                                        >
-                                                            <Trash2 className="size-4" />
-                                                        </Button>
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={5} className="py-16 text-center">
-                                                <div className="mx-auto max-w-sm space-y-3">
-                                                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-border/70 bg-muted/20 text-muted-foreground">
-                                                        <KeenIcon name="menu" className="text-xl" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-semibold text-foreground">No services found</p>
-                                                        <p className="mt-1 text-sm text-muted-foreground">
-                                                            {searchQuery
-                                                                ? 'Try another keyword or clear your search.'
-                                                                : 'Start by adding your first service offering.'}
-                                                        </p>
+
+                                                        {service.description ? (
+                                                            <p className="max-w-2xl truncate text-sm text-muted-foreground">
+                                                                {service.description}
+                                                            </p>
+                                                        ) : (
+                                                            <p className="text-sm text-muted-foreground">
+                                                                No description added yet.
+                                                            </p>
+                                                        )}
+
+                                                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                                                            <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1.5 text-sm font-medium text-foreground/80">
+                                                                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                                                                {service.duration_minutes} mins
+                                                            </span>
+                                                            <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1.5 text-sm font-medium text-foreground/80">
+                                                                <KeenIcon name="receipt-square" className="text-sm text-muted-foreground" />
+                                                                ₦{Number(service.price).toLocaleString()}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
+                                            </div>
+
+                                            <div className="flex flex-wrap items-center justify-end gap-2 lg:ml-4">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => toggleStatus(service.id)}
+                                                    className="rounded-full"
+                                                >
+                                                    <ArrowUpRight className="mr-2 h-3.5 w-3.5" />
+                                                    {service.status === 'active' ? 'Deactivate' : 'Activate'}
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    onClick={() => handleEdit(service)}
+                                                    className="rounded-full"
+                                                >
+                                                    <Edit2 className="size-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleDelete(service.id)}
+                                                    className="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                >
+                                                    <Trash2 className="size-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="rounded-2xl border border-border/70 py-16 text-center">
+                                    <div className="mx-auto max-w-sm space-y-3">
+                                        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-border/70 bg-muted/20 text-muted-foreground">
+                                            <KeenIcon name="menu" className="text-xl" />
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-foreground">No services found</p>
+                                            <p className="mt-1 text-sm text-muted-foreground">
+                                                {searchQuery
+                                                    ? 'Try another keyword or clear your search.'
+                                                    : 'Start by adding your first service offering.'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <div className="mt-6">
+                            <Pagination links={services.links} />
                         </div>
                     </CardContent>
                 </Card>
