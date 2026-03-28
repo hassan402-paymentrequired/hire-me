@@ -693,6 +693,10 @@ class BusinessController extends Controller
     {
         $user = auth()->user();
         $profile = $user->businessProfile;
+        $currentBannerCount = $profile->images()->where('is_logo', false)->count();
+        $deleteCount = count($request->input('delete_image_ids', []));
+        $remainingBannerCount = max(0, $currentBannerCount - $deleteCount);
+        $incomingBannerCount = count($request->file('new_images', []));
 
         $request->validate([
             'logo' => 'nullable|image|max:2048',
@@ -701,6 +705,12 @@ class BusinessController extends Controller
             'delete_image_ids' => 'nullable|array',
             'delete_image_ids.*' => 'exists:business_images,id',
         ]);
+
+        if (($remainingBannerCount + $incomingBannerCount) > 3) {
+            return back()->withErrors([
+                'new_images' => 'You can only keep up to 3 banner images at a time, excluding your logo.',
+            ]);
+        }
 
         try {
             DB::beginTransaction();

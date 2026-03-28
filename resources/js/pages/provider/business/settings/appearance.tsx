@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import AppLayout from '@/layouts/app-layout';
 import BusinessSettingsLayout from '@/layouts/business-settings/layout';
 import { BreadcrumbItem } from '@/types';
@@ -6,6 +7,7 @@ import business from '@/routes/business';
 import AppearanceSection from './components/appearance-section';
 import FloatingSaveButton from './components/floating-save-button';
 import React from 'react';
+import { gooeyToast as toast } from 'goey-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: business.dashboard().url },
@@ -15,6 +17,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function BusinessSettingsAppearance({ profile }: { profile: any }) {
     const { flash } = usePage().props as any;
+    const existingBannerCount = profile?.images?.filter((img: any) => !img.is_logo).length ?? 0;
     const [logoPreview, setLogoPreview] = React.useState<string | null>(
         profile?.images?.find((img: any) => img.is_logo)?.path || null,
     );
@@ -24,6 +27,10 @@ export default function BusinessSettingsAppearance({ profile }: { profile: any }
         new_images: [] as File[],
         delete_image_ids: [] as string[],
     } as any);
+
+    React.useEffect(() => {
+        setLogoPreview(profile?.images?.find((img: any) => img.is_logo)?.path || null);
+    }, [profile]);
 
     const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -38,15 +45,28 @@ export default function BusinessSettingsAppearance({ profile }: { profile: any }
     const handleNewImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         if (files.length === 0) return;
+        const keptBannerCount = existingBannerCount - form.data.delete_image_ids.length;
+        const currentPendingCount = form.data.new_images.length;
+        const remainingSlots = 3 - keptBannerCount - currentPendingCount;
 
-        form.setData('new_images', [...form.data.new_images, ...files]);
+        if (remainingSlots <= 0) {
+            toast.error('You can only keep up to 3 banner images, excluding your logo.');
+            return;
+        }
+
+        const acceptedFiles = files.slice(0, remainingSlots);
+        if (acceptedFiles.length < files.length) {
+            toast.error(`Only ${remainingSlots} more banner image${remainingSlots === 1 ? '' : 's'} can be added.`);
+        }
+
+        form.setData('new_images', [...form.data.new_images, ...acceptedFiles]);
 
         const previews: string[] = [];
-        files.forEach((file) => {
+        acceptedFiles.forEach((file) => {
             const reader = new FileReader();
             reader.onloadend = () => {
                 previews.push(reader.result as string);
-                if (previews.length === files.length) {
+                if (previews.length === acceptedFiles.length) {
                     setNewImagePreviews((prev) => [...prev, ...previews]);
                 }
             };
@@ -84,11 +104,6 @@ export default function BusinessSettingsAppearance({ profile }: { profile: any }
                         <p className="text-sm font-medium text-success">{flash.success}</p>
                     </div>
                 )}
-                {Object.keys(form.errors).length > 0 && (
-                    <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-4">
-                        <p className="text-sm font-medium text-destructive">Please fix the errors below.</p>
-                    </div>
-                )}
 
                 <form
                     onSubmit={(e) => {
@@ -96,6 +111,18 @@ export default function BusinessSettingsAppearance({ profile }: { profile: any }
                         form.post('/business/settings/appearance', {
                             preserveScroll: true,
                             forceFormData: true,
+                            onError: (errors) => {
+                                const firstError = Object.values(errors)[0];
+                                toast.error(
+                                    typeof firstError === 'string'
+                                        ? firstError
+                                        : 'We could not save your business appearance. Please review your files and try again.',
+                                );
+                            },
+                            onSuccess: () => {
+                                form.reset('logo', 'new_images', 'delete_image_ids');
+                                setNewImagePreviews([]);
+                            },
                         });
                     }}
                     className="space-y-6"
@@ -103,6 +130,7 @@ export default function BusinessSettingsAppearance({ profile }: { profile: any }
                     <AppearanceSection
                         profile={profile}
                         data={form.data}
+                        maxBannerImages={3}
                         logoPreview={logoPreview}
                         newImagePreviews={newImagePreviews}
                         handleLogoChange={handleLogoChange}
