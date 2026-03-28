@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from '@inertiajs/react';
+import KeenIcon from '@/components/keen-icon';
 import {
     Calendar,
     Clock,
@@ -19,7 +20,6 @@ import {
     formatPrice,
     getStatusVariant,
 } from '@/lib/utils';
-import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
 interface BusinessProfile {
@@ -89,18 +89,15 @@ const BookingCard = ({ booking }: { booking: BookingCardBooking }) => {
             : null);
     const businessName = booking.provider?.business_profile?.business_name || 'Business';
 
-    // Check if appointment is upcoming, past, or today
     const startTime = new Date(booking.start_time);
     const now = new Date();
-    const isUpcoming = startTime > now;
     const isToday = startTime.toDateString() === now.toDateString();
-    const isPast = startTime < now;
 
     return (
         <Link href={client.bookings.show(booking.id)} prefetch>
-            <Card className="hover:shadow-xl p-0 hover:border-primary/50 transition-all duration-300 cursor-pointer group overflow-hidden">
+            <Card className="group cursor-pointer overflow-hidden border-border/70 p-0 transition-all duration-300 hover:border-primary/40 hover:shadow-md hover:shadow-black/5">
                 {/* Business Banner/Logo Section */}
-                <div className="relative h-40 bg-gradient-to-br from-muted to-muted/50 overflow-hidden">
+                <div className="relative h-40 overflow-hidden bg-gradient-to-br from-muted to-muted/50">
                     {businessImage ? (
                         <img
                             src={businessImage}
@@ -163,7 +160,7 @@ const BookingCard = ({ booking }: { booking: BookingCardBooking }) => {
                     </div>
 
                     {/* Date & Time Section */}
-                    <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                    <div className="space-y-3 rounded-2xl border border-border/70 bg-muted/30 p-4">
                         {/* Date & Time Row */}
                         <div className="grid grid-cols-2 gap-3">
                             <div className="flex items-center gap-2">
@@ -220,7 +217,7 @@ const BookingCard = ({ booking }: { booking: BookingCardBooking }) => {
 
                         {/* Address Row - Full Width */}
                         {booking.provider?.business_profile?.address && (
-                            <div className="flex items-start gap-2 pt-2 border-t border-muted">
+                            <div className="flex items-start gap-2 border-t border-muted pt-2">
                                 <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                                     <MapPin className="w-4 h-4 text-primary" />
                                 </div>
@@ -236,7 +233,17 @@ const BookingCard = ({ booking }: { booking: BookingCardBooking }) => {
                             </div>
                         )}
                     </div>
-
+                    <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+                        <div className="inline-flex items-center gap-2">
+                            <KeenIcon name="status" className="text-sm" />
+                            <span>
+                                {hasMultipleServices
+                                    ? `${services.length} services booked`
+                                    : 'Single-service booking'}
+                            </span>
+                        </div>
+                        <span className="font-medium">{totalDuration} mins</span>
+                    </div>
 
                 </CardContent>
             </Card>
