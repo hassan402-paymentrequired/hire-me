@@ -14,23 +14,13 @@ import {
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import KeenIcon from '@/components/keen-icon';
 import AppLayout from '@/layouts/app-layout';
 import { formatStatus, getStatusVariant } from '@/lib/utils';
 import business from '@/routes/business';
 import { BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
-import {
-    AlertCircle,
-    Calendar,
-    CheckCircle2,
-    Clock,
-    FileText,
-    Loader2,
-    Mail,
-    MapPin,
-    Phone,
-    XCircle,
-} from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import React from 'react';
 
 interface Service {
@@ -117,6 +107,16 @@ export default function AppointmentDetailsPage({
         appointment.provider_payout_amount !== null
             ? Number(appointment.provider_payout_amount)
             : null;
+    const paymentStateTone =
+        appointment.payment_method === 'offline'
+            ? 'bg-amber-50 text-amber-700 border-amber-200'
+            : appointment.escrow_status === 'released'
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              : appointment.escrow_status === 'held'
+                ? 'bg-sky-50 text-sky-700 border-sky-200'
+                : appointment.escrow_status === 'refunded'
+                  ? 'bg-slate-100 text-slate-700 border-slate-200'
+                  : 'bg-muted text-muted-foreground border-border';
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: business.dashboard().url },
@@ -131,6 +131,22 @@ export default function AppointmentDetailsPage({
             0,
         ) ??
         0;
+    const showConfirmAction = appointment.status === 'pending';
+    const showWaitingForClientState = canComplete && waitingForClientApproval;
+    const showCompleteAction = canComplete && !waitingForClientApproval;
+    const showCancelAction =
+        appointment.status !== 'cancelled' &&
+        appointment.status !== 'completed';
+    const showReportAction =
+        appointment.status !== 'cancelled' &&
+        appointment.status !== 'completed' &&
+        canReportClient;
+    const hasAnyAction =
+        showConfirmAction ||
+        showWaitingForClientState ||
+        showCompleteAction ||
+        showCancelAction ||
+        showReportAction;
 
     const handleConfirm = () => {
         setConfirmDialogOpen(true);
@@ -208,55 +224,97 @@ export default function AppointmentDetailsPage({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Appointment - ${appointment.client_name}`} />
 
-            <div className="space-y-4 p-4">
-                {/* Header */}
-                <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                    <div className="flex items-center gap-4">
-                        <Avatar className="h-16 w-16 rounded border-2">
-                            <AvatarFallback className="rounded">
-                                {appointment.client_name
-                                    .split(' ')
-                                    .map((n) => n[0])
-                                    .join('')
-                                    .toUpperCase()}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div>
-                            <h1 className="text-2xl font-black tracking-tight">
-                                {appointment.client_name}
-                            </h1>
-                            {appointment.email && (
-                                <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                                    <Mail className="h-3 w-3" />
-                                    <a
-                                        href={`mailto:${appointment.email}`}
-                                        className="hover:text-primary"
-                                    >
-                                        {appointment.email} 
-                                    </a>
-                                </p>
-                            )}
+            <div className="space-y-6 p-4">
+                <section className="overflow-hidden rounded-3xl border border-border/70 bg-background">
+                    <div className="relative">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.06),_transparent_24%),radial-gradient(circle_at_left,_rgba(16,185,129,0.06),_transparent_24%)]" />
+                        <div className="relative space-y-5 px-6 py-6 lg:px-8 lg:py-8">
+                            <div className="flex flex-wrap items-center gap-3">
+                                <Badge className="border-border bg-muted px-3 py-1 text-[11px] font-medium tracking-[0.18em] uppercase text-foreground/70 hover:bg-muted">
+                                    Appointment details
+                                </Badge>
+                                <Badge variant={getStatusVariant(appointment.status)}>
+                                    {formatStatus(appointment.status)}
+                                </Badge>
+                                <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${paymentStateTone}`}>
+                                    {paymentStateLabel}
+                                </span>
+                            </div>
+
+                            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                                <div className="flex min-w-0 items-center gap-4">
+                                    <Avatar className="h-16 w-16 rounded-2xl border border-border/70">
+                                        <AvatarFallback className="rounded-2xl text-base font-semibold">
+                                            {appointment.client_name
+                                                .split(' ')
+                                                .map((n) => n[0])
+                                                .join('')
+                                                .toUpperCase()}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="min-w-0">
+                                        <h1 className="truncate text-3xl font-semibold tracking-tight text-foreground">
+                                            {appointment.client_name}
+                                        </h1>
+                                        {appointment.email && (
+                                            <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                                                <KeenIcon name="text-circle" className="text-sm" />
+                                                <a
+                                                    href={`mailto:${appointment.email}`}
+                                                    className="truncate hover:text-primary"
+                                                >
+                                                    {appointment.email}
+                                                </a>
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-3 sm:grid-cols-3 lg:min-w-[420px]">
+                                    <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
+                                        <div className="flex items-center gap-2 text-xs font-medium tracking-[0.2em] uppercase text-muted-foreground">
+                                            <KeenIcon name="electronic-clock" className="text-sm text-sky-600 dark:text-sky-300" />
+                                            Schedule
+                                        </div>
+                                        <p className="mt-3 text-sm font-semibold text-foreground">
+                                            {appointment.start_time}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
+                                        <div className="flex items-center gap-2 text-xs font-medium tracking-[0.2em] uppercase text-muted-foreground">
+                                            <KeenIcon name="receipt-square" className="text-sm text-emerald-600 dark:text-emerald-300" />
+                                            Amount
+                                        </div>
+                                        <p className="mt-3 text-lg font-semibold text-foreground">
+                                            {appointment.price}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
+                                        <div className="flex items-center gap-2 text-xs font-medium tracking-[0.2em] uppercase text-muted-foreground">
+                                            <KeenIcon name="people" className="text-sm text-violet-600 dark:text-violet-300" />
+                                            Services
+                                        </div>
+                                        <p className="mt-3 text-lg font-semibold text-foreground">
+                                            {appointment.services.length}
+                                        </p>
+                                        <p className="mt-1 text-xs text-muted-foreground">
+                                            booked for this appointment
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <Badge variant={appointment.payment_method === 'offline' ? 'secondary' : 'outline'}>
-                            {paymentStateLabel}
-                        </Badge>
-                        <Badge variant={getStatusVariant(appointment.status)}>
-                            {formatStatus(appointment.status)}
-                        </Badge>
-                    </div>
-                </div>
+                </section>
 
                 <div className="grid gap-6 md:grid-cols-3">
                     {/* Main Details */}
-                    <Card className="rounded md:col-span-2">
-                        <CardHeader className="pb-4">
+                    <Card className="overflow-hidden rounded-3xl border border-border/70 shadow-none md:col-span-2">
+                        <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
                             <CardTitle className="text-lg font-bold">
                                 Appointment Information
                             </CardTitle>
                         </CardHeader>
-                        <Separator />
                         <CardContent className="space-y-8 pt-6">
                             {/* Time, Date and Duration */}
                             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -265,7 +323,7 @@ export default function AppointmentDetailsPage({
                                         Date & Time
                                     </p>
                                     <div className="flex items-center gap-3">
-                                        <Calendar className="h-5 w-5 text-primary" />
+                                        <KeenIcon name="electronic-clock" className="text-base text-primary" />
                                         <span className="text-lg font-bold">
                                             {appointment.start_time}
                                         </span>
@@ -276,7 +334,7 @@ export default function AppointmentDetailsPage({
                                         Ends
                                     </p>
                                     <div className="flex items-center gap-3">
-                                        <Clock className="h-5 w-5 text-primary" />
+                                        <KeenIcon name="electronic-clock" className="text-base text-primary" />
                                         <span className="text-lg font-bold">
                                             {appointment.end_time}
                                         </span>
@@ -288,7 +346,7 @@ export default function AppointmentDetailsPage({
                                             Duration
                                         </p>
                                         <div className="flex items-center gap-3">
-                                            <Clock className="h-5 w-5 text-primary" />
+                                            <KeenIcon name="electronic-clock" className="text-base text-primary" />
                                             <span className="text-lg font-bold">
                                                 {totalDuration} minutes
                                             </span>
@@ -301,7 +359,7 @@ export default function AppointmentDetailsPage({
                                             Assigned Team Member
                                         </p>
                                         <div className="flex items-center gap-3">
-                                            <Mail className="h-5 w-5 text-primary" />
+                                            <KeenIcon name="people" className="text-base text-primary" />
                                             <div>
                                                 <span className="text-lg font-bold">
                                                     {appointment.team_member.name}
@@ -315,15 +373,15 @@ export default function AppointmentDetailsPage({
                                 )}
                             </div>
 
-                            {(feePercent !== null || feeAmount !== null || payoutAmount !== null) && (
+                            {(appointment.escrow_status || appointment.payment_method === 'offline' || feePercent !== null || feeAmount !== null || payoutAmount !== null) && (
                                 <div className="rounded-lg border bg-muted/20 p-4">
                                     <div className="flex items-center justify-between gap-3">
                                         <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
-                                            Payout Breakdown
+                                            Payment & Payout
                                         </p>
-                                        {isPaymentReleased && (
-                                            <Badge variant="secondary">Released</Badge>
-                                        )}
+                                        <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${paymentStateTone}`}>
+                                            {paymentStateLabel}
+                                        </span>
                                     </div>
 
                                     <div className="mt-3 grid gap-2 sm:grid-cols-3">
@@ -346,6 +404,29 @@ export default function AppointmentDetailsPage({
                                             </p>
                                         </div>
                                     </div>
+
+                                    <div className="mt-4 space-y-1 text-xs text-muted-foreground">
+                                        {appointment.payment_method === 'offline' ? (
+                                            <p>
+                                                This appointment was booked without upfront payment. You can confirm it only when you are ready to take the booking.
+                                            </p>
+                                        ) : appointment.escrow_amount != null ? (
+                                            <p>
+                                                Amount in escrow: ₦{Number(appointment.escrow_amount).toLocaleString()}
+                                            </p>
+                                        ) : null}
+                                        {appointment.payment_method !== 'offline' && appointment.payment_released_at && (
+                                            <p>Released at: {appointment.payment_released_at}</p>
+                                        )}
+                                        {appointment.payment_method !== 'offline' && isEscrowHeld && (
+                                            <p>
+                                                Funds are currently held in escrow and will be released when the client completes the appointment, or automatically 15 minutes after the end time if the client does not respond.
+                                            </p>
+                                        )}
+                                        {appointment.payment_method !== 'offline' && isPaymentReleased && (
+                                            <p>Payment has already been released to your wallet.</p>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 
@@ -359,7 +440,7 @@ export default function AppointmentDetailsPage({
                                     <div className="flex flex-col gap-2 rounded-xl border border-muted bg-muted/30 p-4">
                                         {appointment.location && (
                                             <div className="flex items-start gap-3">
-                                                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                                                <KeenIcon name="geolocation" className="mt-0.5 shrink-0 text-sm text-primary" />
                                                 <span className="text-sm font-medium">
                                                     {appointment.location}
                                                 </span>
@@ -370,7 +451,7 @@ export default function AppointmentDetailsPage({
                                                 href={`tel:${appointment.location_phone}`}
                                                 className="flex items-center gap-3 text-sm font-medium text-primary hover:underline"
                                             >
-                                                <Phone className="h-4 w-4 shrink-0" />
+                                                <KeenIcon name="phone" className="shrink-0 text-sm" />
                                                 {appointment.location_phone}
                                             </a>
                                         )}
@@ -391,7 +472,7 @@ export default function AppointmentDetailsPage({
                                         >
                                             <div className="flex items-center gap-3">
                                                 <div className="rounded-lg bg-primary/10 p-2 text-primary">
-                                                    <FileText className="h-4 w-4" />
+                                                    <KeenIcon name="book-square" className="text-sm" />
                                                 </div>
                                                 <div>
                                                     <span className="block font-bold capitalize">
@@ -464,111 +545,63 @@ export default function AppointmentDetailsPage({
                                     </div>
                                 )}
 
-                            {/* Payment Status */}
-                            {(appointment.escrow_status || appointment.payment_method === 'offline') && (
-                                <div className="space-y-3">
-                                    <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
-                                        Payment Status
-                                    </p>
-                                    <div className="rounded-xl border border-muted bg-muted/30 p-4 space-y-1">
-                                        <p className="text-sm font-medium capitalize">
-                                            {appointment.payment_method === 'offline'
-                                                ? 'unpaid'
-                                                : appointment.escrow_status?.replace('_', ' ')}
-                                        </p>
-                                        {appointment.payment_method === 'offline' ? (
-                                            <p className="text-xs text-muted-foreground">
-                                                This appointment was booked without upfront payment. Confirm only when you're ready to take the booking.
-                                            </p>
-                                        ) : appointment.escrow_amount != null && (
-                                            <p className="text-xs text-muted-foreground">
-                                                Amount in escrow: ₦
-                                                {Number(
-                                                    appointment.escrow_amount,
-                                                ).toLocaleString()}
-                                            </p>
-                                        )}
-                                        {appointment.payment_method !== 'offline' && appointment.payment_released_at && (
-                                            <p className="text-xs text-muted-foreground">
-                                                Released at:{' '}
-                                                {
-                                                    appointment.payment_released_at
-                                                }
-                                            </p>
-                                        )}
-                                        {appointment.payment_method !== 'offline' && isEscrowHeld && (
-                                            <p className="text-xs text-muted-foreground">
-                                                Funds are currently held in escrow. They&apos;ll be released when the
-                                                client marks this appointment as completed, or automatically 15 minutes
-                                                after the appointment end time if the client doesn&apos;t respond.
-                                            </p>
-                                        )}
-                                        {appointment.payment_method !== 'offline' && isPaymentReleased && (
-                                            <p className="text-xs text-muted-foreground">
-                                                Payment has been released to your wallet.
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
                         </CardContent>
                     </Card>
 
                     {/* Actions and Sidebar */}
                     <div className="space-y-6">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-sm font-bold tracking-widest uppercase">
-                                    Actions
-                                </CardTitle>
-                            </CardHeader>
-                            <Separator />
-                            <CardContent className="space-y-3 pt-6">
-                                {appointment.status === 'pending' && (
-                                    <Button
-                                        className="w-full"
-                                        onClick={handleConfirm}
-                                        disabled={isProcessing}
-                                    >
-                                        {isProcessing ? (
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        ) : (
-                                            <CheckCircle2 className="mr-2 h-4 w-4" />
-                                        )}
-                                        Accept Booking
-                                    </Button>
-                                )}
-                                {canComplete && waitingForClientApproval && (
-                                    <div className="flex gap-2 rounded-md border border-muted bg-muted/40 p-3 text-xs text-muted-foreground">
-                                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-                                        <div>
-                                            <p className="font-medium text-foreground">
-                                                Waiting for client confirmation
-                                            </p>
-                                            <p>
-                                                Once the client marks this appointment as completed, payment will be
-                                                released. If they don&apos;t respond, funds are automatically released
-                                                15 minutes after the appointment end time.
-                                            </p>
+                        {hasAnyAction && (
+                            <Card className="overflow-hidden rounded-3xl border border-border/70 shadow-none">
+                                <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
+                                    <CardTitle className="text-sm font-bold tracking-widest uppercase">
+                                        Actions
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3 pt-6">
+                                    {showConfirmAction && (
+                                        <Button
+                                            className="w-full"
+                                            onClick={handleConfirm}
+                                            disabled={isProcessing}
+                                        >
+                                            {isProcessing ? (
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <KeenIcon name="verify" className="mr-2 text-sm" />
+                                            )}
+                                            Accept Booking
+                                        </Button>
+                                    )}
+                                    {showWaitingForClientState && (
+                                        <div className="flex gap-2 rounded-md border border-muted bg-muted/40 p-3 text-xs text-muted-foreground">
+                                            <KeenIcon name="information" className="mt-0.5 shrink-0 text-sm text-amber-500" />
+                                            <div>
+                                                <p className="font-medium text-foreground">
+                                                    Waiting for client confirmation
+                                                </p>
+                                                <p>
+                                                    Once the client marks this appointment as completed, payment will be
+                                                    released. If they don&apos;t respond, funds are automatically released
+                                                    15 minutes after the appointment end time.
+                                                </p>
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                                {canComplete && !waitingForClientApproval && (
-                                    <Button
-                                        className="w-full bg-green-600 hover:bg-green-700"
-                                        onClick={handleComplete}
-                                        disabled={isProcessing}
-                                    >
-                                        {isProcessing ? (
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        ) : (
-                                            <CheckCircle2 className="mr-2 h-4 w-4" />
-                                        )}
-                                        Mark as Completed
-                                    </Button>
-                                )}
-                                {appointment.status !== 'cancelled' &&
-                                    appointment.status !== 'completed' && (
+                                    )}
+                                    {showCompleteAction && (
+                                        <Button
+                                            className="w-full bg-green-600 hover:bg-green-700"
+                                            onClick={handleComplete}
+                                            disabled={isProcessing}
+                                        >
+                                            {isProcessing ? (
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <KeenIcon name="verify" className="mr-2 text-sm" />
+                                            )}
+                                            Mark as Completed
+                                        </Button>
+                                    )}
+                                    {showCancelAction && (
                                         <Button
                                             variant="destructive"
                                             className="w-full"
@@ -577,16 +610,14 @@ export default function AppointmentDetailsPage({
                                                 isProcessing || !canCancel
                                             }
                                         >
-                                            <XCircle className="mr-2 h-4 w-4" />
+                                            <KeenIcon name="trash-square" className="mr-2 text-sm" />
                                             {appointment.status === 'pending'
                                                 ? 'Reject Booking'
                                                 : 'Cancel Appointment'}
                                         </Button>
                                     )}
 
-                                {appointment.status !== 'cancelled' &&
-                                    appointment.status !== 'completed' &&
-                                    appointment.status !== 'pending' && (
+                                    {showReportAction && (
                                         <Button
                                             variant="ghost"
                                             className="w-full justify-start text-muted-foreground hover:text-foreground"
@@ -595,27 +626,35 @@ export default function AppointmentDetailsPage({
                                             }
                                             disabled={isProcessing}
                                         >
-                                            <AlertCircle className="mr-2 h-4 w-4" />
+                                            <KeenIcon name="information" className="mr-2 text-sm" />
                                             Report Client
                                         </Button>
                                     )}
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        <Card className="overflow-hidden rounded-3xl border border-border/70 shadow-none">
+                            <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
+                                <CardTitle className="text-sm font-bold tracking-widest uppercase">
+                                    Booking Metadata
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3 pt-6 text-sm">
+                                <div>
+                                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                        Reference
+                                    </p>
+                                    <p className="mt-1 font-mono text-foreground">{appointment.id}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                        Received
+                                    </p>
+                                    <p className="mt-1 text-foreground">{appointment.created_at}</p>
+                                </div>
                             </CardContent>
                         </Card>
-
-                        <div className="space-y-2 px-4 text-center">
-                            <p className="text-[10px] font-black tracking-widest text-muted-foreground uppercase">
-                                Booking Metadata
-                            </p>
-                            <p className="text-xs font-medium text-muted-foreground">
-                                Reference:{' '}
-                                <span className="font-mono">
-                                    {appointment.id}
-                                </span>
-                            </p>
-                            <p className="text-center text-xs font-medium text-muted-foreground">
-                                Received on {appointment.created_at}
-                            </p>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -624,7 +663,7 @@ export default function AppointmentDetailsPage({
             <CustomAlertDialog
                 open={confirmDialogOpen}
                 onOpenChange={setConfirmDialogOpen}
-                icon={<CheckCircle2 className="size-12 text-green-500" />}
+                icon={<KeenIcon name="verify" className="text-5xl text-green-500" />}
                 title="Accept Booking"
                 description="Are you sure you want to confirm this appointment? The client will be notified."
                 acceptLabel="Accept"
@@ -637,7 +676,7 @@ export default function AppointmentDetailsPage({
             <CustomAlertDialog
                 open={completeDialogOpen}
                 onOpenChange={setCompleteDialogOpen}
-                icon={<CheckCircle2 className="size-12 text-green-500" />}
+                icon={<KeenIcon name="verify" className="text-5xl text-green-500" />}
                 title="Mark as Completed"
                 description="Mark this appointment as completed? This records that you have delivered the service. Payment is released when the client marks it as completed or automatically 15 minutes after the appointment end time."
                 acceptLabel="Mark Complete"
@@ -652,7 +691,7 @@ export default function AppointmentDetailsPage({
                     <form onSubmit={handleReport}>
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-2">
-                                <AlertCircle className="h-5 w-5 text-amber-500" />
+                                <KeenIcon name="information" className="text-base text-amber-500" />
                                 Report Client
                             </DialogTitle>
                             <DialogDescription>
@@ -747,14 +786,17 @@ export default function AppointmentDetailsPage({
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <XCircle className="h-5 w-5 text-destructive" />
+                            <KeenIcon name="trash-square" className="text-base text-destructive" />
                             {appointment.status === 'pending'
                                 ? 'Reject Booking'
                                 : 'Cancel Appointment'}
                         </DialogTitle>
                         <DialogDescription>
                             Please provide a reason for cancellation. The client
-                            will be notified and their payment will be refunded.
+                            will be notified
+                            {appointment.payment_method === 'offline'
+                                ? '.'
+                                : ' and their payment will be refunded.'}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
