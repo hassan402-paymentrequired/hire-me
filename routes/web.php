@@ -86,6 +86,8 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
             // Hours & Config
             Route::get('/hours', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'businessHours'])->name('hours');
             Route::post('/hours', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateBusinessHours'])->name('hours.update');
+            Route::get('/hours/holidays', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'businessHoursHolidays'])->name('hours.holidays');
+            Route::post('/hours/holidays', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateBusinessHourHolidays'])->name('hours.holidays.update');
 
             // Services
             Route::get('/services', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'services'])->name('services');

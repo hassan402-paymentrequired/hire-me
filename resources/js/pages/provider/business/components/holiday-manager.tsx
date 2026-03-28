@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Calendar } from 'lucide-react';
+import KeenIcon from '@/components/keen-icon';
+import { Calendar, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -42,11 +43,14 @@ const HolidayManager = ({ holidays, onAddHoliday, onRemoveHoliday, onUpdateHolid
     };
 
     return (
-        <div className="bg-card rounded-lg border border-border p-4 md:p-6">
+        <div className="overflow-hidden rounded-3xl border border-border/70 bg-background">
+            <div className="border-b border-border/60 bg-muted/20 px-5 py-5 md:px-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
                 <div>
-                    <h3 className="text-lg md:text-xl font-semibold text-foreground flex items-center gap-2">
-                        <Calendar size={24} />
+                    <h3 className="flex items-center gap-3 text-lg font-semibold text-foreground md:text-xl">
+                        <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border/70 bg-background text-emerald-600 dark:text-emerald-300">
+                            <KeenIcon name="archive" className="text-lg" />
+                        </span>
                         Holiday Schedule
                     </h3>
                     <p className="text-sm text-muted-foreground mt-1">
@@ -62,8 +66,9 @@ const HolidayManager = ({ holidays, onAddHoliday, onRemoveHoliday, onUpdateHolid
                     Add Holiday
                 </Button>
             </div>
+            </div>
             {showAddForm && (
-                <div className="mb-6 p-4 bg-muted/50 rounded-lg border border-border space-y-4">
+                <div className="m-5 space-y-4 rounded-2xl border border-border/70 bg-muted/20 p-4 md:m-6">
                     <h4 className="text-sm font-medium text-foreground">Add New Holiday</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input
@@ -118,17 +123,17 @@ const HolidayManager = ({ holidays, onAddHoliday, onRemoveHoliday, onUpdateHolid
                     </div>
                 </div>
             )}
-            <div className="space-y-3">
+            <div className="space-y-3 px-5 pb-5 md:px-6 md:pb-6">
                 {holidays?.length === 0 ? (
-                    <div className="text-center py-8">
-                        <Calendar size={48} className="mx-auto text-muted-foreground mb-3" />
+                    <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 py-10 text-center">
+                        <Calendar size={48} className="mx-auto mb-3 text-muted-foreground" />
                         <p className="text-sm text-muted-foreground">No holidays scheduled yet</p>
                     </div>
                 ) : (
                     holidays?.map((holiday, index) => (
                         <div
                             key={index}
-                            className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-background rounded-lg border border-border hover:shadow-elevation-1 transition-smooth"
+                            className="flex flex-col justify-between gap-3 rounded-2xl border border-border/70 bg-muted/20 p-4 md:flex-row md:items-center"
                         >
                             <div className="flex-1">
                                 <h4 className="text-sm md:text-base font-medium text-foreground">{holiday?.name}</h4>
@@ -142,7 +147,7 @@ const HolidayManager = ({ holidays, onAddHoliday, onRemoveHoliday, onUpdateHolid
                                 )}
                             </div>
                             <div className="flex items-center gap-2">
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                <span className={`rounded-full px-3 py-1 text-xs font-medium ${
                     holiday?.type === 'closed' ?'bg-error/10 text-error' :'bg-warning/10 text-warning'
                 }`}>
                   {holiday?.type === 'closed' ? 'Closed' : 'Custom Hours'}
@@ -151,7 +156,10 @@ const HolidayManager = ({ holidays, onAddHoliday, onRemoveHoliday, onUpdateHolid
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => onRemoveHoliday(index)}
-                                />
+                                    className="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
                             </div>
                         </div>
                     ))

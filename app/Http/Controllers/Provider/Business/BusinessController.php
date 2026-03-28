@@ -19,6 +19,16 @@ class BusinessController extends Controller
 {
     public function businessHours()
     {
+        return Inertia::render('provider/business/hours/index', $this->businessHoursPayload());
+    }
+
+    public function businessHoursHolidays()
+    {
+        return Inertia::render('provider/business/hours/holidays', $this->businessHoursPayload());
+    }
+
+    protected function businessHoursPayload(): array
+    {
         $user = auth()->user();
         $businessProfile = $user->businessProfile;
         $settings = ProviderSettings::resolve($businessProfile?->settings);
@@ -59,26 +69,37 @@ class BusinessController extends Controller
             }
         }
 
-        return Inertia::render('provider/business/hours', [
+        return [
             'initialSchedule' => $schedule,
             'initialHolidays' => $settings['holidays'] ?? [],
-        ]);
+        ];
     }
 
     public function updateBusinessHours(\Illuminate\Http\Request $request)
     {
+        $this->syncBusinessHours($request);
+
+        return back()->with('success-toast', 'Weekly schedule updated successfully.');
+    }
+
+    public function updateBusinessHourHolidays(\Illuminate\Http\Request $request)
+    {
         $user = auth()->user();
         $profile = $user->businessProfile;
 
-        // Update Holidays in Profile Settings
         $currentSettings = $profile->settings ?? [];
         $profile->settings = array_merge($currentSettings, [
             'holidays' => $request->holidays,
         ]);
         $profile->save();
 
-        // Sync Work Hours
-        // Strategy: Delete all existing for user and recreate
+        return back()->with('success-toast', 'Holiday schedule updated successfully.');
+    }
+
+    protected function syncBusinessHours(Request $request): void
+    {
+        $user = auth()->user();
+
         \App\Models\WorkHour::where('provider_id', $user->id)->delete();
 
         if ($request->schedule) {
@@ -101,17 +122,10 @@ class BusinessController extends Controller
                                 'is_closed' => false,
                             ]);
                         }
-                    } else {
-                        // Open but no shifts defined? Treat as closed or ignoring?
-                        // Let's create a placeholder or just ignore.
-                        // If isOpen is true but no shifts, it's ambiguous.
-                        // Frontend usually provides at least one shift if isOpen.
                     }
                 }
             }
         }
-
-        return back()->with('success-toast', 'Business configuration updated successfully.');
     }
 
     public function services()

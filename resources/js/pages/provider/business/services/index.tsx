@@ -1,7 +1,10 @@
+import KeenIcon from '@/components/keen-icon';
+import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
+    CardDescription,
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
@@ -24,23 +27,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
-import { Head, useForm, router } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import {
+    ArrowUpRight,
+    Box,
+    Clock,
     Edit2,
     Plus,
-    Trash2,
-    LayoutGrid,
-    CheckCircle2,
-    XCircle,
-    Star,
     Search,
-    Clock,
-    Box,
+    Trash2,
 } from 'lucide-react';
-import { useState, useMemo } from 'react';
-import { cn } from '@/lib/utils';
+import { useMemo, useState } from 'react';
 import { BreadcrumbItem } from '@/types';
-import { Spinner } from '@/components/ui/spinner';
 
 interface Service {
     id: string;
@@ -75,7 +73,7 @@ interface Props {
         mostBooked: {
             name: string;
             change: string;
-        }
+        };
     };
 }
 
@@ -103,28 +101,35 @@ export default function ServicesIndex({ services, businessCategory, stats }: Pro
     });
 
     const filteredServices = useMemo(() => {
-        return services.filter(service => {
-            const matchesSearch = service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                 (service.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+        return services.filter((service) => {
+            const matchesSearch =
+                service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (service.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+
             return matchesSearch;
         });
     }, [services, searchQuery]);
 
+    const averagePrice = services.length
+        ? Math.round(services.reduce((sum, service) => sum + Number(service.price || 0), 0) / services.length)
+        : 0;
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
         if (editingService) {
             put(`/business/services/${editingService.id}`, {
                 onSuccess: () => {
                     setEditingService(null);
                     reset();
-                }
+                },
             });
         } else {
             post('/business/services', {
                 onSuccess: () => {
                     setIsAddModalOpen(false);
                     reset();
-                }
+                },
             });
         }
     };
@@ -149,275 +154,317 @@ export default function ServicesIndex({ services, businessCategory, stats }: Pro
         router.post(`/business/services/${id}/toggle`);
     };
 
-    const statsCard = [
-        {
-            name: 'Total Services',
-            icon: Box,
-            value: stats.totalServices.value,
-            change: stats.totalServices.change,
-            time: 'vs last month'
-        },
-        {
-            name: 'Active Services',
-            icon: CheckCircle2,
-            value: stats.activeServices,
-            change: '',
-            time: ''
-        },
-        {
-            name: 'Inactive Services',
-            icon: XCircle,
-            value: stats.inactiveServices,
-            change: '',
-            time: ''
-        },
-        {
-            name: 'Business Category',
-            icon: LayoutGrid,
-            value: businessCategory?.name ?? 'Not set',
-            change: '',
-            time: '',
-            hidden: true,
-        },
-        {
-            name: 'Most booked service',
-            icon: Star,
-            value: stats.mostBooked.name,
-            change: stats.mostBooked.change,
-            time: 'vs last month'
-        }
-    ]
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Service Management" />
 
-            <div className="flex flex-col gap-6 p-4 w-full">
-                {/* Header Section */}
-                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight">Services</h1>
-                        <p className="text-muted-foreground">Manage and organize your service offerings.</p>
+            <div className="flex w-full flex-col gap-6 p-4">
+                <section className="overflow-hidden rounded-3xl border border-border/70 bg-background">
+                    <div className="relative">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.06),_transparent_24%),radial-gradient(circle_at_left,_rgba(16,185,129,0.06),_transparent_24%)]" />
+                        <div className="relative space-y-5 px-6 py-6 lg:px-8 lg:py-8">
+                            <div className="flex flex-wrap items-center gap-3">
+                                <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-foreground/70">
+                                    <KeenIcon name="menu" className="text-sm text-sky-600 dark:text-sky-300" />
+                                    Service catalog
+                                </span>
+                                <span className="inline-flex rounded-full border border-border/70 bg-background px-3 py-1 text-xs font-medium text-muted-foreground">
+                                    {services.length} services configured
+                                </span>
+                            </div>
+
+                            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                                <div className="max-w-2xl space-y-2">
+                                    <h1 className="text-3xl font-semibold tracking-tight text-foreground lg:text-4xl">
+                                        Services
+                                    </h1>
+                                    <p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+                                        Shape the services clients can actually book, keep pricing clear, and fine-tune what stays active on your storefront.
+                                    </p>
+                                </div>
+
+                                <Dialog
+                                    open={isAddModalOpen || !!editingService}
+                                    onOpenChange={(open) => {
+                                        if (!open) {
+                                            setIsAddModalOpen(false);
+                                            setEditingService(null);
+                                            reset();
+                                        }
+                                    }}
+                                >
+                                    <DialogTrigger asChild>
+                                        <Button onClick={() => setIsAddModalOpen(true)} className="rounded-full px-5">
+                                            <Plus className="size-5" />
+                                            Add New Service
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-h-[90dvh] overflow-auto sm:max-w-[560px]">
+                                        <DialogHeader>
+                                            <DialogTitle className="text-2xl font-semibold">
+                                                {editingService ? 'Edit Service' : 'Add New Service'}
+                                            </DialogTitle>
+                                        </DialogHeader>
+                                        <form onSubmit={handleSubmit} className="space-y-5">
+                                            <div className="rounded-2xl border border-border/70 bg-muted/20 p-4">
+                                                <p className="text-sm font-medium text-foreground">Service details</p>
+                                                <p className="mt-1 text-sm text-muted-foreground">
+                                                    Add the core information clients need before they book this service.
+                                                </p>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label htmlFor="name">Service Name</Label>
+                                                <Input
+                                                    id="name"
+                                                    value={data.name}
+                                                    onChange={(e) => setData('name', e.target.value)}
+                                                    placeholder="e.g. Premium House Cleaning"
+                                                />
+                                                {errors.name && <p className="text-xs font-bold text-destructive">{errors.name}</p>}
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="price">Price (₦)</Label>
+                                                    <Input
+                                                        id="price"
+                                                        type="number"
+                                                        value={data.price}
+                                                        onChange={(e) => setData('price', e.target.value)}
+                                                        placeholder="0.00"
+                                                    />
+                                                    {errors.price && <p className="text-xs font-bold text-destructive">{errors.price}</p>}
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="duration">Duration (Min)</Label>
+                                                    <Input
+                                                        id="duration"
+                                                        type="number"
+                                                        value={data.duration_minutes}
+                                                        onChange={(e) => setData('duration_minutes', e.target.value)}
+                                                        placeholder="60"
+                                                    />
+                                                    {errors.duration_minutes && (
+                                                        <p className="text-xs font-bold text-destructive">{errors.duration_minutes}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="hidden space-y-2">
+                                                <Label htmlFor="category">Business Category</Label>
+                                                <div className="rounded-xl border bg-muted/20 px-3 py-2 text-sm font-semibold">
+                                                    {businessCategory?.name ?? 'Not set'}
+                                                </div>
+                                                {errors.category_id && (
+                                                    <p className="text-xs font-bold text-destructive">{errors.category_id}</p>
+                                                )}
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label htmlFor="description">Description</Label>
+                                                <Textarea
+                                                    id="description"
+                                                    value={data.description}
+                                                    onChange={(e) => setData('description', e.target.value)}
+                                                    placeholder="Briefly describe the service..."
+                                                    className="min-h-[120px]"
+                                                />
+                                                {errors.description && (
+                                                    <p className="text-xs font-bold text-destructive">{errors.description}</p>
+                                                )}
+                                            </div>
+
+                                            <div className="flex justify-end gap-3 pt-2">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        setIsAddModalOpen(false);
+                                                        setEditingService(null);
+                                                        reset();
+                                                    }}
+                                                >
+                                                    Cancel
+                                                </Button>
+                                                <Button type="submit" disabled={processing}>
+                                                    {processing && <Spinner />}
+                                                    {editingService ? 'Update Service' : 'Create Service'}
+                                                </Button>
+                                            </div>
+                                        </form>
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-3">
+                                <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
+                                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                        <KeenIcon name="verify" className="text-sm text-emerald-600 dark:text-emerald-300" />
+                                        Active lineup
+                                    </div>
+                                    <p className="mt-3 text-3xl font-semibold text-foreground">
+                                        {stats.totalServices.value}
+                                    </p>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        {stats.activeServices} active, {stats.inactiveServices} inactive
+                                    </p>
+                                </div>
+                                <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
+                                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                        <KeenIcon name="receipt-square" className="text-sm text-sky-600 dark:text-sky-300" />
+                                        Average ticket
+                                    </div>
+                                    <p className="mt-3 text-3xl font-semibold text-foreground">
+                                        ₦{averagePrice.toLocaleString()}
+                                    </p>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        across your current service menu
+                                    </p>
+                                </div>
+                                <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
+                                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                        <KeenIcon name="star" className="text-sm text-violet-600 dark:text-violet-300" />
+                                        Top performer
+                                    </div>
+                                    <p className="mt-3 text-lg font-semibold text-foreground">
+                                        {stats.mostBooked.name}
+                                    </p>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        {stats.mostBooked.change} vs last month
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <Dialog open={isAddModalOpen || !!editingService} onOpenChange={(open) => {
-                        if (!open) {
-                            setIsAddModalOpen(false);
-                            setEditingService(null);
-                            reset();
-                        }
-                    }}>
-                        <DialogTrigger asChild>
-                            <Button onClick={() => setIsAddModalOpen(true)}>
-                                <Plus className="size-5" />
-                                Add New Service
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[500px] max-h-[90dvh] overflow-auto "
-                                       style={{ maxHeight: '90dvh' }} >
-                            <DialogHeader>
-                                <DialogTitle className="text-2xl font-black">{editingService ? 'Edit Service' : 'Add New Service'}</DialogTitle>
-                            </DialogHeader>
-                            <form onSubmit={handleSubmit} className="space-y-4 ">
-                                <div className="space-y-2">
-                                    <Label htmlFor="name" >Service Name</Label>
-                                    <Input
-                                        id="name"
-                                        value={data.name}
-                                        onChange={e => setData('name', e.target.value)}
-                                        placeholder="e.g. Premium House Cleaning"
-                                    />
-                                    {errors.name && <p className="text-xs text-destructive font-bold">{errors.name}</p>}
-                                </div>
+                </section>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="price" >Price (₦)</Label>
-                                        <Input
-                                            id="price"
-                                            type="number"
-                                            value={data.price}
-                                            onChange={e => setData('price', e.target.value)}
-                                            placeholder="0.00"
-
-                                        />
-                                        {errors.price && <p className="text-xs text-destructive font-bold">{errors.price}</p>}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="duration" >Duration (Min)</Label>
-                                        <Input
-                                            id="duration"
-                                            type="number"
-                                            value={data.duration_minutes}
-                                            onChange={e => setData('duration_minutes', e.target.value)}
-                                            placeholder="60"
-
-                                        />
-                                        {errors.duration_minutes && <p className="text-xs text-destructive font-bold">{errors.duration_minutes}</p>}
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2 hidden">
-                                    <Label htmlFor="category" >Business Category</Label>
-                                    <div className="rounded-xl border bg-muted/20 px-3 py-2 text-sm font-semibold">
-                                        {businessCategory?.name ?? 'Not set'}
-                                    </div>
-                                    {errors.category_id && (
-                                        <p className="text-xs text-destructive font-bold">{errors.category_id}</p>
-                                    )}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="description" >Description</Label>
-                                    <Textarea
-                                        id="description"
-                                        value={data.description}
-                                        onChange={e => setData('description', e.target.value)}
-                                        placeholder="Briefly describe the service..."
-                                    />
-                                    {errors.description && <p className="text-xs text-destructive font-bold">{errors.description}</p>}
-                                </div>
-
-                                <div className="flex justify-end gap-3 pt-4">
-                                    <Button type="button" variant="outline" onClick={() => {
-                                        setIsAddModalOpen(false);
-                                        setEditingService(null);
-                                        reset();
-                                    }}>Cancel</Button>
-                                    <Button type="submit" disabled={processing} >
-                                        {processing && <Spinner />} {editingService ? 'Update Service' : 'Create Service'}
-                                    </Button>
-                                </div>
-                            </form>
-                        </DialogContent>
-                    </Dialog>
-                </div>
-
-                {/* Stats Section */}
-                <div className="grid gap-6 md:grid-cols-4">
-                    {statsCard.filter((s: any) => !s.hidden).map((stat: any, i: number) => (
-                        <Card key={i}>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">
-                                    {stat.name}
+                <Card className="overflow-hidden rounded-3xl border border-border/70">
+                    <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
+                        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                            <div>
+                                <CardTitle className="flex items-center gap-2">
+                                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/70 bg-background text-sky-600 dark:text-sky-300">
+                                        <Box className="h-4 w-4" />
+                                    </span>
+                                    Service List
                                 </CardTitle>
-                                <stat.icon className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">
-                                    {stat.value}
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    {stat.change} {stat.time}
-                                </p>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-
-                {/* Filtering Section */}
-                <div className="flex flex-col gap-4">
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="relative flex-1 max-w-sm">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Search services..."
-                                value={searchQuery}
-                                onChange={e => setSearchQuery(e.target.value)}
-                                className="rounded pl-12"
-                            />
+                                <CardDescription className="mt-2">
+                                    Search your service menu, adjust what stays active, or open a service to update the details.
+                                </CardDescription>
+                            </div>
+                            <div className="relative flex-1 xl:max-w-sm">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search services..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="rounded-full pl-12"
+                                />
+                            </div>
                         </div>
-                    </div>
-                </div>
-
-                {/* Services Table */}
-                <div className="bg-card rounded border overflow-hidden">
-                    <Table>
-	                        <TableHeader className="bg-muted/30">
-	                            <TableRow className="hover:bg-transparent border-b-2">
-	                                <TableHead className="py-5 font-black uppercase tracking-widest text-[10px]">Service Name</TableHead>
-	                                <TableHead className="py-5 font-black uppercase tracking-widest text-[10px] hidden">Category</TableHead>
-	                                <TableHead className="py-5 font-black uppercase tracking-widest text-[10px]">Duration</TableHead>
-	                                <TableHead className="py-5 font-black uppercase tracking-widest text-[10px]">Price</TableHead>
-	                                <TableHead className="py-5 font-black uppercase tracking-widest text-[10px]">Status</TableHead>
-	                                <TableHead className="py-5 font-black uppercase tracking-widest text-[10px] text-right px-8">Actions</TableHead>
-	                            </TableRow>
-	                        </TableHeader>
-                        <TableBody >
-                            {filteredServices.map((service) => (
-                                <TableRow key={service.id} className="group hover:bg-muted/5 transition-colors ">
-                                    <TableCell className="py-6">
-                                        <div className="flex items-center gap-4">
-                                            <div className="size-10 rounded bg-primary/10 flex items-center justify-center text-primary shrink-0 group-hover:scale-110 transition-transform">
-                                                <Box className="size-5" />
-                                            </div>
-                                            <div>
-                                                <p className="font-extrabold text-lg leading-tight capitalize">{service.name.substring(0,20)}</p>
-                                                {service.description && (
-                                                    <p className="text-xs text-muted-foreground line-clamp-1 mt-1 font-medium">{service.description.substring(0,20)}</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </TableCell>
-	                                    <TableCell className="hidden">
-	                                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-muted text-[10px] font-black uppercase tracking-widest text-muted-foreground border-2 border-muted">
-	                                            {service.category_name || 'Uncategorized'}
-	                                        </span>
-	                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2 text-muted-foreground font-bold">
-                                            <Clock className="size-4" />
-                                            <span className="text-sm">{service.duration_minutes}m</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <p className="font-black text-lg">₦{Number(service.price).toLocaleString()}</p>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-3">
-                                            <div
-                                                onClick={() => toggleStatus(service.id)}
-                                                className={cn(
-                                                    "w-12 h-6 rounded-full relative cursor-pointer transition-all duration-300",
-                                                    service.status === 'active' ? "bg-primary" : "bg-muted border-2"
-                                                )}
-                                            >
-                                                <div className={cn(
-                                                    "size-4 rounded-full bg-white absolute top-1 transition-all duration-300",
-                                                    service.status === 'active' ? "left-7 shadow-sm" : "left-1"
-                                                )} />
-                                            </div>
-                                            <span className={cn(
-                                                "text-[10px] font-black uppercase tracking-widest",
-                                                service.status === 'active' ? "text-primary" : "text-muted-foreground"
-                                            )}>
-                                                {service.status === 'active' ? 'Active' : 'Inactive'}
-                                            </span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-right px-8">
-                                        <div className="flex items-center justify-end gap-2 ">
-                                            <Button variant="ghost" size="icon" className="hover:bg-primary/10 hover:text-primary rounded-xl" onClick={() => handleEdit(service)}>
-                                                <Edit2 className="size-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="hover:bg-destructive/10 hover:text-destructive rounded-xl" onClick={() => handleDelete(service.id)}>
-                                                <Trash2 className="size-4" />
-                                            </Button>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                    {filteredServices.length === 0 && (
-                        <div className="py-20 flex flex-col items-center justify-center text-muted-foreground">
-                            <Box className="size-16 mb-4 opacity-10" />
-                            <p className="font-bold text-lg">No services found</p>
-                            <p className="text-sm">Try adjusting your filters or add a new service.</p>
+                    </CardHeader>
+                    <CardContent className="pt-5">
+                        <div className="overflow-hidden rounded-2xl border border-border/70">
+                            <Table>
+                                <TableHeader className="bg-muted/20">
+                                    <TableRow className="border-b border-border/60 hover:bg-transparent">
+                                        <TableHead className="py-5 text-[10px] font-black uppercase tracking-widest">Service Name</TableHead>
+                                        <TableHead className="py-5 text-[10px] font-black uppercase tracking-widest">Duration</TableHead>
+                                        <TableHead className="py-5 text-[10px] font-black uppercase tracking-widest">Price</TableHead>
+                                        <TableHead className="py-5 text-[10px] font-black uppercase tracking-widest">Status</TableHead>
+                                        <TableHead className="px-8 py-5 text-right text-[10px] font-black uppercase tracking-widest">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredServices.length > 0 ? (
+                                        filteredServices.map((service) => (
+                                            <TableRow key={service.id} className="group border-b border-border/60 transition-colors hover:bg-muted/20">
+                                                <TableCell className="py-6">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-border/70 bg-muted/20 text-primary transition-transform group-hover:scale-105">
+                                                            <KeenIcon name="menu" className="text-lg" />
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <p className="max-w-[220px] truncate font-semibold leading-tight capitalize sm:max-w-[280px]">
+                                                                {service.name}
+                                                            </p>
+                                                            {service.description && (
+                                                                <p className="mt-1 max-w-[240px] truncate text-sm text-muted-foreground sm:max-w-[320px]">
+                                                                    {service.description}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="py-6">
+                                                    <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1.5 text-sm font-medium text-foreground/80">
+                                                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                                                        {service.duration_minutes} mins
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="py-6">
+                                                    <div className="space-y-1">
+                                                        <p className="font-semibold">₦{Number(service.price).toLocaleString()}</p>
+                                                        <p className="text-xs text-muted-foreground">Base price</p>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="py-6">
+                                                    <span
+                                                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize ${
+                                                            service.status === 'active'
+                                                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300'
+                                                                : 'bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300'
+                                                        }`}
+                                                    >
+                                                        {service.status}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell className="px-6 py-6 text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button variant="outline" size="sm" onClick={() => toggleStatus(service.id)} className="rounded-full">
+                                                            <ArrowUpRight className="mr-2 h-3.5 w-3.5" />
+                                                            {service.status === 'active' ? 'Deactivate' : 'Activate'}
+                                                        </Button>
+                                                        <Button variant="outline" size="icon" onClick={() => handleEdit(service)} className="rounded-full">
+                                                            <Edit2 className="size-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => handleDelete(service.id)}
+                                                            className="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                        >
+                                                            <Trash2 className="size-4" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="py-16 text-center">
+                                                <div className="mx-auto max-w-sm space-y-3">
+                                                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-border/70 bg-muted/20 text-muted-foreground">
+                                                        <KeenIcon name="menu" className="text-xl" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-semibold text-foreground">No services found</p>
+                                                        <p className="mt-1 text-sm text-muted-foreground">
+                                                            {searchQuery
+                                                                ? 'Try another keyword or clear your search.'
+                                                                : 'Start by adding your first service offering.'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
                         </div>
-                    )}
-                </div>
-
-
+                    </CardContent>
+                </Card>
             </div>
         </AppLayout>
     );
