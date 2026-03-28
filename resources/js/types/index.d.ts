@@ -1,5 +1,8 @@
 import { InertiaLinkProps } from '@inertiajs/react';
+import type { ComponentType } from 'react';
 import { LucideIcon } from 'lucide-react';
+
+type AppIcon = LucideIcon | ComponentType<{ className?: string }>;
 
 export interface Auth {
     user: User;
@@ -8,7 +11,7 @@ export interface Auth {
 export interface BreadcrumbItem {
     title: string;
     href: string;
-    icon?: LucideIcon | null;
+    icon?: AppIcon | null;
 }
 
 export interface NavGroup {
@@ -21,7 +24,7 @@ export interface NavItem {
     links: Array<{
         title: string;
         href: NonNullable<InertiaLinkProps['href']>;
-        icon?: LucideIcon | null;
+        icon?: AppIcon | null;
         isActive?: boolean;
     }>
 }
