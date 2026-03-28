@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import KeenIcon from '@/components/keen-icon';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -16,7 +17,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { router } from '@inertiajs/react';
-import { Check, MoreHorizontal, X, Eye } from 'lucide-react';
+import { Check, X, Eye } from 'lucide-react';
 import { useState } from 'react';
 import { Appointment } from '@/types';
 import { isTomorrow, parseISO } from 'date-fns';
@@ -70,9 +71,10 @@ export function AppointmentActions({ appointment }: AppointmentActionsProps) {
         <>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Open menu</span>
+                    <Button variant="outline" size="sm" className="gap-2 rounded-full px-3">
+                        <KeenIcon name="menu" className="text-sm" />
+                        Manage
+                        <span className="sr-only">Open appointment actions</span>
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">

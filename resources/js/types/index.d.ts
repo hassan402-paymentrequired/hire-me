@@ -112,6 +112,7 @@ export interface Appointment {
     escrow_status: string,
     escrow_transaction_id: string,
     payment_released_at: string,
+    payment_method?: 'online' | 'offline' | string,
     recurrence_pattern: string,
     recurrence_parent_id: string,
     recurrence_end_date: string,

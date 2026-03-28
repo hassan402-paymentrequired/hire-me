@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { AppointmentActions } from '@/components/appointments/appointment-actions';
 import KeenIcon from '@/components/keen-icon';
+import { Pagination } from '@/components/pagination';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -76,6 +77,66 @@ export default function Appointments({
 
     const pendingCount = appointments.data.filter((apt) => apt.status === 'pending').length;
     const confirmedCount = appointments.data.filter((apt) => apt.status === 'confirmed').length;
+    const getServiceSummary = (apt: Appointment) => {
+        const primary = apt.services[0];
+        const extras = Math.max(0, apt.services.length - 1);
+
+        if (!primary) {
+            return {
+                title: 'No linked service',
+                subtitle: 'No service attached to this appointment',
+            };
+        }
+
+        return {
+            title: primary.name,
+            subtitle:
+                extras > 0
+                    ? `+${extras} more service${extras > 1 ? 's' : ''}`
+                    : 'Single-service booking',
+        };
+    };
+    const getPaymentState = (apt: Appointment) => {
+        if ((apt as any).payment_method === 'offline') {
+            return {
+                label: 'Unpaid',
+                className: 'bg-amber-50 text-amber-700 border-amber-200',
+            };
+        }
+
+        if (apt.escrow_status === 'released') {
+            return {
+                label: 'Paid out',
+                className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            };
+        }
+
+        if (apt.escrow_status === 'held') {
+            return {
+                label: 'Paid',
+                className: 'bg-sky-50 text-sky-700 border-sky-200',
+            };
+        }
+
+        if (apt.escrow_status === 'refunded') {
+            return {
+                label: 'Refunded',
+                className: 'bg-slate-100 text-slate-700 border-slate-200',
+            };
+        }
+
+        if (apt.escrow_status === 'forfeited') {
+            return {
+                label: 'Forfeited',
+                className: 'bg-rose-50 text-rose-700 border-rose-200',
+            };
+        }
+
+        return {
+            label: 'Unpaid',
+            className: 'bg-amber-50 text-amber-700 border-amber-200',
+        };
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -200,147 +261,136 @@ export default function Appointments({
                         </div>
                     </CardHeader>
                     <CardContent className="pt-5">
-                        <div className="rounded-2xl border border-border/70">
-                            <div className="relative w-full overflow-auto">
-                                <table className="w-full caption-bottom text-left text-sm">
-                                    <thead className="bg-muted/20 [&_tr]:border-b">
-                                        <tr className="border-b border-border/60 transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                                            <th className="h-12 px-4 align-middle font-medium text-muted-foreground">
-                                                Client
-                                            </th>
-                                            <th className="h-12 px-4 align-middle font-medium text-muted-foreground">
-                                                Service
-                                            </th>
-                                            <th className="h-12 px-4 align-middle font-medium text-muted-foreground">
-                                                Date & Time
-                                            </th>
-                                            <th className="h-12 px-4 align-middle font-medium text-muted-foreground">
-                                                Amount
-                                            </th>
-                                            <th className="h-12 px-4 align-middle font-medium text-muted-foreground">
-                                                Status
-                                            </th>
-                                            <th className="h-12 px-4 text-right align-middle font-medium text-muted-foreground">
-                                                Actions
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="[&_tr:last-child]:border-0">
-                                        {appointments.data.length > 0 ? (
-                                            appointments.data.map((apt) => (
-                                                <tr
-                                                    key={apt.id}
-                                                    className="border-b border-border/60 transition-colors hover:bg-muted/30 data-[state=selected]:bg-muted"
-                                                >
-                                                    <td className="p-4 align-middle">
-                                                        <div className="flex items-center gap-3">
-                                                            <Avatar className="h-10 w-10 border border-border/70">
-                                                                <AvatarImage
-                                                                    src={
-                                                                        apt.client.avatar
-                                                                    }
-                                                                    alt={
-                                                                        apt.client.name
-                                                                    }
-                                                                />
-                                                                <AvatarFallback>
-                                                                    {apt.client.name.charAt(
-                                                                        0,
-                                                                    )}
-                                                                </AvatarFallback>
-                                                            </Avatar>
-                                                            <div className="flex flex-col">
-                                                                <span className="font-semibold">
-                                                                    {apt.client.name}
-                                                                </span>
-                                                                <span className="hidden text-xs text-muted-foreground sm:inline">
-                                                                    {apt.client.email}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="p-4 align-middle">
-                                                        <div className="flex flex-col gap-1">
-                                                            <span className="font-semibold capitalize">
-                                                                {
-                                                                    apt
-                                                                        .services[0]
-                                                                        .name
-                                                                }
-                                                            </span>
-                                                            {apt.team_member && (
-                                                                <span className="inline-flex w-fit items-center gap-1 rounded-full border border-border/70 bg-muted px-2 py-1 text-[10px] font-bold uppercase text-foreground/80">
-                                                                    <Users className="h-3 w-3" />
-                                                                    {apt.team_member.user.name}
-                                                                </span>
-                                                            )}
-                                                            {apt.services
-                                                                ?.length >
-                                                                1 && (
-                                                                <span className="w-fit rounded-full border border-border/70 bg-background px-2 py-1 text-[10px] font-bold text-muted-foreground uppercase">
-                                                                    +
-                                                                    {apt
-                                                                        .services
-                                                                        .length -
-                                                                        1}{' '}
-                                                                    More
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td className="p-4 align-middle">
-                                                        <div className="flex flex-col gap-1">
-                                                            <span className="font-semibold">
-                                                                {formatDate(apt.start_time)}
-                                                            </span>
-                                                            <span className="inline-flex w-fit items-center gap-1 rounded-full border border-border/70 bg-background px-2.5 py-1 text-xs text-muted-foreground">
-                                                                <KeenIcon name="electronic-clock" className="text-xs" />
-                                                                {formatTime(apt.start_time)}
-                                                            </span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="p-4 align-middle">
-                                                        <div className="flex flex-col">
-                                                            <span className="font-semibold">
-                                                                {formatPrice(apt.price)}
-                                                            </span>
-                                                            <span className="text-xs text-muted-foreground">
-                                                                Booking amount
-                                                            </span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="p-4 align-middle">
-                                                        <Badge
-                                                            variant={
-                                                                getStatusVariant(apt.status)
-                                                            }
-                                                            className="rounded-full px-3 py-1"
-                                                        >
-                                                            {formatStatus(apt.status)}
-                                                        </Badge>
-                                                    </td>
-                                                    <td className="p-4 text-right align-middle">
-                                                        <AppointmentActions
-                                                            appointment={apt}
+                        {appointments.data.length > 0 ? (
+                            <div className="grid gap-4 xl:grid-cols-2">
+                                {appointments.data.map((apt) => {
+                                    const paymentState = getPaymentState(apt);
+                                    const serviceSummary = getServiceSummary(apt);
+
+                                    return (
+                                    <div
+                                        key={apt.id}
+                                        className="flex h-full flex-col rounded-2xl border border-border/70 bg-background p-5 transition-colors hover:bg-muted/10"
+                                    >
+                                        <div className="flex h-full flex-col gap-4">
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div className="flex min-w-0 items-center gap-3">
+                                                    <Avatar className="h-11 w-11 border border-border/70">
+                                                        <AvatarImage
+                                                            src={apt.client.avatar}
+                                                            alt={apt.client.name}
                                                         />
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        ) : (
-                                            <tr>
-                                                <td
-                                                    colSpan={6}
-                                                    className="p-4 text-center text-muted-foreground"
+                                                        <AvatarFallback>
+                                                            {apt.client.name.charAt(0)}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <div className="min-w-0">
+                                                        <p className="truncate font-semibold text-foreground">
+                                                            {apt.client.name}
+                                                        </p>
+                                                        <p className="truncate text-xs text-muted-foreground">
+                                                            {apt.client.email}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <Badge
+                                                    variant={getStatusVariant(apt.status)}
+                                                    className="shrink-0 rounded-full px-3 py-1"
                                                 >
-                                                    No appointments found.
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
+                                                    {formatStatus(apt.status)}
+                                                </Badge>
+                                            </div>
+
+                                            <div className="grid gap-3 sm:grid-cols-2">
+                                                <div className="rounded-2xl border border-border/70 bg-muted/20 p-3">
+                                                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                                        Services
+                                                    </p>
+                                                    <div className="mt-2 min-h-12">
+                                                        <p className="line-clamp-1 text-sm font-semibold capitalize leading-6 text-foreground">
+                                                            {serviceSummary.title}
+                                                        </p>
+                                                        <p className="mt-1 text-xs text-muted-foreground">
+                                                            {serviceSummary.subtitle}
+                                                        </p>
+                                                    </div>
+                                                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                                                        {apt.team_member && (
+                                                            <span className="inline-flex w-fit items-center gap-1 rounded-full border border-border/70 bg-background px-2 py-1 text-[10px] font-bold uppercase text-foreground/80">
+                                                                <Users className="h-3 w-3" />
+                                                                {apt.team_member.user.name}
+                                                            </span>
+                                                        )}
+                                                        <span className="rounded-full border border-border/70 bg-background px-2 py-1 text-[10px] font-bold uppercase text-muted-foreground">
+                                                            {apt.services.length} service{apt.services.length > 1 ? 's' : ''}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="rounded-2xl border border-border/70 bg-muted/20 p-3">
+                                                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                                        Schedule
+                                                    </p>
+                                                    <p className="mt-2 min-h-6 font-semibold text-foreground">
+                                                        {formatDate(apt.start_time)}
+                                                    </p>
+                                                    <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-full border border-border/70 bg-background px-2.5 py-1 text-xs text-muted-foreground">
+                                                        <KeenIcon name="electronic-clock" className="text-xs" />
+                                                        {formatTime(apt.start_time)}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="rounded-2xl border border-border/70 bg-background p-3">
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                                        Client note
+                                                    </p>
+                                                    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${paymentState.className}`}>
+                                                        {paymentState.label}
+                                                    </span>
+                                                </div>
+                                                <div className="mt-2 min-h-12">
+                                                    <p className="line-clamp-2 text-sm leading-6 text-foreground/85">
+                                                        {apt.notes?.trim() || 'No note from client for this booking.'}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-auto flex flex-col gap-3 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                                                <div>
+                                                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                                        Amount
+                                                    </p>
+                                                    <p className="mt-1 text-lg font-semibold text-foreground">
+                                                        {formatPrice(apt.price)}
+                                                    </p>
+                                                </div>
+                                                <div className="sm:text-right">
+                                                    <AppointmentActions appointment={apt} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    );
+                                })}
                             </div>
-                        </div>
-                        {/* Pagination controls would go here */}
+                        ) : (
+                            <div className="rounded-2xl border border-dashed border-border/70 py-14 text-center">
+                                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+                                    <KeenIcon name="electronic-clock" className="text-base" />
+                                </div>
+                                <p className="font-medium text-foreground">No appointments found</p>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    Try a different search term or status filter.
+                                </p>
+                            </div>
+                        )}
+                        {appointments.links?.length > 1 && (
+                            <div className="mt-6 flex justify-center">
+                                <Pagination links={appointments.links} />
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>
