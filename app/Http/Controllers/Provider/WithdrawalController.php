@@ -128,7 +128,7 @@ class WithdrawalController extends Controller
         $wallet = Wallet::firstOrCreate(['user_id' => $user->id]);
 
         // Check if user has sufficient balance
-        if ($wallet->balance < $request->amount) {
+        if ($wallet->available_balance < $request->amount) {
             return back()->with('error-toast', 'Insufficient balance');
         }
 
@@ -177,10 +177,35 @@ class WithdrawalController extends Controller
                 return back()->with('error-toast', $transferResponse['message'] ?? 'Failed to initiate withdrawal');
             }
 
+            $paystackStatus = strtolower((string) ($transferResponse['data']['status'] ?? ''));
+
+            if ($paystackStatus === 'otp') {
+                $wallet->balance += $request->amount;
+                $wallet->save();
+
+                $transaction->update([
+                    'status' => 'failed',
+                    'balance_after' => $wallet->balance,
+                    'metadata' => array_merge($transaction->metadata ?? [], [
+                        'paystack_transfer_code' => $transferResponse['data']['transfer_code'] ?? null,
+                        'failure_reason' => 'Transfer requires Paystack OTP confirmation',
+                        'failed_at' => now()->toIso8601String(),
+                    ]),
+                ]);
+
+                DB::commit();
+
+                return back()->with(
+                    'error-toast',
+                    'This transfer requires a Paystack OTP/PIN. Disable transfer OTP in your Paystack dashboard for automated withdrawals, then try again.'
+                );
+            }
+
             // Update transaction with transfer code
             $transaction->update([
                 'metadata' => array_merge($transaction->metadata ?? [], [
                     'paystack_transfer_code' => $transferResponse['data']['transfer_code'] ?? null,
+                    'paystack_status' => $paystackStatus ?: 'pending',
                 ]),
             ]);
 

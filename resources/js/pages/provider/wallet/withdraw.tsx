@@ -1,4 +1,5 @@
 import KeenIcon from '@/components/keen-icon';
+import { CustomAlertDialog } from '@/components/ui/custom-alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -59,6 +60,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function Withdraw({ wallet, bankAccount = null, withdrawals, banks }: Props) {
     const [showAddBank, setShowAddBank] = useState(false);
+    const [withdrawConfirmOpen, setWithdrawConfirmOpen] = useState(false);
     const hasBankAccount = !!bankAccount;
     const totalBalance = wallet.balance + wallet.pending_earnings;
 
@@ -91,6 +93,10 @@ export default function Withdraw({ wallet, bankAccount = null, withdrawals, bank
 
     const handleWithdraw = (e: React.FormEvent) => {
         e.preventDefault();
+        setWithdrawConfirmOpen(true);
+    };
+
+    const submitWithdrawal = () => {
         if (bankAccount) {
             transformWithdrawal((data) => ({
                 ...data,
@@ -150,6 +156,17 @@ export default function Withdraw({ wallet, bankAccount = null, withdrawals, bank
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Withdraw Funds" />
             <div className="flex flex-col gap-6 p-4">
+                <CustomAlertDialog
+                    open={withdrawConfirmOpen}
+                    onOpenChange={setWithdrawConfirmOpen}
+                    icon={<KeenIcon name="receipt-square" className="text-4xl text-emerald-600" />}
+                    title="Confirm withdrawal"
+                    description={`You are about to withdraw ₦${Number(withdrawalData.amount || 0).toLocaleString()} to ${bankAccount?.bank_name || 'your bank account'}. Please confirm this request before we send it to Paystack.`}
+                    acceptLabel="Confirm withdrawal"
+                    rejectLabel="Cancel"
+                    onAccept={submitWithdrawal}
+                />
+
                 <section className="overflow-hidden rounded-3xl border border-border/70 bg-background">
                     <div className="relative">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.06),_transparent_24%),radial-gradient(circle_at_left,_rgba(16,185,129,0.06),_transparent_24%)]" />

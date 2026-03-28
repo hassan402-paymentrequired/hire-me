@@ -23,21 +23,30 @@ class PaystackWebhookController extends Controller
      */
     public function handleWebhook(Request $request)
     {
-        Log::info('Received Paystack webhook', [
-            'headers' => $request->headers->all(),
-            'payload' => $request->all(),
-        ]); 
-        // Verify webhook signature
         $signature = $request->header('X-Paystack-Signature');
         $payload = $request->getContent();
 
         if (!$this->verifySignature($signature, $payload)) {
-            Log::warning('Invalid Paystack webhook signature');
+            Log::warning('Invalid Paystack webhook signature', [
+                'event' => $request->input('event'),
+            ]);
             return response()->json(['error' => 'Invalid signature'], 401);
         }
 
         $event = $request->input('event');
         $data = $request->input('data');
+
+        if (!is_array($data)) {
+            Log::warning('Malformed Paystack webhook payload', [
+                'event' => $event,
+            ]);
+            return response()->json(['error' => 'Malformed payload'], 422);
+        }
+
+        Log::info('Received Paystack webhook', [
+            'event' => $event,
+            'reference' => $data['reference'] ?? null,
+        ]);
 
         try {
             switch ($event) {
@@ -48,6 +57,7 @@ class PaystackWebhookController extends Controller
                     $this->handleTransferSuccess($data);
                     break;
                 case 'transfer.failed':
+                case 'transfer.reversed':
                     $this->handleTransferFailed($data);
                     break;
                 default:
@@ -260,9 +270,18 @@ class PaystackWebhookController extends Controller
     /**
      * Verify webhook signature
      */
-    protected function verifySignature(string $signature, string $payload): bool
+    protected function verifySignature(?string $signature, string $payload): bool
     {
+        if (!$signature) {
+            return false;
+        }
+
         $secretKey = config('services.paystack.secret_key');
+        if (!$secretKey) {
+            Log::error('Paystack secret key missing while verifying webhook signature');
+            return false;
+        }
+
         $expectedSignature = hash_hmac('sha512', $payload, $secretKey);
 
         return hash_equals($expectedSignature, $signature);

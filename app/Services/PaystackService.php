@@ -133,6 +133,7 @@ class PaystackService
         if ($response->successful()) {
             return [
                 'success' => true,
+                'message' => $response->json()['message'] ?? null,
                 'data' => $response->json()['data'],
             ];
         }
