@@ -17,7 +17,7 @@ export default function BusinessHoursLayout({ children }: PropsWithChildren) {
     const currentPath = window.location.pathname;
 
     return (
-        <main className="mx-auto flex w-full max-w-7xl flex-col p-4 md:p-6">
+        <main className="flex w-full flex-col p-4 md:p-6">
             <div className="mb-6 overflow-hidden rounded-3xl border border-border/70 bg-background">
                 <div className="relative px-6 py-6 md:px-8 md:py-8">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.06),_transparent_26%),radial-gradient(circle_at_left,_rgba(16,185,129,0.05),_transparent_24%)]" />

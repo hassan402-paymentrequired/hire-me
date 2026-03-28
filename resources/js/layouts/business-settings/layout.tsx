@@ -18,7 +18,7 @@ export default function BusinessSettingsLayout({ children }: PropsWithChildren) 
     const currentPath = window.location.pathname;
 
     return (
-        <main className="mx-auto flex w-full max-w-7xl flex-col p-4 md:p-6">
+        <main className=" flex w-full flex-col p-4 md:p-6">
             <div className="mb-6">
                 <h2 className="text-2xl font-bold text-foreground">Business Settings</h2>
                 <p className="text-sm text-muted-foreground">

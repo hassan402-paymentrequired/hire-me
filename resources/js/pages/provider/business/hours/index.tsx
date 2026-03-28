@@ -109,11 +109,6 @@ export default function BusinessHoursSchedule({ initialSchedule }: Props) {
             <Head title="Business Hours" />
 
             <BusinessHoursLayout>
-                {flash?.success && (
-                    <div className="rounded-lg border border-success/20 bg-success/10 p-4">
-                        <p className="text-sm font-medium text-success">{flash.success}</p>
-                    </div>
-                )}
 
                 <form
                     onSubmit={(e) => {
