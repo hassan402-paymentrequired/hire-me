@@ -26,6 +26,9 @@ use App\Support\ProviderSettings;
 
 class AppointmentController extends Controller
 {
+    private const APPOINTMENT_CHANGE_CUTOFF_HOURS = 12;
+    private const LATE_CANCELLATION_PENALTY_PERCENT = 10;
+
     public function index(Request $request)
     {
         $user = auth_user();
@@ -76,12 +79,12 @@ class AppointmentController extends Controller
             ->with(['provider.businessProfile', 'services'])
             ->findOrFail($id);
 
-        // Safety: only allow editing future appointments and at least 5 hours before start
+        // Safety: only allow editing future appointments and at least the cutoff window before start
         $hoursUntilStart = Carbon::now()->diffInHours($appointment->start_time, false);
-        if ($hoursUntilStart < 5 || $appointment->start_time->isPast()) {
+        if ($hoursUntilStart < self::APPOINTMENT_CHANGE_CUTOFF_HOURS || $appointment->start_time->isPast()) {
             return redirect()
                 ->route('client.bookings.show', $appointment->id)
-                ->with('error-toast', 'You can only edit this appointment up to 5 hours before it starts.');
+                ->with('error-toast', 'You can only edit this appointment up to ' . self::APPOINTMENT_CHANGE_CUTOFF_HOURS . ' hours before it starts.');
         }
 
         $request->validate([
@@ -488,10 +491,7 @@ class AppointmentController extends Controller
             }
 
             DB::commit();
-
-            // Send email to provider
-            // Mail::to($appointment->provider->email)->queue(new NewBookingMail($appointment->load('services')));
-
+            
             $appointment->provider->notify(new NewAppoinmentBookedNotification($appointment));
 
             return redirect()->route('client.bookings.show', $appointment->id)
@@ -528,8 +528,12 @@ class AppointmentController extends Controller
             ->where('status', '!=', 'cancelled')
             ->findOrFail($id);
 
+        if ($appointment->start_time->isPast()) {
+            return back()->with('error-toast', 'This appointment has already started or passed and can no longer be cancelled.');
+        }
+
         $hoursUntilAppointment = Carbon::now()->diffInHours($appointment->start_time, false);
-        $isLateCancellation = $hoursUntilAppointment < 5 && $hoursUntilAppointment > 0;
+        $isLateCancellation = $hoursUntilAppointment < self::APPOINTMENT_CHANGE_CUTOFF_HOURS && $hoursUntilAppointment > 0;
 
         try {
             DB::beginTransaction();
@@ -563,7 +567,7 @@ class AppointmentController extends Controller
             Mail::to($appointment->provider->email)->queue(new AppointmentCancelledMail($appointment, 'client'));
 
             $message = $isLateCancellation && $appointment->escrow_status === 'forfeited'
-                ? 'Appointment cancelled. Because you cancelled less than 5 hours before the appointment, a 10% late cancellation fee was applied. The remainder has been refunded to your wallet.'
+                ? 'Appointment cancelled. Because you cancelled less than ' . self::APPOINTMENT_CHANGE_CUTOFF_HOURS . ' hours before the appointment, a ' . self::LATE_CANCELLATION_PENALTY_PERCENT . '% late cancellation fee was applied. The remainder has been refunded to your wallet.'
                 : 'Appointment cancelled successfully. Your refund has been processed.';
 
             return back()->with('success-toast', $message);
@@ -629,8 +633,8 @@ class AppointmentController extends Controller
         if ($appointment->escrow_status === 'held' && $appointment->escrow_amount > 0) {
             $clientWallet = Wallet::firstOrCreate(['user_id' => auth()->id()]);
 
-            // System policy: 10% forfeited if cancelled less than 5 hours before
-            $cancellationPenaltyPercent = 10;
+            // System policy: 10% forfeited if cancelled within the cutoff window
+            $cancellationPenaltyPercent = self::LATE_CANCELLATION_PENALTY_PERCENT;
 
             if ($isLateCancellation && $cancellationPenaltyPercent > 0) {
                 // Apply penalty: forfeit percentage to provider, refund rest
@@ -731,12 +735,12 @@ class AppointmentController extends Controller
             ->with(['provider.businessProfile', 'services'])
             ->findOrFail($id);
 
-        // Only allow editing for future appointments and at least 5 hours before start
+        // Only allow editing for future appointments and at least the cutoff window before start
         $hoursUntilStart = Carbon::now()->diffInHours($appointment->start_time, false);
-        if ($hoursUntilStart < 5 || $appointment->start_time->isPast()) {
+        if ($hoursUntilStart < self::APPOINTMENT_CHANGE_CUTOFF_HOURS || $appointment->start_time->isPast()) {
             return redirect()
                 ->route('client.bookings.show', $appointment->id)
-                ->with('error-toast', 'You can only edit this appointment up to 5 hours before it starts.');
+                ->with('error-toast', 'You can only edit this appointment up to ' . self::APPOINTMENT_CHANGE_CUTOFF_HOURS . ' hours before it starts.');
         }
 
         $provider = $appointment->provider;

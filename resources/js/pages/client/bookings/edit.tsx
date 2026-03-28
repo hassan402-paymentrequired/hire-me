@@ -287,7 +287,7 @@ export default function EditAppointment() {
                             </h1>
                             <p className="text-sm text-muted-foreground">
                                 Adjust your services or time. Updates are only
-                                allowed up to 5 hours before the original start
+                                allowed up to 12 hours before the original start
                                 time.
                             </p>
                         </div>

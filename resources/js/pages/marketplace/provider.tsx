@@ -1,4 +1,5 @@
 import { ReviewSection } from '@/components/reviews/review-section';
+import KeenIcon from '@/components/keen-icon';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import GuestLayout from '@/layouts/guest-layout';
@@ -14,9 +15,7 @@ import {
 } from '@heroicons/react/24/solid';
 import { Link, router } from '@inertiajs/react';
 import {
-    Award,
     Calendar,
-    CheckCircle2,
     ChevronLeft,
     ChevronRight,
     Heart,
@@ -238,6 +237,16 @@ export default function ProviderProfile({
             (prev) => (prev - 1 + allImages.length) % allImages.length,
         );
 
+    useEffect(() => {
+        if (allImages.length <= 1) return;
+
+        const interval = window.setInterval(() => {
+            setCurrentSlide((prev) => (prev + 1) % allImages.length);
+        }, 4000);
+
+        return () => window.clearInterval(interval);
+    }, [allImages.length]);
+
     const getDirections = () => {
         window.open(
             `https://www.google.com/maps/dir/?api=1&destination=${provider.latitude},${provider.longitude}`,
@@ -273,6 +282,32 @@ export default function ProviderProfile({
         (todayHours?.hours?.length
             ? isWithinHours(now, todayHours.hours)
             : true);
+    const quickStats = [
+        {
+            label: 'Rating',
+            value: (provider.rating ?? 0).toFixed(1),
+            icon: 'verify',
+            accent: 'text-amber-500',
+        },
+        {
+            label: 'Reviews',
+            value: String(provider.reviews_count || 0),
+            icon: 'receipt-square',
+            accent: 'text-sky-500',
+        },
+        {
+            label: 'Services',
+            value: String(services.length),
+            icon: 'book-square',
+            accent: 'text-emerald-500',
+        },
+        {
+            label: 'Team',
+            value: String(provider.team_members_count ?? 1),
+            icon: 'people',
+            accent: 'text-violet-500',
+        },
+    ];
 
     const handleFavourite = () => {
         const newState = !isFavorite;
@@ -468,7 +503,7 @@ export default function ProviderProfile({
                                             <Button
                                                 size="lg"
                                                 variant="outline"
-                                                className="h-12 border-white/30 bg-white/10 px-6 text-base text-white shadow-xl backdrop-blur-md transition-all hover:scale-105 hover:bg-white/20 hover:text-white hover:shadow-2xl lg:h-14 lg:px-8 lg:text-lg"
+                                                className="h-12 border-white/25 bg-white/10 px-5 text-base text-white shadow-xl backdrop-blur-md transition-all hover:bg-white/15 hover:text-white lg:h-14 lg:px-6 lg:text-lg"
                                             >
                                                 <ImageIcon className="mr-2 h-4 w-4 lg:h-5 lg:w-5" />
                                                 View Gallery
@@ -480,7 +515,7 @@ export default function ProviderProfile({
                                         >
                                             <Button
                                                 size="lg"
-                                                className="h-12 px-6 text-base shadow-xl transition-all hover:scale-105 hover:shadow-2xl lg:h-14 lg:px-8 lg:text-lg"
+                                                className="h-12 px-6 text-base shadow-xl transition-all hover:shadow-2xl lg:h-14 lg:px-8 lg:text-lg"
                                             >
                                                 <Calendar className="mr-2 h-4 w-4 lg:h-5 lg:w-5" />
                                                 Book Appointment
@@ -682,42 +717,35 @@ export default function ProviderProfile({
 
                             {/* Quick Stats */}
                             <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-6 sm:grid-cols-4 sm:gap-4">
-                                <div className="rounded-lg border bg-card p-3 text-center sm:p-4">
-                                    <Award className="mx-auto mb-1.5 h-5 w-5 text-primary sm:mb-2 sm:h-6 sm:w-6" />
-                                    <p className="text-xl font-bold sm:text-2xl">
-                                        {(provider.rating ?? 0).toFixed(1)}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        Rating
-                                    </p>
-                                </div>
-                                <div className="rounded-lg border bg-card p-3 text-center sm:p-4">
-                                    <Star className="mx-auto mb-1.5 h-5 w-5 text-primary sm:mb-2 sm:h-6 sm:w-6" />
-                                    <p className="text-xl font-bold sm:text-2xl">
-                                        {provider.reviews_count || 0}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        Reviews
-                                    </p>
-                                </div>
-                                <div className="rounded-lg border bg-card p-3 text-center sm:p-4">
-                                    <CheckCircle2 className="mx-auto mb-1.5 h-5 w-5 text-primary sm:mb-2 sm:h-6 sm:w-6" />
-                                    <p className="text-xl font-bold sm:text-2xl">
-                                        {services.length}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        Services
-                                    </p>
-                                </div>
-                                <div className="rounded-lg border bg-card p-3 text-center sm:p-4">
-                                    <Users className="mx-auto mb-1.5 h-5 w-5 text-primary sm:mb-2 sm:h-6 sm:w-6" />
-                                    <p className="text-xl font-bold sm:text-2xl">
-                                        {provider.team_members_count ?? 1}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        Team Members
-                                    </p>
-                                </div>
+                                {quickStats.map((stat) => (
+                                    <div
+                                        key={stat.label}
+                                        className="rounded-2xl border border-border/70 bg-card/70 p-3 sm:p-4"
+                                    >
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                                    {stat.label}
+                                                </p>
+                                                {stat.label === 'Rating' ? (
+                                                    <div className="mt-3 flex items-center gap-2">
+                                                        <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
+                                                        <p className="text-2xl font-semibold text-foreground sm:text-3xl">
+                                                            {stat.value}
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    <p className="mt-3 text-2xl font-semibold text-foreground sm:text-3xl">
+                                                        {stat.value}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <div className={`flex h-10 w-10 items-center justify-center rounded-2xl bg-muted/50 ${stat.accent}`}>
+                                                <KeenIcon name={stat.icon} className="text-base" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </section>
 
@@ -744,38 +772,33 @@ export default function ProviderProfile({
                                             onClick={() =>
                                                 setSelectedService(service)
                                             }
-                                            className="group w-full cursor-pointer rounded-lg border bg-card p-3 text-left transition-all hover:border-primary/50 hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none active:scale-[0.99] sm:p-4"
+                                            className="group w-full cursor-pointer rounded-xl border border-border/70 bg-card p-3 text-left transition-all hover:border-primary/50 hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none active:scale-[0.99] sm:p-4"
                                         >
-                                            <div className="flex items-start justify-between gap-3">
-                                                {/* Number + details */}
+                                            <div className="flex items-start justify-between gap-4">
                                                 <div className="flex min-w-0 flex-1 items-start gap-3">
                                                     <span className="flex-shrink-0 text-2xl leading-none font-bold text-neutral-300 transition-colors group-hover:text-primary/30 sm:text-4xl">
                                                         {index + 1}
                                                     </span>
                                                     <div className="min-w-0 flex-1 space-y-0.5">
-                                                        <h3 className="line-clamp-1 text-base leading-relaxed font-bold capitalize transition-colors group-hover:text-primary sm:text-xl">
+                                                        <h3 className="line-clamp-1 text-base leading-relaxed font-bold capitalize transition-colors group-hover:text-primary sm:text-lg">
                                                             {service.name}
                                                         </h3>
                                                         {service.description && (
-                                                            <p className="line-clamp-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                                                            <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground sm:text-sm">
                                                                 {
                                                                     service.description
                                                                 }
                                                             </p>
                                                         )}
-                                                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground sm:text-sm">
-                                                            <ClockIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                                                            <span className="font-medium">
-                                                                {
-                                                                    service.duration_minutes
-                                                                }{' '}
-                                                                min
+                                                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                                                            <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground sm:text-xs">
+                                                                <ClockIcon className="h-3.5 w-3.5" />
+                                                                {service.duration_minutes} mins
                                                             </span>
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                {/* Price */}
                                                 <div className="flex-shrink-0 text-right">
                                                     <p className="mb-0.5 text-xs text-muted-foreground">
                                                         Price
@@ -785,9 +808,6 @@ export default function ProviderProfile({
                                                         {(
                                                             service.price || 0
                                                         ).toLocaleString()}
-                                                    </p>
-                                                    <p className="invisible mt-1 hidden text-xs text-primary/60 group-hover:visible sm:block">
-                                                        Tap to view →
                                                     </p>
                                                 </div>
                                             </div>

@@ -12,6 +12,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import KeenIcon from '@/components/keen-icon';
 import GuestLayout from '@/layouts/guest-layout';
 import { cn } from '@/lib/utils';
 import { Head, router } from '@inertiajs/react';
@@ -217,6 +218,24 @@ export default function Booking({
     const discountPercent = recurrencePattern ? 10 : 0;
     const discountAmount = originalPrice * (discountPercent / 100);
     const totalPrice = originalPrice - discountAmount;
+    const bookingPolicyItems = [
+        providerSettings.minNotice
+            ? `Minimum ${providerSettings.minNotice} hour notice`
+            : null,
+        !providerSettings.allowSameDay
+            ? 'No same-day bookings'
+            : 'Same-day bookings available',
+        providerSettings.allowOffHoursRequests
+            ? 'Off-hours requests allowed'
+            : null,
+        providerSettings.max_bookings_per_week
+            ? `Up to ${providerSettings.max_bookings_per_week} booking${Number(providerSettings.max_bookings_per_week) > 1 ? 's' : ''} weekly`
+            : null,
+        providerSettings.max_bookings_per_month
+            ? `Up to ${providerSettings.max_bookings_per_month} booking${Number(providerSettings.max_bookings_per_month) > 1 ? 's' : ''} monthly`
+            : null,
+        supportsOfflineBooking ? 'Pay later option available' : null,
+    ].filter(Boolean) as string[];
 
     const categorizedSlots = useMemo(() => {
         const categories = {
@@ -337,76 +356,99 @@ export default function Booking({
             <div className="mx-auto min-h-screen max-w-6xl bg-background pb-20">
                 <div className="mx-auto max-w-7xl px-4 py-8">
                     {/* Header */}
-                    <div className="mb-4 flex items-center gap-4">
-                        <div>
-                            <h1 className="text-base font-bold tracking-tight sm:text-2xl">
-                                Confirm your appointment
-                            </h1>
-                            <p className="text-sm text-muted-foreground">
-                                Choose your preferred services and time
-                            </p>
+                    <div className="relative mb-6 overflow-hidden rounded-3xl border border-border/70 bg-background px-5 py-5 sm:px-7 sm:py-6">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.10),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.08),transparent_28%)]" />
+                        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                            <div className="space-y-4">
+                                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                                    <KeenIcon name="book-square" className="text-sm" />
+                                    Booking flow
+                                </div>
+                                <div className="flex items-start gap-4">
+                                    <Avatar className="h-14 w-14 rounded-2xl border border-border/70">
+                                        <AvatarImage
+                                            src={provider.logo || undefined}
+                                            alt={provider.businessName}
+                                        />
+                                        <AvatarFallback className="rounded-2xl">
+                                            {provider.businessName
+                                                .split(' ')
+                                                .map((part) => part[0])
+                                                .join('')
+                                                .slice(0, 2)
+                                                .toUpperCase()}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="space-y-1.5">
+                                        <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                                            Confirm your appointment
+                                        </h1>
+                                        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                                            <span className="font-medium text-foreground">
+                                                {provider.businessName}
+                                            </span>
+                                            {provider.isVerified && <VerifiedProviderBadge />}
+                                            <span className="hidden sm:inline">•</span>
+                                            <span>{provider.address}</span>
+                                        </div>
+                                        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+                                            Choose the service, team member, and time that fits best. We’ll keep the next steps clear as you go.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 sm:min-w-[280px]">
+                                <div className="rounded-2xl border border-border/70 bg-background/90 p-4 backdrop-blur-sm">
+                                    <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                        Services
+                                    </div>
+                                    <div className="mt-2 text-2xl font-semibold text-foreground">
+                                        {selectedServiceIds.length}
+                                    </div>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        {selectedServiceIds.length > 0
+                                            ? 'Selected for this booking'
+                                            : 'Choose at least one service'}
+                                    </p>
+                                </div>
+                                <div className="rounded-2xl border border-border/70 bg-background/90 p-4 backdrop-blur-sm">
+                                    <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                        Payment
+                                    </div>
+                                    <div className="mt-2 text-lg font-semibold text-foreground">
+                                        {paymentOption === 'online'
+                                            ? 'Online now'
+                                            : 'Pay later'}
+                                    </div>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        {paymentOption === 'online'
+                                            ? 'Held securely until completion'
+                                            : 'Sent as a pending request'}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     {/* Provider Settings Info */}
-                        {(providerSettings.minNotice ||
-                            !providerSettings.allowSameDay ||
-                            providerSettings.allowOffHoursRequests ||
-                            providerSettings.max_bookings_per_week ||
-                            providerSettings.max_bookings_per_month) && (
-                            <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:bg-blue-950/20">
-                                <p className="mb-2 text-xs font-medium text-blue-900 dark:text-blue-100">
-                                    Provider Booking Policies:
-                                </p>
-                                <ul className="space-y-1 text-xs text-blue-800 dark:text-blue-200">
-                                {providerSettings.minNotice && (
-                                    <li>
-                                        • Minimum notice:{' '}
-                                        {providerSettings.minNotice} hours
-                                    </li>
-                                )}
-                                    {!providerSettings.allowSameDay && (
-                                        <li>• Same-day bookings are not allowed (book tomorrow upward) </li>
-                                    )}
-                                    {providerSettings.allowOffHoursRequests && (
-                                        <li>
-                                            • Off-hours requests are allowed (requires provider confirmation)
-                                        </li>
-                                    )}
-                                    {providerSettings.max_bookings_per_week && (
-                                        <li>
-                                            • Maximum{' '}
-                                            {providerSettings.max_bookings_per_week}{' '}
-                                            booking
-                                        {Number(
-                                            providerSettings.max_bookings_per_week,
-                                        ) > 1
-                                            ? 's'
-                                            : ''}{' '}
-                                        per week
-                                    </li>
-                                )}
-                                {providerSettings.max_bookings_per_month && (
-                                    <li>
-                                        • Maximum{' '}
-                                        {
-                                            providerSettings.max_bookings_per_month
-                                        }{' '}
-                                        booking
-                                        {Number(
-                                            providerSettings.max_bookings_per_month,
-                                        ) > 1
-                                            ? 's'
-                                            : ''}{' '}
-                                        per month
-                                    </li>
-                                )}
-                                {supportsOfflineBooking && (
-                                    <li>
-                                        • You can also send a booking request without paying upfront
-                                    </li>
-                                )}
-                            </ul>
+                    {bookingPolicyItems.length > 0 && (
+                        <div className="mb-8 space-y-3">
+                            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                                <KeenIcon name="information" className="text-sm text-muted-foreground" />
+                                Booking policies
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {bookingPolicyItems.map((policy) => (
+                                    <div
+                                        key={policy}
+                                        className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground"
+                                    >
+                                        <KeenIcon name="status" className="text-[11px]" />
+                                        {policy}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
 
@@ -635,7 +677,7 @@ export default function Booking({
                             {/* Services Selection */}
                             <div className="space-y-6">
                                 <h3 className="text-xl font-black tracking-tight">
-                                    Select services you'll like to book
+                                    Select services to book
                                 </h3>
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                     {services.map((s) => (
@@ -758,7 +800,7 @@ export default function Booking({
                                                     setSelectedSlot('');
                                                 }}
                                                 className={cn(
-                                                    'rounded-sm border p-4 text-left transition-all',
+                                                    'rounded-xl border p-4 text-left transition-all',
                                                     selectedTeamMemberId ===
                                                         member.id
                                                         ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
@@ -766,7 +808,7 @@ export default function Booking({
                                                 )}
                                             >
                                                 <div className="mb-3 flex items-center gap-3">
-                                                    <Avatar className={cn("h-12 w-12", selectedTeamMemberId === member.id && "border-grey-300 shadow border-2")}>
+                                                    <Avatar className={cn("h-12 w-12", selectedTeamMemberId === member.id && "border-grey-300 border-2")}>
                                                         <AvatarImage
                                                             src={member.avatar || undefined}
                                                             alt={member.name}
@@ -966,15 +1008,18 @@ export default function Booking({
                         </div>
 
                         {/* Right Content: Sidebar Summary */}
-                        <div className="order-first border lg:sticky lg:top-8 lg:order-last">
-                            <div className="flex flex-col overflow-hidden rounded bg-card">
-                                <div className="border-b bg-muted/5 p-4">
+                        <div className="order-last lg:sticky lg:top-8 lg:order-last">
+                            <div className="flex flex-col overflow-hidden rounded-3xl border border-border/70 bg-card">
+                                <div className="border-b bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.08),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.06),transparent_28%)] p-5">
                                     <h2 className="text-center text-xl font-black tracking-tight sm:text-left sm:text-2xl">
                                         Booking Summary
                                     </h2>
+                                    <p className="mt-1 text-center text-sm text-muted-foreground sm:text-left">
+                                        Review the essentials before you confirm this booking.
+                                    </p>
                                 </div>
 
-                                <div className="space-y-4 p-4">
+                                <div className="space-y-5 p-5">
                                     <div className="space-y-4 divide-y divide-dashed border-dashed border-muted">
                                         {selectedServices.map((s) => (
                                             <div
@@ -1002,10 +1047,10 @@ export default function Booking({
                                     <div className="border-t-2 border-dashed border-muted" />
 
                                     {/* Details Grid */}
-                                    <div className="space-y-3">
+                                    <div className="space-y-3 rounded-2xl border border-border/70 bg-muted/20 p-4">
 	                                        <div className="flex items-center justify-between">
 	                                            <span className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-	                                                <CheckCircle2 className="size-4 text-primary" />{' '}
+                                                    <KeenIcon name="profile-circle" className="text-sm text-primary" />
 	                                                Professional
 	                                            </span>
 	                                            <span className="text-sm font-black">
@@ -1019,7 +1064,7 @@ export default function Booking({
 	                                        </div>
                                         <div className="flex items-center justify-between">
                                             <span className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-                                                <CheckCircle2 className="size-4 text-primary" />{' '}
+                                                <KeenIcon name="book-square" className="text-sm text-primary" />
                                                 Date
                                             </span>
                                             <span className="text-sm font-black">
@@ -1031,7 +1076,7 @@ export default function Booking({
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <span className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-                                                <CheckCircle2 className="size-4 text-primary" />{' '}
+                                                <KeenIcon name="status" className="text-sm text-primary" />
                                                 Time
                                             </span>
                                             <span className="text-sm font-black">
@@ -1050,7 +1095,7 @@ export default function Booking({
                                     <div className="border-t-2 border-dashed border-muted" />
 
                                     {(supportsOnlinePayment || supportsOfflineBooking) && (
-                                        <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
+                                        <div className="space-y-3 rounded-2xl border border-border/70 bg-muted/20 p-4">
                                             <div>
                                                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                                                     Payment option
@@ -1080,7 +1125,7 @@ export default function Booking({
                                                                     Payment is held securely and released only after service completion is confirmed.
                                                                 </p>
                                                             </div>
-                                                            <CheckCircle2 className={cn('size-4', paymentOption === 'online' ? 'text-primary' : 'text-muted-foreground/40')} />
+                                                            <KeenIcon name="verify" className={cn('text-sm', paymentOption === 'online' ? 'text-primary' : 'text-muted-foreground/40')} />
                                                         </div>
                                                     </button>
                                                 )}
@@ -1104,7 +1149,7 @@ export default function Booking({
                                                                     This sends a pending request to the provider without charging your wallet now.
                                                                 </p>
                                                             </div>
-                                                            <CheckCircle2 className={cn('size-4', paymentOption === 'offline' ? 'text-primary' : 'text-muted-foreground/40')} />
+                                                            <KeenIcon name="verify" className={cn('text-sm', paymentOption === 'offline' ? 'text-primary' : 'text-muted-foreground/40')} />
                                                         </div>
                                                     </button>
                                                 )}
@@ -1116,7 +1161,7 @@ export default function Booking({
                                     {paymentOption === 'online' &&
                                         walletBalance !== null &&
                                         walletBalance !== undefined && (
-                                            <div className="rounded-lg border border-border bg-muted/30 p-3">
+                                            <div className="rounded-2xl border border-border bg-muted/30 p-4">
                                                 <div className="mb-1 flex items-center justify-between text-sm">
                                                     <span className="text-muted-foreground">
                                                         Your Wallet Balance
@@ -1176,7 +1221,7 @@ export default function Booking({
                                     )}
 
                                     {/* Final Price */}
-                                    <div className="space-y-4">
+                                    <div className="space-y-4 rounded-2xl border border-border/70 bg-background p-4">
                                         <div className="flex items-center justify-between">
                                             <span className="text-base">
                                                 Total

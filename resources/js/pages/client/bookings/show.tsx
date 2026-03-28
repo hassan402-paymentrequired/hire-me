@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ReviewSection } from '@/components/reviews/review-section';
+import KeenIcon from '@/components/keen-icon';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -115,6 +116,8 @@ export default function BookingDetails({
     booking: Booking;
     hasFutureRecurrences?: boolean;
 }) {
+    const appointmentChangeCutoffHours = 12;
+    const lateCancellationPenaltyPercent = 10;
     const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [rating, setRating] = useState(5);
@@ -125,15 +128,17 @@ export default function BookingDetails({
 
     const startTime = new Date(booking.start_time);
     const now = new Date();
-    const fiveHoursFromNow = new Date(now.getTime() + 5 * 60 * 60 * 1000);
-    const isLateCancellation = startTime > now && startTime <= fiveHoursFromNow;
+    const cutoffTimeFromNow = new Date(
+        now.getTime() + appointmentChangeCutoffHours * 60 * 60 * 1000,
+    );
+    const isLateCancellation = startTime > now && startTime <= cutoffTimeFromNow;
     const canCancel =
         startTime > now &&
         booking.status !== 'cancelled' &&
         booking.status !== 'completed';
     const canReschedule =
        ( booking.status === 'confirmed' || booking.status === 'pending') &&
-        startTime > fiveHoursFromNow;
+        startTime > cutoffTimeFromNow;
 
     // Calculate total duration from all services
     const totalDuration =
@@ -160,7 +165,7 @@ export default function BookingDetails({
         if (!canCancel) return;
 
         const confirmMsg = isLateCancellation
-            ? 'Cancelling less than 5 hours before your appointment will result in a 10% late cancellation fee. The rest will be refunded. Continue?'
+            ? `Cancelling less than ${appointmentChangeCutoffHours} hours before your appointment will result in a ${lateCancellationPenaltyPercent}% late cancellation fee. The rest will be refunded. Continue?`
             : 'Are you sure you want to cancel this booking? You will receive a full refund.';
 
         if (confirm(confirmMsg)) {
@@ -260,29 +265,69 @@ export default function BookingDetails({
             <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
                 {/* Header */}
                 <div className="mb-8">
-                    <div className="flex items-start justify-between gap-4">
-                        <div>
-                            <h1 className="mb-2 text-3xl font-bold tracking-tight">
-                                Booking Details
-                            </h1>
-                            <p className="text-muted-foreground">
-                                Booking ID:{' '}
-                                <span className="font-mono text-sm">
-                                    {booking.id}
-                                </span>
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Badge variant={booking.payment_method === 'offline' ? 'secondary' : 'outline'}>
-                                {paymentStateLabel}
-                            </Badge>
-                            <Badge
-                                variant={getStatusVariant(booking.status)}
-                                className="flex items-center gap-2 px-4 py-1.5 text-sm"
-                            >
-                                {getStatusIcon(booking.status)}
-                                {formatStatus(booking.status)}
-                            </Badge>
+                    <div className="relative overflow-hidden rounded-3xl border border-border/70 bg-background px-5 py-5 sm:px-7 sm:py-6">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.10),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.08),transparent_28%)]" />
+                        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                            <div className="space-y-4">
+                                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                                    <KeenIcon name="book-square" className="text-sm" />
+                                    Your booking
+                                </div>
+                                <div className="space-y-2">
+                                    <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                                        Booking Details
+                                    </h1>
+                                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                                        <span className="font-medium text-foreground">
+                                            {booking.provider.business_profile.business_name}
+                                        </span>
+                                        <span className="hidden sm:inline">•</span>
+                                        <span className="font-mono text-xs sm:text-sm">
+                                            {booking.id}
+                                        </span>
+                                    </div>
+                                    <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+                                        Track your appointment, manage changes, and keep an eye on payment and completion status from one place.
+                                    </p>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <Badge variant={booking.payment_method === 'offline' ? 'secondary' : 'outline'}>
+                                        {paymentStateLabel}
+                                    </Badge>
+                                    <Badge
+                                        variant={getStatusVariant(booking.status)}
+                                        className="flex items-center gap-2 px-4 py-1.5 text-sm"
+                                    >
+                                        {getStatusIcon(booking.status)}
+                                        {formatStatus(booking.status)}
+                                    </Badge>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 sm:min-w-[320px]">
+                                <div className="rounded-2xl border border-border/70 bg-background/90 p-4 backdrop-blur-sm">
+                                    <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                        Date
+                                    </div>
+                                    <div className="mt-2 text-base font-semibold text-foreground">
+                                        {formatDate(booking.start_time)}
+                                    </div>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        {formatTime(booking.start_time)}
+                                    </p>
+                                </div>
+                                <div className="rounded-2xl border border-border/70 bg-background/90 p-4 backdrop-blur-sm">
+                                    <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                        Total
+                                    </div>
+                                    <div className="mt-2 text-base font-semibold text-foreground">
+                                        {formatPrice(booking.price)}
+                                    </div>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        {totalDuration} minutes
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -291,23 +336,35 @@ export default function BookingDetails({
                     {/* Main Content - Left Side */}
                     <div className="space-y-6 lg:col-span-2">
                         {/* Service & Provider Card */}
-                        <Card>
+                        <Card className="overflow-hidden border-border/70">
                             <CardHeader>
                                 <div className="flex items-start justify-between gap-4">
                                     <div className="flex flex-1 items-start gap-4">
                                         <div className="min-w-0 flex-1">
-                                            <h2 className="truncate text-2xl font-bold">
+                                            <h2 className="truncate text-2xl font-bold tracking-tight">
                                                 {booking.provider
                                                     .business_profile
                                                     .business_name ||
                                                     'Business Name'}
                                             </h2>
-                                            <p className="mb-2 text-muted-foreground">
+                                            <p className="mb-3 text-muted-foreground">
                                                 by{' '}
                                                 <span className="font-semibold text-foreground">
                                                     {booking.provider?.name}
                                                 </span>
                                             </p>
+                                            <div className="flex flex-wrap gap-2">
+                                                <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted/20 px-3 py-1 text-xs text-muted-foreground">
+                                                    <KeenIcon name="book-square" className="text-sm" />
+                                                    {booking.services?.length || 1} service{(booking.services?.length || 1) > 1 ? 's' : ''}
+                                                </div>
+                                                {booking.team_member?.user && (
+                                                    <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted/20 px-3 py-1 text-xs text-muted-foreground">
+                                                        <KeenIcon name="people" className="text-sm" />
+                                                        {booking.team_member.user.name}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
 
@@ -400,7 +457,7 @@ export default function BookingDetails({
                         </Card>
 
                         {/* Appointment Details Card */}
-                        <Card>
+                        <Card className="border-border/70">
                             <CardHeader>
                                 <CardTitle>Appointment Details</CardTitle>
                             </CardHeader>
@@ -563,22 +620,32 @@ export default function BookingDetails({
 
                         {/* Payment Status Card */}
                         {(booking.escrow_status || booking.payment_method === 'offline') && (
-                            <Card>
+                            <Card className="border-border/70">
                                 <CardHeader>
                                     <CardTitle className="text-base">
-                                        Payment Status
+                                        Payment & Release
                                     </CardTitle>
                                 </CardHeader>
                                 <Separator />
-                                <CardContent className="space-y-2 pt-4 text-sm">
-                                    <p className="font-medium capitalize">
-                                        {booking.payment_method === 'offline'
-                                            ? 'unpaid'
-                                            : booking.escrow_status?.replace(
-                                                  '_',
-                                                  ' ',
-                                              )}
-                                    </p>
+                                <CardContent className="space-y-4 pt-4 text-sm">
+                                    <div className="flex items-center justify-between rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
+                                        <div>
+                                            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                                Payment state
+                                            </p>
+                                            <p className="mt-1 font-medium capitalize text-foreground">
+                                                {booking.payment_method === 'offline'
+                                                    ? 'unpaid'
+                                                    : booking.escrow_status?.replace(
+                                                          '_',
+                                                          ' ',
+                                                      )}
+                                            </p>
+                                        </div>
+                                        <Badge variant={booking.payment_method === 'offline' ? 'secondary' : 'outline'}>
+                                            {paymentStateLabel}
+                                        </Badge>
+                                    </div>
                                     {booking.payment_method === 'offline' ? (
                                         <p className="text-xs text-muted-foreground">
                                             This booking was sent without upfront payment. The provider still needs to review and confirm it.
@@ -621,7 +688,7 @@ export default function BookingDetails({
 
                         {/* Reviews Section - Only show for completed bookings */}
                         {booking.status === 'completed' && (
-                            <Card>
+                            <Card className="border-border/70">
                                 <CardHeader>
                                     <CardTitle>Your Review</CardTitle>
                                 </CardHeader>
@@ -645,7 +712,7 @@ export default function BookingDetails({
                         {/* Actions Card */}
                         {booking.status !== 'cancelled' &&
                             booking.status !== 'completed' && (
-                                <Card>
+                                <Card className="border-border/70">
                                     <CardHeader>
                                         <div className="flex flex-col gap-2">
                                             <CardTitle className="text-base">
@@ -653,8 +720,10 @@ export default function BookingDetails({
                                             </CardTitle>
                                             <div className="flex w-fit items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-bold tracking-tight text-amber-600 uppercase">
                                                 <AlertCircle className="h-3 w-3" />
-                                                Late cancellation (within 5h):
-                                                10% fee applies
+                                                <span>
+                                                    Late cancellation (within {appointmentChangeCutoffHours}h):{' '}
+                                                    {lateCancellationPenaltyPercent}% fee applies
+                                                </span>
                                             </div>
                                             <p className="text-[11px] text-muted-foreground">
                                                 After the appointment ends, you
@@ -816,7 +885,7 @@ export default function BookingDetails({
                                             </Dialog>
                                         )}
 
-                                        {/* Reschedule - Only for confirmed bookings and at least 5 hours before start */}
+                                        {/* Reschedule - Only for confirmed bookings and at least the cutoff window before start */}
                                         {canReschedule && (
                                             <Button
                                                 variant="outline"
@@ -1020,7 +1089,7 @@ export default function BookingDetails({
                             )}
 
                         {/* Contact Information Card */}
-                        <Card>
+                        <Card className="border-border/70">
                             <CardHeader>
                                 <CardTitle className="text-base">
                                     Contact Information
@@ -1089,7 +1158,7 @@ export default function BookingDetails({
                         </Card>
 
                         {/* Booking Info Card */}
-                        <Card>
+                        <Card className="border-border/70">
                             <CardHeader>
                                 <CardTitle className="text-base">
                                     Booking Information

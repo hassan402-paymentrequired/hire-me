@@ -3,6 +3,7 @@ import { useForm, Head } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
 
 import InputError from '@/components/input-error';
+import KeenIcon from '@/components/keen-icon';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -107,42 +108,55 @@ export default function Register({
                 <div className="grid gap-4 sm:gap-5">
                     <div className="grid gap-1.5">
                         <Label htmlFor="name" className="text-sm font-medium">Name</Label>
-                        <Input
-                            id="name"
-                            type="text"
-                            required
-                            autoFocus
-                            tabIndex={1}
-                            autoComplete="name"
-                            name="name"
-                            placeholder="Full name"
-                            value={data.name}
-                            onChange={(e) => setData('name', e.target.value)}
-                            className="h-10"
-                        />
+                        <div className="relative">
+                            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-muted-foreground">
+                                <KeenIcon name="profile-circle" className="text-sm" />
+                            </div>
+                            <Input
+                                id="name"
+                                type="text"
+                                required
+                                autoFocus
+                                tabIndex={1}
+                                autoComplete="name"
+                                name="name"
+                                placeholder="Full name"
+                                value={data.name}
+                                onChange={(e) => setData('name', e.target.value)}
+                                className="h-10 pl-10"
+                            />
+                        </div>
                         <InputError message={errors.name} />
                     </div>
 
                     <div className="grid gap-1.5">
                         <Label htmlFor="email" className="text-sm font-medium">Email address</Label>
-                        <Input
-                            id="email"
-                            type="email"
-                            required
-                            tabIndex={2}
-                            autoComplete="email"
-                            name="email"
-                            placeholder="email@example.com"
-                            value={data.email}
-                            onChange={(e) => setData('email', e.target.value)}
-                            className="h-10"
-                        />
+                        <div className="relative">
+                            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-muted-foreground">
+                                <KeenIcon name="text-circle" className="text-sm" />
+                            </div>
+                            <Input
+                                id="email"
+                                type="email"
+                                required
+                                tabIndex={2}
+                                autoComplete="email"
+                                name="email"
+                                placeholder="email@example.com"
+                                value={data.email}
+                                onChange={(e) => setData('email', e.target.value)}
+                                className="h-10 pl-10"
+                            />
+                        </div>
                         <InputError message={errors.email} />
                     </div>
 
                     <div className="grid gap-1.5">
                         <Label htmlFor="password" className="text-sm font-medium">Password</Label>
                         <div className="relative">
+                            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-muted-foreground">
+                                <KeenIcon name="verify" className="text-sm" />
+                            </div>
                             <Input
                                 id="password"
                                 type={showPassword ? "text" : "password"}
@@ -153,7 +167,7 @@ export default function Register({
                                 placeholder="Password"
                                 value={data.password}
                                 onChange={(e) => setData('password', e.target.value)}
-                                className="h-10 pr-10"
+                                className="h-10 pl-10 pr-10"
                             />
                             <button
                                 type="button"
@@ -185,6 +199,9 @@ export default function Register({
                             Confirm password
                         </Label>
                         <div className="relative">
+                            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-muted-foreground">
+                                <KeenIcon name="verify" className="text-sm" />
+                            </div>
                             <Input
                                 id="password_confirmation"
                                 type={showPasswordConfirmation ? "text" : "password"}
@@ -195,7 +212,7 @@ export default function Register({
                                 placeholder="Confirm password"
                                 value={data.password_confirmation}
                                 onChange={(e) => setData('password_confirmation', e.target.value)}
-                                className="h-10 pr-10"
+                                className="h-10 pl-10 pr-10"
                             />
                             <button
                                 type="button"

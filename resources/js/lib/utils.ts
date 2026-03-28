@@ -1,7 +1,7 @@
 import { InertiaLinkProps } from '@inertiajs/react';
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { differenceInHours, isToday, isTomorrow, format, parseISO } from 'date-fns';
+import { differenceInHours, isToday, isTomorrow, format, parseISO, isValid } from 'date-fns';
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -22,10 +22,17 @@ export function resolveUrl(url: NonNullable<InertiaLinkProps['href']>): string {
 
 // Format date nicely
 export function formatDate(dateString: string | Date): string {
-    // return dateString;
     if (!dateString) return 'Date TBA';
 
-    const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;
+    const parsedDate =
+        typeof dateString === 'string' ? parseISO(dateString) : dateString;
+    const fallbackDate =
+        typeof dateString === 'string' ? new Date(dateString) : dateString;
+    const date = isValid(parsedDate) ? parsedDate : fallbackDate;
+
+    if (!isValid(date)) {
+        return typeof dateString === 'string' ? dateString : 'Date TBA';
+    }
 
     if (isToday(date)) {
         return "Today";
@@ -40,7 +47,16 @@ export function formatDate(dateString: string | Date): string {
 export function formatTime(dateString: string | Date): string {
     if (!dateString) return 'Time TBA';
 
-    const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;
+    const parsedDate =
+        typeof dateString === 'string' ? parseISO(dateString) : dateString;
+    const fallbackDate =
+        typeof dateString === 'string' ? new Date(dateString) : dateString;
+    const date = isValid(parsedDate) ? parsedDate : fallbackDate;
+
+    if (!isValid(date)) {
+        return typeof dateString === 'string' ? dateString : 'Time TBA';
+    }
+
     return format(date, 'h:mm a');
 }
 

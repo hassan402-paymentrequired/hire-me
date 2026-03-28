@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import InputError from '@/components/input-error';
+import KeenIcon from '@/components/keen-icon';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -115,17 +116,22 @@ export default function Login({
                         <div className="grid gap-4 sm:gap-5">
                             <div className="grid gap-1.5">
                                 <Label htmlFor="email" className="text-sm font-medium">Email address</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    name="email"
-                                    required
-                                    autoFocus
-                                    tabIndex={1}
-                                    autoComplete="email"
-                                    placeholder="email@example.com"
-                                    className="h-10"
-                                />
+                                <div className="relative">
+                                    <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-muted-foreground">
+                                        <KeenIcon name="text" className="text-sm" />
+                                    </div>
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        name="email"
+                                        required
+                                        autoFocus
+                                        tabIndex={1}
+                                        autoComplete="email"
+                                        placeholder="email@example.com"
+                                        className="h-10 pl-10"
+                                    />
+                                </div>
                                 <InputError message={errors.email} />
                             </div>
 
@@ -143,6 +149,9 @@ export default function Login({
                                     )}
                                 </div>
                                 <div className="relative">
+                                    <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-muted-foreground">
+                                        <KeenIcon name="verify" className="text-sm" />
+                                    </div>
                                     <Input
                                         id="password"
                                         type={showPassword ? "text" : "password"}
@@ -151,7 +160,7 @@ export default function Login({
                                         tabIndex={2}
                                         autoComplete="current-password"
                                         placeholder="Password"
-                                        className="h-10 pr-10"
+                                        className="h-10 pl-10 pr-10"
                                     />
                                     <button
                                         type="button"
