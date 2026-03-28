@@ -8,9 +8,10 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import KeenIcon from '@/components/keen-icon';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -26,23 +27,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import business from '@/routes/business';
 import team from '@/routes/business/team';
 import { BreadcrumbItem } from '@/types';
-import {
-    ShieldCheckIcon,
-    UserIcon,
-    UsersIcon,
-} from '@heroicons/react/24/solid';
 import { Head, router, useForm } from '@inertiajs/react';
 import { Calendar, Copy, Edit2, Mail, Plus, Search, Trash2 } from 'lucide-react';
 import { useState, useRef } from 'react';
@@ -183,20 +172,70 @@ export default function TeamIndex({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Team Members" />
             <div className="space-y-6 p-4 font-heading">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight">
-                            Team Members
-                        </h1>
-                        <p className="text-muted-foreground">
-                            Manage your team members and their permissions
-                        </p>
+                <section className="overflow-hidden rounded-3xl border border-border/70 bg-background">
+                    <div className="relative">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.06),_transparent_24%),radial-gradient(circle_at_left,_rgba(16,185,129,0.06),_transparent_24%)]" />
+                        <div className="relative space-y-5 px-6 py-6 lg:px-8 lg:py-8">
+                            <div className="flex flex-wrap items-center gap-3">
+                                <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-foreground/70">
+                                    <KeenIcon name="people" className="text-sm text-sky-600 dark:text-sky-300" />
+                                    Team workspace
+                                </span>
+                                <span className="inline-flex rounded-full border border-border/70 bg-background px-3 py-1 text-xs font-medium text-muted-foreground">
+                                    {stats.total} members in your workspace
+                                </span>
+                            </div>
+
+                            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                                <div className="max-w-2xl space-y-2">
+                                    <h1 className="text-3xl font-semibold tracking-tight text-foreground lg:text-4xl">
+                                        Team Members
+                                    </h1>
+                                    <p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+                                        Manage who helps run the business, adjust access levels, and keep invitations moving without leaving this page.
+                                    </p>
+                                </div>
+                                <Button onClick={() => setInviteOptionsOpen(true)} className="rounded-full px-5">
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Add Team Member
+                                </Button>
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-3">
+                                <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
+                                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                        <KeenIcon name="people" className="text-sm text-sky-600 dark:text-sky-300" />
+                                        Team size
+                                    </div>
+                                    <p className="mt-3 text-3xl font-semibold text-foreground">{stats.total}</p>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        {stats.active ?? 0} active, {stats.deactivated ?? 0} inactive
+                                    </p>
+                                </div>
+                                <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
+                                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                        <KeenIcon name="verify" className="text-sm text-emerald-600 dark:text-emerald-300" />
+                                        Admin coverage
+                                    </div>
+                                    <p className="mt-3 text-3xl font-semibold text-foreground">{stats.admins ?? 0}</p>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        full access members
+                                    </p>
+                                </div>
+                                <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
+                                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                        <KeenIcon name="profile-user" className="text-sm text-violet-600 dark:text-violet-300" />
+                                        Staff capacity
+                                    </div>
+                                    <p className="mt-3 text-3xl font-semibold text-foreground">{stats.staffs ?? 0}</p>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        support members with limited access
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <Button onClick={() => setInviteOptionsOpen(true)}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Team Member
-                    </Button>
-                </div>
+                </section>
 
                 <Dialog
                     open={inviteOptionsOpen}
@@ -267,107 +306,64 @@ export default function TeamIndex({
                     </DialogContent>
                 </Dialog>
 
-                {/* Stats Cards */}
-                <div className="grid gap-4 md:grid-cols-3">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                                Total Members
-                            </CardTitle>
-                            <UsersIcon className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">
-                                {stats.total}
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                {stats.active ?? 0} active, {stats.deactivated ?? 0}{' '}
-                                deactivated
-                            </p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                                Admins
-                            </CardTitle>
-                            <ShieldCheckIcon className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">
-                                {stats.admins ?? 0}
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                Full access
-                            </p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                                Staff Members
-                            </CardTitle>
-                            <UserIcon className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">
-                                {stats.staffs ?? 0}
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                Limited access
-                            </p>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Active Members Table */}
-                <Card>
-                    <CardHeader className="pb-4">
+                <Card className="overflow-hidden rounded-3xl border border-border/70">
+                    <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
                         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                            {/* Search Section */}
-                            <div className="relative w-full md:w-80 border rounded-full p-2">
-                                <Search className="absolute  focus-within:outline-none outline-none focus:outline-none top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                <input
+                            <div>
+                                <CardTitle className="flex items-center gap-2">
+                                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/70 bg-background text-sky-600 dark:text-sky-300">
+                                        <KeenIcon name="people" className="text-base" />
+                                    </span>
+                                    Team Directory
+                                </CardTitle>
+                                <CardDescription className="mt-2">
+                                    Search team members, filter by role, and manage access without opening a separate page.
+                                </CardDescription>
+                            </div>
+
+                            <div className="flex w-full flex-col gap-3 md:w-auto md:flex-row">
+                                <div className="relative w-full md:w-80">
+                                    <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                    <Input
                                     placeholder="Search team member..."
-                                    className="pl-9"
+                                    className="rounded-full pl-9"
                                     value={search}
                                     onChange={(e) => handleSearch(e.target.value)}
                                 />
-                            </div>
-
-                            {/* Filter Section */}
-                            <div className="w-full md:w-48">
-                                <Select
-                                    value={role || 'all'}
-                                    onValueChange={handleRoleChange}
-                                >
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Filter by role" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">
-                                            All roles
-                                        </SelectItem>
-                                        <SelectItem value="admin">
-                                            Admin
-                                        </SelectItem>
-                                        <SelectItem value="staff">
-                                            Staff
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                </div>
+                                <div className="w-full md:w-48">
+                                    <Select
+                                        value={role || 'all'}
+                                        onValueChange={handleRoleChange}
+                                    >
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue placeholder="Filter by role" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">
+                                                All roles
+                                            </SelectItem>
+                                            <SelectItem value="admin">
+                                                Admin
+                                            </SelectItem>
+                                            <SelectItem value="staff">
+                                                Staff
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
                         </div>
                     </CardHeader>
 
-                    <CardContent>
+                    <CardContent className="pt-5">
                         {teamMembers.length === 0 ? (
-                            <div className="py-8 text-center text-muted-foreground">
-                                <UsersIcon className="mx-auto mb-4 h-12 w-12 opacity-50" />
+                            <div className="rounded-2xl border border-border/70 py-14 text-center text-muted-foreground">
+                                <KeenIcon name="people" className="mx-auto mb-4 text-4xl opacity-50" />
                                 <p>No team members yet.</p>
                                 <Button
                                     variant="outline"
-                                    className="mt-4"
+                                    className="mt-4 rounded-full"
                                     onClick={() =>
                                         router.visit(business.team.create().url)
                                     }
@@ -377,174 +373,131 @@ export default function TeamIndex({
                                 </Button>
                             </div>
                         ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Member</TableHead>
-                                        <TableHead>Role</TableHead>
-                                        <TableHead>Appointments</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Joined</TableHead>
-                                        <TableHead className="text-right">
-                                            Actions
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {teamMembers.map((member) => (
-                                        <TableRow key={member.id}>
-                                            <TableCell>
-                                                <div>
-                                                    <div className="font-medium capitalize">
-                                                        {member.user.name}
+                            <div className="space-y-4">
+                                {teamMembers.map((member) => (
+                                    <div
+                                        key={member.id}
+                                        className="rounded-2xl border border-border/70 bg-gradient-to-br from-background to-muted/20 p-5 transition-colors hover:bg-muted/20"
+                                    >
+                                        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-start gap-4">
+                                                    <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-border/70 bg-muted/20 text-primary">
+                                                        <KeenIcon
+                                                            name={member.role === 'admin' ? 'verify' : 'profile-user'}
+                                                            className="text-lg"
+                                                        />
                                                     </div>
-                                                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                                        <Mail className="h-3 w-3" />
-                                                        {member.user.email}
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                {roleUpdateForm?.id ===
-                                                member.id ? (
-                                                    <Select
-                                                        value={
-                                                            roleUpdateForm.role
-                                                        }
-                                                        onValueChange={(
-                                                            value,
-                                                        ) => {
-                                                            handleRoleUpdate(
-                                                                member,
-                                                                value,
-                                                            );
-                                                        }}
-                                                        onOpenChange={(
-                                                            open,
-                                                        ) => {
-                                                            if (
-                                                                !open &&
-                                                                roleUpdateForm.id ===
-                                                                    member.id
-                                                            ) {
-                                                                setRoleUpdateForm(
-                                                                    null,
-                                                                );
-                                                            }
-                                                        }}
-                                                    >
-                                                        <SelectTrigger className="w-32">
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="admin">
-                                                                Admin
-                                                            </SelectItem>
-                                                            <SelectItem value="staff">
-                                                                Staff
-                                                            </SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                ) : (
-                                                    <div className="flex items-center gap-2">
-                                                        <Badge
-                                                            variant={
-                                                                member.role ===
-                                                                'admin'
-                                                                    ? 'default'
-                                                                    : 'secondary'
-                                                            }
-                                                        >
-                                                            {member.role ===
-                                                            'admin' ? (
-                                                                <>
-                                                                    <ShieldCheckIcon className="mr-1 h-3 w-3" />
-                                                                    Admin
-                                                                </>
+                                                    <div className="min-w-0 space-y-2">
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            <h3 className="max-w-[220px] truncate text-base font-semibold capitalize sm:max-w-[320px]">
+                                                                {member.user.name}
+                                                            </h3>
+                                                            {!member.accepted_at ? (
+                                                                <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                                                                    Invitation pending
+                                                                </span>
+                                                            ) : member.is_active ? (
+                                                                <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">
+                                                                    Active
+                                                                </span>
                                                             ) : (
-                                                                <>
-                                                                    <UserIcon className="mr-1 h-3 w-3" />
-                                                                    Staff
-                                                                </>
+                                                                <span className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
+                                                                    Inactive
+                                                                </span>
                                                             )}
-                                                        </Badge>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() =>
-                                                                setRoleUpdateForm(
-                                                                    {
-                                                                        id: member.id,
-                                                                        role: member.role,
-                                                                    },
-                                                                )
-                                                            }
-                                                        >
-                                                            <Edit2 className="h-3 w-3" />
-                                                        </Button>
+                                                        </div>
+
+                                                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                                            <Mail className="h-3.5 w-3.5" />
+                                                            <span className="truncate">{member.user.email}</span>
+                                                        </div>
+
+                                                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                                                            {roleUpdateForm?.id === member.id ? (
+                                                                <Select
+                                                                    value={roleUpdateForm.role}
+                                                                    onValueChange={(value) => {
+                                                                        handleRoleUpdate(member, value);
+                                                                    }}
+                                                                    onOpenChange={(open) => {
+                                                                        if (!open && roleUpdateForm.id === member.id) {
+                                                                            setRoleUpdateForm(null);
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <SelectTrigger className="w-36 rounded-full">
+                                                                        <SelectValue />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="admin">
+                                                                            Admin
+                                                                        </SelectItem>
+                                                                        <SelectItem value="staff">
+                                                                            Staff
+                                                                        </SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            ) : (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        setRoleUpdateForm({
+                                                                            id: member.id,
+                                                                            role: member.role,
+                                                                        })
+                                                                    }
+                                                                    className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1.5 text-sm font-medium text-foreground/80"
+                                                                >
+                                                                    <KeenIcon
+                                                                        name={member.role === 'admin' ? 'verify' : 'profile-user'}
+                                                                        className="text-sm text-muted-foreground"
+                                                                    />
+                                                                    {member.role}
+                                                                    <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                                                </button>
+                                                            )}
+
+                                                            <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1.5 text-sm font-medium text-foreground/80">
+                                                                <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                                                                {member.appointments_count} appointments
+                                                            </span>
+
+                                                            <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1.5 text-sm font-medium text-foreground/80">
+                                                                <KeenIcon name="electronic-clock" className="text-sm text-muted-foreground" />
+                                                                {member.accepted_at
+                                                                    ? `Joined ${new Date(member.accepted_at).toLocaleDateString()}`
+                                                                    : member.invited_at
+                                                                      ? `Invited ${new Date(member.invited_at).toLocaleDateString()}`
+                                                                      : 'Pending'}
+                                                            </span>
+                                                        </div>
                                                     </div>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-1">
-                                                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                                                    {member.appointments_count}
                                                 </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                {!member.accepted_at ? (
-                                                    <Badge variant="secondary">
-                                                        Invitation pending
-                                                    </Badge>
-                                                ) : member.is_active ? (
-                                                    <Badge variant="default">
-                                                        Active
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge variant="outline">
-                                                        Inactive
-                                                    </Badge>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                {member.accepted_at
-                                                    ? new Date(
-                                                          member.accepted_at,
-                                                      ).toLocaleDateString()
-                                                    : member.invited_at
-                                                      ? `Invited ${new Date(member.invited_at).toLocaleDateString()}`
-                                                      : 'Pending'}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            handleToggleActive(
-                                                                member,
-                                                            )
-                                                        }
-                                                    >
-                                                        {member.is_active ? 'Deactivate' : 'Activate'}
-                                                    </Button>
-                                                    <Button
-                                                        variant="destructive"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            setDeletingMember(
-                                                                member,
-                                                            )
-                                                        }
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                            </div>
+
+                                            <div className="flex flex-wrap items-center justify-end gap-2 xl:ml-4">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handleToggleActive(member)}
+                                                    className="rounded-full"
+                                                >
+                                                    {member.is_active ? 'Deactivate' : 'Activate'}
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => setDeletingMember(member)}
+                                                    className="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         )}
                     </CardContent>
                 </Card>

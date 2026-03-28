@@ -12,7 +12,7 @@ export default function FloatingSaveButton({
     return (
         <div
             className={cn(
-                'pointer-events-none fixed right-5 bottom-5 z-50 transition-all duration-200 sm:right-8 sm:bottom-8',
+                'pointer-events-none fixed inset-x-0 bottom-5 z-50 flex justify-center px-4 transition-all duration-200 sm:bottom-8',
                 visible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0',
             )}
         >

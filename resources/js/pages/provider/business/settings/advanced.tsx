@@ -13,7 +13,6 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function BusinessSettingsAdvanced({ profile }: { profile: any }) {
-    const { flash } = usePage().props as any;
     const form = useForm({
         settings: profile?.settings || {},
     });
@@ -23,11 +22,6 @@ export default function BusinessSettingsAdvanced({ profile }: { profile: any }) 
             <Head title="Advanced Business Settings" />
 
             <BusinessSettingsLayout>
-                {flash?.success && (
-                    <div className="rounded-lg border border-success/20 bg-success/10 p-4">
-                        <p className="text-sm font-medium text-success">{flash.success}</p>
-                    </div>
-                )}
                 {Object.keys(form.errors).length > 0 && (
                     <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-4">
                         <p className="text-sm font-medium text-destructive">Please fix the errors below.</p>

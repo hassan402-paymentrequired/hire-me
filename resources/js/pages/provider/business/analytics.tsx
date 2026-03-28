@@ -1,3 +1,4 @@
+import KeenIcon from '@/components/keen-icon';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -20,12 +21,8 @@ import { Head, router } from '@inertiajs/react';
 import {
     ArrowDownRight,
     ArrowUpRight,
-    Briefcase,
     Calendar,
-    Clock,
     MapPin,
-    TrendingUp,
-    Users,
     Star,
     Download,
 } from 'lucide-react';
@@ -126,7 +123,38 @@ export default function Analytics({
         (sum, service) => sum + service.revenue,
         0,
     );
-
+    const revenueChangeValue = parseFloat(metrics.revenueChange.replace('%', ''));
+    const bookingsChangeValue = parseFloat(metrics.bookingsChange.replace('%', ''));
+    const cancelChangeValue = parseFloat(metrics.cancelChange.replace('%', ''));
+    const overviewCards = [
+        {
+            title: 'Total Revenue',
+            value: metrics.totalRevenue,
+            change: metrics.revenueChange,
+            changeValue: revenueChangeValue,
+            positiveTone: true,
+            icon: 'receipt-square',
+            note: 'Revenue generated in the selected range',
+        },
+        {
+            title: 'Bookings',
+            value: metrics.totalBookings.toLocaleString(),
+            change: metrics.bookingsChange,
+            changeValue: bookingsChangeValue,
+            positiveTone: true,
+            icon: 'people',
+            note: 'Confirmed and completed bookings combined',
+        },
+        {
+            title: 'Cancel Rate',
+            value: metrics.cancelRate,
+            change: metrics.cancelChange,
+            changeValue: cancelChangeValue,
+            positiveTone: false,
+            icon: 'status',
+            note: 'Share of appointments that did not go through',
+        },
+    ];
     const handleRangeChange = (newRange: string) => {
         setSelectedRange(newRange);
         router.get('/business/analytics', { range: newRange }, {
@@ -136,133 +164,141 @@ export default function Analytics({
     };
 
     const handleDownloadReport = () => {
-        // TODO: Implement PDF/CSV export
-        alert('Report download feature coming soon!');
+        return;
     };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Analytics" />
             <div className="flex flex-col gap-6 p-4">
-                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight">
-                            Business Analytics
-                        </h1>
-                        <p className="text-muted-foreground">
-                            Track your performance and growth with detailed insights.
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Select
-                            value={selectedRange}
-                            onValueChange={handleRangeChange}
-                        >
-                            <SelectTrigger className="w-[180px]">
-                                <Calendar className="mr-2 h-4 w-4" />
-                                <SelectValue placeholder="Select Range" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="this_week">
-                                    This Week
-                                </SelectItem>
-                                <SelectItem value="this_month">
-                                    This Month
-                                </SelectItem>
-                                <SelectItem value="this_year">
-                                    This Year
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <Button variant="outline" onClick={handleDownloadReport}>
-                            <Download className="mr-2 h-4 w-4" />
-                            Download Report
-                        </Button>
-                    </div>
-                </div>
+                <section className="overflow-hidden rounded-3xl border border-border/70 bg-gradient-to-br from-background via-background to-muted/30">
+                    <div className="flex flex-col gap-5 px-5 py-6 lg:flex-row lg:items-start lg:justify-between lg:px-7">
+                        <div className="space-y-4">
+                            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground">
+                                <KeenIcon name="status" className="text-sm text-primary" />
+                                Performance snapshot
+                            </div>
+                            <div className="space-y-2">
+                                <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                                    Business analytics
+                                </h1>
+                                <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+                                    Track how bookings, revenue, services, and client retention are moving so you can make better business decisions.
+                                </p>
+                            </div>
+                        </div>
 
-                {/* Key Metrics */}
+                        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+                            <Select
+                                value={selectedRange}
+                                onValueChange={handleRangeChange}
+                            >
+                                <SelectTrigger className="w-full min-w-[180px] bg-background sm:w-[190px]">
+                                    <Calendar className="mr-2 h-4 w-4" />
+                                    <SelectValue placeholder="Select Range" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="this_week">
+                                        This Week
+                                    </SelectItem>
+                                    <SelectItem value="this_month">
+                                        This Month
+                                    </SelectItem>
+                                    <SelectItem value="this_year">
+                                        This Year
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Button
+                                variant="outline"
+                                onClick={handleDownloadReport}
+                                disabled
+                                className="w-full sm:w-auto"
+                            >
+                                <Download className="mr-2 h-4 w-4" />
+                                Export soon
+                            </Button>
+                        </div>
+                    </div>
+                </section>
+
                 <div className="grid gap-4 md:grid-cols-3">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                                Total Revenue
-                            </CardTitle>
-                            <span className="text-muted-foreground">₦</span>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{metrics.totalRevenue}</div>
-                            <p className={`flex items-center text-xs ${parseFloat(metrics.revenueChange.replace('%', '')) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                {parseFloat(metrics.revenueChange.replace('%', '')) >= 0 ? (
-                                    <ArrowUpRight className="mr-1 h-3 w-3" />
-                                ) : (
-                                    <ArrowDownRight className="mr-1 h-3 w-3" />
-                                )}
-                                {metrics.revenueChange} from last period
-                            </p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                                Bookings
-                            </CardTitle>
-                            <Briefcase className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{metrics.totalBookings}</div>
-                            <p className={`flex items-center text-xs ${parseFloat(metrics.bookingsChange.replace('%', '')) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                {parseFloat(metrics.bookingsChange.replace('%', '')) >= 0 ? (
-                                    <ArrowUpRight className="mr-1 h-3 w-3" />
-                                ) : (
-                                    <ArrowDownRight className="mr-1 h-3 w-3" />
-                                )}
-                                {metrics.bookingsChange} from last period
-                            </p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                                Cancel Rate
-                            </CardTitle>
-                            <ActivityIcon className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{metrics.cancelRate}</div>
-                            <p className={`flex items-center text-xs ${parseFloat(metrics.cancelChange.replace('%', '')) >= 0 ? 'text-red-500' : 'text-green-500'}`}>
-                                {parseFloat(metrics.cancelChange.replace('%', '')) >= 0 ? (
-                                    <ArrowUpRight className="mr-1 h-3 w-3" />
-                                ) : (
-                                    <ArrowDownRight className="mr-1 h-3 w-3" />
-                                )}
-                                {metrics.cancelChange} from last period
-                            </p>
-                        </CardContent>
-                    </Card>
+                    {overviewCards.map((card) => {
+                        const isPositive = card.positiveTone
+                            ? card.changeValue >= 0
+                            : card.changeValue < 0;
+
+                        return (
+                            <Card key={card.title} className="border-border/70 shadow-none">
+                                <CardHeader className="space-y-4 pb-3">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="space-y-1">
+                                            <CardTitle className="text-sm font-medium text-muted-foreground">
+                                                {card.title}
+                                            </CardTitle>
+                                            <div className="text-2xl font-semibold tracking-tight">
+                                                {card.value}
+                                            </div>
+                                        </div>
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-muted text-foreground">
+                                            <KeenIcon name={card.icon} className="text-base" />
+                                        </div>
+                                    </div>
+                                    <CardDescription className="text-xs leading-5">
+                                        {card.note}
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="pt-0">
+                                    <p className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
+                                        isPositive
+                                            ? 'bg-emerald-50 text-emerald-700'
+                                            : 'bg-rose-50 text-rose-700'
+                                    }`}>
+                                        {isPositive ? (
+                                            <ArrowUpRight className="mr-1 h-3.5 w-3.5" />
+                                        ) : (
+                                            <ArrowDownRight className="mr-1 h-3.5 w-3.5" />
+                                        )}
+                                        {card.change} from last period
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
                 </div>
 
-                {/* Main Analytics Tabs */}
                 <Tabs defaultValue="revenue" className="space-y-4">
-                    <TabsList>
-                        <TabsTrigger value="revenue">Revenue</TabsTrigger>
-                        <TabsTrigger value="bookings">Bookings</TabsTrigger>
-                        <TabsTrigger value="services">Services</TabsTrigger>
-                        <TabsTrigger value="customers">Customers</TabsTrigger>
-                        <TabsTrigger value="reviews">Reviews</TabsTrigger>
-                    </TabsList>
+                    <div className="overflow-x-auto pb-1">
+                        <TabsList className="inline-flex h-auto min-w-max items-center gap-2 rounded-2xl border border-border/70 bg-muted/50 p-1">
+                            <TabsTrigger value="revenue" className="rounded-xl px-4 py-2.5">
+                                Revenue
+                            </TabsTrigger>
+                            <TabsTrigger value="bookings" className="rounded-xl px-4 py-2.5">
+                                Bookings
+                            </TabsTrigger>
+                            <TabsTrigger value="services" className="rounded-xl px-4 py-2.5">
+                                Services
+                            </TabsTrigger>
+                            <TabsTrigger value="customers" className="rounded-xl px-4 py-2.5">
+                                Customers
+                            </TabsTrigger>
+                            <TabsTrigger value="reviews" className="rounded-xl px-4 py-2.5">
+                                Reviews
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
 
                     {/* Revenue Tab */}
                     <TabsContent value="revenue" className="space-y-4">
-                        <Card>
-                            <CardHeader>
+                        <Card className="border-border/70 shadow-none">
+                            <CardHeader className="space-y-1 pb-3">
                                 <CardTitle>Revenue Overview</CardTitle>
                                 <CardDescription>
                                     {selectedRange === 'this_week' ? 'Daily' : selectedRange === 'this_month' ? 'Weekly' : 'Monthly'} revenue performance.
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent className="pl-2">
-                                <div className="flex h-[300px] items-end gap-2 sm:gap-4 px-4 pb-4">
+                            <CardContent className="px-4 pb-5 pt-0 sm:px-6">
+                                <div className="flex h-[300px] items-end gap-2 sm:gap-4">
                                     {revenueData.map((data, i) => (
                                         <div
                                             key={i}
@@ -290,16 +326,16 @@ export default function Analytics({
                     {/* Bookings Tab */}
                     <TabsContent value="bookings" className="space-y-4">
                         <div className="grid gap-4 md:grid-cols-2">
-                            <Card>
-                                <CardHeader>
+                            <Card className="border-border/70 shadow-none">
+                                <CardHeader className="space-y-1 pb-3">
                                     <CardTitle>Peak Hours</CardTitle>
                                     <CardDescription>
                                         Most popular booking times.
                                     </CardDescription>
                                 </CardHeader>
-                                <CardContent>
+                                <CardContent className="pt-0">
                                     <div className="overflow-x-auto pb-2">
-                                        <div className="flex h-[300px] min-w-[720px] items-end gap-1 px-4 pb-4 sm:min-w-0">
+                                        <div className="flex h-[300px] min-w-[680px] items-end gap-1 px-2 pb-4 sm:min-w-0 sm:px-4">
                                         {peakHours.map((hour, i) => (
                                             <div
                                                 key={i}
@@ -324,8 +360,8 @@ export default function Analytics({
                                 </CardContent>
                             </Card>
 
-                            <Card>
-                                <CardHeader>
+                            <Card className="border-border/70 shadow-none">
+                                <CardHeader className="space-y-1 pb-3">
                                     <CardTitle>Booking Conversion</CardTitle>
                                     <CardDescription>
                                         Conversion and confirmation rates.
@@ -357,14 +393,14 @@ export default function Analytics({
 
                     {/* Services Tab */}
                     <TabsContent value="services" className="space-y-4">
-                        <Card>
-                            <CardHeader>
+                        <Card className="border-border/70 shadow-none">
+                            <CardHeader className="space-y-1 pb-3">
                                 <CardTitle>Top Performing Services</CardTitle>
                                 <CardDescription>
                                     Services contributing most to revenue.
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="pt-0">
                                 <div className="space-y-6">
                                     {topServices.map((service, i) => (
                                         <div
@@ -414,8 +450,8 @@ export default function Analytics({
                     {/* Customers Tab */}
                     <TabsContent value="customers" className="space-y-4">
                         <div className="grid gap-4 md:grid-cols-2">
-                            <Card>
-                                <CardHeader>
+                            <Card className="border-border/70 shadow-none">
+                                <CardHeader className="space-y-1 pb-3">
                                     <CardTitle>Customer Retention</CardTitle>
                                     <CardDescription>
                                         Returning customer metrics.
@@ -443,8 +479,8 @@ export default function Analytics({
                                 </CardContent>
                             </Card>
 
-                            <Card>
-                                <CardHeader>
+                            <Card className="border-border/70 shadow-none">
+                                <CardHeader className="space-y-1 pb-3">
                                     <CardTitle>Geographic Demand</CardTitle>
                                     <CardDescription>
                                         Top locations by bookings.
@@ -483,8 +519,8 @@ export default function Analytics({
 
                     {/* Reviews Tab */}
                     <TabsContent value="reviews" className="space-y-4">
-                        <Card>
-                            <CardHeader>
+                        <Card className="border-border/70 shadow-none">
+                            <CardHeader className="space-y-1 pb-3">
                                 <CardTitle>Review Sentiment Analysis</CardTitle>
                                 <CardDescription>
                                     Customer feedback breakdown.
@@ -549,24 +585,5 @@ export default function Analytics({
                 </Tabs>
             </div>
         </AppLayout>
-    );
-}
-
-function ActivityIcon(props: any) {
-    return (
-        <svg
-            {...props}
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        >
-            <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" />
-        </svg>
     );
 }

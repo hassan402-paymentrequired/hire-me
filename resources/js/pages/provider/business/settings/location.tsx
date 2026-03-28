@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import BusinessSettingsLayout from '@/layouts/business-settings/layout';
 import { BreadcrumbItem } from '@/types';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import business from '@/routes/business';
 import LocationSection from './components/location-section';
 import FloatingSaveButton from './components/floating-save-button';
@@ -13,7 +13,6 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function BusinessSettingsLocation({ profile }: { profile: any }) {
-    const { flash } = usePage().props as any;
     const form = useForm({
         address: profile?.address || '',
         city: profile?.city || '',
@@ -28,17 +27,6 @@ export default function BusinessSettingsLocation({ profile }: { profile: any }) 
             <Head title="Business Location" />
 
             <BusinessSettingsLayout>
-                {flash?.success && (
-                    <div className="rounded-lg border border-success/20 bg-success/10 p-4">
-                        <p className="text-sm font-medium text-success">{flash.success}</p>
-                    </div>
-                )}
-                {Object.keys(form.errors).length > 0 && (
-                    <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-4">
-                        <p className="text-sm font-medium text-destructive">Please fix the errors below.</p>
-                    </div>
-                )}
-
                 <form
                     onSubmit={(e) => {
                         e.preventDefault();

@@ -1,9 +1,9 @@
 import React from 'react';
+import KeenIcon from '@/components/keen-icon';
 import { FormSelect } from '@/components/ui/form-select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { AlertTriangle, CheckCircle2, Settings } from 'lucide-react';
 
 interface AdvancedSettingsProps {
     settings: {
@@ -44,7 +44,7 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
     return (
         <div className="bg-card rounded-lg border border-border p-4 md:p-6">
             <div className="flex items-center gap-2 mb-6">
-                <Settings size={24} color="var(--color-secondary)" />
+                <KeenIcon name="slider" className="text-xl text-primary" />
                 <div>
                     <h3 className="text-lg md:text-xl font-semibold text-foreground">
                         Advanced Settings
@@ -58,25 +58,39 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
                 {/* General Time Settings */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
+                        <Label>Buffer Time Between Appointments</Label>
+                        <div className="relative">
+                            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-muted-foreground">
+                                <KeenIcon name="electronic-clock" className="text-sm" />
+                            </div>
                         <FormSelect
-                            label="Buffer Time Between Appointments"
+                            label=""
                             options={bufferOptions}
                             value={settings?.bufferTime || '0'}
                             onChange={(value) => onSettingsChange('bufferTime', value)}
                             placeholder="Select buffer time"
+                            className="[&_[data-slot=select-trigger]]:pl-10"
                         />
+                        </div>
                         <p className="text-xs text-muted-foreground">
                             Time gap between consecutive bookings
                         </p>
                     </div>
                     <div className="space-y-2">
+                        <Label>Advance Booking Window</Label>
+                        <div className="relative">
+                            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-muted-foreground">
+                                <KeenIcon name="archive" className="text-sm" />
+                            </div>
                         <FormSelect
-                            label="Advance Booking Window"
+                            label=""
                             options={advanceBookingOptions}
                             value={settings?.advanceBooking || '30'}
                             onChange={(value) => onSettingsChange('advanceBooking', value)}
                             placeholder="Select booking window"
+                            className="[&_[data-slot=select-trigger]]:pl-10"
                         />
+                        </div>
                         <p className="text-xs text-muted-foreground">
                             How far ahead customers can book
                         </p>
@@ -86,26 +100,40 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="minNotice">Minimum Notice Period (hours)</Label>
+                        <div className="relative">
+                            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-muted-foreground">
+                                <KeenIcon name="electronic-clock" className="text-sm" />
+                            </div>
                         <Input
                             id="minNotice"
                             type="number"
                             value={settings?.minNotice ?? ''}
                             onChange={(e) => onSettingsChange('minNotice', e.target.value)}
                             min="0"
+                            placeholder="e.g. 4"
+                            className="pl-10"
                         />
+                        </div>
                         <p className="text-xs text-muted-foreground">
                             Minimum time before appointment
                         </p>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="maxDaily">Maximum Daily Appointments</Label>
+                        <div className="relative">
+                            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-muted-foreground">
+                                <KeenIcon name="status" className="text-sm" />
+                            </div>
                         <Input
                             id="maxDaily"
                             type="number"
                             value={settings?.maxDaily ?? ''}
                             onChange={(e) => onSettingsChange('maxDaily', e.target.value)}
                             min="1"
+                            placeholder="e.g. 8"
+                            className="pl-10"
                         />
+                        </div>
                         <p className="text-xs text-muted-foreground">
                             Limit bookings per day
                         </p>
@@ -114,31 +142,48 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
 
                 {/* Booking Frequency Limits */}
                 <div className="pt-4 border-t border-border space-y-4">
-                     <h4 className="text-sm font-medium text-foreground">Booking Frequency Limits</h4>
+                     <h4 className="flex items-center gap-2 text-sm font-medium text-foreground">
+                         <KeenIcon name="filter-square" className="text-sm text-primary" />
+                         <span>Booking Frequency Limits</span>
+                     </h4>
                      <p className="text-xs text-muted-foreground -mt-3">Restrict how often the same client can book you.</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="max_bookings_per_week">Max Bookings per Week (per user)</Label>
+                            <div className="relative">
+                                <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-muted-foreground">
+                                    <KeenIcon name="archive-tick" className="text-sm" />
+                                </div>
                             <Input
                                 id="max_bookings_per_week"
                                 type="number"
                                 value={settings?.max_bookings_per_week ?? ''}
                                 onChange={(e) => onSettingsChange('max_bookings_per_week', e.target.value)}
                                 min="1"
+                                placeholder="e.g. 2"
+                                className="pl-10"
                             />
+                            </div>
                             <p className="text-xs text-muted-foreground">
                                 Validation: per client, per week
                             </p>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="max_bookings_per_month">Max Bookings per Month (per user)</Label>
+                            <div className="relative">
+                                <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-muted-foreground">
+                                    <KeenIcon name="archive" className="text-sm" />
+                                </div>
                             <Input
                                 id="max_bookings_per_month"
                                 type="number"
                                 value={settings?.max_bookings_per_month ?? ''}
                                 onChange={(e) => onSettingsChange('max_bookings_per_month', e.target.value)}
                                 min="1"
+                                placeholder="e.g. 6"
+                                className="pl-10"
                             />
+                            </div>
                             <p className="text-xs text-muted-foreground">
                                 Validation: per client, per month
                             </p>
@@ -148,24 +193,11 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
 
                 {/* Payment Settings */}
                 <div className="pt-4 border-t border-border space-y-4">
-                    <h4 className="text-sm font-medium text-foreground">Payment Settings</h4>
+                    <h4 className="flex items-center gap-2 text-sm font-medium text-foreground">
+                        <KeenIcon name="receipt-square" className="text-sm text-primary" />
+                        <span>Payment Settings</span>
+                    </h4>
                     <p className="text-xs text-muted-foreground -mt-3">Configure payment policies for your appointments.</p>
-                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-                        <div className="flex items-start gap-2">
-                            <CheckCircle2 className="mt-0.5 size-4 text-primary" />
-                            <div className="flex-1">
-                                <p className="text-xs font-semibold text-primary">
-                                    Dual Approval Payment System
-                                </p>
-                                <p className="mt-1 text-xs text-muted-foreground">
-                                    Clients pay when booking, but payment is held securely until both you and the client confirm the service is completed. This protects both parties from exploitation and ensures service quality.
-                                </p>
-                                <p className="mt-2 text-xs text-muted-foreground">
-                                    <strong>Late cancellation policy:</strong> If a client cancels less than 5 hours before the appointment, 10% of the held payment is forfeited to you. The system handles this automatically.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
                     <div className="space-y-4">
                         <div className="flex items-start gap-3">
                             <Checkbox
@@ -202,7 +234,10 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
 
                 {/* Preferences */}
                 <div className="pt-4 border-t border-border space-y-4">
-                    <h4 className="text-sm font-medium text-foreground">Booking Preferences</h4>
+                    <h4 className="flex items-center gap-2 text-sm font-medium text-foreground">
+                        <KeenIcon name="slider" className="text-sm text-primary" />
+                        <span>Booking Preferences</span>
+                    </h4>
                     <div className="space-y-4">
                         <div className="flex items-start gap-3">
                             <Checkbox
@@ -248,22 +283,6 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
                                 </Label>
                                 <p className="text-xs text-muted-foreground">
                                     Clients can request times outside your work hours. These requests will always be pending, even if auto-confirm is enabled.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="pt-4 border-t border-border">
-                    <div className="p-4 bg-warning/5 rounded-lg border border-warning/20">
-                        <div className="flex gap-3">
-                            <AlertTriangle size={20} color="var(--color-warning)" className="flex-shrink-0 mt-0.5" />
-                            <div>
-                                <p className="text-sm font-medium text-foreground mb-1">
-                                    Important Note
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                    Changes to advanced settings will affect all future bookings. Existing appointments will not be modified.
                                 </p>
                             </div>
                         </div>
