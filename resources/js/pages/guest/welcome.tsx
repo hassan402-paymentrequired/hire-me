@@ -157,7 +157,7 @@ export default function Welcome({
                     </div>
 
                     {/* market place */}
-                    <div id="marketplace" className="min-h-[calc(98vh-3rem)]">
+                    <div id="marketplace" className="min-h-[calc(98vh-3rem)] px-3">
                         <HeaderFilter
                             categories={categories}
                             filters={filters}
