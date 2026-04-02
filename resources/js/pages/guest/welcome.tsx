@@ -145,19 +145,13 @@ export default function Welcome({
                 rel="stylesheet"
             />
             <AppLayout>
-                <div className="m box-border flex w-full flex-col space-y-6 overflow-visible">
+                <div className="max-w-[1380px] mx-auto box-border flex w-full flex-col space-y-6 overflow-visible">
                     <div className="hidden md:block">
-                        <Landing
-                            categories={categories}
-                            initialSearch={filters.search || ''}
-                            onLocationRequest={requestLocation}
-                            onSearch={handleHeroSearch}
-                            onCategorySelect={handleHeroCategorySelect}
-                        />
+                        <Landing />
                     </div>
 
                     {/* market place */}
-                    <div id="marketplace" className="min-h-[calc(98vh-3rem)] px-3">
+                    <div id="marketplace" className="min-h-[calc(98vh-3rem)] ">
                         <HeaderFilter
                             categories={categories}
                             filters={filters}
@@ -194,7 +188,7 @@ export default function Welcome({
                                                 )
                                             }
                                         >
-                                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                            <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                                                 {providers?.data?.map(
                                                     (provider) => (
                                                         <BusinessCard
