@@ -24,6 +24,13 @@ class ProfileController extends Controller
         return Inertia::render($page, [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
+            'googleCalendar' => [
+                'connected' => (bool) $user->googleCalendarAccount,
+                'email' => $user->googleCalendarAccount?->google_email,
+                'sync_enabled' => (bool) $user->googleCalendarAccount?->sync_enabled,
+                'last_synced_at' => $user->googleCalendarAccount?->last_synced_at?->toIso8601String(),
+                'last_error' => $user->googleCalendarAccount?->last_error,
+            ],
         ]);
     }
 

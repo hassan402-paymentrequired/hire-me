@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Provider\Schedule;
 
 use App\Enum\AppointmentStatusEnum;
 use App\Http\Controllers\Controller;
+use App\Jobs\DeleteGoogleCalendarEventJob;
 use App\Models\Appointment;
 use App\Models\Report;
 use App\Models\Wallet;
@@ -119,6 +120,8 @@ class ScheduleController extends Controller
             }
 
             DB::commit();
+
+            DeleteGoogleCalendarEventJob::dispatch($appointment->id);
 
             $appointment->client->notify(new \App\Notifications\AppointmentCancelledNotification($appointment, 'provider'));
 

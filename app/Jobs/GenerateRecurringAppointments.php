@@ -3,7 +3,6 @@
 namespace App\Jobs;
 
 use App\Models\Appointment;
-use App\Models\Service;
 use App\Models\Wallet;
 use App\Notifications\RecurringAppointmentInsufficientBalanceNotification;
 use App\Notifications\RecurringAppointmentRescheduledNotification;
@@ -206,6 +205,8 @@ class GenerateRecurringAppointments implements ShouldQueue
             ]);
 
             DB::commit();
+
+            SyncAppointmentToGoogleCalendarJob::dispatch($appointment->id);
 
             if ($usedAlternativeSlot) {
                 $appointment->client->notify(new RecurringAppointmentRescheduledNotification(

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\DeleteGoogleCalendarEventJob;
+use App\Jobs\SyncAppointmentToGoogleCalendarJob;
 use App\Models\Appointment;
 use App\Models\Report;
 use App\Models\Service;
@@ -238,6 +240,8 @@ class AppointmentController extends Controller
             }
 
             DB::commit();
+
+            SyncAppointmentToGoogleCalendarJob::dispatch($appointment->id);
 
             if (!empty($changesSummary)) {
                 $appointment->provider->notify(new AppointmentUpdatedNotification($appointment, $changesSummary));
@@ -491,6 +495,8 @@ class AppointmentController extends Controller
             }
 
             DB::commit();
+
+            SyncAppointmentToGoogleCalendarJob::dispatch($appointment->id);
             
             $appointment->provider->notify(new NewAppoinmentBookedNotification($appointment));
 
@@ -558,10 +564,18 @@ class AppointmentController extends Controller
                 }
 
                 DB::commit();
+
+                DeleteGoogleCalendarEventJob::dispatch($appointment->id);
+                foreach ($futureChildren as $child) {
+                    DeleteGoogleCalendarEventJob::dispatch($child->id);
+                }
+
                 return back()->with('success-toast', 'Recurring appointment series cancelled successfully. All future appointments have been cancelled.');
             }
 
             DB::commit();
+
+            DeleteGoogleCalendarEventJob::dispatch($appointment->id);
 
             // Send email to provider
             Mail::to($appointment->provider->email)->queue(new AppointmentCancelledMail($appointment, 'client'));
@@ -613,6 +627,10 @@ class AppointmentController extends Controller
             $parent->update(['recurrence_stopped_at' => now()]);
 
             DB::commit();
+
+            foreach ($futureChildren as $child) {
+                DeleteGoogleCalendarEventJob::dispatch($child->id);
+            }
 
             return back()->with('success-toast', 'Remaining recurring appointments have been cancelled. You will receive a refund for each.');
         } catch (\Exception $e) {

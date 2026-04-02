@@ -5,6 +5,7 @@ import { Transition } from '@headlessui/react';
 import { Form, Head, Link, usePage } from '@inertiajs/react';
 
 import DeleteUser from '@/components/delete-user';
+import GoogleCalendarCard from '@/components/google-calendar-card';
 import HeadingSmall from '@/components/heading-small';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -24,9 +25,17 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function Profile({
     mustVerifyEmail,
     status,
+    googleCalendar,
 }: {
     mustVerifyEmail: boolean;
     status?: string;
+    googleCalendar: {
+        connected: boolean;
+        email: string | null;
+        sync_enabled: boolean;
+        last_synced_at: string | null;
+        last_error: string | null;
+    };
 }) {
     const { auth } = usePage<SharedData>().props;
 
@@ -140,6 +149,8 @@ export default function Profile({
                         )}
                     </Form>
                 </div>
+
+                <GoogleCalendarCard googleCalendar={googleCalendar} />
 
                 <DeleteUser />
             </ClientSettingsLayout>

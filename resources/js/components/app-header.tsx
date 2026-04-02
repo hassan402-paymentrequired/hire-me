@@ -30,13 +30,13 @@ import {
 import { UserMenuContent } from '@/components/user-menu-content';
 import { useLoading } from '@/contexts/loading-context';
 import { useInitials } from '@/hooks/use-initials';
-import { cn, isSameUrl, resolveUrl } from '@/lib/utils';
+import { cn, resolveUrl } from '@/lib/utils';
 import { becomeProvider, home, login, register } from '@/routes';
 import business from '@/routes/business';
 import client from '@/routes/client';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, CalendarSync, Folder, Heart, Menu, Wallet, Store } from 'lucide-react';
+import { CalendarSync, Heart, Menu, Wallet, Store } from 'lucide-react';
 import AppLogo from './app-logo';
 import AppLogoIcon from './app-logo-icon';
 import { NotificationBell } from './notification-bell';
@@ -48,10 +48,14 @@ interface NavItem {
 }
 
 const mainNavItems = (auth?: any): NavItem[] => [
-    { title: 'Marketplace', href: home().url },
+    { title: 'Marketplace', href: '/#marketplace' },
+    { title: 'Faq', href: '/faqs' },
+    { title: 'Contact', href: '/contact' },
+    { title: 'About Us', href: '/about' },
 ];
 
-const activeItemStyles = '';
+const activeItemStyles =
+    ' text-foreground after:absolute after:-bottom-1.5 after:left-0 after:h-0.5 after:w-full after:translate-y-px after:bg-black dark:after:bg-white';
 
 interface AppHeaderProps {
     breadcrumbs?: BreadcrumbItem[];
@@ -62,6 +66,19 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
     const { auth } = page.props;
     const getInitials = useInitials();
     const { toggleFavoriteSheet } = useLoading();
+    const currentPath = typeof window !== 'undefined' ? window.location.pathname : page.url;
+    const currentHash = typeof window !== 'undefined' ? window.location.hash : '';
+
+    const isNavItemActive = (href: string) => {
+        const resolvedHref = resolveUrl(href);
+        const [targetPath, targetHash = ''] = resolvedHref.split('#');
+
+        if (targetHash) {
+            return currentPath === (targetPath || '/') && currentHash === `#${targetHash}`;
+        }
+
+        return currentPath === resolvedHref || currentPath.startsWith(`${resolvedHref}/`);
+    };
 
     return (
         <>
@@ -90,7 +107,10 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                             <Link
                                                 key={item.title}
                                                 href={item.href}
-                                                className="flex items-center gap-2 rounded-lg px-3 py-2 font-medium hover:bg-muted"
+                                                className={cn(
+                                                    'flex items-center gap-2 rounded-lg px-3 py-2 font-medium',
+                                                    isNavItemActive(item.href) && ' text-foreground',
+                                                )}
                                             >
                                                 {item.icon && <Icon iconNode={item.icon} className="h-4 w-4" />}
                                                 <span>{item.title}</span>
@@ -188,14 +208,13 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                             href={item.href}
                                             className={cn(
                                                 navigationMenuTriggerStyle(),
-                                                isSameUrl(page.url, item.href) && activeItemStyles,
+                                                isNavItemActive(item.href) && activeItemStyles,
                                                 'relative h-9 cursor-pointer px-3',
                                             )}
                                             prefetch
                                         >
                                             {item.title}
                                         </Link>
-                                        <div className="absolute bottom-0 left-0 h-0.5 w-full translate-y-px bg-black dark:bg-white" />
                                     </NavigationMenuItem>
                                 ))}
                             </NavigationMenuList>

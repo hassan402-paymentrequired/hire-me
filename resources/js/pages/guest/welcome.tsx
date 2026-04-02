@@ -145,7 +145,7 @@ export default function Welcome({
                 rel="stylesheet"
             />
             <AppLayout>
-                <div className="m box-border flex w-full flex-col space-y-6 overflow-visible px-5">
+                <div className="m box-border flex w-full flex-col space-y-6 overflow-visible">
                     <div className="hidden md:block">
                         <Landing
                             categories={categories}

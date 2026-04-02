@@ -82,6 +82,8 @@ class AutoCancelUnconfirmedAppointmentJob implements ShouldQueue
 
             DB::commit();
 
+            DeleteGoogleCalendarEventJob::dispatch($appointment->id);
+
             Log::info('Auto-cancelled unconfirmed appointment', [
                 'appointment_id' => $appointment->id,
                 'client_id' => $appointment->client_id,

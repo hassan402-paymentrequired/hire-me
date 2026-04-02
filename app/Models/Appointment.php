@@ -47,6 +47,8 @@ class Appointment extends Model
         'discount_percent',
         'recurrence_stopped_at',
         'team_member_id',
+        'google_calendar_event_id',
+        'google_calendar_synced_at',
     ];
 
     protected $casts = [
@@ -66,6 +68,7 @@ class Appointment extends Model
         'platform_fee_percent' => 'decimal:2',
         'platform_fee_amount' => 'decimal:2',
         'provider_payout_amount' => 'decimal:2',
+        'google_calendar_synced_at' => 'datetime',
     ];
 
     public function provider()

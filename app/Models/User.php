@@ -139,6 +139,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasOne(Wallet::class);
     }
 
+    public function googleCalendarAccount()
+    {
+        return $this->hasOne(GoogleCalendarAccount::class);
+    }
+
     public function clientBankAccount()
     {
         return $this->hasOne(ClientBankAccount::class);
