@@ -16,9 +16,19 @@ use Inertia\Inertia;
 
 class ScheduleController extends Controller
 {
+    private function managedProvider()
+    {
+        return auth_user();
+    }
+
+    private function providerAppointmentsQuery()
+    {
+        return Appointment::where('provider_id', $this->managedProvider()?->id);
+    }
+
     public function calender(Request $request)
     {
-        $user = auth_user();
+        $provider = $this->managedProvider();
 
         // Get date range from request or default to current week
         $startDate = $request->input('start_date')
@@ -27,7 +37,7 @@ class ScheduleController extends Controller
 
         $endDate = $startDate->copy()->endOfWeek();
 
-        $appointments = $user->appointmentsAsProvider()
+        $appointments = $provider->appointmentsAsProvider()
             ->with(['service', 'client', 'teamMember.user'])
             ->whereBetween('start_time', [$startDate, $endDate])
             ->orderBy('start_time', 'asc')
@@ -41,11 +51,11 @@ class ScheduleController extends Controller
 
     public function appointments(Request $request)
     {
-        $user = auth_user();
+        $provider = $this->managedProvider();
         $search = $request->search ?? null;
         $status = $request->status ?? null;
 
-        $query = $user->appointmentsAsProvider()->with(['services', 'client', 'teamMember.user'])
+        $query = $provider->appointmentsAsProvider()->with(['services', 'client', 'teamMember.user'])
             ->when($search, function ($q, $search) {
                 $q->whereHas('client', function($q2) use ($search) {
                     $q2->where('name', 'like', "%{$search}%")
@@ -66,7 +76,7 @@ class ScheduleController extends Controller
 
     public function confirmAppointment($id)
     {
-        $appointment = Appointment::where('provider_id', auth()->id())
+        $appointment = $this->providerAppointmentsQuery()
             ->where('status', 'pending')
             ->findOrFail($id);
 
@@ -93,7 +103,7 @@ class ScheduleController extends Controller
             'reason' => 'required|string|max:500',
         ]);
 
-        $appointment = Appointment::where('provider_id', auth()->id())
+        $appointment = $this->providerAppointmentsQuery()
             ->where('status', '!=', 'cancelled')
             ->findOrFail($id);
 
@@ -135,7 +145,7 @@ class ScheduleController extends Controller
 
     public function completeAppointment($id)
     {
-        $appointment = Appointment::where('provider_id', auth()->id())
+        $appointment = $this->providerAppointmentsQuery()
             ->whereIn('status', ['confirmed', 'pending', 'pending_completion'])
             ->findOrFail($id);
         
@@ -177,7 +187,7 @@ class ScheduleController extends Controller
 
     public function showAppointment($id)
     {
-        $appointment = Appointment::where('provider_id', auth()->id())
+        $appointment = $this->providerAppointmentsQuery()
             ->with(['client', 'services', 'provider.businessProfile', 'teamMember.user'])
             ->findOrFail($id);
 
@@ -245,7 +255,7 @@ class ScheduleController extends Controller
             'description.min' => 'Please provide at least 20 characters of detail.',
         ]);
 
-        $appointment = Appointment::where('provider_id', auth()->id())->findOrFail($id);
+        $appointment = $this->providerAppointmentsQuery()->findOrFail($id);
 
         Report::create([
             'appointment_id' => $appointment->id,

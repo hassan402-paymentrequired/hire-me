@@ -17,6 +17,16 @@ use App\Support\ProviderSettings;
 
 class BusinessController extends Controller
 {
+    private function managedProvider()
+    {
+        return auth_user();
+    }
+
+    private function managedBusinessProfile(): ?BusinessProfile
+    {
+        return $this->managedProvider()?->businessProfile;
+    }
+
     public function businessHours()
     {
         return Inertia::render('provider/business/hours/index', $this->businessHoursPayload());
@@ -29,12 +39,12 @@ class BusinessController extends Controller
 
     protected function businessHoursPayload(): array
     {
-        $user = auth()->user();
-        $businessProfile = $user->businessProfile;
+        $provider = $this->managedProvider();
+        $businessProfile = $this->managedBusinessProfile();
         $settings = ProviderSettings::resolve($businessProfile?->settings);
 
         // Fetch WorkHours from DB
-        $workHours = \App\Models\WorkHour::where('provider_id', $user->id)->get();
+        $workHours = \App\Models\WorkHour::where('provider_id', $provider?->id)->get();
 
         $schedule = null;
         if ($workHours->isNotEmpty()) {
@@ -84,8 +94,11 @@ class BusinessController extends Controller
 
     public function updateBusinessHourHolidays(\Illuminate\Http\Request $request)
     {
-        $user = auth()->user();
-        $profile = $user->businessProfile;
+        $profile = $this->managedBusinessProfile();
+
+        if (! $profile) {
+            return back()->with('error-toast', 'Business profile not found.');
+        }
 
         $currentSettings = $profile->settings ?? [];
         $profile->settings = array_merge($currentSettings, [
@@ -98,15 +111,15 @@ class BusinessController extends Controller
 
     protected function syncBusinessHours(Request $request): void
     {
-        $user = auth()->user();
+        $provider = $this->managedProvider();
 
-        \App\Models\WorkHour::where('provider_id', $user->id)->delete();
+        \App\Models\WorkHour::where('provider_id', $provider?->id)->delete();
 
         if ($request->schedule) {
             foreach ($request->schedule as $day => $data) {
                 if (empty($data['isOpen']) || $data['isOpen'] === false) {
                     \App\Models\WorkHour::create([
-                        'provider_id' => $user->id,
+                        'provider_id' => $provider?->id,
                         'day_of_week' => $day,
                         'is_closed' => true,
                     ]);
@@ -114,7 +127,7 @@ class BusinessController extends Controller
                     if (!empty($data['shifts'])) {
                         foreach ($data['shifts'] as $shift) {
                             \App\Models\WorkHour::create([
-                                'provider_id' => $user->id,
+                                'provider_id' => $provider?->id,
                                 'day_of_week' => $day,
                                 'start_time' => $shift['start'],
                                 'end_time' => $shift['end'],
@@ -130,10 +143,11 @@ class BusinessController extends Controller
 
     public function services(Request $request)
     {
-        $user = auth()->user();
+        $provider = $this->managedProvider();
+        $profile = $this->managedBusinessProfile();
         $search = trim((string) $request->get('search', ''));
 
-        $servicesQuery = $user->services()
+        $servicesQuery = $provider->services()
             ->with('category')
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($inner) use ($search) {
@@ -143,10 +157,10 @@ class BusinessController extends Controller
             });
 
         $services = $servicesQuery->latest()->paginate(12)->withQueryString();
-        $allServices = $user->services()->with('category')->get();
+        $allServices = $provider->services()->with('category')->get();
         $businessCategory = null;
-        if ($user->businessProfile?->category) {
-            $cat = \App\Models\Category::where('slug', $user->businessProfile->category)->select(['id', 'name', 'slug'])->first();
+        if ($profile?->category) {
+            $cat = \App\Models\Category::where('slug', $profile->category)->select(['id', 'name', 'slug'])->first();
             if ($cat) {
                 $businessCategory = [
                     'id' => $cat->id,
@@ -166,7 +180,7 @@ class BusinessController extends Controller
         $inactiveServicesCount = $allServices->where('status', 'inactive')->count();
 
         // 3. Most Booked Service
-        $mostBookedService = $user->appointmentsAsProvider()
+        $mostBookedService = $provider->appointmentsAsProvider()
             ->join('services', 'appointments.service_id', '=', 'services.id')
             ->selectRaw('services.name, COUNT(appointments.id) as bookings')
             ->whereIn('appointments.status', ['confirmed', 'completed'])
@@ -211,10 +225,11 @@ class BusinessController extends Controller
             'duration_minutes' => 'required|integer|min:1',
         ]);
 
-        $user = auth()->user();
+        $provider = $this->managedProvider();
+        $profile = $this->managedBusinessProfile();
         $categoryId = null;
-        if ($user?->businessProfile?->category) {
-            $categoryId = \App\Models\Category::where('slug', $user->businessProfile->category)->value('id');
+        if ($profile?->category) {
+            $categoryId = \App\Models\Category::where('slug', $profile->category)->value('id');
         }
         if (! $categoryId) {
             return back()->withErrors([
@@ -223,7 +238,7 @@ class BusinessController extends Controller
         }
 
         \App\Models\Service::create([
-            'provider_id' => auth()->id(),
+            'provider_id' => $provider->id,
             'category_id' => $categoryId,
             'name' => $request->name,
             'description' => $request->description,
@@ -237,7 +252,7 @@ class BusinessController extends Controller
 
     public function updateService(\Illuminate\Http\Request $request, $id)
     {
-        $service = \App\Models\Service::where('provider_id', auth()->id())->findOrFail($id);
+        $service = \App\Models\Service::where('provider_id', $this->managedProvider()->id)->findOrFail($id);
 
         $request->validate([
             'name' => 'required|string|max:255',
@@ -252,7 +267,7 @@ class BusinessController extends Controller
 
     public function toggleServiceStatus($id)
     {
-        $service = \App\Models\Service::where('provider_id', auth()->id())->findOrFail($id);
+        $service = \App\Models\Service::where('provider_id', $this->managedProvider()->id)->findOrFail($id);
         $service->status = $service->status === 'active' ? 'inactive' : 'active';
         $service->save();
 
@@ -261,7 +276,7 @@ class BusinessController extends Controller
 
     public function destroyService($id)
     {
-        $service = \App\Models\Service::where('provider_id', auth()->id())->findOrFail($id);
+        $service = \App\Models\Service::where('provider_id', $this->managedProvider()->id)->findOrFail($id);
         $name = $service->name;
         $service->delete();
 
@@ -270,7 +285,8 @@ class BusinessController extends Controller
 
     public function analytics(\Illuminate\Http\Request $request)
     {
-        $user = auth()->user();
+        $provider = $this->managedProvider();
+        $profile = $this->managedBusinessProfile();
         $range = $request->get('range', 'this_year'); // this_week, this_month, this_year
 
         // Calculate date range
@@ -283,22 +299,22 @@ class BusinessController extends Controller
         };
 
         // Helper function to create fresh query instances
-        $baseQuery = function() use ($user, $startDate) {
-            return $user->appointmentsAsProvider()->where('start_time', '>=', $startDate);
+        $baseQuery = function() use ($provider, $startDate) {
+            return $provider->appointmentsAsProvider()->where('start_time', '>=', $startDate);
         };
 
         // 1. Revenue Trends (Daily, Weekly, Monthly based on range) - Create fresh instances
         $revenueData = match($range) {
-            'this_week' => $this->getDailyRevenue($user->appointmentsAsProvider()->where('start_time', '>=', $startDate), $startDate),
-            'this_month' => $this->getWeeklyRevenue($user->appointmentsAsProvider()->where('start_time', '>=', $startDate), $startDate),
-            'this_year' => $this->getMonthlyRevenue($user->appointmentsAsProvider()->where('start_time', '>=', $startDate), $startDate),
-            default => $this->getMonthlyRevenue($user->appointmentsAsProvider()->where('start_time', '>=', $startDate), $startDate),
+            'this_week' => $this->getDailyRevenue($provider->appointmentsAsProvider()->where('start_time', '>=', $startDate), $startDate),
+            'this_month' => $this->getWeeklyRevenue($provider->appointmentsAsProvider()->where('start_time', '>=', $startDate), $startDate),
+            'this_year' => $this->getMonthlyRevenue($provider->appointmentsAsProvider()->where('start_time', '>=', $startDate), $startDate),
+            default => $this->getMonthlyRevenue($provider->appointmentsAsProvider()->where('start_time', '>=', $startDate), $startDate),
         };
 
         // 2. Booking Conversion Rates
-        $totalViews = $user->businessProfile?->views ?? 0; // Assuming views are tracked
-        $totalBookings = $user->appointmentsAsProvider()->where('start_time', '>=', $startDate)->count();
-        $confirmedBookings = $user->appointmentsAsProvider()
+        $totalViews = $profile?->views ?? 0; // Assuming views are tracked
+        $totalBookings = $provider->appointmentsAsProvider()->where('start_time', '>=', $startDate)->count();
+        $confirmedBookings = $provider->appointmentsAsProvider()
             ->where('start_time', '>=', $startDate)
             ->whereIn('status', ['confirmed', 'completed'])
             ->count();
@@ -306,7 +322,7 @@ class BusinessController extends Controller
         $confirmationRate = $totalBookings > 0 ? ($confirmedBookings / $totalBookings) * 100 : 0;
 
         // 3. Popular Services Analysis
-        $topServices = $user->appointmentsAsProvider()
+        $topServices = $provider->appointmentsAsProvider()
             ->join('services', 'appointments.service_id', '=', 'services.id')
             ->selectRaw('services.name, COUNT(appointments.id) as bookings, SUM(appointments.price) as revenue, AVG(appointments.price) as avg_price')
             ->where('appointments.start_time', '>=', $startDate)
@@ -326,7 +342,7 @@ class BusinessController extends Controller
             });
 
         // 4. Peak Hours Identification - Create fresh instance
-        $peakHours = $user->appointmentsAsProvider()
+        $peakHours = $provider->appointmentsAsProvider()
             ->where('start_time', '>=', $startDate)
             ->whereIn('status', ['confirmed', 'completed'])
             ->selectRaw('HOUR(start_time) as hour, COUNT(*) as bookings')
@@ -354,13 +370,13 @@ class BusinessController extends Controller
 
         // 5. Customer Retention Metrics
         // Create fresh query instances to avoid contamination from previous queries
-        $uniqueClients = $user->appointmentsAsProvider()
+        $uniqueClients = $provider->appointmentsAsProvider()
             ->where('start_time', '>=', $startDate)
             ->whereNotNull('client_id')
             ->distinct('client_id')
             ->count('client_id');
         
-        $returningClients = $user->appointmentsAsProvider()
+        $returningClients = $provider->appointmentsAsProvider()
             ->where('start_time', '>=', $startDate)
             ->whereNotNull('client_id')
             ->select('client_id')
@@ -372,7 +388,7 @@ class BusinessController extends Controller
         $retentionRate = $uniqueClients > 0 ? ($returningClients / $uniqueClients) * 100 : 0;
 
         // Calculate repeat customer bookings
-        $repeatBookings = $user->appointmentsAsProvider()
+        $repeatBookings = $provider->appointmentsAsProvider()
             ->where('start_time', '>=', $startDate)
             ->whereNotNull('client_id')
             ->select('client_id')
@@ -382,7 +398,7 @@ class BusinessController extends Controller
             ->count();
 
         // 6. Review Sentiment Analysis
-        $reviews = \App\Models\Review::where('provider_id', $user->id)
+        $reviews = \App\Models\Review::where('provider_id', $provider->id)
             ->where('created_at', '>=', $startDate)
             ->get();
 
@@ -400,7 +416,7 @@ class BusinessController extends Controller
         ];
 
         // 7. Geographic Demand Heatmap (by client location if available, otherwise by appointment address) - Create fresh instance
-        $geographicData = $user->appointmentsAsProvider()
+        $geographicData = $provider->appointmentsAsProvider()
             ->where('start_time', '>=', $startDate)
             ->whereIn('status', ['confirmed', 'completed'])
             ->join('users', 'appointments.client_id', '=', 'users.id')
@@ -426,27 +442,27 @@ class BusinessController extends Controller
         $previousPeriodStart = $startDate->copy()->sub($range === 'this_week' ? '1 week' : ($range === 'this_month' ? '1 month' : '1 year'));
         $previousPeriodEnd = $startDate->copy()->subDay();
 
-        $currentRevenue = $user->appointmentsAsProvider()
+        $currentRevenue = $provider->appointmentsAsProvider()
             ->where('start_time', '>=', $startDate)
             ->whereIn('status', ['confirmed', 'completed'])
             ->sum('price');
-        $previousRevenue = $user->appointmentsAsProvider()
+        $previousRevenue = $provider->appointmentsAsProvider()
             ->whereIn('status', ['confirmed', 'completed'])
             ->whereBetween('start_time', [$previousPeriodStart, $previousPeriodEnd])
             ->sum('price');
 
-        $currentBookings = $user->appointmentsAsProvider()
+        $currentBookings = $provider->appointmentsAsProvider()
             ->where('start_time', '>=', $startDate)
             ->count();
-        $previousBookings = $user->appointmentsAsProvider()
+        $previousBookings = $provider->appointmentsAsProvider()
             ->whereBetween('start_time', [$previousPeriodStart, $previousPeriodEnd])
             ->count();
 
-        $cancelCount = $user->appointmentsAsProvider()
+        $cancelCount = $provider->appointmentsAsProvider()
             ->where('start_time', '>=', $startDate)
             ->where('status', 'cancelled')
             ->count();
-        $previousCancelCount = $user->appointmentsAsProvider()
+        $previousCancelCount = $provider->appointmentsAsProvider()
             ->where('status', 'cancelled')
             ->whereBetween('start_time', [$previousPeriodStart, $previousPeriodEnd])
             ->count();
@@ -595,8 +611,8 @@ class BusinessController extends Controller
 
     private function renderBusinessSettingsPage(string $page)
     {
-        $user = auth()->user();
-        $profile = $user->businessProfile()->with('images')->first();
+        $provider = $this->managedProvider();
+        $profile = $provider?->businessProfile()->with('images')->first();
         $categories = Category::orderBy('name')->get()->map(function ($category) {
             return [
                 'value' => $category->slug,
@@ -639,8 +655,7 @@ class BusinessController extends Controller
 
     public function updateGeneralSettings(Request $request)
     {
-        $user = auth()->user();
-        $profile = $user->businessProfile;
+        $profile = $this->managedBusinessProfile();
 
         $request->validate([
             'business_name' => 'required|string|max:255',
@@ -650,6 +665,10 @@ class BusinessController extends Controller
         ]);
 
         try {
+            if (! $profile) {
+                return back()->with('error-toast', 'Business profile not found.');
+            }
+
             $profile->update([
                 'business_name' => $request->business_name,
                 'description' => $request->description,
@@ -666,8 +685,7 @@ class BusinessController extends Controller
 
     public function updateLocationSettings(Request $request)
     {
-        $user = auth()->user();
-        $profile = $user->businessProfile;
+        $profile = $this->managedBusinessProfile();
 
         $request->validate([
             'address' => 'nullable|string|max:500',
@@ -679,6 +697,10 @@ class BusinessController extends Controller
         ]);
 
         try {
+            if (! $profile) {
+                return back()->with('error-toast', 'Business profile not found.');
+            }
+
             $profile->update([
                 'address' => $request->address,
                 'city' => $request->city,
@@ -697,14 +719,17 @@ class BusinessController extends Controller
 
     public function updateAdvancedSettings(Request $request)
     {
-        $user = auth()->user();
-        $profile = $user->businessProfile;
+        $profile = $this->managedBusinessProfile();
 
         $request->validate([
             'settings' => 'nullable|array',
         ]);
 
         try {
+            if (! $profile) {
+                return back()->with('error-toast', 'Business profile not found.');
+            }
+
             $profile->update([
                 'settings' => ProviderSettings::sanitize(array_merge($profile->settings ?? [], $request->settings ?? [])),
             ]);
@@ -718,8 +743,12 @@ class BusinessController extends Controller
 
     public function updateAppearanceSettings(Request $request)
     {
-        $user = auth()->user();
-        $profile = $user->businessProfile;
+        $profile = $this->managedBusinessProfile();
+
+        if (! $profile) {
+            return back()->with('error-toast', 'Business profile not found.');
+        }
+
         $currentBannerCount = $profile->images()->where('is_logo', false)->count();
         $deleteCount = count($request->input('delete_image_ids', []));
         $remainingBannerCount = max(0, $currentBannerCount - $deleteCount);

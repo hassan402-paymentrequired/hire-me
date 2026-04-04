@@ -13,8 +13,8 @@ class WidgetSettingsController extends Controller
      */
     public function update(Request $request)
     {
-        $user = auth()->user();
-        $profile = $user->businessProfile;
+        $provider = auth_user();
+        $profile = $provider?->businessProfile;
 
         if (!$profile) {
             return response()->json(['error' => 'Business profile not found.'], 404);
