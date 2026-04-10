@@ -1,44 +1,18 @@
 import { EmptyCard } from '@/components/ui/empty-card';
 import AppLayout from '@/layouts/guest-layout';
-// import { PROVIDERS_BEFORE_LOGIN } from '@/lib/constants';
 import BusinessCard from '@/pages/guest/components/business-card';
 import { HeaderFilter } from '@/pages/guest/components/filter';
-import { Provider } from '@/types';
+import { WelcomeProps } from '@/types';
 import { Head, InfiniteScroll, router, usePage } from '@inertiajs/react';
 import { toast } from 'sonner';
 import Landing from './components/landing-page';
-
-interface Props {
-    providers: {
-        data: Provider[];
-        links: {
-            url: string | null;
-            label: string;
-            active: boolean;
-        }[];
-        next_page_url: string | null;
-        current_page: number;
-    };
-    categories: { name: string; slug: string }[];
-    filters: {
-        search?: string;
-        category?: string;
-        lat?: number | string;
-        lng?: number | string;
-        sort?: string;
-        min_rating?: number | string;
-    };
-    canRegister: boolean;
-}
 
 export default function Welcome({
     providers,
     categories,
     filters,
-    canRegister,
-}: Props) {
+}: WelcomeProps) {
     const { auth } = usePage().props as { auth?: { user?: unknown } };
-    const isGuest = !auth?.user;
 
     const requestLocation = () => {
         if ('geolocation' in navigator) {
@@ -88,30 +62,6 @@ export default function Welcome({
         }
     };
 
-    const handleHeroSearch = (search: string) => {
-        router.get(
-            '/',
-            { ...filters, search },
-            {
-                preserveState: true,
-                replace: true,
-                preserveScroll: true,
-            },
-        );
-    };
-
-    const handleHeroCategorySelect = (category: string) => {
-        router.get(
-            '/',
-            { ...filters, category },
-            {
-                preserveState: true,
-                replace: true,
-                preserveScroll: true,
-            },
-        );
-    };
-
     return (
         <>
             <Head title="Find Services Providers Near You | proxideck">
@@ -145,13 +95,13 @@ export default function Welcome({
                 rel="stylesheet"
             />
             <AppLayout>
-                <div className="max-w-[1380px] mx-auto box-border flex w-full flex-col space-y-6 overflow-visible">
+                <div className="mx-auto box-border flex w-full max-w-[1380px] flex-col space-y-6 overflow-visible px-4 sm:px-6 xl:px-8 2xl:max-w-none 2xl:px-10">
                     <div className="hidden md:block">
                         <Landing />
                     </div>
 
                     {/* market place */}
-                    <div id="marketplace" className="min-h-[calc(98vh-3rem)] ">
+                    <div id="marketplace" className="min-h-[calc(98vh-3rem)]">
                         <HeaderFilter
                             categories={categories}
                             filters={filters}

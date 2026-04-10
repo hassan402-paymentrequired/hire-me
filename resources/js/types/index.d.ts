@@ -133,3 +133,28 @@ export interface Appointment {
     services: Service[],
     client: User
 }
+
+
+
+export interface WelcomeProps {
+    providers: {
+        data: Provider[];
+        links: {
+            url: string | null;
+            label: string;
+            active: boolean;
+        }[];
+        next_page_url: string | null;
+        current_page: number;
+    };
+    categories: { name: string; slug: string }[];
+    filters: {
+        search?: string;
+        category?: string;
+        lat?: number | string;
+        lng?: number | string;
+        sort?: string;
+        min_rating?: number | string;
+    };
+    canRegister: boolean;
+}
