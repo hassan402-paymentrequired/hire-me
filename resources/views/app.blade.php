@@ -87,7 +87,9 @@
 
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
-        <link rel="stylesheet" href="/assets/keenicons/font/outline/style.css">
+        {{--  <link rel="stylesheet" href="/assets/keenicons/font/outline/style.css">  --}}
+
+        <link href="{{ asset('assets/global/plugins.bundle.css') }}" rel="stylesheet" type="text/css" />
 
         @viteReactRefresh
         @vite(['resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
@@ -95,5 +97,7 @@
     </head>
     <body class="font-heading antialiased">
         @inertia
+
+         <script src="{{ asset('assets/global/plugins.bundle.js') }}"></script>
     </body>
 </html>

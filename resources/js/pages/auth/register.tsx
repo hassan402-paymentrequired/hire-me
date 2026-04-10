@@ -110,7 +110,7 @@ export default function Register({
                         <Label htmlFor="name" className="text-sm font-medium">Name</Label>
                         <div className="relative">
                             <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-muted-foreground">
-                                <KeenIcon name="profile-circle" className="text-sm" />
+                                <KeenIcon name="security-user" className="text-sm" />
                             </div>
                             <Input
                                 id="name"
@@ -133,7 +133,7 @@ export default function Register({
                         <Label htmlFor="email" className="text-sm font-medium">Email address</Label>
                         <div className="relative">
                             <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-muted-foreground">
-                                <KeenIcon name="text-circle" className="text-sm" />
+                                <KeenIcon name="messages" className="text-sm" />
                             </div>
                             <Input
                                 id="email"
@@ -155,7 +155,7 @@ export default function Register({
                         <Label htmlFor="password" className="text-sm font-medium">Password</Label>
                         <div className="relative">
                             <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-muted-foreground">
-                                <KeenIcon name="verify" className="text-sm" />
+                                <KeenIcon name="lock" className="text-sm" />
                             </div>
                             <Input
                                 id="password"
@@ -200,7 +200,7 @@ export default function Register({
                         </Label>
                         <div className="relative">
                             <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-muted-foreground">
-                                <KeenIcon name="verify" className="text-sm" />
+                                <KeenIcon name="lock" className="text-sm" />
                             </div>
                             <Input
                                 id="password_confirmation"

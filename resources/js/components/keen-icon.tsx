@@ -7,5 +7,5 @@ export default function KeenIcon({
     name: string;
     className?: string;
 }) {
-    return <i aria-hidden="true" className={cn('ki-outline', `ki-${name}`, className)} />;
+    return <i aria-hidden="true" className={cn('ki-solid', `ki-${name}`, className)} />;
 }

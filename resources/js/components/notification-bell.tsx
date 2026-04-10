@@ -132,7 +132,7 @@ export function NotificationBell() {
                                 variant="ghost"
                                 size="icon"
                                 className={cn(
-                                    'relative h-10 w-10 rounded-2xl border border-border/70 bg-background shadow-none transition-all hover:bg-muted/60',
+                                    'relative h-10 w-10 rounded-2xl border border-black/10 bg-white/80 shadow-none transition-all hover:bg-muted/60',
                                     unreadCount > 0 && 'border-primary/30 bg-primary/5 text-primary',
                                 )}
                             >

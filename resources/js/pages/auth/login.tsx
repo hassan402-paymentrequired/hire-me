@@ -118,7 +118,7 @@ export default function Login({
                                 <Label htmlFor="email" className="text-sm font-medium">Email address</Label>
                                 <div className="relative">
                                     <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-muted-foreground">
-                                        <KeenIcon name="text" className="text-sm" />
+                                        <KeenIcon name="message-text-2" className="text-sm" />
                                     </div>
                                     <Input
                                         id="email"
@@ -150,7 +150,7 @@ export default function Login({
                                 </div>
                                 <div className="relative">
                                     <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-muted-foreground">
-                                        <KeenIcon name="verify" className="text-sm" />
+                                        <KeenIcon name="lock" className="text-sm" />
                                     </div>
                                     <Input
                                         id="password"
