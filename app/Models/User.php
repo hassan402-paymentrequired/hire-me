@@ -231,6 +231,24 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasProviderSetup() || $this->activeTeamMembership()->exists();
     }
 
+    public function sharesProviderWorkspaceWith(User $provider): bool
+    {
+        if ($this->id === $provider->id) {
+            return true;
+        }
+
+        return $this->teamMemberships()
+            ->where('provider_id', $provider->id)
+            ->where('is_active', true)
+            ->whereNotNull('accepted_at')
+            ->exists();
+    }
+
+    public function canBookProvider(User $provider): bool
+    {
+        return ! $this->sharesProviderWorkspaceWith($provider);
+    }
+
     public function canManageAppointment(Appointment $appointment): bool
     {
         return true;

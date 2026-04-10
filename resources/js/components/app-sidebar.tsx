@@ -17,16 +17,16 @@ import { Link } from '@inertiajs/react';
 import AppLogo from './app-logo';
 import KeenIcon from './keen-icon';
 
-const DashboardIcon = () => <KeenIcon  name="abstract-26" className="text-base" />;
-const CalendarIcon = () => <KeenIcon name="electronic-clock" className="text-base" />;
-const AppointmentIcon = () => <KeenIcon name="archive" className="text-base" />;
+const DashboardIcon = () => <KeenIcon  name="home-2" className="text-base" />;
+const CalendarIcon = () => <KeenIcon name="calendar-tick" className="text-base" />;
+const AppointmentIcon = () => <KeenIcon name="parcel" className="text-base" />;
 const BusinessHoursIcon = () => <KeenIcon name="night-day" className="text-base" />;
-const AnalyticsIcon = () => <KeenIcon name="ranking" className="text-base" />;
-const ServicesIcon = () => <KeenIcon name="menu" className="text-base" />;
+const AnalyticsIcon = () => <KeenIcon name="chart-line" className="text-base" />;
+const ServicesIcon = () => <KeenIcon name="element-8" className="text-base" />;
 const GalleryIcon = () => <KeenIcon name="picture" className="text-base" />;
 const TeamIcon = () => <KeenIcon name="people" className="text-base" />;
-const WalletIcon = () => <KeenIcon name="receipt-square" className="text-base" />;
-const SettingsIcon = () => <KeenIcon name="slider" className="text-base" />;
+const WalletIcon = () => <KeenIcon name="credit-cart" className="text-base" />;
+const SettingsIcon = () => <KeenIcon name="setting" className="text-base" />;
 const IntegrationIcon = () => <KeenIcon name="technology-2" className="text-base" />;
 const MarketplaceIcon = () => <KeenIcon name="compass" className="text-base" />;
 

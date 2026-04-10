@@ -1,6 +1,8 @@
+import KeenIcon from '@/components/keen-icon';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
+import { CustomAlertDialog } from '@/components/ui/custom-alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -12,19 +14,17 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import KeenIcon from '@/components/keen-icon';
+import VerifiedProviderBadge from '@/components/verified-provider-badge';
 import GuestLayout from '@/layouts/guest-layout';
 import { cn } from '@/lib/utils';
+import appointments from '@/routes/appointments';
+import { ShieldExclamationIcon } from '@heroicons/react/24/solid';
 import { Head, router } from '@inertiajs/react';
-import { toast } from 'sonner';
 import axios from 'axios';
 import { addMonths, format } from 'date-fns';
 import { Box, Check, CheckCircle2, Clock, Repeat, Wallet } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { CustomAlertDialog } from '@/components/ui/custom-alert-dialog';
-import {ShieldExclamationIcon} from "@heroicons/react/24/solid"
-import appointments from '@/routes/appointments';
-import VerifiedProviderBadge from '@/components/verified-provider-badge';
+import { toast } from 'sonner';
 
 interface Service {
     id: string;
@@ -42,6 +42,8 @@ interface Provider {
     slug: string;
     logo: string | null;
     isVerified?: boolean;
+    canBook?: boolean;
+    bookingBlockedReason?: string | null;
 }
 
 interface TeamMember {
@@ -102,12 +104,16 @@ export default function Booking({
         null,
     );
     const [recurrenceCount, setRecurrenceCount] = useState<number | null>(null);
-    const [insufficientBalanceDialogOpen, setInsufficientBalanceDialogOpen] = useState(false);
-    const [paymentConfirmDialogOpen, setPaymentConfirmDialogOpen] = useState(false);
+    const [insufficientBalanceDialogOpen, setInsufficientBalanceDialogOpen] =
+        useState(false);
+    const [paymentConfirmDialogOpen, setPaymentConfirmDialogOpen] =
+        useState(false);
     const [pendingShortfall, setPendingShortfall] = useState<number>(0);
     const [useCustomTime, setUseCustomTime] = useState(false);
     const [customTime, setCustomTime] = useState('');
-    const [paymentOption, setPaymentOption] = useState<'online' | 'offline'>('online');
+    const [paymentOption, setPaymentOption] = useState<'online' | 'offline'>(
+        'online',
+    );
 
     // Provider settings with defaults
     const providerSettings: ProviderSettings = settings || {
@@ -122,8 +128,14 @@ export default function Booking({
         accept_offline_booking: false,
     };
 
-    const supportsOnlinePayment = providerSettings.accept_online_payment ?? true;
-    const supportsOfflineBooking = providerSettings.accept_offline_booking ?? false;
+    const supportsOnlinePayment =
+        providerSettings.accept_online_payment ?? true;
+    const supportsOfflineBooking =
+        providerSettings.accept_offline_booking ?? false;
+    const canBookProvider = provider.canBook ?? true;
+    const bookingBlockedReason =
+        provider.bookingBlockedReason ||
+        'Booking is unavailable for this provider.';
 
     useEffect(() => {
         if (supportsOnlinePayment) {
@@ -188,7 +200,8 @@ export default function Booking({
             setAvailableSlots([]);
             const msg = error?.response?.data?.message;
             setApiMessage(
-                msg || 'We could not load available slots. Please check your connection and try again, or select a different date.',
+                msg ||
+                    'We could not load available slots. Please check your connection and try again, or select a different date.',
             );
         } finally {
             setLoading(false);
@@ -255,6 +268,11 @@ export default function Booking({
     }, [availableSlots]);
 
     const handleBooking = () => {
+        if (!canBookProvider) {
+            toast.error(bookingBlockedReason);
+            return;
+        }
+
         if (!selectedDate || !selectedSlot || selectedServiceIds.length === 0)
             return;
 
@@ -345,7 +363,9 @@ export default function Booking({
             <CustomAlertDialog
                 open={paymentConfirmDialogOpen}
                 onOpenChange={setPaymentConfirmDialogOpen}
-                icon={<ShieldExclamationIcon className="size-12 text-primary" />}
+                icon={
+                    <ShieldExclamationIcon className="size-12 text-primary" />
+                }
                 title="Confirm Payment"
                 description={`You will be charged ₦${totalPrice.toLocaleString()} which will be held securely. Payment will be released to the provider only after both you and the provider confirm the service is completed. Continue?`}
                 acceptLabel="Continue"
@@ -361,7 +381,10 @@ export default function Booking({
                         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                             <div className="space-y-4">
                                 <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-                                    <KeenIcon name="book-square" className="text-sm" />
+                                    <KeenIcon
+                                        name="book-square"
+                                        className="text-sm"
+                                    />
                                     Booking flow
                                 </div>
                                 <div className="flex items-start gap-4">
@@ -387,12 +410,18 @@ export default function Booking({
                                             <span className="font-medium text-foreground">
                                                 {provider.businessName}
                                             </span>
-                                            {provider.isVerified && <VerifiedProviderBadge />}
-                                            <span className="hidden sm:inline">•</span>
+                                            {provider.isVerified && (
+                                                <VerifiedProviderBadge />
+                                            )}
+                                            <span className="hidden sm:inline">
+                                                •
+                                            </span>
                                             <span>{provider.address}</span>
                                         </div>
                                         <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                                            Choose the service, team member, and time that fits best. We’ll keep the next steps clear as you go.
+                                            Choose the service, team member, and
+                                            time that fits best. We’ll keep the
+                                            next steps clear as you go.
                                         </p>
                                     </div>
                                 </div>
@@ -400,7 +429,7 @@ export default function Booking({
 
                             <div className="grid grid-cols-2 gap-3 sm:min-w-[280px]">
                                 <div className="rounded-2xl border border-border/70 bg-background/90 p-4 backdrop-blur-sm">
-                                    <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                    <div className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
                                         Services
                                     </div>
                                     <div className="mt-2 text-2xl font-semibold text-foreground">
@@ -413,7 +442,7 @@ export default function Booking({
                                     </p>
                                 </div>
                                 <div className="rounded-2xl border border-border/70 bg-background/90 p-4 backdrop-blur-sm">
-                                    <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                    <div className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
                                         Payment
                                     </div>
                                     <div className="mt-2 text-lg font-semibold text-foreground">
@@ -435,7 +464,10 @@ export default function Booking({
                     {bookingPolicyItems.length > 0 && (
                         <div className="mb-8 space-y-3">
                             <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                                <KeenIcon name="information" className="text-sm text-muted-foreground" />
+                                <KeenIcon
+                                    name="information"
+                                    className="text-sm text-muted-foreground"
+                                />
                                 Booking policies
                             </div>
                             <div className="flex flex-wrap gap-2">
@@ -444,10 +476,29 @@ export default function Booking({
                                         key={policy}
                                         className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground"
                                     >
-                                        <KeenIcon name="status" className="text-[11px]" />
+                                        <KeenIcon
+                                            name="status"
+                                            className="text-[11px]"
+                                        />
                                         {policy}
                                     </div>
                                 ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {!canBookProvider && (
+                        <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-amber-900">
+                            <div className="flex items-start gap-3">
+                                <ShieldExclamationIcon className="mt-0.5 size-5 shrink-0 text-amber-600" />
+                                <div>
+                                    <p className="font-semibold">
+                                        Booking unavailable
+                                    </p>
+                                    <p className="mt-1 text-sm leading-6">
+                                        {bookingBlockedReason}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -457,7 +508,7 @@ export default function Booking({
                         <div className="space-y-12 lg:col-span-2">
                             {/* Calendar & Slots Card */}
                             <div className="overflow-hidden rounded border bg-card">
-                                <div className="grid grid-cols-1 md:grid-cols-2 sm:h-[360px]">
+                                <div className="grid grid-cols-1 sm:h-[360px] md:grid-cols-2">
                                     <div className="flex justify-center border-b p-3 md:border-r md:border-b-0">
                                         <Calendar
                                             mode="single"
@@ -469,6 +520,10 @@ export default function Booking({
                                                 }
                                             }}
                                             disabled={(date) => {
+                                                if (!canBookProvider) {
+                                                    return true;
+                                                }
+
                                                 const today = new Date();
                                                 today.setHours(0, 0, 0, 0);
                                                 const selected = new Date(date);
@@ -503,11 +558,11 @@ export default function Booking({
 
                                                 return false;
                                             }}
-                                            className="rounded-md h-full w-full"
+                                            className="h-full w-full rounded-md"
                                         />
                                     </div>
 
-                                    <div className="space-y-3 bg-muted/5 p-4 sm:w-full sm:h-full sm:overflow-hidden sm:overflow-y-auto">
+                                    <div className="space-y-3 bg-muted/5 p-4 sm:h-full sm:w-full sm:overflow-hidden sm:overflow-y-auto">
                                         <div className="flex items-center justify-between">
                                             <h3 className="text-lg font-bold tracking-tighter uppercase md:text-xl">
                                                 {format(
@@ -534,19 +589,36 @@ export default function Booking({
                                                 {providerSettings.allowOffHoursRequests && (
                                                     <div className="mt-4 w-full max-w-xs rounded-lg border bg-background p-3 text-left">
                                                         <p className="text-xs font-bold text-foreground">
-                                                            Request an off-hours time
+                                                            Request an off-hours
+                                                            time
                                                         </p>
                                                         <p className="mt-1 text-[11px] text-muted-foreground">
-                                                            The provider will need to confirm. Your booking will be pending.
+                                                            The provider will
+                                                            need to confirm.
+                                                            Your booking will be
+                                                            pending.
                                                         </p>
                                                         <div className="mt-3 flex items-center gap-2">
                                                             <Input
                                                                 type="time"
-                                                                value={customTime}
-                                                                onChange={(e) => {
-                                                                    const t = e.target.value;
-                                                                    setUseCustomTime(true);
-                                                                    setCustomTime(t);
+                                                                value={
+                                                                    customTime
+                                                                }
+                                                                disabled={
+                                                                    !canBookProvider
+                                                                }
+                                                                onChange={(
+                                                                    e,
+                                                                ) => {
+                                                                    const t =
+                                                                        e.target
+                                                                            .value;
+                                                                    setUseCustomTime(
+                                                                        true,
+                                                                    );
+                                                                    setCustomTime(
+                                                                        t,
+                                                                    );
                                                                     setSelectedSlot(
                                                                         t
                                                                             ? `${format(selectedDate, 'yyyy-MM-dd')}T${t}:00`
@@ -605,9 +677,16 @@ export default function Booking({
                                                                                         ? 'scale-[1.05] border-primary'
                                                                                         : 'hover:border-primary/30 hover:bg-primary/5',
                                                                                 )}
+                                                                                disabled={
+                                                                                    !canBookProvider
+                                                                                }
                                                                                 onClick={() => {
-                                                                                    setUseCustomTime(false);
-                                                                                    setCustomTime('');
+                                                                                    setUseCustomTime(
+                                                                                        false,
+                                                                                    );
+                                                                                    setCustomTime(
+                                                                                        '',
+                                                                                    );
                                                                                     setSelectedSlot(
                                                                                         slot.datetime,
                                                                                     );
@@ -628,23 +707,47 @@ export default function Booking({
                                                             <div className="flex items-center justify-between gap-3">
                                                                 <div>
                                                                     <p className="text-xs font-bold text-foreground">
-                                                                        Request off-hours time
+                                                                        Request
+                                                                        off-hours
+                                                                        time
                                                                     </p>
                                                                     <p className="mt-1 text-[11px] text-muted-foreground">
-                                                                        If you can’t find a slot, request a custom time. It will be pending.
+                                                                        If you
+                                                                        can’t
+                                                                        find a
+                                                                        slot,
+                                                                        request
+                                                                        a custom
+                                                                        time. It
+                                                                        will be
+                                                                        pending.
                                                                     </p>
                                                                 </div>
                                                                 <Button
                                                                     type="button"
                                                                     variant="outline"
                                                                     size="sm"
+                                                                    disabled={
+                                                                        !canBookProvider
+                                                                    }
                                                                     onClick={() => {
-                                                                        setUseCustomTime((v) => !v);
-                                                                        setSelectedSlot('');
-                                                                        setCustomTime('');
+                                                                        setUseCustomTime(
+                                                                            (
+                                                                                v,
+                                                                            ) =>
+                                                                                !v,
+                                                                        );
+                                                                        setSelectedSlot(
+                                                                            '',
+                                                                        );
+                                                                        setCustomTime(
+                                                                            '',
+                                                                        );
                                                                     }}
                                                                 >
-                                                                    {useCustomTime ? 'Cancel' : 'Request'}
+                                                                    {useCustomTime
+                                                                        ? 'Cancel'
+                                                                        : 'Request'}
                                                                 </Button>
                                                             </div>
 
@@ -652,10 +755,22 @@ export default function Booking({
                                                                 <div className="mt-3 flex items-center gap-2">
                                                                     <Input
                                                                         type="time"
-                                                                        value={customTime}
-                                                                        onChange={(e) => {
-                                                                            const t = e.target.value;
-                                                                            setCustomTime(t);
+                                                                        value={
+                                                                            customTime
+                                                                        }
+                                                                        disabled={
+                                                                            !canBookProvider
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) => {
+                                                                            const t =
+                                                                                e
+                                                                                    .target
+                                                                                    .value;
+                                                                            setCustomTime(
+                                                                                t,
+                                                                            );
                                                                             setSelectedSlot(
                                                                                 t
                                                                                     ? `${format(selectedDate, 'yyyy-MM-dd')}T${t}:00`
@@ -683,9 +798,16 @@ export default function Booking({
                                     {services.map((s) => (
                                         <div
                                             key={s.id}
-                                            onClick={() => toggleService(s.id)}
+                                            onClick={() => {
+                                                if (canBookProvider) {
+                                                    toggleService(s.id);
+                                                }
+                                            }}
                                             className={cn(
-                                                'flex cursor-pointer items-start gap-2 rounded border p-2',
+                                                'flex items-start gap-2 rounded border p-2',
+                                                canBookProvider
+                                                    ? 'cursor-pointer'
+                                                    : 'cursor-not-allowed opacity-60',
                                                 selectedServiceIds.includes(
                                                     s.id,
                                                 )
@@ -750,11 +872,14 @@ export default function Booking({
                                         <button
                                             type="button"
                                             onClick={() => {
+                                                if (!canBookProvider) return;
                                                 setSelectedTeamMemberId('');
                                                 setSelectedSlot('');
                                             }}
                                             className={cn(
                                                 'rounded-xl border p-4 text-left transition-all',
+                                                !canBookProvider &&
+                                                    'cursor-not-allowed opacity-60',
                                                 !selectedTeamMemberId
                                                     ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
                                                     : 'border-border hover:border-primary/30',
@@ -763,13 +888,19 @@ export default function Booking({
                                             <div className="mb-3 flex items-center gap-3">
                                                 <Avatar className="h-12 w-12">
                                                     <AvatarImage
-                                                        src={provider.logo || undefined}
+                                                        src={
+                                                            provider.logo ||
+                                                            undefined
+                                                        }
                                                         alt={provider.name}
                                                     />
                                                     <AvatarFallback>
                                                         {provider.name
                                                             .split(' ')
-                                                            .map((part) => part[0])
+                                                            .map(
+                                                                (part) =>
+                                                                    part[0],
+                                                            )
                                                             .join('')
                                                             .slice(0, 2)
                                                             .toUpperCase()}
@@ -794,6 +925,8 @@ export default function Booking({
                                                 key={member.id}
                                                 type="button"
                                                 onClick={() => {
+                                                    if (!canBookProvider)
+                                                        return;
                                                     setSelectedTeamMemberId(
                                                         member.id,
                                                     );
@@ -801,6 +934,8 @@ export default function Booking({
                                                 }}
                                                 className={cn(
                                                     'rounded-xl border p-4 text-left transition-all',
+                                                    !canBookProvider &&
+                                                        'cursor-not-allowed opacity-60',
                                                     selectedTeamMemberId ===
                                                         member.id
                                                         ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
@@ -808,15 +943,28 @@ export default function Booking({
                                                 )}
                                             >
                                                 <div className="mb-3 flex items-center gap-3">
-                                                    <Avatar className={cn("h-12 w-12", selectedTeamMemberId === member.id && "border-grey-300 border-2")}>
+                                                    <Avatar
+                                                        className={cn(
+                                                            'h-12 w-12',
+                                                            selectedTeamMemberId ===
+                                                                member.id &&
+                                                                'border-grey-300 border-2',
+                                                        )}
+                                                    >
                                                         <AvatarImage
-                                                            src={member.avatar || undefined}
+                                                            src={
+                                                                member.avatar ||
+                                                                undefined
+                                                            }
                                                             alt={member.name}
                                                         />
-                                                        <AvatarFallback >
+                                                        <AvatarFallback>
                                                             {member.name
                                                                 .split(' ')
-                                                                .map((part) => part[0])
+                                                                .map(
+                                                                    (part) =>
+                                                                        part[0],
+                                                                )
                                                                 .join('')
                                                                 .slice(0, 2)
                                                                 .toUpperCase()}
@@ -826,7 +974,7 @@ export default function Booking({
                                                         <p className="font-semibold capitalize">
                                                             {member.name}
                                                         </p>
-                                                        <p className="text-xs capitalize text-muted-foreground">
+                                                        <p className="text-xs text-muted-foreground capitalize">
                                                             {member.role}
                                                         </p>
                                                     </div>
@@ -849,7 +997,7 @@ export default function Booking({
                                     placeholder="Add any special requests or information for the provider..."
                                     value={notes}
                                     onChange={(e) => setNotes(e.target.value)}
-                                    className='text-sm'
+                                    className="text-sm"
                                 />
                             </div>
 
@@ -884,7 +1032,7 @@ export default function Booking({
                                                 if (!value || value == 'once') {
                                                     setRecurrenceEndDate(null);
                                                     setRecurrenceCount(null);
-                                                    setRecurrencePattern(null)
+                                                    setRecurrencePattern(null);
                                                 }
                                             }}
                                         >
@@ -917,11 +1065,13 @@ export default function Booking({
                                                 <Input
                                                     id="recurrence-end-date"
                                                     type="date"
+                                                    disabled={!canBookProvider}
                                                     min={format(
                                                         selectedDate,
                                                         'yyyy-MM-dd',
                                                     )}
-                                                    max={format( //here
+                                                    max={format(
+                                                        //here
                                                         addMonths(
                                                             selectedDate,
                                                             12,
@@ -964,6 +1114,7 @@ export default function Booking({
                                                 <Input
                                                     id="recurrence-count"
                                                     type="number"
+                                                    disabled={!canBookProvider}
                                                     min="2"
                                                     max="52"
                                                     placeholder="e.g., 4"
@@ -1015,7 +1166,8 @@ export default function Booking({
                                         Booking Summary
                                     </h2>
                                     <p className="mt-1 text-center text-sm text-muted-foreground sm:text-left">
-                                        Review the essentials before you confirm this booking.
+                                        Review the essentials before you confirm
+                                        this booking.
                                     </p>
                                 </div>
 
@@ -1027,7 +1179,7 @@ export default function Booking({
                                                 className="flex items-center justify-between"
                                             >
                                                 <div className="flex flex-col items-start">
-                                                    <span className="text-sm text-muted-foreground/60 capitalize line-clamp-2">
+                                                    <span className="line-clamp-2 text-sm text-muted-foreground/60 capitalize">
                                                         {s.name}
                                                     </span>
                                                     <p className="mt-1 text-xs font-bold tracking-widest text-muted-foreground/80 uppercase">
@@ -1048,23 +1200,29 @@ export default function Booking({
 
                                     {/* Details Grid */}
                                     <div className="space-y-3 rounded-2xl border border-border/70 bg-muted/20 p-4">
-	                                        <div className="flex items-center justify-between">
-	                                            <span className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-                                                    <KeenIcon name="profile-circle" className="text-sm text-primary" />
-	                                                Professional
-	                                            </span>
-	                                            <span className="text-sm font-black">
-	                                                <span className="inline-flex items-center gap-2">
-	                                                    {provider.businessName}
-	                                                    {provider.isVerified && (
-	                                                        <VerifiedProviderBadge />
-	                                                    )}
-	                                                </span>
-	                                            </span>
-	                                        </div>
                                         <div className="flex items-center justify-between">
                                             <span className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-                                                <KeenIcon name="book-square" className="text-sm text-primary" />
+                                                <KeenIcon
+                                                    name="profile-circle"
+                                                    className="text-sm text-primary"
+                                                />
+                                                Professional
+                                            </span>
+                                            <span className="text-sm font-black">
+                                                <span className="inline-flex items-center gap-2">
+                                                    {provider.businessName}
+                                                    {provider.isVerified && (
+                                                        <VerifiedProviderBadge />
+                                                    )}
+                                                </span>
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
+                                                <KeenIcon
+                                                    name="book-square"
+                                                    className="text-sm text-primary"
+                                                />
                                                 Date
                                             </span>
                                             <span className="text-sm font-black">
@@ -1076,7 +1234,10 @@ export default function Booking({
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <span className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-                                                <KeenIcon name="status" className="text-sm text-primary" />
+                                                <KeenIcon
+                                                    name="status"
+                                                    className="text-sm text-primary"
+                                                />
                                                 Time
                                             </span>
                                             <span className="text-sm font-black">
@@ -1094,24 +1255,31 @@ export default function Booking({
 
                                     <div className="border-t-2 border-dashed border-muted" />
 
-                                    {(supportsOnlinePayment || supportsOfflineBooking) && (
+                                    {(supportsOnlinePayment ||
+                                        supportsOfflineBooking) && (
                                         <div className="space-y-3 rounded-2xl border border-border/70 bg-muted/20 p-4">
                                             <div>
-                                                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                                                <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">
                                                     Payment option
                                                 </p>
                                                 <p className="mt-1 text-sm text-foreground">
-                                                    Choose how you want to secure this booking.
+                                                    Choose how you want to
+                                                    secure this booking.
                                                 </p>
                                             </div>
                                             <div className="grid gap-3">
                                                 {supportsOnlinePayment && (
                                                     <button
                                                         type="button"
-                                                        onClick={() => setPaymentOption('online')}
+                                                        onClick={() =>
+                                                            setPaymentOption(
+                                                                'online',
+                                                            )
+                                                        }
                                                         className={cn(
                                                             'rounded-lg border p-3 text-left transition',
-                                                            paymentOption === 'online'
+                                                            paymentOption ===
+                                                                'online'
                                                                 ? 'border-primary bg-primary/5 ring-2 ring-primary/15'
                                                                 : 'border-border hover:border-primary/30',
                                                         )}
@@ -1119,23 +1287,46 @@ export default function Booking({
                                                         <div className="flex items-start justify-between gap-3">
                                                             <div>
                                                                 <p className="text-sm font-semibold text-foreground">
-                                                                    Pay online now
+                                                                    Pay online
+                                                                    now
                                                                 </p>
                                                                 <p className="mt-1 text-xs text-muted-foreground">
-                                                                    Payment is held securely and released only after service completion is confirmed.
+                                                                    Payment is
+                                                                    held
+                                                                    securely and
+                                                                    released
+                                                                    only after
+                                                                    service
+                                                                    completion
+                                                                    is
+                                                                    confirmed.
                                                                 </p>
                                                             </div>
-                                                            <KeenIcon name="verify" className={cn('text-sm', paymentOption === 'online' ? 'text-primary' : 'text-muted-foreground/40')} />
+                                                            <KeenIcon
+                                                                name="verify"
+                                                                className={cn(
+                                                                    'text-sm',
+                                                                    paymentOption ===
+                                                                        'online'
+                                                                        ? 'text-primary'
+                                                                        : 'text-muted-foreground/40',
+                                                                )}
+                                                            />
                                                         </div>
                                                     </button>
                                                 )}
                                                 {supportsOfflineBooking && (
                                                     <button
                                                         type="button"
-                                                        onClick={() => setPaymentOption('offline')}
+                                                        onClick={() =>
+                                                            setPaymentOption(
+                                                                'offline',
+                                                            )
+                                                        }
                                                         className={cn(
                                                             'rounded-lg border p-3 text-left transition',
-                                                            paymentOption === 'offline'
+                                                            paymentOption ===
+                                                                'offline'
                                                                 ? 'border-primary bg-primary/5 ring-2 ring-primary/15'
                                                                 : 'border-border hover:border-primary/30',
                                                         )}
@@ -1143,13 +1334,30 @@ export default function Booking({
                                                         <div className="flex items-start justify-between gap-3">
                                                             <div>
                                                                 <p className="text-sm font-semibold text-foreground">
-                                                                    Book and pay later
+                                                                    Book and pay
+                                                                    later
                                                                 </p>
                                                                 <p className="mt-1 text-xs text-muted-foreground">
-                                                                    This sends a pending request to the provider without charging your wallet now.
+                                                                    This sends a
+                                                                    pending
+                                                                    request to
+                                                                    the provider
+                                                                    without
+                                                                    charging
+                                                                    your wallet
+                                                                    now.
                                                                 </p>
                                                             </div>
-                                                            <KeenIcon name="verify" className={cn('text-sm', paymentOption === 'offline' ? 'text-primary' : 'text-muted-foreground/40')} />
+                                                            <KeenIcon
+                                                                name="verify"
+                                                                className={cn(
+                                                                    'text-sm',
+                                                                    paymentOption ===
+                                                                        'offline'
+                                                                        ? 'text-primary'
+                                                                        : 'text-muted-foreground/40',
+                                                                )}
+                                                            />
                                                         </div>
                                                     </button>
                                                 )}
@@ -1234,21 +1442,28 @@ export default function Booking({
                                             </div>
                                         </div>
 
-                                        {providerSettings.autoConfirm && paymentOption === 'online' && (
-                                            <p className="rounded-lg bg-green-50 dark:bg-green-950/20 px-3 py-2 text-xs text-green-700 dark:text-green-400 border border-green-200 dark:border-green-900/50">
-                                                This provider auto-confirms bookings – no need to wait for approval.
-                                            </p>
-                                        )}
+                                        {providerSettings.autoConfirm &&
+                                            paymentOption === 'online' && (
+                                                <p className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700 dark:border-green-900/50 dark:bg-green-950/20 dark:text-green-400">
+                                                    This provider auto-confirms
+                                                    bookings – no need to wait
+                                                    for approval.
+                                                </p>
+                                            )}
                                         {paymentOption === 'offline' && (
                                             <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
-                                                This request will stay pending until the provider reviews it, even if auto-confirm is enabled.
+                                                This request will stay pending
+                                                until the provider reviews it,
+                                                even if auto-confirm is enabled.
                                             </p>
                                         )}
                                         <Button
                                             className="w-full"
                                             disabled={
+                                                !canBookProvider ||
                                                 !selectedSlot ||
-                                                selectedServiceIds.length === 0 ||
+                                                selectedServiceIds.length ===
+                                                    0 ||
                                                 (paymentOption === 'online' &&
                                                     walletBalance !== null &&
                                                     walletBalance !==
@@ -1257,13 +1472,16 @@ export default function Booking({
                                             }
                                             onClick={handleBooking}
                                         >
-                                            {paymentOption === 'online'
-                                                ? walletBalance !== null &&
-                                                  walletBalance !== undefined &&
-                                                  walletBalance < totalPrice
-                                                    ? 'Insufficient Balance'
-                                                    : 'Book & Pay Now'
-                                                : 'Send Booking Request'}
+                                            {!canBookProvider
+                                                ? 'Booking unavailable'
+                                                : paymentOption === 'online'
+                                                  ? walletBalance !== null &&
+                                                    walletBalance !==
+                                                        undefined &&
+                                                    walletBalance < totalPrice
+                                                      ? 'Insufficient Balance'
+                                                      : 'Book & Pay Now'
+                                                  : 'Send Booking Request'}
                                             <CheckCircle2 className="size-6" />
                                         </Button>
                                         {paymentOption === 'online' &&
@@ -1279,7 +1497,10 @@ export default function Booking({
                                             )}
                                         {paymentOption === 'offline' && (
                                             <p className="text-center text-xs text-muted-foreground">
-                                                No wallet charge will happen now. The provider will decide whether to accept this unpaid request.
+                                                No wallet charge will happen
+                                                now. The provider will decide
+                                                whether to accept this unpaid
+                                                request.
                                             </p>
                                         )}
                                     </div>

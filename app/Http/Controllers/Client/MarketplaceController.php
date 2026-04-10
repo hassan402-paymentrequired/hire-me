@@ -20,6 +20,30 @@ use App\Support\ProviderSettings;
 
 class MarketplaceController extends Controller
 {
+    private function bookingEligibilityForProvider(User $provider): array
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return [
+                'canBook' => true,
+                'bookingBlockedReason' => null,
+            ];
+        }
+
+        if (! $user->canBookProvider($provider)) {
+            return [
+                'canBook' => false,
+                'bookingBlockedReason' => 'You cannot book your own business or a provider workspace you belong to.',
+            ];
+        }
+
+        return [
+            'canBook' => true,
+            'bookingBlockedReason' => null,
+        ];
+    }
+
     public function index()
     {
         // Get all verified providers with their business profiles and services
@@ -99,6 +123,7 @@ class MarketplaceController extends Controller
 
         $canReview = false;
         $isFavourite = false;
+        $bookingEligibility = $this->bookingEligibilityForProvider($provider);
 
         if (auth()->check()) {
             $canReview = Appointment::where('client_id', auth()->id())
@@ -244,6 +269,8 @@ class MarketplaceController extends Controller
                 'years_in_business' => $yearsInBusiness,
                 'team_members_count' => max(1, (int) $teamMembersCount),
                 'total_service_hours' => round($totalServiceHours, 1),
+                'canBook' => $bookingEligibility['canBook'],
+                'bookingBlockedReason' => $bookingEligibility['bookingBlockedReason'],
             ],
             'services' => $provider->services,
             'workHours' => $workHours,
@@ -292,6 +319,8 @@ class MarketplaceController extends Controller
             ->values();
 
 
+        $bookingEligibility = $this->bookingEligibilityForProvider($provider);
+
         return Inertia::render('marketplace/booking', [
             'provider' => [
                 'id' => $provider->id,
@@ -303,6 +332,8 @@ class MarketplaceController extends Controller
                 'logo' => $businessProfile->images->where('is_logo', true)->first()?->image_path
                     ? \App\Services\FileUploadService::url($businessProfile->images->where('is_logo', true)->first()->image_path, 'public')
                     : null,
+                'canBook' => $bookingEligibility['canBook'],
+                'bookingBlockedReason' => $bookingEligibility['bookingBlockedReason'],
             ],
             'services' => $provider->services->map(fn($service) => [
                 'id' => $service->id,

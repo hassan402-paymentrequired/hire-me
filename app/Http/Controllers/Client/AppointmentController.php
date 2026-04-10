@@ -305,6 +305,12 @@ class AppointmentController extends Controller
         ]);
 
         $provider = User::with('businessProfile')->findOrFail($request->provider_id);
+        $client = auth_user();
+
+        if (! $client->canBookProvider($provider)) {
+            return back()->with('error-toast', 'You cannot book your own business or a provider workspace you belong to.');
+        }
+
         $selectedTeamMember = $this->resolveSelectedTeamMember($provider->id, $request->team_member_id);
         if ($request->filled('team_member_id') && ! $selectedTeamMember) {
             return back()->withErrors([
@@ -849,6 +855,15 @@ class AppointmentController extends Controller
         ]);
 
         $provider = User::with('businessProfile')->findOrFail($request->provider_id);
+        $client = auth_user();
+
+        if (! $client->canBookProvider($provider)) {
+            return response()->json([
+                'slots' => [],
+                'message' => 'You cannot book your own business or a provider workspace you belong to.',
+            ], 422);
+        }
+
         $selectedTeamMember = $this->resolveSelectedTeamMember($provider->id, $request->team_member_id);
         if ($request->filled('team_member_id') && ! $selectedTeamMember) {
             return response()->json([

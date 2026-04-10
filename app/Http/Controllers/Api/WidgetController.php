@@ -320,6 +320,12 @@ class WidgetController extends Controller
         ]);
         
         $user = $result['user'];
+
+        if (! $user->canBookProvider($provider)) {
+            return response()->json([
+                'error' => 'You cannot book your own business or a provider workspace you belong to.',
+            ], 422);
+        }
         
         // Generate unique reference for this booking payment
         $reference = 'WGT_' . now()->timestamp . '_' . $user->id . '_' . Str::random(8);
@@ -417,6 +423,13 @@ class WidgetController extends Controller
         $plainPassword = $result['password'];
 
         $provider = User::findOrFail($request->provider_id);
+
+        if (! $user->canBookProvider($provider)) {
+            return response()->json([
+                'error' => 'You cannot book your own business or a provider workspace you belong to.',
+            ], 422);
+        }
+
         $services = Service::whereIn('id', $request->service_ids)->get();
         
         if ($services->isEmpty()) {
