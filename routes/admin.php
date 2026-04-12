@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\FinancialController;
 use App\Http\Controllers\Admin\ModerationController;
+use App\Http\Controllers\Admin\SupportRequestController;
 use App\Http\Controllers\Admin\VerificationController;
 
 /*
@@ -51,6 +52,11 @@ Route::middleware(['admin'])->group(function () {
         Route::post('/reports/{id}/resolve', [ModerationController::class, 'resolveReport'])->name('reports.resolve');
         Route::get('/reviews', [ModerationController::class, 'reviews'])->name('reviews');
         Route::delete('/reviews/{id}', [ModerationController::class, 'deleteReview'])->name('reviews.delete');
+    });
+
+    Route::prefix('support')->name('admin.support.')->group(function () {
+        Route::get('/', [SupportRequestController::class, 'index'])->name('index');
+        Route::post('/{supportRequest}/resolve', [SupportRequestController::class, 'resolve'])->name('resolve');
     });
 
     // Provider Verifications

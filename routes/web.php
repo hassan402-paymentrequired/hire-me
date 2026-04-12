@@ -28,7 +28,8 @@ Route::middleware(['provider.setup'])->group(function () {
     Route::get('/history', [\App\Http\Controllers\Guest\StaticPageController::class, 'history'])->name('history');
     Route::get('/our-team', [\App\Http\Controllers\Guest\StaticPageController::class, 'ourTeam'])->name('our-team');
     Route::get('/faqs', [\App\Http\Controllers\Guest\StaticPageController::class, 'faqs'])->name('faqs');
-    Route::get('/contact', [\App\Http\Controllers\Guest\StaticPageController::class, 'contact'])->name('contact');
+    Route::get('/contact', [\App\Http\Controllers\SupportController::class, 'contact'])->name('contact');
+    Route::post('/contact', [\App\Http\Controllers\SupportController::class, 'submitContact'])->name('contact.submit');
     Route::get('/privacy-policy', [\App\Http\Controllers\Guest\StaticPageController::class, 'privacyPolicy'])->name('privacy-policy');
     Route::get('/terms', [\App\Http\Controllers\Guest\StaticPageController::class, 'termsAndConditions'])->name('terms');
 });
@@ -209,6 +210,9 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
 
     // Reviews
     Route::post('/reviews', [\App\Http\Controllers\Guest\ReviewController::class, 'store'])->name('reviews.store');
+
+    Route::get('/support', [\App\Http\Controllers\SupportController::class, 'helpCenter'])->name('support.index');
+    Route::post('/support', [\App\Http\Controllers\SupportController::class, 'submitHelpCenter'])->name('support.store');
 });
 
 // Widget API (public endpoints)

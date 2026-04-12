@@ -10,18 +10,18 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { type NavSection } from '@/types';
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import {
-    LayoutGrid,
-    Users,
-    DollarSign,
-    Shield,
-    FileText,
     CheckCircle,
+    DollarSign,
+    FileText,
+    LayoutGrid,
+    LifeBuoy,
     LogOut,
+    Shield,
+    Users,
 } from 'lucide-react';
 import AppLogo from './app-logo';
-import { router } from '@inertiajs/react';
 
 const adminNavItems: NavSection[] = [
     {
@@ -71,6 +71,16 @@ const adminNavItems: NavSection[] = [
                 title: 'Reviews',
                 href: '/admin/moderation/reviews',
                 icon: Shield,
+            },
+        ],
+    },
+    {
+        name: 'Support',
+        links: [
+            {
+                title: 'Support Requests',
+                href: '/admin/support',
+                icon: LifeBuoy,
             },
         ],
     },
