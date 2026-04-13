@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Jobs\DeleteGoogleCalendarEventJob;
 use App\Jobs\SyncAppointmentToGoogleCalendarJob;
 use App\Models\Appointment;
+use App\Models\ClientAddress;
 use App\Models\Report;
 use App\Models\Service;
 use App\Models\TeamMember;
@@ -95,6 +96,9 @@ class AppointmentController extends Controller
             'start_time' => 'required|date',
             'notes' => 'nullable|string|max:500',
             'team_member_id' => 'nullable|exists:team_members,id',
+            'client_address_id' => 'nullable|exists:client_addresses,id',
+            'use_business_address' => 'nullable|boolean',
+            'set_address_active' => 'nullable|boolean',
         ]);
 
         $provider = $appointment->provider->load('businessProfile');
@@ -194,6 +198,12 @@ class AppointmentController extends Controller
                 'team_member_id' => $selectedTeamMember?->id,
                 'provider_approved' => $autoConfirm,
                 'provider_approved_at' => $autoConfirm ? now() : null,
+                ...$this->resolveAppointmentServiceAddressData(
+                    auth_user(),
+                    $request->input('client_address_id'),
+                    $request->boolean('use_business_address'),
+                    $request->boolean('set_address_active'),
+                ),
             ]);
             $appointment->services()->sync($request->service_ids);
 
@@ -276,7 +286,14 @@ class AppointmentController extends Controller
             : false;
 
         return Inertia::render('client/bookings/show', [
-            'booking' => $appointment,
+            'booking' => [
+                ...$appointment->toArray(),
+                'service_address_source' => $appointment->service_address_source,
+                'service_address_label' => $appointment->service_address_label,
+                'service_address' => $appointment->service_address,
+                'service_address_city' => $appointment->service_address_city,
+                'service_address_state' => $appointment->service_address_state,
+            ],
             'hasFutureRecurrences' => $hasFutureRecurrences,
         ]);
     }
@@ -295,6 +312,9 @@ class AppointmentController extends Controller
             'recurrence_end_date' => 'nullable|date|after:today',
             'recurrence_count' => 'nullable|integer|min:2|max:52',
             'discount_percent' => 'nullable|numeric|min:0|max:100',
+            'client_address_id' => 'nullable|exists:client_addresses,id',
+            'use_business_address' => 'nullable|boolean',
+            'set_address_active' => 'nullable|boolean',
         ], [
             'provider_id.required' => 'Please select a provider.',
             'provider_id.exists' => 'The selected provider is no longer available.',
@@ -463,6 +483,12 @@ class AppointmentController extends Controller
                 'team_member_id' => $selectedTeamMember?->id,
                 'provider_approved' => $autoConfirm,
                 'provider_approved_at' => $autoConfirm ? now() : null,
+                ...$this->resolveAppointmentServiceAddressData(
+                    $client,
+                    $request->input('client_address_id'),
+                    $request->boolean('use_business_address'),
+                    $request->boolean('set_address_active'),
+                ),
             ];
 
             // Add recurrence data if provided
@@ -595,6 +621,76 @@ class AppointmentController extends Controller
             DB::rollBack();
             return back()->with('error-toast', 'Failed to cancel appointment: ' . $e->getMessage());
         }
+    }
+
+    protected function resolveAppointmentServiceAddressData(
+        User $client,
+        ?string $clientAddressId,
+        bool $useBusinessAddress,
+        bool $setAddressActive = true,
+    ): array {
+        $selectedClientAddress = null;
+        if ($clientAddressId) {
+            $selectedClientAddress = ClientAddress::query()
+                ->where('user_id', $client->id)
+                ->find($clientAddressId);
+
+            if (! $selectedClientAddress) {
+                abort(422, 'The selected address is no longer available.');
+            }
+        }
+
+        $businessAddressProfile = null;
+        if ($useBusinessAddress) {
+            $businessAddressProfile = $client->managedProvider()?->businessProfile;
+
+            if (! $businessAddressProfile?->address) {
+                abort(422, 'Your business address is not available right now.');
+            }
+        }
+
+        if ($selectedClientAddress) {
+            if ($setAddressActive) {
+                ClientAddress::query()
+                    ->where('user_id', $client->id)
+                    ->where('id', '!=', $selectedClientAddress->id)
+                    ->update(['is_active' => false]);
+
+                $selectedClientAddress->update(['is_active' => true]);
+            }
+
+            return [
+                'service_address_source' => 'client_address',
+                'service_address_label' => $selectedClientAddress->label,
+                'service_address' => $selectedClientAddress->address,
+                'service_address_city' => $selectedClientAddress->city,
+                'service_address_state' => $selectedClientAddress->state,
+                'service_address_latitude' => $selectedClientAddress->latitude,
+                'service_address_longitude' => $selectedClientAddress->longitude,
+            ];
+        }
+
+        if ($businessAddressProfile?->address) {
+            return [
+                'service_address_source' => 'business_address',
+                'service_address_label' => $businessAddressProfile->business_name ?: 'Business address',
+                'service_address' => $businessAddressProfile->address,
+                'service_address_city' => $businessAddressProfile->city,
+                'service_address_state' => $businessAddressProfile->state,
+                'service_address_latitude' => $businessAddressProfile->latitude,
+                'service_address_longitude' => $businessAddressProfile->longitude,
+            ];
+        }
+
+        return [
+            'service_address_source' => null,
+            'service_address_label' => null,
+            'service_address' => null,
+            'service_address_city' => null,
+            'service_address_state' => null,
+            'service_address_latitude' => null,
+            'service_address_longitude' => null,
+        ];
     }
 
     /**

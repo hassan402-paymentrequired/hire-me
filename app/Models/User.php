@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enum\UserRoleEnum;
 use App\Observers\UserObserver;
+use App\Models\ClientAddress;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
@@ -137,6 +138,16 @@ class User extends Authenticatable implements MustVerifyEmail
     public function wallet()
     {
         return $this->hasOne(Wallet::class);
+    }
+
+    public function clientAddresses()
+    {
+        return $this->hasMany(ClientAddress::class)->orderByDesc('is_active')->latest();
+    }
+
+    public function activeClientAddress()
+    {
+        return $this->hasOne(ClientAddress::class)->where('is_active', true);
     }
 
     public function googleCalendarAccount()

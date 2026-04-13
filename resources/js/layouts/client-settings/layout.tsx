@@ -6,16 +6,25 @@ import { cn, isSameUrl, resolveUrl } from '@/lib/utils';
 import { edit } from '@/routes/profile';
 import { show } from '@/routes/two-factor';
 import { edit as editPassword } from '@/routes/user-password';
+import {
+    LockClosedIcon,
+    MapPinIcon,
+    ShieldExclamationIcon,
+    UserIcon,
+} from '@heroicons/react/24/solid';
 import { Link } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
-import { UserIcon, LockClosedIcon, ShieldExclamationIcon } from '@heroicons/react/24/solid'
 
-
-const sidebarNavItems: Array<{title: string, href: string, icon: any}> = [
+const sidebarNavItems: Array<{ title: string; href: string; icon: any }> = [
     {
         title: 'Profile',
         href: edit().url,
         icon: UserIcon,
+    },
+    {
+        title: 'Addresses',
+        href: '/settings/addresses',
+        icon: MapPinIcon,
     },
     {
         title: 'Password',
@@ -43,7 +52,7 @@ export default function ClientSettingsLayout({ children }: PropsWithChildren) {
     const currentPath = window.location.pathname;
 
     return (
-        <div className="max-w-7xl mx-auto p-4 w-full">
+        <div className="mx-auto w-full max-w-7xl p-4">
             <Heading
                 title="Settings"
                 description="Manage your profile and account settings"

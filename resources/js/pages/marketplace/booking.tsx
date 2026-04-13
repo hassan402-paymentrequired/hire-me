@@ -24,7 +24,12 @@ import axios from 'axios';
 import { addMonths, format } from 'date-fns';
 import { Box, Check, CheckCircle2, Clock, Repeat, Wallet } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
+// import { toast } from 'sonner';
+import { gooeyToast as toast } from 'goey-toast';
+import AddressDialogs, {
+    BusinessAddressOption,
+    ClientAddressOption,
+} from './components/address-dialogs';
 
 interface Service {
     id: string;
@@ -77,6 +82,8 @@ interface Props {
     provider: Provider;
     services: Service[];
     teamMembers: TeamMember[];
+    clientAddresses: ClientAddressOption[];
+    businessAddressOption?: BusinessAddressOption | null;
     walletBalance?: number | null;
     settings?: ProviderSettings;
 }
@@ -85,6 +92,8 @@ export default function Booking({
     provider,
     services,
     teamMembers,
+    clientAddresses: initialClientAddresses,
+    businessAddressOption,
     walletBalance,
     settings,
 }: Props) {
@@ -108,6 +117,32 @@ export default function Booking({
         useState(false);
     const [paymentConfirmDialogOpen, setPaymentConfirmDialogOpen] =
         useState(false);
+    const [addressSelectionDialogOpen, setAddressSelectionDialogOpen] =
+        useState(false);
+    const [createAddressDialogOpen, setCreateAddressDialogOpen] =
+        useState(false);
+    const [clientAddresses, setClientAddresses] = useState<
+        ClientAddressOption[]
+    >(initialClientAddresses);
+    const [selectedAddressChoice, setSelectedAddressChoice] = useState(
+        initialClientAddresses.find((address) => address.is_active)?.id ||
+            '__none__',
+    );
+    const [setAddressAsActive, setSetAddressAsActive] = useState(true);
+    const [attachCurrentLocation, setAttachCurrentLocation] = useState(false);
+    const [lastCreatedAddressId, setLastCreatedAddressId] = useState<
+        string | null
+    >(null);
+    const [addressForm, setAddressForm] = useState({
+        label: '',
+        address: '',
+        city: '',
+        state: '',
+        latitude: null as number | null,
+        longitude: null as number | null,
+    });
+    const [creatingAddress, setCreatingAddress] = useState(false);
+    const [locatingAddress, setLocatingAddress] = useState(false);
     const [pendingShortfall, setPendingShortfall] = useState<number>(0);
     const [useCustomTime, setUseCustomTime] = useState(false);
     const [customTime, setCustomTime] = useState('');
@@ -136,6 +171,36 @@ export default function Booking({
     const bookingBlockedReason =
         provider.bookingBlockedReason ||
         'Booking is unavailable for this provider.';
+    const hasSavedAddressOptions = clientAddresses.length > 0;
+    const hasBusinessAddressOption = Boolean(businessAddressOption?.address);
+
+    const selectedAddressSummary = useMemo(() => {
+        if (selectedAddressChoice === '__business__' && businessAddressOption) {
+            return {
+                label: businessAddressOption.label,
+                address: businessAddressOption.address,
+                meta: [businessAddressOption.city, businessAddressOption.state]
+                    .filter(Boolean)
+                    .join(', '),
+            };
+        }
+
+        const selectedAddress = clientAddresses.find(
+            (address) => address.id === selectedAddressChoice,
+        );
+
+        if (!selectedAddress) {
+            return null;
+        }
+
+        return {
+            label: selectedAddress.label,
+            address: selectedAddress.address,
+            meta: [selectedAddress.city, selectedAddress.state]
+                .filter(Boolean)
+                .join(', '),
+        };
+    }, [businessAddressOption, clientAddresses, selectedAddressChoice]);
 
     useEffect(() => {
         if (supportsOnlinePayment) {
@@ -179,6 +244,22 @@ export default function Booking({
             fetchAvailableSlots();
         }
     }, [selectedDate, selectedServiceIds, selectedTeamMemberId]);
+
+    useEffect(() => {
+        if (!attachCurrentLocation) {
+            setAddressForm((prev) => ({
+                ...prev,
+                latitude: null,
+                longitude: null,
+            }));
+        }
+    }, [attachCurrentLocation]);
+
+    useEffect(() => {
+        if (!hasSavedAddressOptions && !hasBusinessAddressOption) {
+            setCreateAddressDialogOpen(true);
+        }
+    }, [hasBusinessAddressOption, hasSavedAddressOptions]);
 
     const fetchAvailableSlots = async () => {
         setLoading(true);
@@ -276,6 +357,12 @@ export default function Booking({
         if (!selectedDate || !selectedSlot || selectedServiceIds.length === 0)
             return;
 
+        setAddressSelectionDialogOpen(true);
+    };
+
+    const continueBookingAfterAddressSelection = () => {
+        setAddressSelectionDialogOpen(false);
+
         if (paymentOption === 'online') {
             if (
                 walletBalance !== null &&
@@ -303,6 +390,17 @@ export default function Booking({
             team_member_id: selectedTeamMemberId || null,
             payment_option: paymentOption,
         };
+
+        if (selectedAddressChoice !== '__none__') {
+            if (selectedAddressChoice === '__business__') {
+                bookingData.use_business_address = true;
+            } else {
+                bookingData.client_address_id = selectedAddressChoice;
+                if (selectedAddressChoice === lastCreatedAddressId) {
+                    bookingData.set_address_active = setAddressAsActive;
+                }
+            }
+        }
 
         if (recurrencePattern) {
             bookingData.recurrence_pattern = recurrencePattern;
@@ -343,6 +441,96 @@ export default function Booking({
         }
     };
 
+    const resetAddressForm = () => {
+        setAddressForm({
+            label: '',
+            address: '',
+            city: '',
+            state: '',
+            latitude: null,
+            longitude: null,
+        });
+    };
+
+    const handleUseCurrentLocationForAddress = () => {
+        if (!('geolocation' in navigator)) {
+            toast.error('Geolocation is not supported by your browser.');
+            return;
+        }
+
+        setLocatingAddress(true);
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setAddressForm((prev) => ({
+                    ...prev,
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                }));
+                setLocatingAddress(false);
+                toast.success('Current location attached to this address.');
+            },
+            () => {
+                setLocatingAddress(false);
+                toast.error(
+                    'We could not access your current location. You can still save the address manually.',
+                );
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0,
+            },
+        );
+    };
+
+    useEffect(() => {
+        if (attachCurrentLocation) {
+            handleUseCurrentLocationForAddress();
+        }
+    }, [attachCurrentLocation]);
+
+    const handleCreateAddress = async () => {
+        if (!addressForm.label.trim() || !addressForm.address.trim()) {
+            toast.error('Please add a label and address.');
+            return;
+        }
+
+        setCreatingAddress(true);
+        try {
+            const response = await axios.post('/client-addresses', {
+                label: addressForm.label.trim(),
+                address: addressForm.address.trim(),
+                city: addressForm.city.trim() || null,
+                state: addressForm.state.trim() || null,
+                latitude: addressForm.latitude,
+                longitude: addressForm.longitude,
+                is_active: setAddressAsActive,
+            });
+
+            const createdAddress = response.data.address as ClientAddressOption;
+            setClientAddresses((prev) => [
+                createdAddress,
+                ...prev.map((address) => ({
+                    ...address,
+                    is_active: false,
+                })),
+            ]);
+            setSelectedAddressChoice(createdAddress.id);
+            setSetAddressAsActive(true);
+            setLastCreatedAddressId(createdAddress.id);
+            setCreateAddressDialogOpen(false);
+            resetAddressForm();
+            toast.success('Address saved successfully.');
+        } catch (error: any) {
+            const message =
+                error?.response?.data?.message ||
+                'We could not save that address right now.';
+            toast.error(message);
+        } finally {
+            setCreatingAddress(false);
+        }
+    };
+
     return (
         <GuestLayout>
             <Head title={`Book with ${provider.businessName}`} />
@@ -371,6 +559,27 @@ export default function Booking({
                 acceptLabel="Continue"
                 rejectLabel="Cancel"
                 onAccept={submitBooking}
+            />
+
+            <AddressDialogs
+                createOpen={createAddressDialogOpen}
+                onCreateOpenChange={setCreateAddressDialogOpen}
+                selectionOpen={addressSelectionDialogOpen}
+                onSelectionOpenChange={setAddressSelectionDialogOpen}
+                addressForm={addressForm}
+                onAddressFormChange={setAddressForm}
+                creatingAddress={creatingAddress}
+                locatingAddress={locatingAddress}
+                onCreateAddress={handleCreateAddress}
+                attachCurrentLocation={attachCurrentLocation}
+                onAttachCurrentLocationChange={setAttachCurrentLocation}
+                clientAddresses={clientAddresses}
+                businessAddressOption={businessAddressOption}
+                selectedAddressChoice={selectedAddressChoice}
+                onSelectedAddressChoiceChange={setSelectedAddressChoice}
+                setAsActive={setAddressAsActive}
+                onSetAsActiveChange={setSetAddressAsActive}
+                onContinue={continueBookingAfterAddressSelection}
             />
 
             <div className="mx-auto min-h-screen max-w-6xl bg-background pb-20">
@@ -1250,6 +1459,29 @@ export default function Booking({
                                                       )
                                                     : '--:--'}
                                             </span>
+                                        </div>
+                                        <div className="flex items-start justify-between gap-4">
+                                            <span className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
+                                                <KeenIcon
+                                                    name="geolocation"
+                                                    className="text-sm text-primary"
+                                                />
+                                                Address
+                                            </span>
+                                            <div className="max-w-[60%] text-right">
+                                                <span className="block text-sm font-black text-foreground">
+                                                    {selectedAddressSummary
+                                                        ? selectedAddressSummary.label
+                                                        : 'None selected'}
+                                                </span>
+                                                <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                                                    {selectedAddressSummary
+                                                        ? selectedAddressSummary.meta
+                                                            ? `${selectedAddressSummary.address}, ${selectedAddressSummary.meta}`
+                                                            : selectedAddressSummary.address
+                                                        : 'You can continue without adding an address.'}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
 

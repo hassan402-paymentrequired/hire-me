@@ -56,6 +56,9 @@ Route::middleware(['auth', 'provider.setup'])->group(function () {
 Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
 
     Route::get('/provider/{slug}/book', [\App\Http\Controllers\Client\MarketplaceController::class, 'booking'])->name('marketplace.booking');
+    Route::post('/client-addresses', [\App\Http\Controllers\Client\ClientAddressController::class, 'store'])->name('client-addresses.store');
+    Route::patch('/client-addresses/{clientAddress}', [\App\Http\Controllers\Client\ClientAddressController::class, 'update'])->name('client-addresses.update');
+    Route::delete('/client-addresses/{clientAddress}', [\App\Http\Controllers\Client\ClientAddressController::class, 'destroy'])->name('client-addresses.destroy');
     Route::get('/appointments/slots', [\App\Http\Controllers\Client\AppointmentController::class, 'availableSlots'])->name('slots');
     // Become a Provider (available to all authenticated users)
     Route::get('/become-provider', [\App\Http\Controllers\Provider\BecomeProviderController::class, 'index'])->name('become-provider');

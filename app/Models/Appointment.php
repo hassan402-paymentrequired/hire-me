@@ -25,6 +25,13 @@ class Appointment extends Model
         'price',
         'payment_method',
         'notes',
+        'service_address_source',
+        'service_address_label',
+        'service_address',
+        'service_address_city',
+        'service_address_state',
+        'service_address_latitude',
+        'service_address_longitude',
         'client_name',
         'client_email',
         'cancelled_by',
@@ -69,6 +76,8 @@ class Appointment extends Model
         'platform_fee_amount' => 'decimal:2',
         'provider_payout_amount' => 'decimal:2',
         'google_calendar_synced_at' => 'datetime',
+        'service_address_latitude' => 'decimal:7',
+        'service_address_longitude' => 'decimal:7',
     ];
 
     public function provider()

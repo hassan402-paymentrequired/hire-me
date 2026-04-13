@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ReviewSection } from '@/components/reviews/review-section';
 import KeenIcon from '@/components/keen-icon';
+import { ReviewSection } from '@/components/reviews/review-section';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -87,6 +87,11 @@ interface Booking {
     notes: string | null;
     cancelled_by: string | null;
     cancellation_reason: string | null;
+    service_address_source?: string | null;
+    service_address_label?: string | null;
+    service_address?: string | null;
+    service_address_city?: string | null;
+    service_address_state?: string | null;
     provider: Provider;
     service: Service;
     services: Service[];
@@ -131,13 +136,14 @@ export default function BookingDetails({
     const cutoffTimeFromNow = new Date(
         now.getTime() + appointmentChangeCutoffHours * 60 * 60 * 1000,
     );
-    const isLateCancellation = startTime > now && startTime <= cutoffTimeFromNow;
+    const isLateCancellation =
+        startTime > now && startTime <= cutoffTimeFromNow;
     const canCancel =
         startTime > now &&
         booking.status !== 'cancelled' &&
         booking.status !== 'completed';
     const canReschedule =
-       ( booking.status === 'confirmed' || booking.status === 'pending') &&
+        (booking.status === 'confirmed' || booking.status === 'pending') &&
         startTime > cutoffTimeFromNow;
 
     // Calculate total duration from all services
@@ -270,7 +276,10 @@ export default function BookingDetails({
                         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                             <div className="space-y-4">
                                 <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-                                    <KeenIcon name="book-square" className="text-sm" />
+                                    <KeenIcon
+                                        name="book-square"
+                                        className="text-sm"
+                                    />
                                     Your booking
                                 </div>
                                 <div className="space-y-2">
@@ -279,23 +288,39 @@ export default function BookingDetails({
                                     </h1>
                                     <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                                         <span className="font-medium text-foreground">
-                                            {booking.provider.business_profile.business_name}
+                                            {
+                                                booking.provider
+                                                    .business_profile
+                                                    .business_name
+                                            }
                                         </span>
-                                        <span className="hidden sm:inline">•</span>
+                                        <span className="hidden sm:inline">
+                                            •
+                                        </span>
                                         <span className="font-mono text-xs sm:text-sm">
                                             {booking.id}
                                         </span>
                                     </div>
                                     <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                                        Track your appointment, manage changes, and keep an eye on payment and completion status from one place.
+                                        Track your appointment, manage changes,
+                                        and keep an eye on payment and
+                                        completion status from one place.
                                     </p>
                                 </div>
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <Badge variant={booking.payment_method === 'offline' ? 'secondary' : 'outline'}>
+                                    <Badge
+                                        variant={
+                                            booking.payment_method === 'offline'
+                                                ? 'secondary'
+                                                : 'outline'
+                                        }
+                                    >
                                         {paymentStateLabel}
                                     </Badge>
                                     <Badge
-                                        variant={getStatusVariant(booking.status)}
+                                        variant={getStatusVariant(
+                                            booking.status,
+                                        )}
                                         className="flex items-center gap-2 px-4 py-1.5 text-sm"
                                     >
                                         {getStatusIcon(booking.status)}
@@ -306,7 +331,7 @@ export default function BookingDetails({
 
                             <div className="grid grid-cols-2 gap-3 sm:min-w-[320px]">
                                 <div className="rounded-2xl border border-border/70 bg-background/90 p-4 backdrop-blur-sm">
-                                    <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                    <div className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
                                         Date
                                     </div>
                                     <div className="mt-2 text-base font-semibold text-foreground">
@@ -317,7 +342,7 @@ export default function BookingDetails({
                                     </p>
                                 </div>
                                 <div className="rounded-2xl border border-border/70 bg-background/90 p-4 backdrop-blur-sm">
-                                    <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                    <div className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
                                         Total
                                     </div>
                                     <div className="mt-2 text-base font-semibold text-foreground">
@@ -355,13 +380,28 @@ export default function BookingDetails({
                                             </p>
                                             <div className="flex flex-wrap gap-2">
                                                 <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted/20 px-3 py-1 text-xs text-muted-foreground">
-                                                    <KeenIcon name="book-square" className="text-sm" />
-                                                    {booking.services?.length || 1} service{(booking.services?.length || 1) > 1 ? 's' : ''}
+                                                    <KeenIcon
+                                                        name="book-square"
+                                                        className="text-sm"
+                                                    />
+                                                    {booking.services?.length ||
+                                                        1}{' '}
+                                                    service
+                                                    {(booking.services
+                                                        ?.length || 1) > 1
+                                                        ? 's'
+                                                        : ''}
                                                 </div>
                                                 {booking.team_member?.user && (
                                                     <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted/20 px-3 py-1 text-xs text-muted-foreground">
-                                                        <KeenIcon name="people" className="text-sm" />
-                                                        {booking.team_member.user.name}
+                                                        <KeenIcon
+                                                            name="people"
+                                                            className="text-sm"
+                                                        />
+                                                        {
+                                                            booking.team_member
+                                                                .user.name
+                                                        }
                                                     </div>
                                                 )}
                                             </div>
@@ -512,12 +552,33 @@ export default function BookingDetails({
                                                 Location
                                             </span>
                                         </div>
-                                        <p className="text-sm leading-relaxed font-medium">
-                                            {
-                                                booking.provider
-                                                    ?.business_profile?.address
-                                            }
-                                        </p>
+                                        {booking.service_address ? (
+                                            <p className="text-sm leading-relaxed font-medium">
+                                                {booking.service_address}
+                                                {(booking.service_address_city ||
+                                                    booking.service_address_state) && (
+                                                    <>
+                                                        <br />
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {[
+                                                                booking.service_address_city,
+                                                                booking.service_address_state,
+                                                            ]
+                                                                .filter(Boolean)
+                                                                .join(', ')}
+                                                        </span>
+                                                    </>
+                                                )}
+                                            </p>
+                                        ) : (
+                                            <p className="text-sm leading-relaxed font-medium">
+                                                {
+                                                    booking.provider
+                                                        ?.business_profile
+                                                        ?.address
+                                                }
+                                            </p>
+                                        )}
                                     </div>
 
                                     {/* Location */}
@@ -619,7 +680,8 @@ export default function BookingDetails({
                         )}
 
                         {/* Payment Status Card */}
-                        {(booking.escrow_status || booking.payment_method === 'offline') && (
+                        {(booking.escrow_status ||
+                            booking.payment_method === 'offline') && (
                             <Card className="border-border/70">
                                 <CardHeader>
                                     <CardTitle className="text-base">
@@ -630,11 +692,12 @@ export default function BookingDetails({
                                 <CardContent className="space-y-4 pt-4 text-sm">
                                     <div className="flex items-center justify-between rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
                                         <div>
-                                            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                            <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
                                                 Payment state
                                             </p>
-                                            <p className="mt-1 font-medium capitalize text-foreground">
-                                                {booking.payment_method === 'offline'
+                                            <p className="mt-1 font-medium text-foreground capitalize">
+                                                {booking.payment_method ===
+                                                'offline'
                                                     ? 'unpaid'
                                                     : booking.escrow_status?.replace(
                                                           '_',
@@ -642,46 +705,63 @@ export default function BookingDetails({
                                                       )}
                                             </p>
                                         </div>
-                                        <Badge variant={booking.payment_method === 'offline' ? 'secondary' : 'outline'}>
+                                        <Badge
+                                            variant={
+                                                booking.payment_method ===
+                                                'offline'
+                                                    ? 'secondary'
+                                                    : 'outline'
+                                            }
+                                        >
                                             {paymentStateLabel}
                                         </Badge>
                                     </div>
                                     {booking.payment_method === 'offline' ? (
                                         <p className="text-xs text-muted-foreground">
-                                            This booking was sent without upfront payment. The provider still needs to review and confirm it.
+                                            This booking was sent without
+                                            upfront payment. The provider still
+                                            needs to review and confirm it.
                                         </p>
-                                    ) : booking.escrow_amount != null && (
-                                        <p className="text-xs text-muted-foreground">
-                                            Amount: ₦
-                                            {Number(
-                                                booking.escrow_amount,
-                                            ).toLocaleString()}
-                                        </p>
+                                    ) : (
+                                        booking.escrow_amount != null && (
+                                            <p className="text-xs text-muted-foreground">
+                                                Amount: ₦
+                                                {Number(
+                                                    booking.escrow_amount,
+                                                ).toLocaleString()}
+                                            </p>
+                                        )
                                     )}
-                                    {booking.payment_method !== 'offline' && booking.payment_released_at && (
-                                        <p className="text-xs text-muted-foreground">
-                                            Released at:{' '}
-                                            {formatDate(booking.payment_released_at)}
-                                        </p>
-                                    )}
-                                    {booking.payment_method !== 'offline' && !isPaymentReleased && isEscrowHeld && (
-                                        <p className="text-xs text-muted-foreground">
-                                            Your payment is currently held in
-                                            escrow. Once you mark the
-                                            appointment as completed, it is
-                                            released to the provider
-                                            immediately. If you do nothing, it
-                                            will be released automatically 15
-                                            minutes after the appointment end
-                                            time.
-                                        </p>
-                                    )}
-                                    {booking.payment_method !== 'offline' && isPaymentReleased && (
-                                        <p className="text-xs text-muted-foreground">
-                                            Payment has been released to the
-                                            provider.
-                                        </p>
-                                    )}
+                                    {booking.payment_method !== 'offline' &&
+                                        booking.payment_released_at && (
+                                            <p className="text-xs text-muted-foreground">
+                                                Released at:{' '}
+                                                {formatDate(
+                                                    booking.payment_released_at,
+                                                )}
+                                            </p>
+                                        )}
+                                    {booking.payment_method !== 'offline' &&
+                                        !isPaymentReleased &&
+                                        isEscrowHeld && (
+                                            <p className="text-xs text-muted-foreground">
+                                                Your payment is currently held
+                                                in escrow. Once you mark the
+                                                appointment as completed, it is
+                                                released to the provider
+                                                immediately. If you do nothing,
+                                                it will be released
+                                                automatically 15 minutes after
+                                                the appointment end time.
+                                            </p>
+                                        )}
+                                    {booking.payment_method !== 'offline' &&
+                                        isPaymentReleased && (
+                                            <p className="text-xs text-muted-foreground">
+                                                Payment has been released to the
+                                                provider.
+                                            </p>
+                                        )}
                                 </CardContent>
                             </Card>
                         )}
@@ -721,8 +801,15 @@ export default function BookingDetails({
                                             <div className="flex w-fit items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-bold tracking-tight text-amber-600 uppercase">
                                                 <AlertCircle className="h-3 w-3" />
                                                 <span>
-                                                    Late cancellation (within {appointmentChangeCutoffHours}h):{' '}
-                                                    {lateCancellationPenaltyPercent}% fee applies
+                                                    Late cancellation (within{' '}
+                                                    {
+                                                        appointmentChangeCutoffHours
+                                                    }
+                                                    h):{' '}
+                                                    {
+                                                        lateCancellationPenaltyPercent
+                                                    }
+                                                    % fee applies
                                                 </span>
                                             </div>
                                             <p className="text-[11px] text-muted-foreground">
@@ -1118,39 +1205,67 @@ export default function BookingDetails({
                                     />
                                 )}
 
-                                {booking.provider?.business_profile
-                                    ?.address && (
+                                {(booking.service_address ||
+                                    booking.provider?.business_profile
+                                        ?.address) && (
                                     <div className="flex items-start gap-3">
                                         <div className="rounded-lg bg-primary/10 p-2 text-primary">
                                             <MapPin className="h-4 w-4" />
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <p className="mb-1 text-xs text-muted-foreground">
-                                                Address
+                                                {booking.service_address
+                                                    ? 'Service address'
+                                                    : 'Provider address'}
                                             </p>
-                                            <p className="text-sm leading-relaxed font-medium">
-                                                {
-                                                    booking.provider
-                                                        .business_profile
-                                                        .address
-                                                }
-                                            </p>
-                                            <p className="mt-1 text-xs text-muted-foreground">
-                                                {
-                                                    booking.provider
-                                                        .business_profile.city
-                                                }
-                                                ,{' '}
-                                                {
-                                                    booking.provider
-                                                        .business_profile.state
-                                                }{' '}
-                                                {
-                                                    booking.provider
-                                                        .business_profile
-                                                        .zip_code
-                                                }
-                                            </p>
+                                            {booking.service_address ? (
+                                                <>
+                                                    <p className="text-sm leading-relaxed font-medium">
+                                                        {
+                                                            booking.service_address
+                                                        }
+                                                    </p>
+                                                    {(booking.service_address_city ||
+                                                        booking.service_address_state) && (
+                                                        <p className="mt-1 text-xs text-muted-foreground">
+                                                            {[
+                                                                booking.service_address_city,
+                                                                booking.service_address_state,
+                                                            ]
+                                                                .filter(Boolean)
+                                                                .join(', ')}
+                                                        </p>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <p className="text-sm leading-relaxed font-medium">
+                                                        {
+                                                            booking.provider
+                                                                .business_profile
+                                                                .address
+                                                        }
+                                                    </p>
+                                                    <p className="mt-1 text-xs text-muted-foreground">
+                                                        {
+                                                            booking.provider
+                                                                .business_profile
+                                                                .city
+                                                        }
+                                                        ,{' '}
+                                                        {
+                                                            booking.provider
+                                                                .business_profile
+                                                                .state
+                                                        }{' '}
+                                                        {
+                                                            booking.provider
+                                                                .business_profile
+                                                                .zip_code
+                                                        }
+                                                    </p>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 )}

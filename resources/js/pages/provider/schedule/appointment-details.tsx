@@ -1,3 +1,4 @@
+import KeenIcon from '@/components/keen-icon';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,9 +13,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import KeenIcon from '@/components/keen-icon';
 import AppLayout from '@/layouts/app-layout';
 import { formatStatus, getStatusVariant } from '@/lib/utils';
 import business from '@/routes/business';
@@ -51,6 +50,9 @@ interface AppointmentDetails {
     cancelled_by?: string | null;
     cancellation_reason?: string | null;
     location?: string | null;
+    service_location_source?: string | null;
+    service_location_label?: string | null;
+    service_location?: string | null;
     location_phone?: string | null;
     total_duration_minutes?: number;
     team_member?: {
@@ -230,13 +232,19 @@ export default function AppointmentDetailsPage({
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.06),_transparent_24%),radial-gradient(circle_at_left,_rgba(16,185,129,0.06),_transparent_24%)]" />
                         <div className="relative space-y-5 px-6 py-6 lg:px-8 lg:py-8">
                             <div className="flex flex-wrap items-center gap-3">
-                                <Badge className="border-border bg-muted px-3 py-1 text-[11px] font-medium tracking-[0.18em] uppercase text-foreground/70 hover:bg-muted">
+                                <Badge className="border-border bg-muted px-3 py-1 text-[11px] font-medium tracking-[0.18em] text-foreground/70 uppercase hover:bg-muted">
                                     Appointment details
                                 </Badge>
-                                <Badge variant={getStatusVariant(appointment.status)}>
+                                <Badge
+                                    variant={getStatusVariant(
+                                        appointment.status,
+                                    )}
+                                >
                                     {formatStatus(appointment.status)}
                                 </Badge>
-                                <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${paymentStateTone}`}>
+                                <span
+                                    className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${paymentStateTone}`}
+                                >
                                     {paymentStateLabel}
                                 </span>
                             </div>
@@ -258,7 +266,10 @@ export default function AppointmentDetailsPage({
                                         </h1>
                                         {appointment.email && (
                                             <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                                                <KeenIcon name="text-circle" className="text-sm" />
+                                                <KeenIcon
+                                                    name="text-circle"
+                                                    className="text-sm"
+                                                />
                                                 <a
                                                     href={`mailto:${appointment.email}`}
                                                     className="truncate hover:text-primary"
@@ -272,8 +283,11 @@ export default function AppointmentDetailsPage({
 
                                 <div className="grid gap-3 sm:grid-cols-3 lg:min-w-[420px]">
                                     <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
-                                        <div className="flex items-center gap-2 text-xs font-medium tracking-[0.2em] uppercase text-muted-foreground">
-                                            <KeenIcon name="electronic-clock" className="text-sm text-sky-600 dark:text-sky-300" />
+                                        <div className="flex items-center gap-2 text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">
+                                            <KeenIcon
+                                                name="electronic-clock"
+                                                className="text-sm text-sky-600 dark:text-sky-300"
+                                            />
                                             Schedule
                                         </div>
                                         <p className="mt-3 text-sm font-semibold text-foreground">
@@ -281,8 +295,11 @@ export default function AppointmentDetailsPage({
                                         </p>
                                     </div>
                                     <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
-                                        <div className="flex items-center gap-2 text-xs font-medium tracking-[0.2em] uppercase text-muted-foreground">
-                                            <KeenIcon name="receipt-square" className="text-sm text-emerald-600 dark:text-emerald-300" />
+                                        <div className="flex items-center gap-2 text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">
+                                            <KeenIcon
+                                                name="receipt-square"
+                                                className="text-sm text-emerald-600 dark:text-emerald-300"
+                                            />
                                             Amount
                                         </div>
                                         <p className="mt-3 text-lg font-semibold text-foreground">
@@ -290,8 +307,11 @@ export default function AppointmentDetailsPage({
                                         </p>
                                     </div>
                                     <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
-                                        <div className="flex items-center gap-2 text-xs font-medium tracking-[0.2em] uppercase text-muted-foreground">
-                                            <KeenIcon name="people" className="text-sm text-violet-600 dark:text-violet-300" />
+                                        <div className="flex items-center gap-2 text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">
+                                            <KeenIcon
+                                                name="people"
+                                                className="text-sm text-violet-600 dark:text-violet-300"
+                                            />
                                             Services
                                         </div>
                                         <p className="mt-3 text-lg font-semibold text-foreground">
@@ -323,7 +343,10 @@ export default function AppointmentDetailsPage({
                                         Date & Time
                                     </p>
                                     <div className="flex items-center gap-3">
-                                        <KeenIcon name="electronic-clock" className="text-base text-primary" />
+                                        <KeenIcon
+                                            name="electronic-clock"
+                                            className="text-base text-primary"
+                                        />
                                         <span className="text-lg font-bold">
                                             {appointment.start_time}
                                         </span>
@@ -334,7 +357,10 @@ export default function AppointmentDetailsPage({
                                         Ends
                                     </p>
                                     <div className="flex items-center gap-3">
-                                        <KeenIcon name="electronic-clock" className="text-base text-primary" />
+                                        <KeenIcon
+                                            name="electronic-clock"
+                                            className="text-base text-primary"
+                                        />
                                         <span className="text-lg font-bold">
                                             {appointment.end_time}
                                         </span>
@@ -346,7 +372,10 @@ export default function AppointmentDetailsPage({
                                             Duration
                                         </p>
                                         <div className="flex items-center gap-3">
-                                            <KeenIcon name="electronic-clock" className="text-base text-primary" />
+                                            <KeenIcon
+                                                name="electronic-clock"
+                                                className="text-base text-primary"
+                                            />
                                             <span className="text-lg font-bold">
                                                 {totalDuration} minutes
                                             </span>
@@ -359,13 +388,22 @@ export default function AppointmentDetailsPage({
                                             Assigned Team Member
                                         </p>
                                         <div className="flex items-center gap-3">
-                                            <KeenIcon name="people" className="text-base text-primary" />
+                                            <KeenIcon
+                                                name="people"
+                                                className="text-base text-primary"
+                                            />
                                             <div>
                                                 <span className="text-lg font-bold">
-                                                    {appointment.team_member.name}
+                                                    {
+                                                        appointment.team_member
+                                                            .name
+                                                    }
                                                 </span>
                                                 <p className="text-sm text-muted-foreground">
-                                                    {appointment.team_member.role}
+                                                    {
+                                                        appointment.team_member
+                                                            .role
+                                                    }
                                                 </p>
                                             </div>
                                         </div>
@@ -373,85 +411,159 @@ export default function AppointmentDetailsPage({
                                 )}
                             </div>
 
-                            {(appointment.escrow_status || appointment.payment_method === 'offline' || feePercent !== null || feeAmount !== null || payoutAmount !== null) && (
+                            {(appointment.escrow_status ||
+                                appointment.payment_method === 'offline' ||
+                                feePercent !== null ||
+                                feeAmount !== null ||
+                                payoutAmount !== null) && (
                                 <div className="rounded-lg border bg-muted/20 p-4">
                                     <div className="flex items-center justify-between gap-3">
                                         <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
                                             Payment & Payout
                                         </p>
-                                        <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${paymentStateTone}`}>
+                                        <span
+                                            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${paymentStateTone}`}
+                                        >
                                             {paymentStateLabel}
                                         </span>
                                     </div>
 
                                     <div className="mt-3 grid gap-2 sm:grid-cols-3">
                                         <div>
-                                            <p className="text-xs text-muted-foreground">Gross</p>
-                                            <p className="text-sm font-bold">{appointment.price}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Gross
+                                            </p>
+                                            <p className="text-sm font-bold">
+                                                {appointment.price}
+                                            </p>
                                         </div>
                                         <div>
                                             <p className="text-xs text-muted-foreground">
-                                                Platform fee{feePercent !== null ? ` (${feePercent}%)` : ''}
+                                                Platform fee
+                                                {feePercent !== null
+                                                    ? ` (${feePercent}%)`
+                                                    : ''}
                                             </p>
                                             <p className="text-sm font-bold">
-                                                {feeAmount !== null ? `₦${feeAmount.toLocaleString()}` : '—'}
+                                                {feeAmount !== null
+                                                    ? `₦${feeAmount.toLocaleString()}`
+                                                    : '—'}
                                             </p>
                                         </div>
                                         <div>
-                                            <p className="text-xs text-muted-foreground">Net payout</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Net payout
+                                            </p>
                                             <p className="text-sm font-bold">
-                                                {payoutAmount !== null ? `₦${payoutAmount.toLocaleString()}` : '—'}
+                                                {payoutAmount !== null
+                                                    ? `₦${payoutAmount.toLocaleString()}`
+                                                    : '—'}
                                             </p>
                                         </div>
                                     </div>
 
                                     <div className="mt-4 space-y-1 text-xs text-muted-foreground">
-                                        {appointment.payment_method === 'offline' ? (
+                                        {appointment.payment_method ===
+                                        'offline' ? (
                                             <p>
-                                                This appointment was booked without upfront payment. You can confirm it only when you are ready to take the booking.
+                                                This appointment was booked
+                                                without upfront payment. You can
+                                                confirm it only when you are
+                                                ready to take the booking.
                                             </p>
-                                        ) : appointment.escrow_amount != null ? (
+                                        ) : appointment.escrow_amount !=
+                                          null ? (
                                             <p>
-                                                Amount in escrow: ₦{Number(appointment.escrow_amount).toLocaleString()}
+                                                Amount in escrow: ₦
+                                                {Number(
+                                                    appointment.escrow_amount,
+                                                ).toLocaleString()}
                                             </p>
                                         ) : null}
-                                        {appointment.payment_method !== 'offline' && appointment.payment_released_at && (
-                                            <p>Released at: {appointment.payment_released_at}</p>
-                                        )}
-                                        {appointment.payment_method !== 'offline' && isEscrowHeld && (
-                                            <p>
-                                                Funds are currently held in escrow and will be released when the client completes the appointment, or automatically 15 minutes after the end time if the client does not respond.
-                                            </p>
-                                        )}
-                                        {appointment.payment_method !== 'offline' && isPaymentReleased && (
-                                            <p>Payment has already been released to your wallet.</p>
-                                        )}
+                                        {appointment.payment_method !==
+                                            'offline' &&
+                                            appointment.payment_released_at && (
+                                                <p>
+                                                    Released at:{' '}
+                                                    {
+                                                        appointment.payment_released_at
+                                                    }
+                                                </p>
+                                            )}
+                                        {appointment.payment_method !==
+                                            'offline' &&
+                                            isEscrowHeld && (
+                                                <p>
+                                                    Funds are currently held in
+                                                    escrow and will be released
+                                                    when the client completes
+                                                    the appointment, or
+                                                    automatically 15 minutes
+                                                    after the end time if the
+                                                    client does not respond.
+                                                </p>
+                                            )}
+                                        {appointment.payment_method !==
+                                            'offline' &&
+                                            isPaymentReleased && (
+                                                <p>
+                                                    Payment has already been
+                                                    released to your wallet.
+                                                </p>
+                                            )}
                                     </div>
                                 </div>
                             )}
 
                             {/* Location */}
                             {(appointment.location ||
+                                appointment.service_location ||
                                 appointment.location_phone) && (
                                 <div className="space-y-3">
                                     <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
                                         Location & Contact
                                     </p>
                                     <div className="flex flex-col gap-2 rounded-xl border border-muted bg-muted/30 p-4">
-                                        {appointment.location && (
+                                        {appointment.service_location && (
                                             <div className="flex items-start gap-3">
-                                                <KeenIcon name="geolocation" className="mt-0.5 shrink-0 text-sm text-primary" />
-                                                <span className="text-sm font-medium">
-                                                    {appointment.location}
-                                                </span>
+                                                <KeenIcon
+                                                    name="geolocation"
+                                                    className="mt-0.5 shrink-0 text-sm text-primary"
+                                                />
+                                                <div>
+                                                    <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+                                                        {appointment.service_location_label ||
+                                                            'Service address'}
+                                                    </p>
+                                                    <span className="text-sm font-medium text-foreground">
+                                                        {
+                                                            appointment.service_location
+                                                        }
+                                                    </span>
+                                                </div>
                                             </div>
                                         )}
+                                        {!appointment.service_location &&
+                                            appointment.location && (
+                                                <div className="flex items-start gap-3">
+                                                    <KeenIcon
+                                                        name="geolocation"
+                                                        className="mt-0.5 shrink-0 text-sm text-primary"
+                                                    />
+                                                    <span className="text-sm font-medium">
+                                                        {appointment.location}
+                                                    </span>
+                                                </div>
+                                            )}
                                         {appointment.location_phone && (
                                             <a
                                                 href={`tel:${appointment.location_phone}`}
                                                 className="flex items-center gap-3 text-sm font-medium text-primary hover:underline"
                                             >
-                                                <KeenIcon name="phone" className="shrink-0 text-sm" />
+                                                <KeenIcon
+                                                    name="phone"
+                                                    className="shrink-0 text-sm"
+                                                />
                                                 {appointment.location_phone}
                                             </a>
                                         )}
@@ -472,7 +584,10 @@ export default function AppointmentDetailsPage({
                                         >
                                             <div className="flex items-center gap-3">
                                                 <div className="rounded-lg bg-primary/10 p-2 text-primary">
-                                                    <KeenIcon name="book-square" className="text-sm" />
+                                                    <KeenIcon
+                                                        name="book-square"
+                                                        className="text-sm"
+                                                    />
                                                 </div>
                                                 <div>
                                                     <span className="block font-bold capitalize">
@@ -544,7 +659,6 @@ export default function AppointmentDetailsPage({
                                         </div>
                                     </div>
                                 )}
-
                         </CardContent>
                     </Card>
 
@@ -567,22 +681,33 @@ export default function AppointmentDetailsPage({
                                             {isProcessing ? (
                                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                             ) : (
-                                                <KeenIcon name="verify" className="mr-2 text-sm" />
+                                                <KeenIcon
+                                                    name="verify"
+                                                    className="mr-2 text-sm"
+                                                />
                                             )}
                                             Accept Booking
                                         </Button>
                                     )}
                                     {showWaitingForClientState && (
                                         <div className="flex gap-2 rounded-md border border-muted bg-muted/40 p-3 text-xs text-muted-foreground">
-                                            <KeenIcon name="information" className="mt-0.5 shrink-0 text-sm text-amber-500" />
+                                            <KeenIcon
+                                                name="information"
+                                                className="mt-0.5 shrink-0 text-sm text-amber-500"
+                                            />
                                             <div>
                                                 <p className="font-medium text-foreground">
-                                                    Waiting for client confirmation
+                                                    Waiting for client
+                                                    confirmation
                                                 </p>
                                                 <p>
-                                                    Once the client marks this appointment as completed, payment will be
-                                                    released. If they don&apos;t respond, funds are automatically released
-                                                    15 minutes after the appointment end time.
+                                                    Once the client marks this
+                                                    appointment as completed,
+                                                    payment will be released. If
+                                                    they don&apos;t respond,
+                                                    funds are automatically
+                                                    released 15 minutes after
+                                                    the appointment end time.
                                                 </p>
                                             </div>
                                         </div>
@@ -596,7 +721,10 @@ export default function AppointmentDetailsPage({
                                             {isProcessing ? (
                                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                             ) : (
-                                                <KeenIcon name="verify" className="mr-2 text-sm" />
+                                                <KeenIcon
+                                                    name="verify"
+                                                    className="mr-2 text-sm"
+                                                />
                                             )}
                                             Mark as Completed
                                         </Button>
@@ -610,7 +738,10 @@ export default function AppointmentDetailsPage({
                                                 isProcessing || !canCancel
                                             }
                                         >
-                                            <KeenIcon name="trash-square" className="mr-2 text-sm" />
+                                            <KeenIcon
+                                                name="trash-square"
+                                                className="mr-2 text-sm"
+                                            />
                                             {appointment.status === 'pending'
                                                 ? 'Reject Booking'
                                                 : 'Cancel Appointment'}
@@ -626,7 +757,10 @@ export default function AppointmentDetailsPage({
                                             }
                                             disabled={isProcessing}
                                         >
-                                            <KeenIcon name="information" className="mr-2 text-sm" />
+                                            <KeenIcon
+                                                name="information"
+                                                className="mr-2 text-sm"
+                                            />
                                             Report Client
                                         </Button>
                                     )}
@@ -642,16 +776,20 @@ export default function AppointmentDetailsPage({
                             </CardHeader>
                             <CardContent className="space-y-3 pt-6 text-sm">
                                 <div>
-                                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                    <p className="text-[11px] font-medium tracking-[0.18em] text-muted-foreground uppercase">
                                         Reference
                                     </p>
-                                    <p className="mt-1 font-mono text-foreground">{appointment.id}</p>
+                                    <p className="mt-1 font-mono text-foreground">
+                                        {appointment.id}
+                                    </p>
                                 </div>
                                 <div>
-                                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                    <p className="text-[11px] font-medium tracking-[0.18em] text-muted-foreground uppercase">
                                         Received
                                     </p>
-                                    <p className="mt-1 text-foreground">{appointment.created_at}</p>
+                                    <p className="mt-1 text-foreground">
+                                        {appointment.created_at}
+                                    </p>
                                 </div>
                             </CardContent>
                         </Card>
@@ -663,7 +801,12 @@ export default function AppointmentDetailsPage({
             <CustomAlertDialog
                 open={confirmDialogOpen}
                 onOpenChange={setConfirmDialogOpen}
-                icon={<KeenIcon name="verify" className="text-5xl text-green-500" />}
+                icon={
+                    <KeenIcon
+                        name="verify"
+                        className="text-5xl text-green-500"
+                    />
+                }
                 title="Accept Booking"
                 description="Are you sure you want to confirm this appointment? The client will be notified."
                 acceptLabel="Accept"
@@ -676,7 +819,12 @@ export default function AppointmentDetailsPage({
             <CustomAlertDialog
                 open={completeDialogOpen}
                 onOpenChange={setCompleteDialogOpen}
-                icon={<KeenIcon name="verify" className="text-5xl text-green-500" />}
+                icon={
+                    <KeenIcon
+                        name="verify"
+                        className="text-5xl text-green-500"
+                    />
+                }
                 title="Mark as Completed"
                 description="Mark this appointment as completed? This records that you have delivered the service. Payment is released when the client marks it as completed or automatically 15 minutes after the appointment end time."
                 acceptLabel="Mark Complete"
@@ -691,7 +839,10 @@ export default function AppointmentDetailsPage({
                     <form onSubmit={handleReport}>
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-2">
-                                <KeenIcon name="information" className="text-base text-amber-500" />
+                                <KeenIcon
+                                    name="information"
+                                    className="text-base text-amber-500"
+                                />
                                 Report Client
                             </DialogTitle>
                             <DialogDescription>
@@ -786,7 +937,10 @@ export default function AppointmentDetailsPage({
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <KeenIcon name="trash-square" className="text-base text-destructive" />
+                            <KeenIcon
+                                name="trash-square"
+                                className="text-base text-destructive"
+                            />
                             {appointment.status === 'pending'
                                 ? 'Reject Booking'
                                 : 'Cancel Appointment'}

@@ -8,6 +8,7 @@ use App\Models\FavouriteBusiness;
 use App\Models\User;
 use App\Models\BusinessProfile;
 use App\Models\Appointment;
+use App\Models\ClientAddress;
 use App\Models\TeamMember;
 use App\Models\Wallet;
 use App\Models\ProviderGalleryItem;
@@ -306,6 +307,37 @@ class MarketplaceController extends Controller
             $walletBalance = $wallet->balance;
         }
 
+        $user = auth()->user();
+        $clientAddresses = $user
+            ? ClientAddress::query()
+                ->where('user_id', $user->id)
+                ->orderByDesc('is_active')
+                ->latest()
+                ->get([
+                    'id',
+                    'label',
+                    'address',
+                    'city',
+                    'state',
+                    'latitude',
+                    'longitude',
+                    'is_active',
+                ])
+            : collect();
+
+        $managedProvider = $user?->managedProvider();
+        $businessAddressOption = null;
+        if ($managedProvider?->businessProfile?->address) {
+            $businessAddressOption = [
+                'label' => $managedProvider->businessProfile->business_name ?: 'Business address',
+                'address' => $managedProvider->businessProfile->address,
+                'city' => $managedProvider->businessProfile->city,
+                'state' => $managedProvider->businessProfile->state,
+                'latitude' => $managedProvider->businessProfile->latitude,
+                'longitude' => $managedProvider->businessProfile->longitude,
+            ];
+        }
+
         // Get provider settings
         $settings = ProviderSettings::resolve($businessProfile->settings ?? []);
         $teamMembers = TeamMember::query()
@@ -343,6 +375,8 @@ class MarketplaceController extends Controller
                 'price' => $service->price,
             ]),
             'walletBalance' => $walletBalance,
+            'clientAddresses' => $clientAddresses,
+            'businessAddressOption' => $businessAddressOption,
             'teamMembers' => $bookableTeamMembers->count() > 0
                 ? $bookableTeamMembers->map(fn ($member) => [
                     'id' => $member->id,

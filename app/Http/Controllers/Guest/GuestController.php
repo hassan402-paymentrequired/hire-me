@@ -21,14 +21,29 @@ class GuestController extends Controller
      */
     public function welcome(Request $request)
     {
-        // dd($request->user()->getAuthPasswordName());
-        // dd($request->session()->get('password_hash_database'));
+        $user = $request->user();
+        $activeAddress = $user?->activeClientAddress;
+
         $lat = $request->lat ? (float) $request->lat : null;
         $lng = $request->lng ? (float) $request->lng : null;
+        if ($lat === null && $lng === null && $activeAddress?->latitude && $activeAddress?->longitude) {
+            $lat = (float) $activeAddress->latitude;
+            $lng = (float) $activeAddress->longitude;
+        }
+
         $search = $request->search ;
         $category = $request->category !== 'For You' ? $request->category : null;
         $minRating = $request->min_rating ? (float) $request->min_rating : null;
         $sort = $request->input('sort', 'recommended');
+        if (
+            ! $request->filled('sort') &&
+            $request->lat === null &&
+            $request->lng === null &&
+            $lat !== null &&
+            $lng !== null
+        ) {
+            $sort = 'distance_asc';
+        }
         $page = $request->input('page', 1);
 
         $cacheKey = $this->buildCacheKey([

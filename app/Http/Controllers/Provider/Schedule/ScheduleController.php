@@ -235,6 +235,15 @@ class ScheduleController extends Controller
                 'provider_payout_amount' => $appointment->provider_payout_amount,
                 'cancelled_by' => $appointment->cancelled_by,
                 'cancellation_reason' => $appointment->cancellation_reason,
+                'service_location_source' => $appointment->service_address_source,
+                'service_location_label' => $appointment->service_address_label,
+                'service_location' => $appointment->service_address
+                    ? trim(collect([
+                        $appointment->service_address,
+                        $appointment->service_address_city,
+                        $appointment->service_address_state,
+                    ])->filter()->implode(', '))
+                    : null,
                 'location' => $bp?->address ? trim("{$bp->address}, {$bp->city}, {$bp->state} {$bp->zip_code}") : null,
                 'location_phone' => $bp?->phone,
             ],
