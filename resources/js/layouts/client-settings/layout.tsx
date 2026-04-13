@@ -1,4 +1,5 @@
 import Heading from '@/components/heading';
+import KeenIcon from '@/components/keen-icon';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn, isSameUrl, resolveUrl } from '@/lib/utils';
@@ -6,45 +7,33 @@ import { cn, isSameUrl, resolveUrl } from '@/lib/utils';
 import { edit } from '@/routes/profile';
 import { show } from '@/routes/two-factor';
 import { edit as editPassword } from '@/routes/user-password';
-import {
-    LockClosedIcon,
-    MapPinIcon,
-    ShieldExclamationIcon,
-    UserIcon,
-} from '@heroicons/react/24/solid';
 import { Link } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
 
-const sidebarNavItems: Array<{ title: string; href: string; icon: any }> = [
+const sidebarNavItems: Array<{ title: string; href: string; icon: string }> = [
     {
         title: 'Profile',
         href: edit().url,
-        icon: UserIcon,
+        icon: 'security-user',
     },
     {
         title: 'Addresses',
         href: '/settings/addresses',
-        icon: MapPinIcon,
+        icon: 'map',
     },
     {
         title: 'Password',
         href: editPassword().url,
-        icon: LockClosedIcon,
+        icon: 'lock',
     },
     {
         title: 'Two-Factor Auth',
         href: show().url,
-        icon: ShieldExclamationIcon,
+        icon: 'shield-tick',
     },
-    // {
-    //     title: 'Appearance',
-    //     href: editAppearance().url,
-    //     icon: null,
-    // },
 ];
 
 export default function ClientSettingsLayout({ children }: PropsWithChildren) {
-    // When server-side rendering, we only render the layout on the client...
     if (typeof window === 'undefined') {
         return null;
     }
@@ -75,9 +64,7 @@ export default function ClientSettingsLayout({ children }: PropsWithChildren) {
                                 })}
                             >
                                 <Link href={item.href} prefetch>
-                                    {item.icon && (
-                                        <item.icon className="h-4 w-4" />
-                                    )}
+                                    {item.icon && <KeenIcon name={item.icon} />}
                                     {item.title}
                                 </Link>
                             </Button>

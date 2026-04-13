@@ -8,34 +8,28 @@ import { show } from '@/routes/two-factor';
 import { edit as editPassword } from '@/routes/user-password';
 import { Link } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
-import { UserIcon, LockClosedIcon, ShieldExclamationIcon } from '@heroicons/react/24/solid'
+import KeenIcon from '@/components/keen-icon';
 
 
-const sidebarNavItems: Array<{ title: string; href: string; icon: any | null }> = [
+const sidebarNavItems: Array<{ title: string; href: string; icon: string }> = [
     {
         title: 'Profile',
         href: edit().url,
-        icon: UserIcon,
+        icon: 'security-user',
     },
     {
         title: 'Password',
         href: editPassword().url,
-        icon: LockClosedIcon,
+        icon: 'lock',
     },
     {
         title: 'Two-Factor Auth',
         href: show().url,
-        icon: ShieldExclamationIcon,
+        icon: 'shield-tick',
     },
-    // {
-    //     title: 'Appearance',
-    //     href: editAppearance().url,
-    //     icon: null,
-    // },
 ];
 
 export default function SettingsLayout({ children }: PropsWithChildren) {
-    // When server-side rendering, we only render the layout on the client...
     if (typeof window === 'undefined') {
         return null;
     }
@@ -67,7 +61,7 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
                             >
                                 <Link href={item.href} prefetch>
                                     {item.icon && (
-                                        <item.icon className="h-4 w-4" />
+                                        <KeenIcon name={item.icon}  />
                                     )}
                                     {item.title}
                                 </Link>
