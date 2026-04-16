@@ -28,7 +28,7 @@ class WelcomeNotification extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        return ['mail', 'database', WebPushChannel::class];
+        return ['mail'];
     }
 
     /**

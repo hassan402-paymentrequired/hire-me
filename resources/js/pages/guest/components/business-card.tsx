@@ -1,10 +1,8 @@
-import React, { useState } from 'react';
-import { Link } from '@inertiajs/react';
-import { MapPin, Star, Clock } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import VerifiedProviderBadge from '@/components/verified-provider-badge';
-// import {  } "@/heroicons/react/24/solid"
+import { Badge } from '@/components/ui/badge';
+import { Link } from '@inertiajs/react';
+import { MapPin, Star } from 'lucide-react';
+import { useState } from 'react';
 
 interface ProviderProps {
     id: string;
@@ -31,7 +29,6 @@ const BusinessCard = ({ provider }: { provider: ProviderProps }) => {
 
     const showImage = provider.logo && !imageError;
 
-    // Generate initials from business name or owner name
     const getInitials = (name: string) => {
         return name
             .split(' ')
@@ -50,7 +47,7 @@ const BusinessCard = ({ provider }: { provider: ProviderProps }) => {
             prefetch
         >
             {/* Card Image/Placeholder */}
-            <div className="relative aspect-[4/3] overflow-hidden rounded-sm bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+            <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-sm bg-gradient-to-br from-primary/20 to-primary/5">
                 {showImage ? (
                     <>
                         {!imageLoaded && (
@@ -69,17 +66,20 @@ const BusinessCard = ({ provider }: { provider: ProviderProps }) => {
                                 setImageLoaded(false);
                             }}
                             onLoad={() => setImageLoaded(true)}
-                            loading='lazy'
+                            loading="lazy"
                         />
                     </>
                 ) : (
-                    <div className="text-center p-6">
-                        <h3 className="text-2xl font-bold text-foreground mb-2 line-clamp-2">
+                    <div className="p-6 text-center">
+                        <h3 className="mb-2 line-clamp-2 text-2xl font-bold text-foreground">
                             {provider.businessName}
                         </h3>
                         <div className="flex items-center justify-center gap-2">
                             <p className="text-sm text-muted-foreground">
-                                {provider.servicesCount} {provider.servicesCount === 1 ? 'service' : 'services'}
+                                {provider.servicesCount}{' '}
+                                {provider.servicesCount === 1
+                                    ? 'service'
+                                    : 'services'}
                             </p>
                         </div>
                     </div>
@@ -91,7 +91,7 @@ const BusinessCard = ({ provider }: { provider: ProviderProps }) => {
                 {/* Category Badge - Top Left */}
                 {provider.category && (
                     <div className="absolute top-2 left-2">
-                        <Badge className="bg-primary/90 text-primary-foreground backdrop-blur-sm border-none shadow-lg text-xs font-semibold">
+                        <Badge className="border-none bg-primary/90 text-xs font-semibold text-primary-foreground shadow-lg backdrop-blur-sm">
                             {provider.category}
                         </Badge>
                     </div>
@@ -99,17 +99,18 @@ const BusinessCard = ({ provider }: { provider: ProviderProps }) => {
 
                 {/* Distance Badge - Top Right */}
                 <div className="absolute top-2 right-2 flex flex-col items-end gap-1.5">
-                    {provider.distance !== null && provider.distance !== undefined && (
-                        <Badge className="bg-background/90 backdrop-blur-sm text-foreground hover:bg-background/95 flex items-center gap-1 border-none shadow-lg text-xs font-medium">
-                            <MapPin className="h-3 w-3 text-primary" />
-                            {provider.distance.toFixed(1)}km
-                        </Badge>
-                    )}
+                    {provider.distance !== null &&
+                        provider.distance !== undefined && (
+                            <Badge className="flex items-center gap-1 border-none bg-background/90 text-xs font-medium text-foreground shadow-lg backdrop-blur-sm hover:bg-background/95">
+                                <MapPin className="h-3 w-3 text-primary" />
+                                {provider.distance.toFixed(1)}km
+                            </Badge>
+                        )}
                 </div>
 
                 {/* Price Tag - Bottom Left */}
                 <div className="absolute bottom-2 left-2">
-                    <Badge className="bg-background/95 backdrop-blur-sm text-foreground hover:bg-background border-none shadow-lg font-semibold text-sm">
+                    <Badge className="border-none bg-background/95 text-sm font-semibold text-foreground shadow-lg backdrop-blur-sm hover:bg-background">
                         From ₦{Number(provider.minPrice).toLocaleString()}
                     </Badge>
                 </div>
@@ -120,40 +121,59 @@ const BusinessCard = ({ provider }: { provider: ProviderProps }) => {
                 {/* Business Name + Avatar + Verified Badge */}
                 <div className="flex items-start gap-2">
                     {/* Avatar */}
-                    <Avatar className="h-10 w-10 border-2 border-border  shrink-0 mt-0.5">
+                    <Avatar className="mt-0.5 h-10 w-10 shrink-0 border-2 border-border">
                         {provider.avatar && (
-                            <AvatarImage src={provider.avatar} alt={provider.name} />
+                            <AvatarImage
+                                src={provider.avatar}
+                                alt={provider.name}
+                            />
                         )}
-                        <AvatarFallback className="text-primary bg-muted font-semibold text-xs">
+                        <AvatarFallback className="bg-muted text-xs font-semibold text-primary">
                             {initials}
                         </AvatarFallback>
                     </Avatar>
 
                     {/* Business Info */}
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1">
-                            <h3 className="line-clamp-1 font-bold text-base text-foreground capitalize">
+                            <h3 className="line-clamp-1 text-base font-bold text-foreground capitalize">
                                 {provider.businessName}
                             </h3>
                             {provider.isVerified && (
-                                <VerifiedProviderBadge className="shrink-0" />
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    strokeWidth={1.5}
+                                    stroke="currentColor"
+                                    className="size-4"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z"
+                                    />
+                                </svg>
                             )}
                         </div>
-                        <span className="line-clamp-1 text-xs text-muted-foreground ">
+                        <span className="line-clamp-1 text-xs text-muted-foreground">
                             {provider.address}
                         </span>
                     </div>
 
                     {/* Rating */}
-                    <div className="flex items-center gap-1 text-sm font-semibold shrink-0">
+                    <div className="flex shrink-0 items-center gap-1 text-sm font-semibold">
                         <Star className="size-3 fill-yellow-400 text-yellow-400" />
-                        <span>{provider.rating ? provider.rating.toFixed(1) : '0.0'}</span>
-                        <span className="text-muted-foreground text-xs font-normal">
+                        <span>
+                            {provider.rating
+                                ? provider.rating.toFixed(1)
+                                : '0.0'}
+                        </span>
+                        <span className="text-xs font-normal text-muted-foreground">
                             ({provider.reviewsCount || 0})
                         </span>
                     </div>
                 </div>
-                
             </div>
         </Link>
     );

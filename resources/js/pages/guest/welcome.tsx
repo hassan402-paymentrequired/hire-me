@@ -95,7 +95,7 @@ export default function Welcome({
                 rel="stylesheet"
             />
             <AppLayout>
-                <div className="mx-auto box-border flex w-full max-w-[1380px] flex-col space-y-6 overflow-visible px-4 sm:px-6 xl:px-8 2xl:max-w-none 2xl:px-10">
+                <div className="mx-auto box-border flex w-full max-w-[1380px] flex-col space-y-6 overflow-visible px-4 sm:px-6 xl:px-2 2xl:max-w-none 2xl:px-10">
                     <div className="hidden md:block">
                         <Landing />
                     </div>

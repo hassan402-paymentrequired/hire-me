@@ -2,10 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
-
 use App\Models\Category;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
 class CategorySeeder extends Seeder
@@ -15,19 +13,43 @@ class CategorySeeder extends Seeder
      */
     public function run(): void
     {
+
         $categories = [
-            'Salon & Barber',
-            'Spa & Wellness',
-            'Fitness & Training',
-            'Healthcare',
-            'Automotive',
             'Home Services',
-            'Professional Services',
-            'Cleaning Services',
-            'Education & Tutoring',
+            'Cleaning',
+            'Plumbing',
+            'Electrical Repairs',
+            'Carpentry',
+
+            'Beauty & Personal Care',
+            'Salon',
+            'Barbing',
+            'Makeup',
+            'Nails',
+            'Spa & Massage',
+
+            'Fitness & Training',
+            'Health & Wellness',
+
             'Events & Photography',
-            'Legal & Financial',
-            'Other',
+            'Photography',
+            'Videography',
+
+            'Education & Tutoring',
+            'Private Tutors',
+
+            'Professional Services',
+            'Legal Services',
+            'Consulting',
+
+            'Logistics & Delivery',
+
+            'Automotive',
+            'Car Repairs',
+            'Car Wash',
+            'Driver Services',
+
+            'other'
         ];
 
         foreach ($categories as $category) {
