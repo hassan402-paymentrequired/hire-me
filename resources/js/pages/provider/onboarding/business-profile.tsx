@@ -17,6 +17,19 @@ import { CloudArrowUpIcon } from '@heroicons/react/24/solid';
 
 interface BusinessProfileProps {
     categories: { value: string; label: string }[];
+    businessProfile?: {
+        business_name: string;
+        description: string;
+        address: string;
+        city: string;
+        state: string;
+        zip_code: string;
+        phone: string;
+        category: string;
+        latitude: number | null;
+        longitude: number | null;
+        images: { id: string; image_path: string; is_logo: boolean }[];
+    } | null;
 }
 
 const libraries: ('places')[] = ['places'];
@@ -27,20 +40,20 @@ type AddressAutocompleteUi = 'new' | 'legacy';
 const mapContainerStyle = { width: '100%', height: '400px' };
 const defaultCenter = { lat: 6.5244, lng: 3.3792 };
 
-export default function BusinessProfile({ categories }: BusinessProfileProps) {
+export default function BusinessProfile({ categories, businessProfile }: BusinessProfileProps) {
     const { data, setData, post, processing, errors } = useForm({
-        business_name: '',
-        description: '',
+        business_name: businessProfile?.business_name || '',
+        description: businessProfile?.description || '',
         images: [] as File[],
-        logo_index: 0,
-        address: '',
-        city: '',
-        state: '',
-        zip_code: '',
-        phone: '',
-        category: '',
-        latitude: null as number | null,
-        longitude: null as number | null,
+        logo_index: businessProfile?.images?.findIndex(img => img.is_logo) ?? 0,
+        address: businessProfile?.address || '',
+        city: businessProfile?.city || '',
+        state: businessProfile?.state || '',
+        zip_code: businessProfile?.zip_code || '',
+        phone: businessProfile?.phone || '',
+        category: businessProfile?.category || '',
+        latitude: businessProfile?.latitude ?? null,
+        longitude: businessProfile?.longitude ?? null,
     });
 
     const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
@@ -58,14 +71,16 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
     const placeAutocompleteContainerRef = useRef<HTMLDivElement | null>(null);
     const placeAutocompleteElRef = useRef<HTMLElement | null>(null);
 
-    const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+    const [imagePreviews, setImagePreviews] = useState<string[]>(
+        businessProfile?.images?.map(img => img.image_path) || []
+    );
     const [addressAutocompleteUi, setAddressAutocompleteUi] = useState<AddressAutocompleteUi>('legacy');
-    const [addressDraft, setAddressDraft] = useState('');
+    const [addressDraft, setAddressDraft] = useState(businessProfile?.address || '');
     const [phoneDisplay, setPhoneDisplay] = useState('');
     const [phoneLocalError, setPhoneLocalError] = useState<string | null>(null);
 
-    const [addressMode, setAddressMode] = useState<AddressMode>('autocomplete');
-    const [googleResolved, setGoogleResolved] = useState(false);
+    const [addressMode, setAddressMode] = useState<AddressMode>(businessProfile?.address ? 'manual' : 'autocomplete');
+    const [googleResolved, setGoogleResolved] = useState(!!businessProfile?.latitude);
     const [showFallbackHint, setShowFallbackHint] = useState(false);
     const [mapOpen, setMapOpen] = useState(false);
     const [mapCenter, setMapCenter] = useState(defaultCenter);
@@ -245,6 +260,7 @@ export default function BusinessProfile({ categories }: BusinessProfileProps) {
                 if (!PlaceAutocompleteElement) return false;
 
                 const el: any = new PlaceAutocompleteElement();
+                el.value = data.address;
                 el.placeholder = 'Start typing your address...';
                 el.style.width = '100%';
                 el.style.colorScheme = 'only light';

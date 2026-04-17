@@ -66,6 +66,10 @@ export default function Verification({
         });
     };
 
+    const goBack = () => {
+        router.visit(onboarding.services().url);
+    };
+
     const documentTypeOptions = [
         { value: 'national_id', label: 'National ID (NIN Slip)' },
         { value: 'drivers_license', label: "Driver's License" },
@@ -292,7 +296,7 @@ export default function Verification({
                                 </CardContent>
                             </Card>
 
-                            <div className="flex items-center gap-4">
+                             <div className="flex items-center gap-4">
                                 <Button
                                     type="submit"
                                     size="lg"
@@ -305,6 +309,14 @@ export default function Verification({
                                 >
                                     {processing && <Spinner className="mr-2" />}
                                     Submit for Verification
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={goBack}
+                                    className="text-sm underline underline-offset-2"
+                                >
+                                    Back
                                 </Button>
                                 <Link href={business.dashboard().url}>
                                     <Button type="button" variant="ghost">

@@ -3,21 +3,30 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import OnboardingLayout from '@/layouts/onboarding-layout';
 import onboarding from '@/routes/onboarding';
-import { useForm } from '@inertiajs/react';
+import { useForm, router } from '@inertiajs/react';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '@/components/ui/spinner';
 import { getStepsWithStatus } from './onboarding-steps';
 
 interface ServicesProps {
     businessCategory: { id: string; name: string } | null;
+    services?: {
+        id: string;
+        name: string;
+        description: string;
+        price: string;
+        duration_minutes: string | number;
+    }[];
 }
 
-export default function Services({ businessCategory }: ServicesProps) {
+export default function Services({ businessCategory, services }: ServicesProps) {
+    const firstService = services?.[0];
     const { data, setData, post, processing, errors } = useForm({
-        name: '',
-        price: '',
-        duration_minutes: '60',
-        description: '',
+        name: firstService?.name || '',
+        price: firstService?.price || '',
+        duration_minutes: firstService?.duration_minutes?.toString() || '60',
+        description: firstService?.description || '',
+        category_id: businessCategory?.id || '',
     });
 
     const submit = (e: React.FormEvent) => {
@@ -27,6 +36,10 @@ export default function Services({ businessCategory }: ServicesProps) {
 
     const skip = () => {
          post(onboarding.skip('services').url);
+    };
+
+    const goBack = () => {
+        router.visit(onboarding.workHours().url);
     };
 
     return (
@@ -154,20 +167,32 @@ export default function Services({ businessCategory }: ServicesProps) {
                             </div>
                         </div>
                     </div>
+                
 
-                    <div className="flex items-center justify-end gap-4 pt-4">
+                    <div className="flex items-center justify-between gap-4 pt-4">
                         <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={goBack}
+                            className="text-sm"
+                        >
+                            Back
+                        </Button>
+                        <div>
+                             <Button
                             type="submit"
                             size="lg"
                             disabled={processing}
                             className="w-full sm:w-auto min-w-[120px]"
                         >
                             {processing && <Spinner className="mr-2" />}
-                            Save & Finish
+                            Finish setup
                         </Button>
-                        <Button type="button" variant="ghost" onClick={skip}>
+                        {/* <Button type="button" variant="ghost" onClick={skip}>
                             Skip for now
-                        </Button>
+                        </Button> */}
+                        </div>
+                       
                     </div>
                 </form>
             </div>

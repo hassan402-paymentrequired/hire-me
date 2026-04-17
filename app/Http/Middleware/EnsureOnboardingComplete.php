@@ -27,19 +27,9 @@ class EnsureOnboardingComplete
         $hasWorkHours = \App\Models\WorkHour::where('provider_id', $user->id)->exists();
         $hasServices = \App\Models\Service::where('provider_id', $user->id)->exists();
 
-        // If trying to access business-profile but already completed
-        if ($request->routeIs('onboarding.business-profile') && $hasBusinessProfile) {
-            return redirect()->route('onboarding.index');
-        }
-
-        // If trying to access work-hours but already completed
-        if ($request->routeIs('onboarding.work-hours') && $hasWorkHours) {
-            return redirect()->route('onboarding.index');
-        }
-
-        // If trying to access services but already completed
-        if ($request->routeIs('onboarding.services') && $hasServices) {
-            return redirect()->route('onboarding.index');
+        // Only redirect if the user has FULLY completed onboarding
+        if ($user->businessProfile?->has_onboarded) {
+             return redirect()->route('business.dashboard')->with('error-toast', 'You have already completed onboarding.');
         }
 
         return $next($request);

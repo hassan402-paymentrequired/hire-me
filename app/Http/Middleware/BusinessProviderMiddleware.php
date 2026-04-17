@@ -23,6 +23,11 @@ class BusinessProviderMiddleware
                 ->with('error-toast', 'Please set up your provider profile first.');
         }
 
+        // Ensure onboarding is complete before accessing the dashboard
+        if ($user->businessProfile && !$user->businessProfile->has_onboarded) {
+            return redirect()->route('onboarding.index');
+        }
+
         return $next($request);
     }
 }

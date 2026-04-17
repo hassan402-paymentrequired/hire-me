@@ -23,19 +23,15 @@ class OnboardingController extends Controller
     public function index()
     {
         $user = auth_user();
+        $profile = $user->businessProfile;
         $hasService = Service::where('provider_id', $user->id)->exists();
 
-        if ($user->businessProfile()->exists() && $user->businessProfile->has_onboarded) {
-            return to_route('business.dashboard')->with('error-toast', 'You. already have a business profile.');
+        if ($profile && $profile->has_onboarded) {
+            return to_route('business.dashboard');
         }
 
         // Determine current step based on what's missing
-        // 1. Business Profile
-        if ($user->businessProfile && $hasService) {
-            return to_route('business.dashboard')->with('error-toast', 'You. already have a business profile.');
-        }
-
-        if (! $user->businessProfile) {
+        if (! $profile) {
             return redirect()->route('onboarding.business-profile');
         }
 
@@ -49,11 +45,13 @@ class OnboardingController extends Controller
             return redirect()->route('onboarding.services');
         }
 
-        return redirect()->route('business.dashboard');
+        // If they have services but aren't marked onboarded, send them to finish (which sets the flag)
+        return redirect()->route('onboarding.services');
     }
 
     public function businessProfile()
     {
+        $user = auth_user();
         $categories = Category::orderBy('name')->get()->map(function ($category) {
             return [
                 'value' => $category->slug,
@@ -64,15 +62,37 @@ class OnboardingController extends Controller
         return Inertia::render('provider/onboarding/business-profile', [
             'step' => 'profile',
             'categories' => $categories,
+            'businessProfile' => $user->businessProfile ? [
+                'business_name' => $user->businessProfile->business_name,
+                'description'   => $user->businessProfile->description,
+                'address'       => $user->businessProfile->address,
+                'city'          => $user->businessProfile->city,
+                'state'         => $user->businessProfile->state,
+                'zip_code'      => $user->businessProfile->zip_code,
+                'phone'         => $user->businessProfile->phone,
+                'category'      => $user->businessProfile->category,
+                'latitude'      => $user->businessProfile->latitude,
+                'longitude'     => $user->businessProfile->longitude,
+                'images'        => $user->businessProfile->images->map(function ($img) {
+                    return [
+                        'id' => $img->id,
+                        'image_path' => \Illuminate\Support\Facades\Storage::url($img->image_path),
+                        'is_logo' => $img->is_logo,
+                    ];
+                }),
+            ] : null,
         ]);
     }
 
     public function storeBusinessProfile(Request $request)
     {
+        $user = auth_user();
+        $hasProfile = $user->businessProfile()->exists();
+
         $request->validate([
             'business_name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'images' => 'required|array|min:1|max:3',
+            'images' => $hasProfile ? 'nullable|array|max:3' : 'required|array|min:1|max:3',
             'images.*' => 'image|max:5120',
             'logo_index' => [
                 'required',
@@ -80,8 +100,8 @@ class OnboardingController extends Controller
                 'min:0',
                 'max:2',
                 function (string $attribute, mixed $value, \Closure $fail) use ($request) {
-                    $count = is_array($request->images) ? count($request->images) : 0;
-                    if ($count > 0 && (int) $value >= $count) {
+                    $imagesCount = is_array($request->images) ? count($request->images) : 0;
+                    if ($imagesCount > 0 && (int) $value >= $imagesCount) {
                         $fail('Invalid logo selection.');
                     }
                 },
@@ -115,10 +135,16 @@ class OnboardingController extends Controller
                 'longitude' => $request->longitude,
             ];
 
-            $businessProfile = BusinessProfile::create($data);
+            $businessProfile = BusinessProfile::updateOrCreate(
+                ['user_id' => $user->id],
+                $data
+            );
 
             // Handle images upload
             if ($request->hasFile('images')) {
+                // Remove existing onboarding images if new ones are uploaded
+                $businessProfile->images()->delete();
+
                 foreach ($request->file('images') as $index => $image) {
                     $path = \App\Services\FileUploadService::upload(
                         $image,
@@ -136,7 +162,7 @@ class OnboardingController extends Controller
 
             DB::commit();
 
-            return redirect()->route('onboarding.index');
+            return redirect()->route('onboarding.work-hours');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("Error creating business profile: {$e->getMessage()}");
@@ -156,7 +182,30 @@ class OnboardingController extends Controller
         if ($user->businessProfile->has_onboarded) {
             return to_route('business.dashboard')->with('error-toast', 'You. already have a business profile.');
         }
-        return Inertia::render('provider/onboarding/work-hours', ['step' => 'hours']);
+
+        $existingHours = WorkHour::where('provider_id', $user->id)->get();
+        $schedule = null;
+
+        if ($existingHours->count() > 0) {
+            $schedule = [];
+            foreach ($existingHours as $hour) {
+                $schedule[$hour->day_of_week] = [
+                    'isOpen' => ! $hour->is_closed,
+                    'shifts' => [
+                        [
+                            'start' => $hour->start_time ? substr($hour->start_time, 0, 5) : '09:00',
+                            'end' => $hour->end_time ? substr($hour->end_time, 0, 5) : '17:00',
+                            'breaks' => $hour->breaks ?: [],
+                        ],
+                    ],
+                ];
+            }
+        }
+
+        return Inertia::render('provider/onboarding/work-hours', [
+            'step' => 'hours',
+            'schedule' => $schedule,
+        ]);
     }
 
     public function storeWorkHours(Request $request)
@@ -221,21 +270,20 @@ class OnboardingController extends Controller
             return back()->with('error-toast', 'Could not save your work hours. Please try again.');
         }
 
-        return redirect()->route('onboarding.index')->with('success-toast', 'Work hours saved.');
+        return redirect()->route('onboarding.services')->with('success-toast', 'Work hours saved.');
     }
 
     public function services()
     {
 
-	         $user = auth_user();
+        $user = auth_user();
 
-         if(!$user->businessProfile)
-         {
+        if (!$user->businessProfile) {
             return to_route('home')->with('error-toast', 'You. already have a business profile.');
-         }
+        }
 
 
-         if ($user->businessProfile->has_onboarded) {
+        if ($user->businessProfile->has_onboarded) {
             return to_route('business.dashboard')->with('error-toast', 'You. already have a business profile.');
         }
 
@@ -250,9 +298,20 @@ class OnboardingController extends Controller
             }
         }
 
+        $existingServices = Service::where('provider_id', $user->id)->get();
+
         return Inertia::render('provider/onboarding/services', [
             'step' => 'services',
             'businessCategory' => $businessCategory,
+            'services' => $existingServices->map(function ($service) {
+                return [
+                    'id' => $service->id,
+                    'name' => $service->name,
+                    'description' => $service->description,
+                    'price' => $service->price,
+                    'duration_minutes' => $service->duration_minutes,
+                ];
+            }),
         ]);
     }
 
@@ -276,15 +335,17 @@ class OnboardingController extends Controller
             ]);
         }
 
-        Service::create([
-            'provider_id' => $user->id,
-            'category_id' => $categoryId,
-            'name' => $request->name,
-            'description' => $request->description,
-            'duration_minutes' => $request->duration_minutes,
-            'price' => $request->price,
-            'status' => 'active',
-        ]);
+        Service::updateOrCreate(
+            ['provider_id' => $user->id],
+            [
+                'category_id' => $categoryId,
+                'name' => $request->name,
+                'description' => $request->description,
+                'duration_minutes' => $request->duration_minutes,
+                'price' => $request->price,
+                'status' => 'active',
+            ]
+        );
 
         $this->ensureProviderTeamMember($user);
         $user->notify(new BusinessSetupCompleteNotification);

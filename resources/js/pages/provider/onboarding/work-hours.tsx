@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import OnboardingLayout from '@/layouts/onboarding-layout';
 import onboarding from '@/routes/onboarding';
-import { useForm } from '@inertiajs/react';
+import { useForm, router } from '@inertiajs/react';
 import { AlertCircle, Copy } from 'lucide-react';
 import React, { useState } from 'react';
 import DayScheduleRow from '@/pages/provider/business/components/day-schedule-row';
@@ -15,9 +15,23 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+interface Shift {
+    start: string;
+    end: string;
+    breaks: { start: string; end: string }[];
+}
 
-const defaultSchedule = {
+interface DaySchedule {
+    isOpen: boolean;
+    shifts: Shift[];
+}
+
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as const;
+type Day = typeof DAYS[number];
+
+type WeekSchedule = Record<Day, DaySchedule>;
+
+const defaultSchedule: WeekSchedule = {
     Monday:    { isOpen: true,  shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
     Tuesday:   { isOpen: true,  shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
     Wednesday: { isOpen: true,  shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
@@ -27,23 +41,27 @@ const defaultSchedule = {
     Sunday:    { isOpen: false, shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
 };
 
-export default function WorkHours() {
+interface WorkHoursProps {
+    schedule?: WeekSchedule | null;
+}
+
+export default function WorkHours({ schedule }: WorkHoursProps) {
     const { data, setData, post, processing, errors } = useForm({
-        schedule: defaultSchedule,
+        schedule: (schedule || defaultSchedule) as WeekSchedule,
     });
 
     const [applyAllFeedback, setApplyAllFeedback] = useState(false);
 
     // ── Handlers ──────────────────────────────────────────────────────────────
 
-    const handleToggleDay = (day: string) => {
+    const handleToggleDay = (day: Day) => {
         setData('schedule', {
             ...data.schedule,
             [day]: { ...data.schedule[day], isOpen: !data.schedule[day].isOpen },
         });
     };
 
-    const handleTimeChange = (day: string, shiftIndex: number, field: string, value: any) => {
+    const handleTimeChange = (day: Day, shiftIndex: number, field: string, value: any) => {
         setData('schedule', {
             ...data.schedule,
             [day]: {
@@ -55,7 +73,7 @@ export default function WorkHours() {
         });
     };
 
-    const handleAddBreak = (day: string, shiftIndex: number) => {
+    const handleAddBreak = (day: Day, shiftIndex: number) => {
         setData('schedule', {
             ...data.schedule,
             [day]: {
@@ -69,7 +87,7 @@ export default function WorkHours() {
         });
     };
 
-    const handleRemoveBreak = (day: string, shiftIndex: number, breakIndex: number) => {
+    const handleRemoveBreak = (day: Day, shiftIndex: number, breakIndex: number) => {
         setData('schedule', {
             ...data.schedule,
             [day]: {
@@ -84,7 +102,7 @@ export default function WorkHours() {
     };
 
     const handleBreakChange = (
-        day: string,
+        day: Day,
         shiftIndex: number,
         breakIndex: number,
         field: string,
@@ -144,6 +162,10 @@ export default function WorkHours() {
 
     const skip = () => {
         post(onboarding.skip('work-hours').url);
+    };
+
+    const goBack = () => {
+        router.visit(onboarding.businessProfile().url);
     };
 
     return (
@@ -215,13 +237,23 @@ export default function WorkHours() {
 
                     {/* ── Footer actions ── */}
                     <div className="flex items-center justify-between gap-4 pt-4 border-t">
-                        <button
-                            type="button"
-                            onClick={skip}
-                            className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
-                        >
-                            Skip for now
-                        </button>
+                        <div className="flex items-center gap-4">
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={goBack}
+                                className="text-sm"
+                            >
+                                Back
+                            </Button>
+                            <button
+                                type="button"
+                                onClick={skip}
+                                className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
+                            >
+                                Skip for now
+                            </button>
+                        </div>
 
                         <Button
                             type="submit"
