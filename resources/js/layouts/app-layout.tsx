@@ -3,6 +3,7 @@ import { type BreadcrumbItem } from '@/types';
 import { type ReactNode } from 'react';
 import LoadingScreen from '@/components/loading';
 import ToastNotification from '@/components/ui/toast-notification';
+import BusinessPolicyModal from '@/components/business-policy-modal';
 
 interface AppLayoutProps {
     children: ReactNode;
@@ -14,5 +15,6 @@ export default ({ children, breadcrumbs, ...props }: AppLayoutProps) => (
         {children}
         <LoadingScreen />
         <ToastNotification />
+        <BusinessPolicyModal />
     </AppLayoutTemplate>
 );

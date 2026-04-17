@@ -49,7 +49,9 @@ class HandleInertiaRequests extends Middleware
                     $wallet = \App\Models\Wallet::where('user_id', $user->id)->first();
                     return [
                         ...$user->toArray(),
+                        'business_profile' => $user->businessProfile,
                         'has_provider_setup' => $user->hasProviderSetup(),
+                        'has_setup_business_policy' => $user->businessProfile?->has_setup_business_policy ?? false,
                         'can_access_provider_workspace' => $user->canAccessProviderWorkspace(),
                         'wallet' => $wallet ? [
                             'balance' => $wallet->balance,

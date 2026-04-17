@@ -731,7 +731,8 @@ class BusinessController extends Controller
             }
 
             $profile->update([
-                'settings' => ProviderSettings::sanitize(array_merge($profile->settings ?? [], $request->settings ?? [])),
+                'settings' => \App\Support\ProviderSettings::sanitize(array_merge($profile->settings ?? [], $request->settings ?? [])),
+                'has_setup_business_policy' => true,
             ]);
 
             return back()->with('success-toast', 'Advanced business settings updated successfully.');

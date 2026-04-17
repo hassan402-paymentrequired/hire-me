@@ -29,7 +29,10 @@ class EnsureOnboardingComplete
 
         // Only redirect if the user has FULLY completed onboarding
         if ($user->businessProfile?->has_onboarded) {
-             return redirect()->route('business.dashboard')->with('error-toast', 'You have already completed onboarding.');
+            if ($request->routeIs('onboarding.success', 'onboarding.verification')) {
+                return $next($request);
+            }
+            return redirect()->route('business.dashboard')->with('error-toast', 'You have already completed onboarding.');
         }
 
         return $next($request);

@@ -31,7 +31,8 @@ class BusinessProfile extends Model
         'widget_enabled',
         'widget_settings',
         'widget_domains',
-        'has_onboarded'
+        'has_onboarded',
+        'has_setup_business_policy'
     ];
 
     protected $casts = [
@@ -39,6 +40,7 @@ class BusinessProfile extends Model
         'widget_enabled' => 'boolean',
         'widget_settings' => 'array',
         'widget_domains' => 'array',
+        'has_setup_business_policy' => 'boolean',
     ];
 
     public function user()

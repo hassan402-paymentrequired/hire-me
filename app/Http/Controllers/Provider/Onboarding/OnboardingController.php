@@ -348,6 +348,11 @@ class OnboardingController extends Controller
         );
 
         $this->ensureProviderTeamMember($user);
+        
+        // Mark as onboarded and update role
+        $user->businessProfile->update(['has_onboarded' => true]);
+        $user->update(['role' => \App\Enum\UserRoleEnum::PROVIDER->value]);
+        
         $user->notify(new BusinessSetupCompleteNotification);
 
         return redirect()->route('onboarding.success');   
@@ -418,6 +423,10 @@ class OnboardingController extends Controller
             'document_path' => $path,
             'status' => 'pending',
         ]);
+
+        // Ensure they are marked as onboarded
+        $user->businessProfile->update(['has_onboarded' => true]);
+        $user->update(['role' => \App\Enum\UserRoleEnum::PROVIDER->value]);
 
         return redirect()->route('business.dashboard')->with('success-toast', 'Verification request submitted successfully! We will review it shortly.');
     }
