@@ -39,15 +39,15 @@ class CategorySeeder extends Seeder
             'Private Tutors',
 
             'Professional Services',
+            
             'Legal Services',
+
             'Consulting',
 
-            'Logistics & Delivery',
 
             'Automotive',
+
             'Car Repairs',
-            'Car Wash',
-            'Driver Services',
 
             'other'
         ];
