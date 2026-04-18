@@ -85,7 +85,7 @@ export default function Verification({
             <div className="space-y-6">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">
-                        Verify your identity
+                        Verify your business identity
                     </h2>
                     <p className="mt-2 text-muted-foreground">
                         Upload a valid document to verify your identity. This
@@ -296,10 +296,17 @@ export default function Verification({
                                 </CardContent>
                             </Card>
 
-                             <div className="flex items-center gap-4">
-                                <Button
+                             <div className="flex items-center justify-between">
+                            
+                                <Link href={business.dashboard().url}>
+                                    <Button type="button" variant="secondary">
+                                        Cancel
+                                    </Button>
+                                </Link>
+
+                                 <Button
                                     type="submit"
-                                    size="lg"
+                                    size="lg"   
                                     disabled={
                                         processing ||
                                         !data.document_type ||
@@ -310,19 +317,6 @@ export default function Verification({
                                     {processing && <Spinner className="mr-2" />}
                                     Submit for Verification
                                 </Button>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    onClick={goBack}
-                                    className="text-sm underline underline-offset-2"
-                                >
-                                    Back
-                                </Button>
-                                <Link href={business.dashboard().url}>
-                                    <Button type="button" variant="ghost">
-                                        Skip for now
-                                    </Button>
-                                </Link>
                             </div>
                         </form>
                     )}

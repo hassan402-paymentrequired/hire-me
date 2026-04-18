@@ -121,8 +121,7 @@ class GuestController extends Controller
                 'users.is_verified',
                 'users.created_at'
             ])
-            // Only verified users with business profiles and active services
-            ->where('users.is_verified', true)
+            // ->where('users.is_verified', true)
             ->whereHas('businessProfile')
             ->whereHas('services', fn ($q) => $q->where('status', 'active'))
             // Join business profiles once
