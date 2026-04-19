@@ -64,16 +64,16 @@ class OnboardingController extends Controller
             'categories' => $categories,
             'businessProfile' => $user->businessProfile ? [
                 'business_name' => $user->businessProfile->business_name,
-                'description'   => $user->businessProfile->description,
-                'address'       => $user->businessProfile->address,
-                'city'          => $user->businessProfile->city,
-                'state'         => $user->businessProfile->state,
-                'zip_code'      => $user->businessProfile->zip_code,
-                'phone'         => $user->businessProfile->phone,
-                'category'      => $user->businessProfile->category,
-                'latitude'      => $user->businessProfile->latitude,
-                'longitude'     => $user->businessProfile->longitude,
-                'images'        => $user->businessProfile->images->map(function ($img) {
+                'description' => $user->businessProfile->description,
+                'address' => $user->businessProfile->address,
+                'city' => $user->businessProfile->city,
+                'state' => $user->businessProfile->state,
+                'zip_code' => $user->businessProfile->zip_code,
+                'phone' => $user->businessProfile->phone,
+                'category' => $user->businessProfile->category,
+                'latitude' => $user->businessProfile->latitude,
+                'longitude' => $user->businessProfile->longitude,
+                'images' => $user->businessProfile->images->map(function ($img) {
                     return [
                         'id' => $img->id,
                         'image_path' => \Illuminate\Support\Facades\Storage::url($img->image_path),
@@ -156,14 +156,12 @@ class OnboardingController extends Controller
                         'is_logo' => $index == $request->logo_index,
                     ]);
 
-                    if($index == $request->logo_index )
-                    {
- $businessProfile->update([
-                        'logo_path' => $path
-                    ]);
+                    if ($index == $request->logo_index) {
+                        $businessProfile->update([
+                            'logo_path' => $path,
+                        ]);
                     }
 
-                   
                 }
             }
 
@@ -276,6 +274,7 @@ class OnboardingController extends Controller
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
             ]);
+
             return back()->with('error-toast', 'Could not save your work hours. Please try again.');
         }
 
@@ -287,10 +286,9 @@ class OnboardingController extends Controller
 
         $user = auth_user();
 
-        if (!$user->businessProfile) {
+        if (! $user->businessProfile) {
             return to_route('home')->with('error-toast', 'You. already have a business profile.');
         }
-
 
         if ($user->businessProfile->has_onboarded) {
             return to_route('business.dashboard')->with('error-toast', 'You. already have a business profile.');
@@ -357,14 +355,14 @@ class OnboardingController extends Controller
         );
 
         $this->ensureProviderTeamMember($user);
-        
+
         // Mark as onboarded and update role
         $user->businessProfile->update(['has_onboarded' => true]);
         $user->update(['role' => \App\Enum\UserRoleEnum::PROVIDER->value]);
-        
+
         $user->notify(new BusinessSetupCompleteNotification);
 
-        return redirect()->route('onboarding.success');   
+        return redirect()->route('onboarding.success');
 
     }
 
