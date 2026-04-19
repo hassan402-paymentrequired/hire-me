@@ -26,7 +26,7 @@ class FileUploadService
         // Check if S3 is configured
         $useS3 = self::isS3Configured();
         
-        // Generate filename if not provided
+        // Generate filename if not providedx
         if (!$filename) {
             $filename = Str::uuid() . '_' . time();
         }
@@ -39,7 +39,7 @@ class FileUploadService
         $disk = $useS3 ? 's3' : ($visibility === 'public' ? 'public' : 'private');
         
         // Store the file
-        $path = $file->storeAs($directory, $fullFilename, $disk);
+        $path = $file->storeAs($directory, $fullFilename,['visibility' => $visibility, 'disk' => $disk]);
         
         return $path;
     }
