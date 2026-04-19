@@ -109,7 +109,6 @@ class FileUploadService
 
         if (self::isS3Configured()) {
             $url = Storage::disk('s3')->url($path);
-            Log::info('hello', [$url]);
             return $url;
         }
 

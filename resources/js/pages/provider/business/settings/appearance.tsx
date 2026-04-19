@@ -25,7 +25,6 @@ export default function BusinessSettingsAppearance({ profile }: { profile: any }
         new_images: [] as File[],
         delete_image_ids: [] as string[],
     } as any);
-console.log(profile)
 
 
     const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {

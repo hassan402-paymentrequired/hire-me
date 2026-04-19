@@ -1,16 +1,13 @@
 self.addEventListener("install", function (event) {
-    console.log(event)
     self.skipWaiting();
 });
 
 self.addEventListener("activate", function (event) {
-    console.log(event)
     event.waitUntil(self.clients.claim());
 });
 
 
 self.addEventListener('push', function (event) {
-    console.log(event)
     let payload;
 
 
@@ -48,7 +45,6 @@ self.addEventListener('push', function (event) {
 });
 
 self.addEventListener('notificationclick', function (event) {
-    console.log(event)
     event.notification.close();
     const url = event.notification.data && event.notification.data.url ? event.notification.data.url : '/';
     event.waitUntil(
