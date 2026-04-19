@@ -765,7 +765,7 @@ class BusinessController extends Controller
         $incomingBannerCount = count($request->file('new_images', []));
 
         $request->validate([
-            'logo' => 'nullable|image|max:2048',
+            'logo' => 'nullable|image|max:5120',
             'new_images' => 'nullable|array',
             'new_images.*' => 'image|max:5120',
             'delete_image_ids' => 'nullable|array',
