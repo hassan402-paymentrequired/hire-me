@@ -243,6 +243,12 @@ class MarketplaceController extends Controller
                 ->values();
         }
 
+        $images = $businessProfile->images->map(fn($img) => [
+                    'url' => \App\Services\FileUploadService::url($img->image_path, config('filesystems.default')),
+                    'isLogo' => $img->is_logo
+                ]);
+
+
         return Inertia::render('marketplace/provider', [
             'provider' => [
                 'id' => $provider->id,
@@ -253,10 +259,7 @@ class MarketplaceController extends Controller
                 'address' => $businessProfile->address,
                 'slug' => $businessProfile->slug,
                 'description' => $businessProfile->description,
-                'images' => $businessProfile->images->map(fn($img) => [
-                    'url' => \App\Services\FileUploadService::url($img->image_path, 'public'),
-                    'isLogo' => $img->is_logo
-                ]),
+                'images' => $images,
                 'rating' => $reviews->avg('rating') ? round($reviews->avg('rating'), 1) : 0,
                 'reviews_count' => $reviews->count(),
                 'can_review' => $canReview,
@@ -396,6 +399,7 @@ class MarketplaceController extends Controller
                 'max_bookings_per_month' => $settings['max_bookings_per_month'] ?? null,
                 'accept_online_payment' => $settings['accept_online_payment'] ?? true,
                 'accept_offline_booking' => $settings['accept_offline_booking'] ?? false,
+                'offers_home_service' => $settings['offers_home_service'] ?? false,
             ],
         ]);
     }

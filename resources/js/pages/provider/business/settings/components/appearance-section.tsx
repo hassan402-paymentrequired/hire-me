@@ -6,7 +6,7 @@ import { Building2, ImagePlus, Trash2, Upload, X } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 
 const Storage = {
-    url: (path: string) => (path.startsWith('http') ? path : `/storage/${path}`),
+    url: (path: string) => (path?.startsWith('http') ? path : `/storage/${path}`),
 };
 
 export default function AppearanceSection({
@@ -31,6 +31,7 @@ export default function AppearanceSection({
     toggleDeleteImage: (id: string) => void;
 }) {
     const businessImages = profile?.images?.filter((img: any) => !img.is_logo) ?? [];
+    // console.log(businessImages)
     const keptBannerCount = businessImages.filter(
         (img: any) => !data.delete_image_ids.includes(img.id),
     ).length;

@@ -18,8 +18,8 @@ class ProviderResource extends JsonResource
         $logoImage = $this->businessProfile->images->firstWhere('is_logo', true);
         $logoUrl = null;
         
-        if ($logoImage && $logoImage->image_path) {
-            $logoUrl = \App\Services\FileUploadService::url($logoImage->image_path, 'public');
+        if ($logoImage && $logoImage->image_path) {  
+            $logoUrl = \App\Services\FileUploadService::url($logoImage->image_path, config('filesystems.default'));
         }
 
         return [

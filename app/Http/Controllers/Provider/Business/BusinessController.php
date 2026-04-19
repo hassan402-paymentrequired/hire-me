@@ -415,7 +415,7 @@ class BusinessController extends Controller
             'average_rating' => $totalReviews > 0 ? $reviews->avg('rating') : 0,
         ];
 
-        // 7. Geographic Demand Heatmap (by client location if available, otherwise by appointment address) - Create fresh instance
+        // 7. Geographic Demand Heatmap (by client location if available, otherwise by appointment aaress) - Create fresh instance
         $geographicData = $provider->appointmentsAsProvider()
             ->where('start_time', '>=', $startDate)
             ->whereIn('status', ['confirmed', 'completed'])
@@ -612,6 +612,7 @@ class BusinessController extends Controller
     private function renderBusinessSettingsPage(string $page)
     {
         $provider = $this->managedProvider();
+        
         $profile = $provider?->businessProfile()->with('images')->first();
         $categories = Category::orderBy('name')->get()->map(function ($category) {
             return [
@@ -640,7 +641,7 @@ class BusinessController extends Controller
                 'slug' => $profile->slug,
                 'images' => $profile->images->map(fn($img) => [
                     'id' => $img->id,
-                    'path' => \App\Services\FileUploadService::url($img->image_path, 'public'),
+                    'path' => \App\Services\FileUploadService::url($img->image_path, config('filesystems.default')),
                     'is_logo' => $img->is_logo,
                 ]),
             ] : null,
