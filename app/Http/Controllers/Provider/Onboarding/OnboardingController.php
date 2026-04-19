@@ -155,6 +155,15 @@ class OnboardingController extends Controller
                         'image_path' => $path,
                         'is_logo' => $index == $request->logo_index,
                     ]);
+
+                    if($index == $request->logo_index )
+                    {
+ $businessProfile->update([
+                        'logo_path' => $path
+                    ]);
+                    }
+
+                   
                 }
             }
 

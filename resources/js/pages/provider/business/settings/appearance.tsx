@@ -18,19 +18,15 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function BusinessSettingsAppearance({ profile }: { profile: any }) {
     const { flash } = usePage().props as any;
     const existingBannerCount = profile?.images?.filter((img: any) => !img.is_logo).length ?? 0;
-    const [logoPreview, setLogoPreview] = React.useState<string | null>(
-        profile?.images?.find((img: any) => img.is_logo)?.path || null,
-    );
+    const [logoPreview, setLogoPreview] = React.useState<string | null>(profile.logo_path);
     const [newImagePreviews, setNewImagePreviews] = React.useState<string[]>([]);
     const form = useForm({
         logo: null as File | null,
         new_images: [] as File[],
         delete_image_ids: [] as string[],
     } as any);
+console.log(profile)
 
-    React.useEffect(() => {
-        setLogoPreview(profile?.images?.find((img: any) => img.is_logo)?.path || null);
-    }, [profile]);
 
     const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];

@@ -621,6 +621,7 @@ class BusinessController extends Controller
             ];
         });
 
+
         return Inertia::render($page, [
             'profile' => $profile ? [
                 'id' => $profile->id,
@@ -639,6 +640,7 @@ class BusinessController extends Controller
                 'widget_settings' => $profile->widget_settings ?? [],
                 'widget_domains' => $profile->widget_domains ?? [],
                 'slug' => $profile->slug,
+                'logo_path' => \App\Services\FileUploadService::url($profile->logo_path, config('filesystems.default')),
                 'images' => $profile->images->map(fn($img) => [
                     'id' => $img->id,
                     'path' => \App\Services\FileUploadService::url($img->image_path, config('filesystems.default')),
@@ -779,8 +781,9 @@ class BusinessController extends Controller
 
             if ($request->hasFile('logo')) {
                 $oldLogo = $profile->images()->where('is_logo', true)->first();
+
                 if ($oldLogo) {
-                    \App\Services\FileUploadService::delete($oldLogo->image_path, 'public');
+                    \App\Services\FileUploadService::delete($oldLogo->image_path, config('filesystems.default'));
                     $oldLogo->delete();
                 }
 
@@ -789,6 +792,10 @@ class BusinessController extends Controller
                     'business-logos',
                     'public'
                 );
+
+                // update the logo pa
+                $profile->update(['logo_path' => $path]);
+
                 $profile->images()->create([
                     'image_path' => $path,
                     'is_logo' => true,
@@ -815,7 +822,7 @@ class BusinessController extends Controller
                     ->get();
 
                 foreach ($imagesToDelete as $img) {
-                    \App\Services\FileUploadService::delete($img->image_path, 'public');
+                    \App\Services\FileUploadService::delete($img->image_path, config('filesystems.default'));
                     $img->delete();
                 }
             }

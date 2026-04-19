@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Button } from '@/components/ui/button';
 import KeenIcon from '@/components/keen-icon';
 import { Label } from '@/components/ui/label';
