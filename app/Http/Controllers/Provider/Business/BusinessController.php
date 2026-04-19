@@ -591,29 +591,8 @@ class BusinessController extends Controller
 
     public function settings()
     {
-        return $this->renderBusinessSettingsPage('provider/business/settings/index');
-    }
-
-    public function settingsLocation()
-    {
-        return $this->renderBusinessSettingsPage('provider/business/settings/location');
-    }
-
-    public function settingsAdvanced()
-    {
-        return $this->renderBusinessSettingsPage('provider/business/settings/advanced');
-    }
-
-    public function settingsAppearance()
-    {
-        return $this->renderBusinessSettingsPage('provider/business/settings/appearance');
-    }
-
-    private function renderBusinessSettingsPage(string $page)
-    {
         $provider = $this->managedProvider();
-        
-        $profile = $provider?->businessProfile()->with('images')->first();
+        $profile = $provider?->businessProfile()->first();
         $categories = Category::orderBy('name')->get()->map(function ($category) {
             return [
                 'value' => $category->slug,
@@ -621,33 +600,60 @@ class BusinessController extends Controller
             ];
         });
 
-
-        return Inertia::render($page, [
+        return Inertia::render('provider/business/settings/index', [
             'profile' => $profile ? [
                 'id' => $profile->id,
                 'business_name' => $profile->business_name,
                 'description' => $profile->description,
+                'phone' => $profile->phone,
+                'category' => $profile->category,
+            ] : null,
+            'categories' => $categories,
+        ]);
+    }
+
+    public function settingsLocation()
+    {
+        $profile = $this->managedProvider()?->businessProfile()->first();
+
+        return Inertia::render('provider/business/settings/location', [
+            'profile' => $profile ? [
+                'id' => $profile->id,
                 'address' => $profile->address,
                 'city' => $profile->city,
                 'state' => $profile->state,
                 'zip_code' => $profile->zip_code,
-                'phone' => $profile->phone,
-                'category' => $profile->category,
                 'latitude' => $profile->latitude,
                 'longitude' => $profile->longitude,
+            ] : null,
+        ]);
+    }
+
+    public function settingsAdvanced()
+    {
+        $profile = $this->managedProvider()?->businessProfile()->first();
+
+        return Inertia::render('provider/business/settings/advanced', [
+            'profile' => $profile ? [
+                'id' => $profile->id,
                 'settings' => ProviderSettings::resolve($profile->settings ?? []),
-                'widget_enabled' => $profile->widget_enabled ?? false,
-                'widget_settings' => $profile->widget_settings ?? [],
-                'widget_domains' => $profile->widget_domains ?? [],
-                'slug' => $profile->slug,
-                'logo_path' => \App\Services\FileUploadService::url($profile->logo_path, config('filesystems.default')),
+            ] : null,
+        ]);
+    }
+
+    public function settingsAppearance()
+    {
+        $profile = $this->managedProvider()?->businessProfile()->with('images')->first();
+
+        return Inertia::render('provider/business/settings/appearance', [
+            'profile' => $profile ? [
+                'id' => $profile->id,
                 'images' => $profile->images->map(fn($img) => [
                     'id' => $img->id,
                     'path' => \App\Services\FileUploadService::url($img->image_path, config('filesystems.default')),
                     'is_logo' => $img->is_logo,
                 ]),
             ] : null,
-            'categories' => $categories,
         ]);
     }
 
@@ -665,7 +671,6 @@ class BusinessController extends Controller
             'phone' => 'nullable|string|max:20',
             'category' => 'nullable|string|max:50',
             'description' => 'nullable|string',
-            'offers_home_service' => 'nullable|boolean',
         ]);
 
         try {
@@ -678,9 +683,6 @@ class BusinessController extends Controller
                 'description' => $request->description,
                 'phone' => $request->phone,
                 'category' => $request->category,
-                'settings' => \App\Support\ProviderSettings::sanitize(array_merge($profile->settings ?? [], [
-                    'offers_home_service' => $request->boolean('offers_home_service'),
-                ])),
             ]);
 
             return back()->with('success-toast', 'General business information updated successfully.');

@@ -19,6 +19,7 @@ interface AdvancedSettingsProps {
         auto_release_payment?: boolean;
         accept_online_payment?: boolean;
         accept_offline_booking?: boolean;
+        offers_home_service?: boolean;
         [key: string]: any;
     };
     onSettingsChange: (field: string, value: any) => void;
@@ -42,7 +43,7 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
     ];
 
     return (
-        <div className="bg-card rounded-lg border border-border p-4 md:p-6">
+        <div className="bg-card  p-4 md:p-6">
             <div className="flex items-center gap-2 mb-6">
                 <KeenIcon name="slider" className="text-xl text-primary" />
                 <div>
@@ -141,7 +142,7 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
                 </div>
 
                 {/* Booking Frequency Limits */}
-                <div className="pt-4 border-t border-border space-y-4">
+                <div className="pt-4 border-t border-dashed border-border space-y-4">
                      <h4 className="flex items-center gap-2 text-sm font-medium text-foreground">
                          <KeenIcon name="filter-square" className="text-sm text-primary" />
                          <span>Booking Frequency Limits</span>
@@ -192,7 +193,7 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
                 </div>
 
                 {/* Payment Settings */}
-                <div className="pt-4 border-t border-border space-y-4">
+                <div className="pt-4 border-t border-dashed border-border space-y-4">
                     <h4 className="flex items-center gap-2 text-sm font-medium text-foreground">
                         <KeenIcon name="receipt-square" className="text-sm text-primary" />
                         <span>Payment Settings</span>
@@ -233,7 +234,7 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
                 </div>
 
                 {/* Preferences */}
-                <div className="pt-4 border-t border-border space-y-4">
+                <div className="pt-4 border-t border-dashed border-border space-y-4">
                     <h4 className="flex items-center gap-2 text-sm font-medium text-foreground">
                         <KeenIcon name="slider" className="text-sm text-primary" />
                         <span>Booking Preferences</span>
@@ -285,6 +286,31 @@ const AdvancedSettings = ({ settings, onSettingsChange }: AdvancedSettingsProps)
                                     Clients can request times outside your work hours. These requests will always be pending, even if auto-confirm is enabled.
                                 </p>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="pt-4 border-t border-dashed border-border space-y-4">
+                    <h4 className="flex items-center gap-2 text-sm font-medium text-foreground">
+                        <KeenIcon name="geolocation-home" className="text-sm text-primary" />
+                        <span>Service Delivery</span>
+                    </h4>
+                    <p className="text-xs text-muted-foreground -mt-3">
+                        Choose whether clients can book appointments at their own location.
+                    </p>
+                    <div className="flex items-start gap-3">
+                        <Checkbox
+                            id="offers_home_service"
+                            checked={settings?.offers_home_service ?? false}
+                            onCheckedChange={(checked) => onSettingsChange('offers_home_service', checked === true)}
+                        />
+                        <div className="space-y-1 flex-1">
+                            <Label htmlFor="offers_home_service" className="cursor-pointer">
+                                Offer home service
+                            </Label>
+                            <p className="text-xs text-muted-foreground">
+                                Clients will need to provide a service address when they book.
+                            </p>
                         </div>
                     </div>
                 </div>

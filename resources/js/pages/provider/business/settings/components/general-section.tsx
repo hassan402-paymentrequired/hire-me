@@ -1,7 +1,6 @@
 import KeenIcon from '@/components/keen-icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     Select,
     SelectContent,
@@ -92,25 +91,6 @@ export default function GeneralSection({
                     />
                 </div>
                 {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
-            </div>
-
-            <div className="rounded-2xl border border-border/70 bg-card/70 p-5">
-                <div className="flex items-start gap-3">
-                    <Checkbox
-                        id="offers_home_service"
-                        checked={data.offers_home_service ?? false}
-                        onCheckedChange={(checked) => setData('offers_home_service', checked === true)}
-                        className="mt-0.5"
-                    />
-                    <div className="space-y-1">
-                        <Label htmlFor="offers_home_service" className="cursor-pointer text-sm font-medium">
-                            Offer home service
-                        </Label>
-                        <p className="text-sm text-muted-foreground">
-                            Let clients know your team can travel to their location to deliver appointments.
-                        </p>
-                    </div>
-                </div>
             </div>
 
             <div className="space-y-2">
