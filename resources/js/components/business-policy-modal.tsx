@@ -1,7 +1,14 @@
 import React from 'react';
 import { useForm, usePage } from '@inertiajs/react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { PageProps } from '@/types';
+import { CircleHelp } from 'lucide-react';
 
 export default function BusinessPolicyModal() {
     const { auth } = usePage<PageProps>().props;
@@ -69,12 +76,14 @@ export default function BusinessPolicyModal() {
                                 <ToggleRow
                                     label="Accept online payments"
                                     description="Clients pay through Proxideck at booking"
+                                    tooltip="When this is enabled, clients must complete payment online during checkout before the booking is submitted. This is useful if you want confirmed appointments to always come in with payment attached."
                                     enabled={form.data.settings.accept_online_payment}
                                     onChange={() => toggleSetting('accept_online_payment')}
                                 />
                                 <ToggleRow
                                     label="Allow unpaid requests"
                                     description="Clients can book without paying upfront"
+                                    tooltip="When this is enabled, clients can submit a booking request without paying first. These bookings usually need your review, and payment can be collected later based on how you run your business."
                                     enabled={form.data.settings.accept_offline_booking}
                                     onChange={() => toggleSetting('accept_offline_booking')}
                                 />
@@ -92,18 +101,21 @@ export default function BusinessPolicyModal() {
                                 <ToggleRow
                                     label="Allow same-day bookings"
                                     description="Clients can book for today"
+                                    tooltip="This allows customers to choose timeslots on the current day, as long as they still fit within your minimum notice period and available working hours."
                                     enabled={form.data.settings.allowSameDay}
                                     onChange={() => toggleSetting('allowSameDay')}
                                 />
                                 <ToggleRow
                                     label="Auto-confirm bookings"
                                     description="Skip manual review and approve automatically"
+                                    tooltip="Turn this on if you want eligible bookings to move forward without waiting for manual approval. This works best when your availability, pricing, and service rules are already set up carefully."
                                     enabled={form.data.settings.autoConfirm}
                                     onChange={() => toggleSetting('autoConfirm')}
                                 />
                                 <ToggleRow
                                     label="Allow off-hours requests"
                                     description="Accept bookings outside working hours"
+                                    tooltip="This lets clients request appointments outside the working schedule you configured. It does not mean those bookings should be auto-approved by default, but it gives clients a way to ask for exceptions."
                                     enabled={form.data.settings.allowOffHoursRequests}
                                     onChange={() => toggleSetting('allowOffHoursRequests')}
                                 />
@@ -120,6 +132,7 @@ export default function BusinessPolicyModal() {
                                 <ToggleRow
                                     label="Offer home service"
                                     description="Clients can expect you to travel to their location for appointments"
+                                    tooltip="This tells clients that your business can deliver services at their home, office, or another client-provided location instead of only at your business address."
                                     enabled={form.data.settings.offers_home_service}
                                     onChange={() => toggleSetting('offers_home_service')}
                                 />
@@ -148,18 +161,23 @@ export default function BusinessPolicyModal() {
 function ToggleRow({
     label,
     description,
+    tooltip,
     enabled,
     onChange,
 }: {
     label: string;
     description: string;
+    tooltip: string;
     enabled: boolean;
     onChange: () => void;
 }) {
     return (
         <div className="flex items-center justify-between py-3">
             <div className="pr-6">
-                <p className="text-sm font-medium text-foreground">{label}</p>
+                <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-foreground">{label}</p>
+                    <HelpTooltip content={tooltip} />
+                </div>
                 <p className="text-[13px] text-muted-foreground mt-0.5">{description}</p>
             </div>
             <button
@@ -183,5 +201,26 @@ function ToggleRow({
                 />
             </button>
         </div>
+    );
+}
+
+function HelpTooltip({ content }: { content: string }) {
+    return (
+        <TooltipProvider delayDuration={150}>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <button
+                        type="button"
+                        aria-label="More information"
+                        className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                        <CircleHelp className="h-4 w-4" />
+                    </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" align="start" className="max-w-xs text-xs leading-5">
+                    {content}
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
     );
 }
