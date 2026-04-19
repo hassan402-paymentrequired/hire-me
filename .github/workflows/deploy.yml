@@ -1,0 +1,55 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  deploy:
+    name: Deploy via SSH
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to DigitalOcean
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          port: 22
+          script: |
+            cd /var/www/proxideck_prod
+            
+            echo "→ Pulling latest code..."
+            git pull origin develop
+            
+            echo "→ Installing PHP dependencies..."
+            composer install --no-dev --optimize-autoloader --no-interaction
+            
+            echo "→ Installing Node dependencies & building assets..."
+            npm ci
+            npm run build
+
+            echo "→ Clearing cache config & routes..."
+            php artisan optimize:clear
+            
+            echo "→ Caching config & routes..."
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            php artisan event:cache
+            
+            echo "→ Running migrations..."
+            php artisan migrate --force
+            
+            echo "→ Restarting queue workers..."
+            php artisan queue:restart
+            
+            echo "→ Reloading PHP-FPM..."
+            sudo systemctl reload php8.3-fpm
+            
+            echo "✓ Deploy complete"
