@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -108,6 +109,7 @@ class FileUploadService
 
         if (self::isS3Configured()) {
             $url = Storage::disk('s3')->url($path);
+            Log::info('hello', [$url]);
             return $url;
         }
 
