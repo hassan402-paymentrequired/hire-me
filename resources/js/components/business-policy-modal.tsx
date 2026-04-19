@@ -20,6 +20,7 @@ export default function BusinessPolicyModal() {
             allowOffHoursRequests: false,
             accept_online_payment: true,
             accept_offline_booking: false,
+            offers_home_service: false,
         },
     });
 
@@ -105,6 +106,22 @@ export default function BusinessPolicyModal() {
                                     description="Accept bookings outside working hours"
                                     enabled={form.data.settings.allowOffHoursRequests}
                                     onChange={() => toggleSetting('allowOffHoursRequests')}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="border-t border-border/40" />
+
+                        <div className="px-8 py-6">
+                            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-4">
+                                Service delivery
+                            </p>
+                            <div className="space-y-0 divide-y divide-border/40">
+                                <ToggleRow
+                                    label="Offer home service"
+                                    description="Clients can expect you to travel to their location for appointments"
+                                    enabled={form.data.settings.offers_home_service}
+                                    onChange={() => toggleSetting('offers_home_service')}
                                 />
                             </div>
                         </div>

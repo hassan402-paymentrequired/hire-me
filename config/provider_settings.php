@@ -14,5 +14,6 @@ return [
         'auto_release_payment' => false,
         'accept_online_payment' => true,
         'accept_offline_booking' => false,
+        'offers_home_service' => false,
     ],
 ];

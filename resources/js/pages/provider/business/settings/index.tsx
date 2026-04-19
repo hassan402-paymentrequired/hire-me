@@ -24,6 +24,7 @@ export default function BusinessSettingsGeneral({
         description: profile?.description || '',
         phone: profile?.phone || '',
         category: profile?.category || '',
+        offers_home_service: profile?.settings?.offers_home_service ?? false,
     });
 
     return (

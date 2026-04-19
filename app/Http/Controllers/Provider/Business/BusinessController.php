@@ -662,6 +662,7 @@ class BusinessController extends Controller
             'phone' => 'nullable|string|max:20',
             'category' => 'nullable|string|max:50',
             'description' => 'nullable|string',
+            'offers_home_service' => 'nullable|boolean',
         ]);
 
         try {
@@ -674,6 +675,9 @@ class BusinessController extends Controller
                 'description' => $request->description,
                 'phone' => $request->phone,
                 'category' => $request->category,
+                'settings' => \App\Support\ProviderSettings::sanitize(array_merge($profile->settings ?? [], [
+                    'offers_home_service' => $request->boolean('offers_home_service'),
+                ])),
             ]);
 
             return back()->with('success-toast', 'General business information updated successfully.');

@@ -27,6 +27,7 @@ class ProviderSettings
             'auto_release_payment',
             'accept_online_payment',
             'accept_offline_booking',
+            'offers_home_service',
         ] as $key) {
             $settings[$key] = filter_var($settings[$key] ?? false, FILTER_VALIDATE_BOOLEAN);
         }
