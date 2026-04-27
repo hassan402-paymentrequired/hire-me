@@ -18,6 +18,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import { Head, router, useForm } from '@inertiajs/react';
@@ -41,7 +48,16 @@ interface Service {
     duration_minutes: number;
     category_id: string | null;
     category_name: string | null;
+    service_category_id: string | null;
+    service_category_name: string | null;
     status: 'active' | 'inactive';
+}
+
+interface ServiceCategory {
+    id: string;
+    name: string;
+    slug: string;
+    services_count: number;
 }
 
 interface BusinessCategory {
@@ -65,6 +81,7 @@ interface Props {
         }[];
     };
     businessCategory: BusinessCategory | null;
+    serviceCategories: ServiceCategory[];
     filters: {
         search?: string;
     };
@@ -91,16 +108,35 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function ServicesIndex({ services, businessCategory, filters, stats }: Props) {
+export default function ServicesIndex({
+    services,
+    businessCategory,
+    serviceCategories,
+    filters,
+    stats,
+}: Props) {
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingService, setEditingService] = useState<Service | null>(null);
+    const [editingCategory, setEditingCategory] = useState<ServiceCategory | null>(null);
 
     const { data, setData, post, put, processing, reset, errors } = useForm({
+        service_category_id: serviceCategories[0]?.id || '',
         name: '',
         description: '',
         price: '',
         duration_minutes: '',
+    });
+    const {
+        data: categoryData,
+        setData: setCategoryData,
+        post: postCategory,
+        put: putCategory,
+        processing: categoryProcessing,
+        reset: resetCategory,
+        errors: categoryErrors,
+    } = useForm({
+        name: '',
     });
 
     useEffect(() => {
@@ -146,6 +182,7 @@ export default function ServicesIndex({ services, businessCategory, filters, sta
     const handleEdit = (service: Service) => {
         setEditingService(service);
         setData({
+            service_category_id: service.service_category_id || '',
             name: service.name,
             description: service.description || '',
             price: service.price.toString(),
@@ -161,6 +198,39 @@ export default function ServicesIndex({ services, businessCategory, filters, sta
 
     const toggleStatus = (id: string) => {
         router.post(`/business/services/${id}/toggle`);
+    };
+
+    const handleCategorySubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (editingCategory) {
+            putCategory(`/business/services/categories/${editingCategory.id}`, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setEditingCategory(null);
+                    resetCategory();
+                },
+            });
+            return;
+        }
+
+        postCategory('/business/services/categories', {
+            preserveScroll: true,
+            onSuccess: () => resetCategory(),
+        });
+    };
+
+    const handleEditCategory = (category: ServiceCategory) => {
+        setEditingCategory(category);
+        setCategoryData('name', category.name);
+    };
+
+    const handleDeleteCategory = (category: ServiceCategory) => {
+        if (confirm(`Delete "${category.name}"?`)) {
+            router.delete(`/business/services/categories/${category.id}`, {
+                preserveScroll: true,
+            });
+        }
     };
 
     return (
@@ -203,7 +273,11 @@ export default function ServicesIndex({ services, businessCategory, filters, sta
                                     }}
                                 >
                                     <DialogTrigger asChild>
-                                        <Button onClick={() => setIsAddModalOpen(true)} className="rounded-full px-5">
+                                        <Button
+                                            onClick={() => setIsAddModalOpen(true)}
+                                            className="rounded-full px-5"
+                                            disabled={serviceCategories.length === 0}
+                                        >
                                             <Plus className="size-5" />
                                             Add New Service
                                         </Button>
@@ -233,6 +307,30 @@ export default function ServicesIndex({ services, businessCategory, filters, sta
                                                 {errors.name && <p className="text-xs font-bold text-destructive">{errors.name}</p>}
                                             </div>
 
+                                            <div className="space-y-2">
+                                                <Label htmlFor="service-category">Service Category</Label>
+                                                <Select
+                                                    value={data.service_category_id}
+                                                    onValueChange={(value) => setData('service_category_id', value)}
+                                                >
+                                                    <SelectTrigger id="service-category">
+                                                        <SelectValue placeholder="Choose a category" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {serviceCategories.map((category) => (
+                                                            <SelectItem key={category.id} value={category.id}>
+                                                                {category.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                {errors.service_category_id && (
+                                                    <p className="text-xs font-bold text-destructive">
+                                                        {errors.service_category_id}
+                                                    </p>
+                                                )}
+                                            </div>
+
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-2">
                                                     <Label htmlFor="price">Price (₦)</Label>
@@ -258,16 +356,6 @@ export default function ServicesIndex({ services, businessCategory, filters, sta
                                                         <p className="text-xs font-bold text-destructive">{errors.duration_minutes}</p>
                                                     )}
                                                 </div>
-                                            </div>
-
-                                            <div className="hidden space-y-2">
-                                                <Label htmlFor="category">Business Category</Label>
-                                                <div className="rounded-xl border bg-muted/20 px-3 py-2 text-sm font-semibold">
-                                                    {businessCategory?.name ?? 'Not set'}
-                                                </div>
-                                                {errors.category_id && (
-                                                    <p className="text-xs font-bold text-destructive">{errors.category_id}</p>
-                                                )}
                                             </div>
 
                                             <div className="space-y-2">
@@ -349,6 +437,124 @@ export default function ServicesIndex({ services, businessCategory, filters, sta
                 </section>
 
                 <Card className="overflow-hidden rounded-3xl border border-border/70">
+                    <CardHeader className="border-b border-border/60 bg-muted/20">
+                        <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+                            <div>
+                                <CardTitle>Service Categories</CardTitle>
+                                <CardDescription className="mt-2">
+                                    Organize your catalog with provider-owned categories while keeping your storefront business category as{' '}
+                                    <span className="font-medium text-foreground">
+                                        {businessCategory?.name ?? 'not set'}
+                                    </span>
+                                    .
+                                </CardDescription>
+                            </div>
+                            <span className="inline-flex rounded-full border border-border/70 bg-background px-3 py-1 text-xs font-medium text-muted-foreground">
+                                {serviceCategories.length} categories
+                            </span>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="grid gap-6 pt-6 lg:grid-cols-[1.4fr_0.9fr]">
+                        <div className="space-y-3">
+                            {serviceCategories.length > 0 ? (
+                                serviceCategories.map((category) => (
+                                    <div
+                                        key={category.id}
+                                        className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-background p-4 sm:flex-row sm:items-center sm:justify-between"
+                                    >
+                                        <div>
+                                            <p className="font-semibold text-foreground">
+                                                {category.name}
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {category.services_count} service
+                                                {category.services_count === 1 ? '' : 's'} assigned
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleEditCategory(category)}
+                                                className="rounded-full"
+                                            >
+                                                <Edit2 className="mr-2 size-3.5" />
+                                                Edit
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleDeleteCategory(category)}
+                                                className="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                            >
+                                                <Trash2 className="mr-2 size-3.5" />
+                                                Delete
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="rounded-2xl border border-dashed border-border/70 py-12 text-center text-sm text-muted-foreground">
+                                    No service categories yet. Create one before adding services.
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="rounded-2xl border border-border/70 bg-background p-5">
+                            <form onSubmit={handleCategorySubmit} className="space-y-4">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-foreground">
+                                        {editingCategory ? 'Edit category' : 'Add category'}
+                                    </h3>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        Use categories to group similar services together.
+                                    </p>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="category-name">Category Name</Label>
+                                    <Input
+                                        id="category-name"
+                                        value={categoryData.name}
+                                        onChange={(e) => setCategoryData('name', e.target.value)}
+                                        placeholder="e.g. Installations"
+                                    />
+                                    {categoryErrors.name && (
+                                        <p className="text-xs font-bold text-destructive">
+                                            {categoryErrors.name}
+                                        </p>
+                                    )}
+                                    {errors.service_category_id && (
+                                        <p className="text-xs font-bold text-destructive">
+                                            {errors.service_category_id}
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="flex justify-end gap-3">
+                                    {editingCategory && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => {
+                                                setEditingCategory(null);
+                                                resetCategory();
+                                            }}
+                                        >
+                                            Cancel
+                                        </Button>
+                                    )}
+                                    <Button type="submit" disabled={categoryProcessing}>
+                                        {categoryProcessing && <Spinner />}
+                                        {editingCategory ? 'Update Category' : 'Create Category'}
+                                    </Button>
+                                </div>
+                            </form>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="overflow-hidden rounded-3xl border border-border/70">
                     <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
                         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                             <div>
@@ -414,6 +620,12 @@ export default function ServicesIndex({ services, businessCategory, filters, sta
                                                         )}
 
                                                         <div className="flex flex-wrap items-center gap-2 pt-1">
+                                                            {service.service_category_name && (
+                                                                <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1.5 text-sm font-medium text-foreground/80">
+                                                                    <KeenIcon name="tag" className="text-sm text-muted-foreground" />
+                                                                    {service.service_category_name}
+                                                                </span>
+                                                            )}
                                                             <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1.5 text-sm font-medium text-foreground/80">
                                                                 <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                                                                 {service.duration_minutes} mins

@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Jobs\SaveWorkHourJob;
 use App\Models\BusinessProfile;
 use App\Models\Category;
+use App\Models\ProviderServiceCategory;
 use App\Models\Service;
 use App\Models\TeamMember;
 use App\Models\WorkHour;
@@ -16,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class OnboardingController extends Controller
@@ -306,10 +308,18 @@ class OnboardingController extends Controller
         }
 
         $existingServices = Service::where('provider_id', $user->id)->get();
+        $serviceCategories = $user->serviceCategories()->get()->map(function ($category) {
+            return [
+                'id' => $category->id,
+                'name' => $category->name,
+                'slug' => $category->slug,
+            ];
+        });
 
         return Inertia::render('provider/onboarding/services', [
             'step' => 'services',
             'businessCategory' => $businessCategory,
+            'serviceCategories' => $serviceCategories,
             'services' => $existingServices->map(function ($service) {
                 return [
                     'id' => $service->id,
@@ -317,6 +327,7 @@ class OnboardingController extends Controller
                     'description' => $service->description,
                     'price' => $service->price,
                     'duration_minutes' => $service->duration_minutes,
+                    'service_category_id' => $service->service_category_id,
                 ];
             }),
         ]);
@@ -325,6 +336,12 @@ class OnboardingController extends Controller
     public function storeServices(Request $request)
     {
         $request->validate([
+            'service_category_id' => [
+                'required',
+                Rule::exists('provider_service_categories', 'id')->where(
+                    fn ($query) => $query->where('provider_id', auth_user()->id)
+                ),
+            ],
             'name' => 'required|string|max:255',
             'price' => 'required|numeric',
             'duration_minutes' => 'required|integer',
@@ -346,6 +363,7 @@ class OnboardingController extends Controller
             ['provider_id' => $user->id],
             [
                 'category_id' => $categoryId,
+                'service_category_id' => $request->service_category_id,
                 'name' => $request->name,
                 'description' => $request->description,
                 'duration_minutes' => $request->duration_minutes,
@@ -364,6 +382,30 @@ class OnboardingController extends Controller
 
         return redirect()->route('onboarding.success');
 
+    }
+
+    public function storeServiceCategory(Request $request)
+    {
+        $user = auth_user();
+
+        $validated = $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:120',
+                Rule::unique('provider_service_categories', 'name')->where(
+                    fn ($query) => $query->where('provider_id', $user->id)
+                ),
+            ],
+        ]);
+
+        ProviderServiceCategory::create([
+            'provider_id' => $user->id,
+            'name' => $validated['name'],
+            'slug' => Str::slug($validated['name']).'-'.Str::lower(Str::random(5)),
+        ]);
+
+        return back()->with('success-toast', 'Service category added.');
     }
 
     public function success()

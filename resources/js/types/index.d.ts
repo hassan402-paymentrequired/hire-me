@@ -8,6 +8,17 @@ export interface Auth {
     user: User;
 }
 
+export interface NavSection {
+    name: string;
+    links: Array<{
+        title: string;
+        href: NonNullable<InertiaLinkProps['href']>;
+        icon?: AppIcon | null;
+        isActive?: boolean;
+        isLocked?: boolean;
+    }>;
+}
+
 export interface BreadcrumbItem {
     title: string;
     href: string;
@@ -34,6 +45,9 @@ export interface SharedData {
     quote: { message: string; author: string };
     auth: Auth;
     sidebarOpen: boolean;
+    features?: {
+        subscriptions?: boolean;
+    };
     [key: string]: unknown;
 }
 
@@ -46,6 +60,13 @@ export interface User {
     role: 'client' | 'provider';
     has_provider_setup?: boolean;
     can_access_provider_workspace?: boolean;
+    business_profile?: {
+        settings?: {
+            billing_model?: 'commission' | 'subscription';
+            [key: string]: unknown;
+        };
+        [key: string]: unknown;
+    } | null;
     wallet?: {
         balance: number;
         escrow_balance: number;

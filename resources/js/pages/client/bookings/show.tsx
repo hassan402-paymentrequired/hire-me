@@ -275,12 +275,25 @@ export default function BookingDetails({
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.10),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.08),transparent_28%)]" />
                         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                             <div className="space-y-4">
-                                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-                                    <KeenIcon
-                                        name="book-square"
-                                        className="text-sm"
-                                    />
-                                    Your booking
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <Badge
+                                    
+                                        variant={
+                                            booking.payment_method === 'offline'
+                                                ? 'destructive'
+                                                : 'primary'
+                                        }
+                                         className="flex items-center gap-2 px-4 py-1.5 text-xs"
+                                    >
+                                        {paymentStateLabel}
+                                    </Badge>
+                                    <Badge
+                                        variant="default"
+                                        className="flex items-center gap-2 px-4 py-1.5 text-xs"
+                                    >
+                                        {getStatusIcon(booking.status)}
+                                        {formatStatus(booking.status)}
+                                    </Badge>
                                 </div>
                                 <div className="space-y-2">
                                     <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
@@ -307,26 +320,7 @@ export default function BookingDetails({
                                         completion status from one place.
                                     </p>
                                 </div>
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <Badge
-                                        variant={
-                                            booking.payment_method === 'offline'
-                                                ? 'secondary'
-                                                : 'outline'
-                                        }
-                                    >
-                                        {paymentStateLabel}
-                                    </Badge>
-                                    <Badge
-                                        variant={getStatusVariant(
-                                            booking.status,
-                                        )}
-                                        className="flex items-center gap-2 px-4 py-1.5 text-sm"
-                                    >
-                                        {getStatusIcon(booking.status)}
-                                        {formatStatus(booking.status)}
-                                    </Badge>
-                                </div>
+                                
                             </div>
 
                             <div className="grid grid-cols-2 gap-3 sm:min-w-[320px]">

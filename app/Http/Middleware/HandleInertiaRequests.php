@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use App\Support\Subscriptions\SubscriptionFeature;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -72,6 +73,9 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => $request->session()->get('success-toast'),
                 'error' => $request->session()->get('error-toast'),
+            ],
+            'features' => [
+                'subscriptions' => SubscriptionFeature::enabled(),
             ],
         ];
     }

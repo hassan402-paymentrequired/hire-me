@@ -53,7 +53,7 @@ export default function Landing() {
                                     <h1 className="mx-auto max-w-4xl text-5xl font-semibold tracking-[-0.06em] text-balance text-gray-950 xl:text-7xl">
                                         Find trusted providers for everyday
                                         services
-                                        <span className="text-emerald-950">
+                                        <span className="text-emerald-950 underline">
                                             {' '}
                                             near you
                                         </span>

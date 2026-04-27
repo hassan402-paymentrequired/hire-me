@@ -85,7 +85,7 @@ class MarketplaceController extends Controller
         $provider = $businessProfile->user()
             ->with([
                 'services' => function ($query) {
-                    $query->where('status', 'active');
+                    $query->where('status', 'active')->with('serviceCategory');
                 }
             ])
             ->firstOrFail();
@@ -276,7 +276,15 @@ class MarketplaceController extends Controller
                 'canBook' => $bookingEligibility['canBook'],
                 'bookingBlockedReason' => $bookingEligibility['bookingBlockedReason'],
             ],
-            'services' => $provider->services,
+            'services' => $provider->services->map(fn ($service) => [
+                'id' => $service->id,
+                'name' => $service->name,
+                'description' => $service->description,
+                'duration_minutes' => $service->duration_minutes,
+                'price' => $service->price,
+                'service_category_id' => $service->service_category_id,
+                'service_category_name' => $service->serviceCategory?->name,
+            ])->values(),
             'workHours' => $workHours,
             'reviews' => $reviews->map(fn($r) => [
                 'id' => $r->id,

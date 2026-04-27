@@ -58,12 +58,12 @@ class GoogleAuthController extends Controller
             $user = User::create([
                 'name' => $googleUser->getName() ?: ($googleUser->getNickname() ?: 'User'),
                 'email' => $email,
-                // Password is required by the schema; the model will hash this via casts.
                 'password' => Str::random(48),
                 'role' => $invitationToken ? UserRoleEnum::PROVIDER->value : UserRoleEnum::CLIENT->value,
                 // Team-member accounts are allowed into the provider workspace.
                 'is_verified' => $invitationToken ? true : false,
             ]);
+
         }
 
         if ($invitationToken) {
@@ -90,7 +90,7 @@ class GoogleAuthController extends Controller
         Auth::login($user, true);
         $request->session()->regenerate();
 
-        return redirect()->intended(route('home'));
+        return redirect()->intended(route('home'))->with('success-toast', 'Logged in successfully.');
     }
 }
 

@@ -2,10 +2,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { router, useForm } from '@inertiajs/react';
-import { Edit2, Plus, Trash2 } from 'lucide-react';
+import { Edit2, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface Service {
@@ -14,34 +21,52 @@ interface Service {
     description: string;
     duration_minutes: number;
     price: string | number;
+    service_category_id?: string | null;
+    service_category_name?: string | null;
+}
+
+interface ServiceCategory {
+    id: string;
+    name: string;
+    services_count?: number;
 }
 
 interface ServicesManagerProps {
     services: Service[];
+    serviceCategories: ServiceCategory[];
 }
 
-export default function ServicesManager({ services }: ServicesManagerProps) {
-    const [isCreating, setIsCreating] = useState(true);
+export default function ServicesManager({
+    services,
+    serviceCategories,
+}: ServicesManagerProps) {
     const [editingService, setEditingService] = useState<Service | null>(null);
+    const [editingCategory, setEditingCategory] = useState<ServiceCategory | null>(null);
 
     const { data, setData, post, put, delete: destroy, processing, reset, errors, clearErrors } = useForm({
+        service_category_id: serviceCategories[0]?.id || '',
         name: '',
         description: '',
         duration_minutes: '60',
         price: '',
     });
-
-    const handleCreate = () => {
-        setIsCreating(true);
-        setEditingService(null);
-        reset();
-        clearErrors();
-    };
+    const {
+        data: categoryData,
+        setData: setCategoryData,
+        post: postCategory,
+        put: putCategory,
+        delete: destroyCategory,
+        processing: categoryProcessing,
+        reset: resetCategory,
+        errors: categoryErrors,
+    } = useForm({
+        name: '',
+    });
 
     const handleEdit = (service: Service) => {
         setEditingService(service);
-        setIsCreating(true);
         setData({
+            service_category_id: service.service_category_id || '',
             name: service.name,
             description: service.description || '',
             duration_minutes: String(service.duration_minutes),
@@ -51,7 +76,6 @@ export default function ServicesManager({ services }: ServicesManagerProps) {
     };
 
     const handleCancel = () => {
-        setIsCreating(false);
         setEditingService(null);
         reset();
     };
@@ -61,11 +85,11 @@ export default function ServicesManager({ services }: ServicesManagerProps) {
 
         if (editingService) {
             put(`/business/services/${editingService.id}`, {
-                onSuccess: () => setIsCreating(false),
+                onSuccess: () => setEditingService(null),
             });
         } else {
             post('/business/services', {
-                onSuccess: () => setIsCreating(false),
+                onSuccess: () => setEditingService(null),
             });
         }
     };
@@ -76,10 +100,113 @@ export default function ServicesManager({ services }: ServicesManagerProps) {
         }
     };
 
+    const handleCategorySubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (editingCategory) {
+            putCategory(`/business/services/categories/${editingCategory.id}`, {
+                onSuccess: () => {
+                    setEditingCategory(null);
+                    resetCategory();
+                },
+            });
+            return;
+        }
+
+        postCategory('/business/services/categories', {
+            onSuccess: () => resetCategory(),
+        });
+    };
+
+    const handleCategoryDelete = (id: string) => {
+        if (confirm('Are you sure you want to delete this category?')) {
+            destroyCategory(`/business/services/categories/${id}`);
+        }
+    };
+
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
             {/* List Services */}
             <div className="lg:col-span-2 space-y-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Service Categories</CardTitle>
+                        <CardDescription>Manage the categories that organize your service catalog.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {serviceCategories.length > 0 ? (
+                            <div className="space-y-3">
+                                {serviceCategories.map((category) => (
+                                    <div key={category.id} className="flex items-center justify-between rounded-lg border p-3">
+                                        <div>
+                                            <div className="font-medium">{category.name}</div>
+                                            <div className="text-xs text-muted-foreground">
+                                                {(category.services_count ?? 0)} services
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => {
+                                                    setEditingCategory(category);
+                                                    setCategoryData('name', category.name);
+                                                }}
+                                            >
+                                                <Edit2 className="w-4 h-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                onClick={() => handleCategoryDelete(category.id)}
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-6 text-muted-foreground border border-dashed rounded-lg">
+                                No categories yet. Add one below before creating services.
+                            </div>
+                        )}
+
+                        <form onSubmit={handleCategorySubmit} className="space-y-3 rounded-lg border p-4">
+                            <div className="font-medium">
+                                {editingCategory ? 'Edit Category' : 'Add Category'}
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="service-category-name">Category name</Label>
+                                <Input
+                                    id="service-category-name"
+                                    value={categoryData.name}
+                                    onChange={(e) => setCategoryData('name', e.target.value)}
+                                    placeholder="e.g. Repairs"
+                                />
+                                {categoryErrors.name && <p className="text-sm text-red-500">{categoryErrors.name}</p>}
+                            </div>
+                            <div className="flex justify-end gap-2">
+                                {editingCategory && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => {
+                                            setEditingCategory(null);
+                                            resetCategory();
+                                        }}
+                                    >
+                                        Cancel
+                                    </Button>
+                                )}
+                                <Button type="submit" disabled={categoryProcessing}>
+                                    {editingCategory ? 'Update Category' : 'Add Category'}
+                                </Button>
+                            </div>
+                        </form>
+                    </CardContent>
+                </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
@@ -93,6 +220,7 @@ export default function ServicesManager({ services }: ServicesManagerProps) {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Service Name</TableHead>
+                                        <TableHead>Category</TableHead>
                                         <TableHead>Duration</TableHead>
                                         <TableHead>Price</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
@@ -109,6 +237,7 @@ export default function ServicesManager({ services }: ServicesManagerProps) {
                                                     </div>
                                                 )}
                                             </TableCell>
+                                            <TableCell>{service.service_category_name || 'Unassigned'}</TableCell>
                                             <TableCell>{service.duration_minutes} mins</TableCell>
                                             <TableCell>₦{Number(service.price).toLocaleString()}</TableCell>
                                             <TableCell className="text-right">
@@ -155,6 +284,25 @@ export default function ServicesManager({ services }: ServicesManagerProps) {
                                     {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
                                 </div>
                                 <div className="space-y-2">
+                                    <Label htmlFor="service-category-id">Category</Label>
+                                    <Select
+                                        value={data.service_category_id}
+                                        onValueChange={(value) => setData('service_category_id', value)}
+                                    >
+                                        <SelectTrigger id="service-category-id">
+                                            <SelectValue placeholder="Select category" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {serviceCategories.map((category) => (
+                                                <SelectItem key={category.id} value={category.id}>
+                                                    {category.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {errors.service_category_id && <p className="text-sm text-red-500">{errors.service_category_id}</p>}
+                                </div>
+                                <div className="space-y-2">
                                     <Label htmlFor="description">Description</Label>
                                     <Textarea
                                         id="description"
@@ -190,7 +338,7 @@ export default function ServicesManager({ services }: ServicesManagerProps) {
                                 </div>
                                 <div className="flex justify-end gap-2 pt-4">
                                     <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
-                                    <Button type="submit" disabled={processing}>
+                                    <Button type="submit" disabled={processing || serviceCategories.length === 0}>
                                         {editingService ? 'Update Service' : 'Add Service'}
                                     </Button>
                                 </div>

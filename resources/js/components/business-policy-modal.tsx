@@ -10,6 +10,20 @@ import {
 import { PageProps } from '@/types';
 import { CircleHelp } from 'lucide-react';
 
+const defaultBusinessSettings = {
+    bufferTime: '15',
+    advanceBooking: '30',
+    minNotice: '4',
+    maxDaily: '8',
+    allowSameDay: false,
+    autoConfirm: false,
+    allowOffHoursRequests: false,
+    accept_online_payment: true,
+    accept_offline_booking: false,
+    offers_home_service: false,
+    billing_model: 'commission',
+};
+
 export default function BusinessPolicyModal() {
     const { auth } = usePage<PageProps>().props;
     const user = auth.user;
@@ -17,17 +31,9 @@ export default function BusinessPolicyModal() {
     const show = user?.has_provider_setup && !user?.has_setup_business_policy;
 
     const form = useForm({
-        settings: user?.business_profile?.settings || {
-            bufferTime: '15',
-            advanceBooking: '30',
-            minNotice: '4',
-            maxDaily: '8',
-            allowSameDay: false,
-            autoConfirm: false,
-            allowOffHoursRequests: false,
-            accept_online_payment: true,
-            accept_offline_booking: false,
-            offers_home_service: false,
+        settings: {
+            ...defaultBusinessSettings,
+            ...(user?.business_profile?.settings || {}),
         },
     });
 
@@ -45,17 +51,24 @@ export default function BusinessPolicyModal() {
         });
     };
 
+    const setBillingModel = (value: 'commission' | 'subscription') => {
+        form.setData('settings', {
+            ...form.data.settings,
+            billing_model: value,
+        });
+    };
+
     return (
-        <Dialog open={true}>
+        <Dialog open={true} >
             <DialogContent
-                className="max-w-lg p-0 border-none bg-transparent shadow-none [&>button]:hidden"
+                className="w-2xl border-none bg-transparent p-0 shadow-none sm:max-h-[90vh] [&>button]:hidden"
                 onPointerDownOutside={(e) => e.preventDefault()}
                 onEscapeKeyDown={(e) => e.preventDefault()}
             >
-                <div className="bg-background rounded-2xl border border-border/40 overflow-hidden">
+                <div className="bg-background flex max-h-[90vh] flex-col overflow-hidden rounded-2xl border border-border/40">
 
                     {/* Header */}
-                    <div className="px-8 pt-7 pb-6">
+                    <div className="shrink-0 px-8 pt-7 pb-6">
                         <h2 className="text-xl font-medium text-foreground mb-1">
                             Business policy
                         </h2>
@@ -66,83 +79,109 @@ export default function BusinessPolicyModal() {
 
                     <div className="border-t border-border/40" />
 
-                    <form onSubmit={handleSubmit}>
-                        {/* Payment section */}
-                        <div className="px-8 py-6">
-                            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-4">
-                                Payment
-                            </p>
-                            <div className="space-y-0 divide-y divide-border/40">
-                                <ToggleRow
-                                    label="Accept online payments"
-                                    description="Clients pay through Proxideck at booking"
-                                    tooltip="When this is enabled, clients must complete payment online during checkout before the booking is submitted. This is useful if you want confirmed appointments to always come in with payment attached."
-                                    enabled={form.data.settings.accept_online_payment}
-                                    onChange={() => toggleSetting('accept_online_payment')}
-                                />
-                                <ToggleRow
-                                    label="Allow unpaid requests"
-                                    description="Clients can book without paying upfront"
-                                    tooltip="When this is enabled, clients can submit a booking request without paying first. These bookings usually need your review, and payment can be collected later based on how you run your business."
-                                    enabled={form.data.settings.accept_offline_booking}
-                                    onChange={() => toggleSetting('accept_offline_booking')}
-                                />
+                    <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+                        <div className="min-h-0 flex-1 overflow-y-auto">
+                            <div className="px-8 py-6">
+                                <p className="mb-4 text-[11px] font-medium tracking-widest text-muted-foreground uppercase">
+                                    Billing
+                                </p>
+                                <div className="grid gap-3">
+                                    <BillingOptionCard
+                                        title="Pay 10% per booking"
+                                        description="Use the default pay-as-you-book model"
+                                        detail="The system deducts a 10% platform fee only when a completed appointment is released to your wallet."
+                                        selected={form.data.settings.billing_model === 'commission'}
+                                        onSelect={() => setBillingModel('commission')}
+                                    />
+                                    <BillingOptionCard
+                                        title="Use subscription"
+                                        description="Keep the full payout from completed bookings"
+                                        detail="Choose this if you prefer to operate on a subscription plan."
+                                        selected={form.data.settings.billing_model === 'subscription'}
+                                        onSelect={() => setBillingModel('subscription')}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="border-t border-border/40" />
+
+                            {/* Payment section */}
+                            <div className="px-8 py-6">
+                                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-4">
+                                    Payment
+                                </p>
+                                <div className="space-y-0 divide-y divide-border/40">
+                                    <ToggleRow
+                                        label="Accept online payments"
+                                        description="Clients pay through Proxideck at booking"
+                                        tooltip="When this is enabled, clients must complete payment online during checkout before the booking is submitted. This is useful if you want confirmed appointments to always come in with payment attached."
+                                        enabled={form.data.settings.accept_online_payment}
+                                        onChange={() => toggleSetting('accept_online_payment')}
+                                    />
+                                    <ToggleRow
+                                        label="Allow unpaid requests"
+                                        description="Clients can book without paying upfront"
+                                        tooltip="When this is enabled, clients can submit a booking request without paying first. These bookings usually need your review, and payment can be collected later based on how you run your business."
+                                        enabled={form.data.settings.accept_offline_booking}
+                                        onChange={() => toggleSetting('accept_offline_booking')}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="border-t border-border/40" />
+
+                            {/* Bookings section */}
+                            <div className="px-8 py-6">
+                                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-4">
+                                    Bookings
+                                </p>
+                                <div className="space-y-0 divide-y divide-border/40">
+                                    <ToggleRow
+                                        label="Allow same-day bookings"
+                                        description="Clients can book for today"
+                                        tooltip="This allows customers to choose timeslots on the current day, as long as they still fit within your minimum notice period and available working hours."
+                                        enabled={form.data.settings.allowSameDay}
+                                        onChange={() => toggleSetting('allowSameDay')}
+                                    />
+                                    <ToggleRow
+                                        label="Auto-confirm bookings"
+                                        description="Skip manual review and approve automatically"
+                                        tooltip="Turn this on if you want eligible bookings to move forward without waiting for manual approval. This works best when your availability, pricing, and service rules are already set up carefully."
+                                        enabled={form.data.settings.autoConfirm}
+                                        onChange={() => toggleSetting('autoConfirm')}
+                                    />
+                                    <ToggleRow
+                                        label="Allow off-hours requests"
+                                        description="Accept bookings outside working hours"
+                                        tooltip="This lets clients request appointments outside the working schedule you configured. It does not mean those bookings should be auto-approved by default, but it gives clients a way to ask for exceptions."
+                                        enabled={form.data.settings.allowOffHoursRequests}
+                                        onChange={() => toggleSetting('allowOffHoursRequests')}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="border-t border-border/40" />
+
+                            <div className="px-8 py-6">
+                                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-4">
+                                    Service delivery
+                                </p>
+                                <div className="space-y-0 divide-y divide-border/40">
+                                    <ToggleRow
+                                        label="Offer home service"
+                                        description="Clients can expect you to travel to their location for appointments"
+                                        tooltip="This tells clients that your business can deliver services at their home, office, or another client-provided location instead of only at your business address."
+                                        enabled={form.data.settings.offers_home_service}
+                                        onChange={() => toggleSetting('offers_home_service')}
+                                    />
+                                </div>
                             </div>
                         </div>
 
-                        <div className="border-t border-border/40" />
-
-                        {/* Bookings section */}
-                        <div className="px-8 py-6">
-                            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-4">
-                                Bookings
-                            </p>
-                            <div className="space-y-0 divide-y divide-border/40">
-                                <ToggleRow
-                                    label="Allow same-day bookings"
-                                    description="Clients can book for today"
-                                    tooltip="This allows customers to choose timeslots on the current day, as long as they still fit within your minimum notice period and available working hours."
-                                    enabled={form.data.settings.allowSameDay}
-                                    onChange={() => toggleSetting('allowSameDay')}
-                                />
-                                <ToggleRow
-                                    label="Auto-confirm bookings"
-                                    description="Skip manual review and approve automatically"
-                                    tooltip="Turn this on if you want eligible bookings to move forward without waiting for manual approval. This works best when your availability, pricing, and service rules are already set up carefully."
-                                    enabled={form.data.settings.autoConfirm}
-                                    onChange={() => toggleSetting('autoConfirm')}
-                                />
-                                <ToggleRow
-                                    label="Allow off-hours requests"
-                                    description="Accept bookings outside working hours"
-                                    tooltip="This lets clients request appointments outside the working schedule you configured. It does not mean those bookings should be auto-approved by default, but it gives clients a way to ask for exceptions."
-                                    enabled={form.data.settings.allowOffHoursRequests}
-                                    onChange={() => toggleSetting('allowOffHoursRequests')}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="border-t border-border/40" />
-
-                        <div className="px-8 py-6">
-                            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-4">
-                                Service delivery
-                            </p>
-                            <div className="space-y-0 divide-y divide-border/40">
-                                <ToggleRow
-                                    label="Offer home service"
-                                    description="Clients can expect you to travel to their location for appointments"
-                                    tooltip="This tells clients that your business can deliver services at their home, office, or another client-provided location instead of only at your business address."
-                                    enabled={form.data.settings.offers_home_service}
-                                    onChange={() => toggleSetting('offers_home_service')}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="border-t border-border/40" />
+                        <div className="shrink-0 border-t border-border/40" />
 
                         {/* Footer */}
-                        <div className="px-8 py-5 flex justify-end">
+                        <div className="flex shrink-0 justify-end px-8 py-5">
                             <button
                                 type="submit"
                                 disabled={form.processing}
@@ -155,6 +194,47 @@ export default function BusinessPolicyModal() {
                 </div>
             </DialogContent>
         </Dialog>
+    );
+}
+
+function BillingOptionCard({
+    title,
+    description,
+    detail,
+    selected,
+    onSelect,
+}: {
+    title: string;
+    description: string;
+    detail: string;
+    selected: boolean;
+    onSelect: () => void;
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onSelect}
+            className={`rounded-2xl border px-4 py-4 text-left transition-all ${
+                selected
+                    ? 'border-foreground bg-foreground/5 ring-2 ring-foreground/10'
+                    : 'border-border/60 hover:border-foreground/30 hover:bg-muted/20'
+            }`}
+        >
+            <div className="flex items-start justify-between gap-4">
+                <div>
+                    <p className="text-sm font-medium text-foreground">{title}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+                </div>
+                <span
+                    className={`mt-0.5 inline-flex h-5 w-5 shrink-0 rounded-full border ${
+                        selected ? 'border-foreground bg-foreground' : 'border-border'
+                    }`}
+                >
+                    {selected ? <span className="m-auto h-2 w-2 rounded-full bg-background" /> : null}
+                </span>
+            </div>
+            <p className="mt-3 text-xs leading-5 text-muted-foreground">{detail}</p>
+        </button>
     );
 }
 

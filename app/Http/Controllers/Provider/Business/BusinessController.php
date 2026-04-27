@@ -7,11 +7,13 @@ use App\Models\BusinessImage;
 use App\Models\BusinessProfile;
 use App\Models\Category;
 use App\Models\FavouriteBusiness;
+use App\Models\ProviderServiceCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use App\Support\ProviderSettings;
 
@@ -148,7 +150,7 @@ class BusinessController extends Controller
         $search = trim((string) $request->get('search', ''));
 
         $servicesQuery = $provider->services()
-            ->with('category')
+            ->with(['category', 'serviceCategory'])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($inner) use ($search) {
                     $inner->where('name', 'like', "%{$search}%")
@@ -157,7 +159,8 @@ class BusinessController extends Controller
             });
 
         $services = $servicesQuery->latest()->paginate(12)->withQueryString();
-        $allServices = $provider->services()->with('category')->get();
+        $allServices = $provider->services()->with(['category', 'serviceCategory'])->get();
+        $serviceCategories = $provider->serviceCategories()->withCount('services')->get();
         $businessCategory = null;
         if ($profile?->category) {
             $cat = \App\Models\Category::where('slug', $profile->category)->select(['id', 'name', 'slug'])->first();
@@ -174,7 +177,7 @@ class BusinessController extends Controller
         $totalServices = $allServices->count();
 
         // 2. Active Categories listed
-        $activeCategoriesCount = $allServices->whereNotNull('category_id')->pluck('category_id')->unique()->count();
+        $activeCategoriesCount = $allServices->whereNotNull('service_category_id')->pluck('service_category_id')->unique()->count();
 
         $activeServicesCount = $allServices->where('status', 'active')->count();
         $inactiveServicesCount = $allServices->where('status', 'inactive')->count();
@@ -197,9 +200,17 @@ class BusinessController extends Controller
                 'duration_minutes' => $s->duration_minutes,
                 'category_id' => $s->category_id,
                 'category_name' => $s->category?->name,
+                'service_category_id' => $s->service_category_id,
+                'service_category_name' => $s->serviceCategory?->name,
                 'status' => $s->status,
             ]),
             'businessCategory' => $businessCategory,
+            'serviceCategories' => $serviceCategories->map(fn ($category) => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'slug' => $category->slug,
+                'services_count' => $category->services_count,
+            ]),
             'filters' => $request->only(['search']),
             'stats' => [
                 'totalServices' => [
@@ -219,13 +230,20 @@ class BusinessController extends Controller
 
     public function storeService(\Illuminate\Http\Request $request)
     {
+        $provider = $this->managedProvider();
+
         $request->validate([
+            'service_category_id' => [
+                'required',
+                Rule::exists('provider_service_categories', 'id')->where(
+                    fn ($query) => $query->where('provider_id', $provider->id)
+                ),
+            ],
             'name' => 'required|string|max:255',
             'price' => 'required|numeric|min:0',
             'duration_minutes' => 'required|integer|min:1',
         ]);
 
-        $provider = $this->managedProvider();
         $profile = $this->managedBusinessProfile();
         $categoryId = null;
         if ($profile?->category) {
@@ -240,6 +258,7 @@ class BusinessController extends Controller
         \App\Models\Service::create([
             'provider_id' => $provider->id,
             'category_id' => $categoryId,
+            'service_category_id' => $request->service_category_id,
             'name' => $request->name,
             'description' => $request->description,
             'price' => $request->price,
@@ -255,12 +274,24 @@ class BusinessController extends Controller
         $service = \App\Models\Service::where('provider_id', $this->managedProvider()->id)->findOrFail($id);
 
         $request->validate([
+            'service_category_id' => [
+                'required',
+                Rule::exists('provider_service_categories', 'id')->where(
+                    fn ($query) => $query->where('provider_id', $this->managedProvider()->id)
+                ),
+            ],
             'name' => 'required|string|max:255',
             'price' => 'required|numeric|min:0',
             'duration_minutes' => 'required|integer|min:1',
         ]);
 
-        $service->update($request->only(['name', 'description', 'price', 'duration_minutes']));
+        $service->update($request->only([
+            'service_category_id',
+            'name',
+            'description',
+            'price',
+            'duration_minutes',
+        ]));
 
         return back()->with('success-toast', 'Service updated successfully.');
     }
@@ -281,6 +312,72 @@ class BusinessController extends Controller
         $service->delete();
 
         return back()->with('success-toast', "Service '$name' deleted successfully.");
+    }
+
+    public function storeServiceCategory(Request $request)
+    {
+        $provider = $this->managedProvider();
+
+        $validated = $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:120',
+                Rule::unique('provider_service_categories', 'name')->where(
+                    fn ($query) => $query->where('provider_id', $provider->id)
+                ),
+            ],
+        ]);
+
+        ProviderServiceCategory::create([
+            'provider_id' => $provider->id,
+            'name' => $validated['name'],
+            'slug' => Str::slug($validated['name']).'-'.Str::lower(Str::random(5)),
+        ]);
+
+        return back()->with('success-toast', 'Service category created successfully.');
+    }
+
+    public function updateServiceCategory(Request $request, $id)
+    {
+        $provider = $this->managedProvider();
+        $category = ProviderServiceCategory::where('provider_id', $provider->id)->findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:120',
+                Rule::unique('provider_service_categories', 'name')
+                    ->where(fn ($query) => $query->where('provider_id', $provider->id))
+                    ->ignore($category->id),
+            ],
+        ]);
+
+        $category->update([
+            'name' => $validated['name'],
+            'slug' => Str::slug($validated['name']).'-'.Str::lower(Str::random(5)),
+        ]);
+
+        return back()->with('success-toast', 'Service category updated successfully.');
+    }
+
+    public function destroyServiceCategory($id)
+    {
+        $provider = $this->managedProvider();
+        $category = ProviderServiceCategory::where('provider_id', $provider->id)
+            ->withCount('services')
+            ->findOrFail($id);
+
+        if ($category->services_count > 0) {
+            return back()->withErrors([
+                'service_category_id' => 'Move or remove services in this category before deleting it.',
+            ]);
+        }
+
+        $category->delete();
+
+        return back()->with('success-toast', 'Service category deleted successfully.');
     }
 
     public function analytics(\Illuminate\Http\Request $request)

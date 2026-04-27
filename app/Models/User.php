@@ -94,6 +94,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Service::class, 'provider_id');
     }
 
+    public function serviceCategories()
+    {
+        return $this->hasMany(ProviderServiceCategory::class, 'provider_id')->orderBy('name');
+    }
+
     public function appointmentsAsProvider()
     {
         return $this->hasMany(Appointment::class, 'provider_id');
@@ -168,6 +173,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function walletTransactions()
     {
         return $this->hasMany(WalletTransaction::class);
+    }
+
+    public function providerSubscriptions()
+    {
+        return $this->hasMany(ProviderSubscription::class, 'provider_id');
     }
 
     /**

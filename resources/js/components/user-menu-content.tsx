@@ -9,9 +9,9 @@ import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
 import { becomeProvider, logout } from '@/routes';
 import business from '@/routes/business';
 import { edit } from '@/routes/profile';
-import { type User } from '@/types';
-import { Link, router } from '@inertiajs/react';
-import { Briefcase, LifeBuoy, LogOut, Settings, Wallet } from 'lucide-react';
+import { type SharedData, type User } from '@/types';
+import { Link, router, usePage } from '@inertiajs/react';
+import { Briefcase, CreditCard, LifeBuoy, LogOut, Settings, Wallet } from 'lucide-react';
 
 interface UserMenuContentProps {
     user: User;
@@ -23,6 +23,11 @@ export function UserMenuContent({
     showHelpCenter = true,
 }: UserMenuContentProps) {
     const cleanup = useMobileNavigation();
+    const { features } = usePage<SharedData>().props;
+    const shouldShowBilling =
+        Boolean(features?.subscriptions) &&
+        Boolean(user.has_provider_setup) &&
+        user.business_profile?.settings?.billing_model === 'subscription';
 
     const handleLogout = () => {
         cleanup();
@@ -105,6 +110,21 @@ export function UserMenuContent({
                         >
                             <Briefcase className="mr-2" />
                             Become a Provider
+                        </Link>
+                    </DropdownMenuItem>
+                )}
+
+                {shouldShowBilling && (
+                    <DropdownMenuItem asChild>
+                        <Link
+                            className="block w-full"
+                            href="/business/billing"
+                            as="button"
+                            prefetch
+                            onClick={cleanup}
+                        >
+                            <CreditCard className="mr-2" />
+                            Billing
                         </Link>
                     </DropdownMenuItem>
                 )}

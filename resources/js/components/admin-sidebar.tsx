@@ -13,6 +13,7 @@ import { type NavSection } from '@/types';
 import { Link, router } from '@inertiajs/react';
 import {
     CheckCircle,
+    CreditCard,
     DollarSign,
     FileText,
     LayoutGrid,
@@ -22,8 +23,10 @@ import {
     Users,
 } from 'lucide-react';
 import AppLogo from './app-logo';
+import { usePage } from '@inertiajs/react';
+import { SharedData } from '@/types';
 
-const adminNavItems: NavSection[] = [
+const baseAdminNavItems: NavSection[] = [
     {
         name: 'Dashboard',
         links: [
@@ -98,6 +101,25 @@ const footerNavItems = [
 ];
 
 export function AdminSidebar() {
+    const { features } = usePage<SharedData>().props;
+    const adminNavItems: NavSection[] = features?.subscriptions
+        ? baseAdminNavItems.map((section) =>
+              section.name === 'Financial'
+                  ? {
+                        ...section,
+                        links: [
+                            ...section.links,
+                            {
+                                title: 'Subscription Plans',
+                                href: '/admin/subscriptions',
+                                icon: CreditCard,
+                            },
+                        ],
+                    }
+                  : section,
+          )
+        : baseAdminNavItems;
+
     return (
         <Sidebar collapsible="icon" variant="sidebar">
             <SidebarHeader>

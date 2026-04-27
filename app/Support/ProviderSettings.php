@@ -44,6 +44,9 @@ class ProviderSettings
 
         $settings['bufferTime'] = (string) ($settings['bufferTime'] ?? '0');
         $settings['advanceBooking'] = (string) ($settings['advanceBooking'] ?? '30');
+        $settings['billing_model'] = in_array($settings['billing_model'] ?? 'commission', ['commission', 'subscription'], true)
+            ? $settings['billing_model']
+            : 'commission';
 
         if (! $settings['accept_online_payment'] && ! $settings['accept_offline_booking']) {
             $settings['accept_online_payment'] = true;

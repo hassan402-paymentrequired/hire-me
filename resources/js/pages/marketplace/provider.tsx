@@ -1,4 +1,3 @@
-import KeenIcon from '@/components/keen-icon';
 import { ReviewSection } from '@/components/reviews/review-section';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -25,7 +24,7 @@ import {
     Share2,
     Star,
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 interface Service {
     id: string;
@@ -33,6 +32,8 @@ interface Service {
     description: string;
     duration_minutes: number;
     price: number;
+    service_category_id?: string | null;
+    service_category_name?: string | null;
 }
 
 interface Provider {
@@ -52,9 +53,9 @@ interface Provider {
     pending_appointment_id: string | null;
     years_in_business?: number;
     team_members_count?: number;
-    total_service_hours?: number;
     canBook?: boolean;
     bookingBlockedReason?: string | null;
+    isVerified?: boolean;
 }
 
 interface WorkHours {
@@ -149,11 +150,11 @@ function isWithinHours(
         const startMinutes = parseTimeToMinutes(range.start);
         const endMinutes = parseTimeToMinutes(range.end);
         if (startMinutes <= endMinutes) {
-            if (nowMinutes >= startMinutes && nowMinutes < endMinutes)
+            if (nowMinutes >= startMinutes && nowMinutes < endMinutes) {
                 return true;
-        } else {
-            if (nowMinutes >= startMinutes || nowMinutes < endMinutes)
-                return true;
+            }
+        } else if (nowMinutes >= startMinutes || nowMinutes < endMinutes) {
+            return true;
         }
     }
     return false;
@@ -168,10 +169,6 @@ export default function ProviderProfile({
     isFavourite,
     nearbyProviders,
 }: Props) {
-    const [userLocation, setUserLocation] = useState<{
-        lat: number;
-        lng: number;
-    } | null>(null);
     const [distance, setDistance] = useState<number | null>(null);
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isFavorite, setIsFavorite] = useState(isFavourite);
@@ -182,29 +179,16 @@ export default function ProviderProfile({
     const bookingBlockedReason =
         provider.bookingBlockedReason ||
         'Booking is unavailable for this provider.';
-    const isAuthenticated = canEdit;
     const nearbyRef = useRef<HTMLDivElement | null>(null);
-
-    const scrollNearby = (direction: 'left' | 'right') => {
-        const el = nearbyRef.current;
-        if (!el) return;
-        const delta = direction === 'left' ? -360 : 360;
-        el.scrollBy({ left: delta, behavior: 'smooth' });
-    };
 
     useEffect(() => {
         if ('geolocation' in navigator) {
             navigator.geolocation.getCurrentPosition((position) => {
-                const userCoords = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude,
-                };
-                setUserLocation(userCoords);
                 if (provider.latitude && provider.longitude) {
                     setDistance(
                         calculateDistance(
-                            userCoords.lat,
-                            userCoords.lng,
+                            position.coords.latitude,
+                            position.coords.longitude,
                             provider.latitude,
                             provider.longitude,
                         ),
@@ -214,7 +198,6 @@ export default function ProviderProfile({
         }
     }, [provider.latitude, provider.longitude]);
 
-    // Lock body scroll when modal is open
     useEffect(() => {
         document.body.style.overflow = selectedService ? 'hidden' : '';
         return () => {
@@ -223,16 +206,70 @@ export default function ProviderProfile({
     }, [selectedService]);
 
     const logo =
-        provider.images?.find((img) => img.isLogo) || provider.images?.[0];
-    const otherImages = provider.images?.filter((img) => img !== logo) || [];
+        provider.images?.find((image) => image.isLogo) || provider.images?.[0];
+    const otherImages =
+        provider.images?.filter((image) => image !== logo) || [];
     const allImages = logo ? [logo, ...otherImages] : otherImages;
     const heroInitials = (provider.businessName || provider.name || 'P')
         .split(' ')
         .filter(Boolean)
         .slice(0, 2)
-        .map((w) => w[0])
+        .map((word) => word[0])
         .join('')
         .toUpperCase();
+
+    const groupedServices = useMemo(() => {
+        const groups = new Map<string, Service[]>();
+
+        services.forEach((service) => {
+            const category = service.service_category_name || 'Services';
+            const items = groups.get(category) || [];
+            items.push(service);
+            groups.set(category, items);
+        });
+
+        return Array.from(groups.entries()).map(([category, items]) => ({
+            category,
+            items,
+        }));
+    }, [services]);
+    const [activeServiceCategory, setActiveServiceCategory] = useState('');
+
+    useEffect(() => {
+        if (!groupedServices.length) {
+            setActiveServiceCategory('');
+            return;
+        }
+
+        setActiveServiceCategory((current) =>
+            groupedServices.some((group) => group.category === current)
+                ? current
+                : groupedServices[0].category,
+        );
+    }, [groupedServices]);
+
+    const activeServiceGroup =
+        groupedServices.find(
+            (group) => group.category === activeServiceCategory,
+        ) ||
+        groupedServices[0] ||
+        null;
+
+    const orderedHours = useMemo(() => {
+        const order = [
+            'Sunday',
+            'Monday',
+            'Tuesday',
+            'Wednesday',
+            'Thursday',
+            'Friday',
+            'Saturday',
+        ];
+
+        return Object.entries(workHours).sort(
+            ([a], [b]) => order.indexOf(a) - order.indexOf(b),
+        );
+    }, [workHours]);
 
     const nextSlide = () =>
         setCurrentSlide((prev) => (prev + 1) % allImages.length);
@@ -251,68 +288,6 @@ export default function ProviderProfile({
         return () => window.clearInterval(interval);
     }, [allImages.length]);
 
-    const getDirections = () => {
-        window.open(
-            `https://www.google.com/maps/dir/?api=1&destination=${provider.latitude},${provider.longitude}`,
-            '_blank',
-        );
-    };
-
-    const handleShare = async () => {
-        if (navigator.share) {
-            try {
-                await navigator.share({
-                    title: provider.businessName,
-                    text: `Check out ${provider.businessName}${provider.description ? ` - ${provider.description.substring(0, 100)}...` : ''}`,
-                    url: window.location.href,
-                });
-            } catch {
-                /* cancelled */
-            }
-        } else {
-            try {
-                await navigator.clipboard.writeText(window.location.href);
-            } catch {
-                /* fallback */
-            }
-        }
-    };
-
-    const now = new Date();
-    const today = now.toLocaleDateString('en-US', { weekday: 'long' });
-    const todayHours = workHours[today];
-    const isOpenNow =
-        (todayHours?.isOpen ?? false) &&
-        (todayHours?.hours?.length
-            ? isWithinHours(now, todayHours.hours)
-            : true);
-    const quickStats = [
-        {
-            label: 'Rating',
-            value: (provider.rating ?? 0).toFixed(1),
-            icon: 'verify',
-            accent: 'text-amber-500',
-        },
-        {
-            label: 'Reviews',
-            value: String(provider.reviews_count || 0),
-            icon: 'receipt-square',
-            accent: 'text-sky-500',
-        },
-        {
-            label: 'Services',
-            value: String(services.length),
-            icon: 'book-square',
-            accent: 'text-emerald-500',
-        },
-        {
-            label: 'Team',
-            value: String(provider.team_members_count ?? 1),
-            icon: 'people',
-            accent: 'text-violet-500',
-        },
-    ];
-
     const handleFavourite = () => {
         const newState = !isFavorite;
         setIsFavorite(newState);
@@ -326,94 +301,90 @@ export default function ProviderProfile({
         );
     };
 
+    const handleShare = async () => {
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: provider.businessName,
+                    text: `Check out ${provider.businessName}${provider.description ? ` - ${provider.description.substring(0, 100)}...` : ''}`,
+                    url: window.location.href,
+                });
+            } catch {
+                return;
+            }
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(window.location.href);
+        } catch {
+            return;
+        }
+    };
+
+    const getDirections = () => {
+        if (!provider.latitude || !provider.longitude) return;
+
+        window.open(
+            `https://www.google.com/maps/dir/?api=1&destination=${provider.latitude},${provider.longitude}`,
+            '_blank',
+        );
+    };
+
+    const scrollNearby = (direction: 'left' | 'right') => {
+        const el = nearbyRef.current;
+        if (!el) return;
+        const delta = direction === 'left' ? -360 : 360;
+        el.scrollBy({ left: delta, behavior: 'smooth' });
+    };
+
+    const now = new Date();
+    const today = now.toLocaleDateString('en-US', { weekday: 'long' });
+    const todayHours = workHours[today];
+    const isOpenNow =
+        (todayHours?.isOpen ?? false) &&
+        (todayHours?.hours?.length
+            ? isWithinHours(now, todayHours.hours)
+            : true);
+    const miniGalleryImages = allImages.slice(0, 6);
+
     return (
         <GuestLayout>
-            {/* ── Hero / Carousel ─────────────────────────────────── */}
-            <div className="relative h-[50vh] w-full overflow-hidden sm:h-[60vh] md:h-[70vh]">
+            <div className="relative h-[50vh] w-full overflow-hidden sm:h-[58vh] md:h-[66vh]">
                 {allImages.length > 0 ? (
                     <>
                         <div className="relative h-full w-full">
                             <img
                                 src={allImages[currentSlide]?.url}
-                                alt={
-                                    currentSlide === 0 && logo
-                                        ? `${provider.businessName} logo`
-                                        : `${provider.businessName} - Image ${currentSlide + 1}`
-                                }
+                                alt={`${provider.businessName} image ${currentSlide + 1}`}
                                 className="h-full w-full object-cover transition-transform duration-700"
                                 loading="eager"
-                                onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    const next =
-                                        (currentSlide + 1) % allImages.length;
-                                    if (
-                                        next !== currentSlide &&
-                                        allImages[next]?.url
-                                    ) {
-                                        target.src = allImages[next].url;
-                                    } else {
-                                        target.style.display = 'none';
-                                        const ph =
-                                            target.parentElement?.querySelector(
-                                                '.image-placeholder',
-                                            );
-                                        if (ph)
-                                            (ph as HTMLElement).style.display =
-                                                'flex';
-                                    }
-                                }}
                             />
-                            <div className="image-placeholder absolute inset-0 hidden items-center justify-center bg-muted">
-                                <div className="text-center">
-                                    <ImageIcon className="mx-auto mb-4 h-16 w-16 opacity-30" />
-                                    <p className="text-muted-foreground">
-                                        Image unavailable
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                            <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent" />
+                            
                         </div>
 
-                        {/* Carousel nav */}
                         {allImages.length > 1 && (
                             <>
                                 <button
                                     onClick={prevSlide}
-                                    className="absolute top-1/2 left-3 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md transition-all hover:scale-110 hover:bg-white/30 sm:left-4 sm:h-12 sm:w-12"
+                                    className="absolute top-1/2 left-3 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-white/15 text-white backdrop-blur transition hover:bg-white/25 sm:left-4 sm:h-11 sm:w-11"
                                 >
-                                    <span className="sr-only">prev</span>
-                                    <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
+                                    <ChevronLeft className="h-5 w-5" />
                                 </button>
                                 <button
                                     onClick={nextSlide}
-                                    className="absolute top-1/2 right-3 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md transition-all hover:scale-110 hover:bg-white/30 sm:right-4 sm:h-12 sm:w-12"
+                                    className="absolute top-1/2 right-3 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-white/15 text-white backdrop-blur transition hover:bg-white/25 sm:right-4 sm:h-11 sm:w-11"
                                 >
-                                    <span className="sr-only">next</span>
-                                    <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
+                                    <ChevronRight className="h-5 w-5" />
                                 </button>
                             </>
                         )}
 
-                        {/* Slide dots */}
-                        {allImages.length > 1 && (
-                            <div className="absolute bottom-20 left-1/2 flex -translate-x-1/2 gap-1.5 sm:bottom-6 sm:gap-2">
-                                {allImages.map((_, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => setCurrentSlide(i)}
-                                        className={`h-1 rounded-full transition-all ${i === currentSlide ? 'w-6 bg-white sm:w-8' : 'w-4 bg-white/50 sm:w-6'}`}
-                                    />
-                                ))}
-                            </div>
-                        )}
-
-                        {/* Top actions */}
                         <div className="absolute top-4 right-4 flex gap-2">
-                            {isAuthenticated && (
+                            {canEdit && (
                                 <button
                                     onClick={handleFavourite}
-                                    className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md transition-all hover:scale-110 hover:bg-white/30 sm:h-10 sm:w-10"
+                                    className="flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-white/15 text-white backdrop-blur transition hover:bg-white/25 sm:h-10 sm:w-10"
                                     aria-label={
                                         isFavorite
                                             ? 'Remove from favorites'
@@ -421,20 +392,23 @@ export default function ProviderProfile({
                                     }
                                 >
                                     <Heart
-                                        className={`h-4 w-4 sm:h-5 sm:w-5 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`}
+                                        className={`h-4 w-4 sm:h-5 sm:w-5 ${
+                                            isFavorite
+                                                ? 'fill-red-500 text-red-500'
+                                                : ''
+                                        }`}
                                     />
                                 </button>
                             )}
                             <button
                                 onClick={handleShare}
-                                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md transition-all hover:scale-110 hover:bg-white/30 sm:h-10 sm:w-10"
+                                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-white/15 text-white backdrop-blur transition hover:bg-white/25 sm:h-10 sm:w-10"
                                 aria-label="Share provider profile"
                             >
                                 <Share2 className="h-4 w-4 sm:h-5 sm:w-5" />
                             </button>
                         </div>
 
-                        {/* Verified badge (top-left) */}
                         {provider.isVerified && (
                             <div className="absolute top-4 left-4 z-10">
                                 <VerifiedProviderBadge
@@ -444,19 +418,21 @@ export default function ProviderProfile({
                             </div>
                         )}
 
-                        {/* Business info overlay */}
-                        <div className="absolute right-0 bottom-0 left-0 p-4 sm:p-6 md:p-8">
+                        {/* <div className="absolute right-0 bottom-0 left-0 p-4 sm:p-6 md:p-8">
                             <div className="mx-auto max-w-7xl">
-                                <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end md:gap-4">
-                                    <div className="space-y-2 sm:space-y-3">
-                                        {/* Name + open badge */}
+                                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                                    <div className="space-y-3">
                                         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                                            <h1 className="text-2xl leading-tight font-black text-white drop-shadow-lg sm:text-3xl md:text-5xl">
+                                            <h1 className="text-2xl leading-tight font-black text-white sm:text-3xl md:text-5xl">
                                                 {provider.businessName}
                                             </h1>
                                             {todayHours !== undefined && (
                                                 <Badge
-                                                    className={`${isOpenNow ? 'bg-green-500/90' : 'bg-red-500/90'} border-none px-2 py-0.5 text-xs text-white backdrop-blur-sm sm:px-3 sm:py-1 sm:text-sm`}
+                                                    className={`border-none px-2 py-0.5 text-xs text-white ${
+                                                        isOpenNow
+                                                            ? 'bg-green-500/90'
+                                                            : 'bg-red-500/90'
+                                                    }`}
                                                 >
                                                     {isOpenNow
                                                         ? '● Open Now'
@@ -465,16 +441,15 @@ export default function ProviderProfile({
                                             )}
                                         </div>
 
-                                        {/* Meta pills — scroll horizontally on small screens */}
-                                        <div className="scrollbar-none flex flex-nowrap items-center gap-2 overflow-x-auto pb-1 text-white sm:flex-wrap sm:pb-0">
-                                            <div className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 backdrop-blur-md">
+                                        <div className="flex flex-wrap items-center gap-2 text-white/95">
+                                            <div className="inline-flex items-center gap-1.5 border border-white/20 bg-white/10 px-3 py-1.5 text-sm backdrop-blur">
                                                 <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                                                <span className="text-sm font-bold">
+                                                <span className="font-semibold">
                                                     {(
                                                         provider.rating ?? 0
                                                     ).toFixed(1)}
                                                 </span>
-                                                <span className="text-xs opacity-90">
+                                                <span className="text-xs opacity-85">
                                                     (
                                                     {provider.reviews_count ||
                                                         0}
@@ -482,50 +457,43 @@ export default function ProviderProfile({
                                                 </span>
                                             </div>
 
-                                            {distance && (
-                                                <div className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 backdrop-blur-md">
+                                            {distance !== null && (
+                                                <div className="inline-flex items-center gap-1.5 border border-white/20 bg-white/10 px-3 py-1.5 text-sm backdrop-blur">
                                                     <Navigation className="h-3.5 w-3.5" />
-                                                    <span className="text-sm font-semibold">
-                                                        {distance.toFixed(1)} km
-                                                        away
-                                                    </span>
+                                                    {distance.toFixed(1)} km
+                                                    away
                                                 </div>
                                             )}
 
-                                            <div className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 backdrop-blur-md">
+                                            <div className="inline-flex items-center gap-1.5 border border-white/20 bg-white/10 px-3 py-1.5 text-sm backdrop-blur">
                                                 <MapPin className="h-3.5 w-3.5" />
-                                                <span className="text-xs sm:text-sm">
-                                                    {provider.address}
-                                                </span>
+                                                {provider.address}
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Desktop book button */}
                                     <div className="hidden items-center gap-2 md:flex">
                                         <Link
                                             href={`/provider/${provider.slug}/gallery`}
-                                            className="block"
                                         >
                                             <Button
                                                 size="lg"
                                                 variant="outline"
-                                                className="h-12 border-white/25 bg-white/10 px-5 text-base text-white shadow-xl backdrop-blur-md transition-all hover:bg-white/15 hover:text-white lg:h-14 lg:px-6 lg:text-lg"
+                                                className="h-12 border-white/25 bg-white/10 px-5 text-base text-white hover:bg-white/15 hover:text-white"
                                             >
-                                                <ImageIcon className="mr-2 h-4 w-4 lg:h-5 lg:w-5" />
+                                                <ImageIcon className="mr-2 h-4 w-4" />
                                                 View Gallery
                                             </Button>
                                         </Link>
                                         {canBookProvider ? (
                                             <Link
                                                 href={`/provider/${provider.slug}/book`}
-                                                className="block"
                                             >
                                                 <Button
                                                     size="lg"
-                                                    className="h-12 px-6 text-base shadow-xl transition-all hover:shadow-2xl lg:h-14 lg:px-8 lg:text-lg"
+                                                    className="h-12 px-6 text-base"
                                                 >
-                                                    <Calendar className="mr-2 h-4 w-4 lg:h-5 lg:w-5" />
+                                                    <Calendar className="mr-2 h-4 w-4" />
                                                     Book Appointment
                                                 </Button>
                                             </Link>
@@ -534,60 +502,25 @@ export default function ProviderProfile({
                                                 size="lg"
                                                 disabled
                                                 title={bookingBlockedReason}
-                                                className="h-12 px-6 text-base shadow-xl lg:h-14 lg:px-8 lg:text-lg"
+                                                className="h-12 px-6 text-base"
                                             >
-                                                <Calendar className="mr-2 h-4 w-4 lg:h-5 lg:w-5" />
+                                                <Calendar className="mr-2 h-4 w-4" />
                                                 Booking unavailable
                                             </Button>
                                         )}
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </div> */}
                     </>
                 ) : (
                     <div className="relative h-full w-full overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-br from-primary/25 via-background to-muted" />
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.35),transparent_55%)]" />
-                        <img
-                            src="/assets/illustrations/group.svg"
-                            alt=""
-                            aria-hidden="true"
-                            className="pointer-events-none absolute -bottom-16 left-1/2 w-[1200px] max-w-none -translate-x-1/2 opacity-30"
-                        />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
-                        <div className="absolute inset-0 bg-gradient-to-r from-black/35 to-transparent" />
 
-                        {/* Top actions */}
-                        <div className="absolute top-4 right-4 flex gap-2">
-                            {isAuthenticated && (
-                                <button
-                                    onClick={handleFavourite}
-                                    className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md transition-all hover:scale-110 hover:bg-white/30 sm:h-10 sm:w-10"
-                                    aria-label={
-                                        isFavorite
-                                            ? 'Remove from favorites'
-                                            : 'Add to favorites'
-                                    }
-                                >
-                                    <Heart
-                                        className={`h-4 w-4 sm:h-5 sm:w-5 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`}
-                                    />
-                                </button>
-                            )}
-                            <button
-                                onClick={handleShare}
-                                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md transition-all hover:scale-110 hover:bg-white/30 sm:h-10 sm:w-10"
-                                aria-label="Share provider profile"
-                            >
-                                <Share2 className="h-4 w-4 sm:h-5 sm:w-5" />
-                            </button>
-                        </div>
-
-                        {/* Center mark */}
                         <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="">
-                                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-white/10 text-3xl font-black tracking-tight">
+                            <div className="text-center text-white">
+                                <div className="mx-auto flex h-20 w-20 items-center justify-center border border-white/20 bg-white/10 text-3xl font-black tracking-tight backdrop-blur">
                                     {heroInitials}
                                 </div>
                                 <p className="mt-3 text-sm text-white/80">
@@ -595,115 +528,13 @@ export default function ProviderProfile({
                                 </p>
                             </div>
                         </div>
-
-                        {/* Verified badge (top-left) */}
-                        {provider.isVerified && (
-                            <div className="absolute top-4 left-4 z-10">
-                                <VerifiedProviderBadge
-                                    size="lg"
-                                    tone="onDark"
-                                />
-                            </div>
-                        )}
-
-                        {/* Business info overlay */}
-                        <div className="absolute right-0 bottom-0 left-0 p-4 sm:p-6 md:p-8">
-                            <div className="mx-auto max-w-7xl">
-                                <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end md:gap-4">
-                                    <div className="space-y-2 sm:space-y-3">
-                                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                                            <h1 className="text-2xl leading-tight font-black text-white drop-shadow-lg sm:text-3xl md:text-5xl">
-                                                {provider.businessName}
-                                            </h1>
-                                            {todayHours !== undefined && (
-                                                <Badge
-                                                    className={`${isOpenNow ? 'bg-green-500/90' : 'bg-red-500/90'} border-none px-2 py-0.5 text-xs text-white backdrop-blur-sm sm:px-3 sm:py-1 sm:text-sm`}
-                                                >
-                                                    {isOpenNow
-                                                        ? '● Open Now'
-                                                        : '● Closed'}
-                                                </Badge>
-                                            )}
-                                        </div>
-
-                                        <div className="scrollbar-none flex flex-nowrap items-center gap-2 overflow-x-auto pb-1 text-white sm:flex-wrap sm:pb-0">
-                                            <div className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 backdrop-blur-md">
-                                                <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                                                <span className="text-sm font-bold">
-                                                    {(
-                                                        provider.rating ?? 0
-                                                    ).toFixed(1)}
-                                                </span>
-                                                <span className="text-xs opacity-90">
-                                                    (
-                                                    {provider.reviews_count ||
-                                                        0}
-                                                    )
-                                                </span>
-                                            </div>
-
-                                            <div className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 backdrop-blur-md">
-                                                <MapPin className="h-3.5 w-3.5" />
-                                                <span className="text-xs sm:text-sm">
-                                                    {provider.address}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="hidden items-center gap-2 md:flex">
-                                        <Link
-                                            href={`/provider/${provider.slug}/gallery`}
-                                            className="block"
-                                        >
-                                            <Button
-                                                size="lg"
-                                                variant="outline"
-                                                className="h-12 border-white/30 bg-white/10 px-6 text-base text-white shadow-xl backdrop-blur-md transition-all hover:scale-105 hover:bg-white/20 hover:text-white hover:shadow-2xl lg:h-14 lg:px-8 lg:text-lg"
-                                            >
-                                                <ImageIcon className="mr-2 h-4 w-4 lg:h-5 lg:w-5" />
-                                                View Gallery
-                                            </Button>
-                                        </Link>
-                                        {canBookProvider ? (
-                                            <Link
-                                                href={`/provider/${provider.slug}/book`}
-                                                className="block"
-                                            >
-                                                <Button
-                                                    size="lg"
-                                                    className="h-12 px-6 text-base shadow-xl transition-all hover:scale-105 hover:shadow-2xl lg:h-14 lg:px-8 lg:text-lg"
-                                                >
-                                                    <Calendar className="mr-2 h-4 w-4 lg:h-5 lg:w-5" />
-                                                    Book Appointment
-                                                </Button>
-                                            </Link>
-                                        ) : (
-                                            <Button
-                                                size="lg"
-                                                disabled
-                                                title={bookingBlockedReason}
-                                                className="h-12 px-6 text-base shadow-xl lg:h-14 lg:px-8 lg:text-lg"
-                                            >
-                                                <Calendar className="mr-2 h-4 w-4 lg:h-5 lg:w-5" />
-                                                Booking unavailable
-                                            </Button>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 )}
             </div>
 
-            {/* ── Mobile sticky book button ────────────────────────── */}
-            <div className="fixed right-0 bottom-0 left-0 z-50 border-t bg-background/95 p-3 backdrop-blur-md md:hidden">
+            <div className="fixed right-0 bottom-0 left-0 z-50 border-t bg-background/95 p-3 backdrop-blur md:hidden">
                 <div className="grid grid-cols-2 gap-2">
-                    <Link
-                        href={`/provider/${provider.slug}/gallery`}
-                        className="block"
-                    >
+                    <Link href={`/provider/${provider.slug}/gallery`}>
                         <Button
                             size="lg"
                             variant="outline"
@@ -714,10 +545,7 @@ export default function ProviderProfile({
                         </Button>
                     </Link>
                     {canBookProvider ? (
-                        <Link
-                            href={`/provider/${provider.slug}/book`}
-                            className="block"
-                        >
+                        <Link href={`/provider/${provider.slug}/book`}>
                             <Button
                                 size="lg"
                                 className="h-12 w-full text-base font-bold"
@@ -740,10 +568,9 @@ export default function ProviderProfile({
                 </div>
             </div>
 
-            {/* ── Main Content ─────────────────────────────────────── */}
-            <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 md:py-12">
+            <div className="mx-auto w-full  px-4 py-2 sm:px-6 ">
                 {!canBookProvider && (
-                    <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-amber-900">
+                    <div className="mb-6 border border-amber-200 bg-amber-50 px-4 py-4 text-amber-900">
                         <p className="font-semibold">Booking unavailable</p>
                         <p className="mt-1 text-sm leading-6">
                             {bookingBlockedReason}
@@ -751,70 +578,83 @@ export default function ProviderProfile({
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-3 lg:gap-12">
-                    {/* ── Left Column ─────────────────────────────── */}
-                    <div className="space-y-8 sm:space-y-10 lg:col-span-2">
-                        {/* About */}
-                        <section className="space-y-4">
-                            <div className="flex items-center gap-3">
-                                <div className="h-1 w-8 rounded bg-primary sm:w-12" />
-                                <h2 className="text-xl font-bold sm:text-2xl">
-                                    About
-                                </h2>
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div>
+                        <h1 className="text-2xl leading-tight font-black sm:text-3xl md:text-4xl">
+                            {provider.businessName}
+                        </h1>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                                <span className="font-semibold text-foreground">
+                                    {(provider.rating ?? 0).toFixed(1)}
+                                </span>
+                                <span>({provider.reviews_count || 0})</span>
                             </div>
-
-                            {provider.description ? (
-                                <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-                                    {provider.description}
-                                </p>
-                            ) : (
-                                <p className="text-sm text-muted-foreground italic">
-                                    No description available.
-                                </p>
-                            )}
-
-                            {/* Quick Stats */}
-                            <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-6 sm:grid-cols-4 sm:gap-4">
-                                {quickStats.map((stat) => (
-                                    <div
-                                        key={stat.label}
-                                        className="rounded-2xl border border-border/70 bg-card/70 p-3 sm:p-4"
-                                    >
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div>
-                                                <p className="text-[11px] font-medium tracking-[0.18em] text-muted-foreground uppercase">
-                                                    {stat.label}
-                                                </p>
-                                                {stat.label === 'Rating' ? (
-                                                    <div className="mt-3 flex items-center gap-2">
-                                                        <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
-                                                        <p className="text-2xl font-semibold text-foreground sm:text-3xl">
-                                                            {stat.value}
-                                                        </p>
-                                                    </div>
-                                                ) : (
-                                                    <p className="mt-3 text-2xl font-semibold text-foreground sm:text-3xl">
-                                                        {stat.value}
-                                                    </p>
-                                                )}
-                                            </div>
-                                            <div
-                                                className={`flex h-10 w-10 items-center justify-center rounded-2xl bg-muted/50 ${stat.accent}`}
-                                            >
-                                                <KeenIcon
-                                                    name={stat.icon}
-                                                    className="text-base"
-                                                />
-                                            </div>
-                                        </div>
+                            <span>·</span>
+                            <div className="flex items-center gap-1">
+                                <MapPin className="h-3.5 w-3.5" />
+                                {provider.address}
+                            </div>
+                            {distance !== null && (
+                                <>
+                                    <span>·</span>
+                                    <div className="flex items-center gap-1">
+                                        <Navigation className="h-3.5 w-3.5" />
+                                        {distance.toFixed(1)} km away
                                     </div>
-                                ))}
-                            </div>
-                        </section>
+                                </>
+                            )}
+                            {todayHours !== undefined && (
+                                <>
+                                    <span>·</span>
+                                    <span
+                                        className={
+                                            isOpenNow
+                                                ? 'font-medium text-green-600'
+                                                : 'font-medium text-red-500'
+                                        }
+                                    >
+                                        {isOpenNow ? '● Open now' : '● Closed'}
+                                    </span>
+                                </>
+                            )}
+                        </div>
+                    </div>
 
-                        {/* Services */}
+                    {/* Desktop CTAs */}
+                    <div className="hidden shrink-0 items-center gap-2 md:flex">
+                        <Link href={`/provider/${provider.slug}/gallery`}>
+                            <Button variant="outline" className="h-11">
+                                <ImageIcon className="mr-2 h-4 w-4" />
+                                View Gallery
+                            </Button>
+                        </Link>
+                        {canBookProvider ? (
+                            <Link href={`/provider/${provider.slug}/book`}>
+                                <Button className="h-11 px-6">
+                                    <Calendar className="mr-2 h-4 w-4" />
+                                    Book Appointment
+                                </Button>
+                            </Link>
+                        ) : (
+                            <Button
+                                disabled
+                                title={bookingBlockedReason}
+                                className="h-11 px-6"
+                            >
+                                <Calendar className="mr-2 h-4 w-4" />
+                                Booking unavailable
+                            </Button>
+                        )}
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-12">
+                    <div className="space-y-10 lg:col-span-2">
+                    
                         <section>
-                            <div className="mb-5 flex items-center gap-3 sm:mb-6">
+                            <div className="my-6 flex items-center gap-3">
                                 <div className="h-1 w-8 rounded bg-primary sm:w-12" />
                                 <h2 className="text-xl font-bold sm:text-2xl">
                                     Services & Pricing
@@ -822,70 +662,147 @@ export default function ProviderProfile({
                             </div>
 
                             {services.length === 0 ? (
-                                <div className="rounded-xl border-2 border-dashed bg-muted/30 p-8 text-center sm:p-12">
-                                    <p className="text-sm text-muted-foreground sm:text-base">
+                                <div className="border-2 border-dashed bg-muted/30 p-10 text-center">
+                                    <p className="text-sm text-muted-foreground">
                                         No services available.
                                     </p>
                                 </div>
                             ) : (
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                    {services.map((service, index) => (
-                                        <button
-                                            key={service.id}
-                                            onClick={() =>
-                                                setSelectedService(service)
-                                            }
-                                            className="group w-full cursor-pointer rounded-xl border border-border/70 bg-card p-3 text-left transition-all hover:border-primary/50 hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none active:scale-[0.99] sm:p-4"
-                                        >
-                                            <div className="flex items-start justify-between gap-4">
-                                                <div className="flex min-w-0 flex-1 items-start gap-3">
-                                                    <span className="flex-shrink-0 text-2xl leading-none font-bold text-neutral-300 transition-colors group-hover:text-primary/30 sm:text-4xl">
-                                                        {index + 1}
-                                                    </span>
-                                                    <div className="min-w-0 flex-1 space-y-0.5">
-                                                        <h3 className="line-clamp-1 text-base leading-relaxed font-bold capitalize transition-colors group-hover:text-primary sm:text-lg">
-                                                            {service.name}
-                                                        </h3>
-                                                        {service.description && (
-                                                            <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                                                                {
-                                                                    service.description
-                                                                }
-                                                            </p>
-                                                        )}
-                                                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                                                            <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground sm:text-xs">
-                                                                <ClockIcon className="h-3.5 w-3.5" />
-                                                                {
-                                                                    service.duration_minutes
-                                                                }{' '}
-                                                                mins
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                <div>
+                                    <div className="mb-5 flex gap-2 overflow-x-auto pb-3">
+                                        {groupedServices.map((group) => (
+                                            <Button
+                                                key={group.category}
+                                                className="rounded-full"
+                                                onClick={() =>
+                                                    setActiveServiceCategory(
+                                                        group.category,
+                                                    )
+                                                }
+                                                variant={activeServiceCategory ===
+                                                    group.category ? 'default' : 'outline'}
+                                            >
+                                                {group.category}
+                                                <span className="ml-2 text-xs opacity-80">
+                                                    ({group.items.length})
+                                                </span>
+                                            </Button>
+                                        ))}
+                                    </div>
 
-                                                <div className="flex-shrink-0 text-right">
-                                                    <p className="mb-0.5 text-xs text-muted-foreground">
-                                                        Price
-                                                    </p>
-                                                    <p className="text-sm font-bold text-primary sm:text-xl">
-                                                        ₦
-                                                        {(
-                                                            service.price || 0
-                                                        ).toLocaleString()}
-                                                    </p>
-                                                </div>
+                                    {activeServiceGroup && (
+                                        <div>
+                                            <div className="gap-2 flex flex-col">
+                                                {activeServiceGroup.items.map(
+                                                    (service) => (
+                                                        <button
+                                                            key={service.id}
+                                                            onClick={() =>
+                                                                setSelectedService(
+                                                                    service,
+                                                                )
+                                                            }
+                                                            className="flex cursor-pointer px-3 bg-gray-100 rounded w-full items-start justify-between gap-4 py-4 text-left transition-colors hover:bg-muted/20"
+                                                        >
+                                                            <div className="min-w-0 flex-1">
+                                                                <h4 className="text-base font-semibold capitalize">
+                                                                    {
+                                                                        service.name
+                                                                    }
+                                                                </h4>
+                                                                {service.description && (
+                                                                    <p className="mt-1 line-clamp-2 text-sm leading-6 text-muted-foreground">
+                                                                        {
+                                                                            service.description
+                                                                        }
+                                                                    </p>
+                                                                )}
+                                                                <div className="mt-2 text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
+                                                                    {
+                                                                        service.duration_minutes
+                                                                    }{' '}
+                                                                    mins
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="shrink-0 text-right">
+                                                                <p className="text-base font-semibold text-primary">
+                                                                    ₦
+                                                                    {Number(
+                                                                        service.price ||
+                                                                            0,
+                                                                    ).toLocaleString()}
+                                                                </p>
+                                                            </div>
+                                                        </button>
+                                                    ),
+                                                )}
                                             </div>
-                                        </button>
-                                    ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </section>
 
-                        {/* Reviews */}
-                        <section className="pb-20 sm:pb-10 md:pb-0">
-                            <div className="mb-5 flex items-center justify-between sm:mb-6">
+                        <section className="space-y-5 border-t border-border/70 pt-8">
+                            <div className="flex items-center gap-3">
+                                <div className="h-1 w-8 rounded bg-primary sm:w-12" />
+                                <h2 className="text-xl font-bold sm:text-2xl">
+                                    About & Location
+                                </h2>
+                            </div>
+
+                            <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+                                <div>
+                                    {provider.description ? (
+                                        <p className="text-sm leading-7 text-muted-foreground sm:text-base">
+                                            {provider.description}
+                                        </p>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground italic">
+                                            No description available.
+                                        </p>
+                                    )}
+
+                                    <div className="mt-5 space-y-3 border-t border-border/70 pt-4 text-sm text-muted-foreground">
+                                        <div className="flex items-start gap-3">
+                                            <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+                                            <span>{provider.address}</span>
+                                        </div>
+                                        {provider.latitude &&
+                                            provider.longitude && (
+                                                <Button
+                                                    variant="outline"
+                                                    className="mt-2 h-11"
+                                                    onClick={getDirections}
+                                                >
+                                                    <Navigation className="mr-2 h-4 w-4" />
+                                                    Get Directions
+                                                </Button>
+                                            )}
+                                    </div>
+                                </div>
+
+                                <div className="overflow-hidden border border-border/70">
+                                    {provider.latitude && provider.longitude ? (
+                                        <iframe
+                                            title={`${provider.businessName} map`}
+                                            src={`https://www.google.com/maps?q=${provider.latitude},${provider.longitude}&z=15&output=embed`}
+                                            className="h-[280px] w-full border-0"
+                                            loading="lazy"
+                                            referrerPolicy="no-referrer-when-downgrade"
+                                        />
+                                    ) : (
+                                        <div className="flex h-[280px] items-center justify-center bg-muted/30 text-sm text-muted-foreground">
+                                            Map location unavailable.
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </section>
+
+                        <section className="pb-20 md:pb-0">
+                            <div className="mb-6 flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className="h-1 w-8 rounded bg-primary sm:w-12" />
                                     <h2 className="text-xl font-bold sm:text-2xl">
@@ -897,9 +814,9 @@ export default function ProviderProfile({
                                 )}
                             </div>
                             {reviews.length === 0 ? (
-                                <div className="rounded-xl border-2 border-dashed bg-muted/30 p-8 text-center sm:p-12">
-                                    <ChatBubbleBottomCenterTextIcon className="mx-auto mb-3 h-10 w-10 opacity-30 sm:mb-4 sm:h-12 sm:w-12" />
-                                    <p className="text-sm text-muted-foreground sm:text-base">
+                                <div className="border-2 border-dashed bg-muted/30 p-10 text-center">
+                                    <ChatBubbleBottomCenterTextIcon className="mx-auto mb-4 h-10 w-10 opacity-30" />
+                                    <p className="text-sm text-muted-foreground">
                                         No reviews yet. Be the first to review!
                                     </p>
                                 </div>
@@ -911,13 +828,13 @@ export default function ProviderProfile({
                                         provider.pending_appointment_id
                                     }
                                 />
+                                
                             )}
                         </section>
                     </div>
 
-                    {/* ── Sidebar ───────────────────────────────────── */}
                     <aside className="mb-20 space-y-6 sm:mb-0">
-                        <div className="rounded-xl border bg-card p-4 sm:p-6 lg:sticky lg:top-6">
+                        <div className="border border-border/70 bg-background p-4 sm:p-6 lg:sticky lg:top-6">
                             <div className="mb-4 flex items-center gap-3 sm:mb-6">
                                 <FireIcon className="h-5 w-5 text-primary sm:h-6 sm:w-6" />
                                 <h3 className="text-lg font-bold sm:text-xl">
@@ -925,70 +842,50 @@ export default function ProviderProfile({
                                 </h3>
                             </div>
 
-                            <div className="space-y-1.5 sm:space-y-2">
-                                {Object.entries(workHours)
-                                    .sort(([a], [b]) => {
-                                        const order = [
-                                            'Sunday',
-                                            'Monday',
-                                            'Tuesday',
-                                            'Wednesday',
-                                            'Thursday',
-                                            'Friday',
-                                            'Saturday',
-                                        ];
-                                        return (
-                                            order.indexOf(a) - order.indexOf(b)
-                                        );
-                                    })
-                                    .map(([day, hours]) => {
-                                        const isToday = day === today;
-                                        return (
-                                            <div
-                                                key={day}
-                                                className={`flex items-center justify-between rounded-lg px-2.5 py-2 text-sm transition-colors sm:px-3 sm:py-2.5 sm:text-base ${
+                            <div className="space-y-0">
+                                {orderedHours.map(([day, hours]) => {
+                                    const isToday = day === today;
+                                    return (
+                                        <div
+                                            key={day}
+                                            className="flex items-center justify-between border-b border-border/50 py-3 text-sm sm:text-base"
+                                        >
+                                            <span
+                                                className={`font-semibold ${
                                                     isToday
-                                                        ? 'skew-x-1 border border-primary/20 bg-primary/10'
-                                                        : 'hover:bg-muted/50'
+                                                        ? 'text-primary'
+                                                        : ''
                                                 }`}
                                             >
-                                                <span
-                                                    className={`font-semibold ${isToday ? 'text-primary' : ''}`}
-                                                >
-                                                    {/* Show abbreviated day on very small screens */}
-                                                    <span className="sm:hidden">
-                                                        {day.slice(0, 3)}
-                                                    </span>
-                                                    <span className="hidden sm:inline">
-                                                        {day}
-                                                    </span>
-                                                    {isToday && (
-                                                        <span className="ml-1.5 text-xs opacity-70">
-                                                            (Today)
-                                                        </span>
-                                                    )}
+                                                <span className="sm:hidden">
+                                                    {day.slice(0, 3)}
                                                 </span>
-                                                {hours.isOpen ? (
-                                                    <span className="text-right text-xs font-medium text-muted-foreground sm:text-sm">
-                                                        {hours.hours
-                                                            ?.map(
-                                                                (h) =>
-                                                                    `${h.start} – ${h.end}`,
-                                                            )
-                                                            .join(', ') ||
-                                                            'Open'}
+                                                <span className="hidden sm:inline">
+                                                    {day}
+                                                </span>
+                                                {isToday && (
+                                                    <span className="ml-1.5 text-xs opacity-70">
+                                                        (Today)
                                                     </span>
-                                                ) : (
-                                                    <Badge
-                                                        variant="outline"
-                                                        className="bg-muted text-xs"
-                                                    >
-                                                        Closed
-                                                    </Badge>
                                                 )}
-                                            </div>
-                                        );
-                                    })}
+                                            </span>
+                                            {hours.isOpen ? (
+                                                <span className="text-right text-xs font-medium text-muted-foreground sm:text-sm">
+                                                    {hours.hours
+                                                        ?.map(
+                                                            (hour) =>
+                                                                `${hour.start} – ${hour.end}`,
+                                                        )
+                                                        .join(', ') || 'Open'}
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs text-muted-foreground">
+                                                    Closed
+                                                </span>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
 
                             {provider.latitude && provider.longitude && (
@@ -1006,7 +903,6 @@ export default function ProviderProfile({
                 </div>
             </div>
 
-            {/* Nearby providers (comes last) */}
             {nearbyProviders?.length > 0 && (
                 <div className="mx-auto w-full max-w-7xl px-4 pb-24 sm:px-6 md:pb-16">
                     <section className="space-y-4">
@@ -1021,7 +917,7 @@ export default function ProviderProfile({
                             <div className="hidden items-center gap-2 sm:flex">
                                 <button
                                     type="button"
-                                    className="flex h-9 w-9 items-center justify-center rounded-full border bg-background transition hover:bg-muted"
+                                    className="flex h-9 w-9 items-center justify-center border bg-background transition hover:bg-muted"
                                     onClick={() => scrollNearby('left')}
                                     aria-label="Scroll left"
                                 >
@@ -1029,7 +925,7 @@ export default function ProviderProfile({
                                 </button>
                                 <button
                                     type="button"
-                                    className="flex h-9 w-9 items-center justify-center rounded-full border bg-background transition hover:bg-muted"
+                                    className="flex h-9 w-9 items-center justify-center border bg-background transition hover:bg-muted"
                                     onClick={() => scrollNearby('right')}
                                     aria-label="Scroll right"
                                 >
@@ -1042,12 +938,12 @@ export default function ProviderProfile({
                             ref={nearbyRef}
                             className="scrollbar-none flex snap-x snap-mandatory gap-6 overflow-x-auto pb-2"
                         >
-                            {nearbyProviders.map((p) => (
+                            {nearbyProviders.map((nearbyProvider) => (
                                 <div
-                                    key={p.id}
+                                    key={nearbyProvider.id}
                                     className="max-w-[260px] min-w-[260px] snap-start"
                                 >
-                                    <BusinessCard provider={p} />
+                                    <BusinessCard provider={nearbyProvider} />
                                 </div>
                             ))}
                         </div>
@@ -1055,7 +951,6 @@ export default function ProviderProfile({
                 </div>
             )}
 
-            {/* ── Service Modal ────────────────────────────────────── */}
             {selectedService && (
                 <ServiceModal
                     service={selectedService}

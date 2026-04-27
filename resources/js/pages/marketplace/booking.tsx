@@ -3,8 +3,16 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { CustomAlertDialog } from '@/components/ui/custom-alert-dialog';
+import {
+    Field,
+    FieldContent,
+    FieldDescription,
+    FieldLabel,
+    FieldTitle,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
     Select,
@@ -597,20 +605,6 @@ export default function Booking({
                                     Booking flow
                                 </div>
                                 <div className="flex items-start gap-4">
-                                    <Avatar className="h-14 w-14 rounded-2xl border border-border/70">
-                                        <AvatarImage
-                                            src={provider.logo || undefined}
-                                            alt={provider.businessName}
-                                        />
-                                        <AvatarFallback className="rounded-2xl">
-                                            {provider.businessName
-                                                .split(' ')
-                                                .map((part) => part[0])
-                                                .join('')
-                                                .slice(0, 2)
-                                                .toUpperCase()}
-                                        </AvatarFallback>
-                                    </Avatar>
                                     <div className="space-y-1.5">
                                         <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-3xl">
                                             Confirm your appointment
@@ -1077,123 +1071,137 @@ export default function Booking({
                                             if you do not have a preference.
                                         </p>
                                     </div>
-                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                if (!canBookProvider) return;
-                                                setSelectedTeamMemberId('');
-                                                setSelectedSlot('');
-                                            }}
-                                            className={cn(
-                                                'rounded-xl border p-4 text-left transition-all',
-                                                !canBookProvider &&
-                                                    'cursor-not-allowed opacity-60',
-                                                !selectedTeamMemberId
-                                                    ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                                                    : 'border-border hover:border-primary/30',
-                                            )}
-                                        >
-                                            <div className="mb-3 flex items-center gap-3">
-                                                <Avatar className="h-12 w-12">
-                                                    <AvatarImage
-                                                        src={
-                                                            provider.logo ||
-                                                            undefined
-                                                        }
-                                                        alt={provider.name}
-                                                    />
-                                                    <AvatarFallback>
-                                                        {provider.name
-                                                            .split(' ')
-                                                            .map(
-                                                                (part) =>
-                                                                    part[0],
-                                                            )
-                                                            .join('')
-                                                            .slice(0, 2)
-                                                            .toUpperCase()}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <div>
-                                                    <p className="font-semibold">
-                                                        {provider.name}
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        Business owner
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <p className="text-sm text-muted-foreground">
-                                                Book directly with the provider.
-                                            </p>
-                                        </button>
+                                    <RadioGroup
+                                        value={
+                                            selectedTeamMemberId || '__provider__'
+                                        }
+                                        onValueChange={(value) => {
+                                            if (!canBookProvider) return;
+                                            setSelectedTeamMemberId(
+                                                value === '__provider__'
+                                                    ? ''
+                                                    : value,
+                                            );
+                                            setSelectedSlot('');
+                                        }}
+                                        className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
+                                        disabled={!canBookProvider}
+                                    >
+                                        <FieldLabel htmlFor="provider-owner">
+                                            <Field orientation="horizontal">
+                                                <FieldContent className="gap-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <Avatar className="h-12 w-12">
+                                                            <AvatarImage
+                                                                src={
+                                                                    provider.logo ||
+                                                                    undefined
+                                                                }
+                                                                alt={
+                                                                    provider.name
+                                                                }
+                                                            />
+                                                            <AvatarFallback>
+                                                                {provider.name
+                                                                    .split(' ')
+                                                                    .map(
+                                                                        (
+                                                                            part,
+                                                                        ) =>
+                                                                            part[0],
+                                                                    )
+                                                                    .join('')
+                                                                    .slice(0, 2)
+                                                                    .toUpperCase()}
+                                                            </AvatarFallback>
+                                                        </Avatar>
+                                                        <div className="min-w-0">
+                                                            <FieldTitle>
+                                                                {
+                                                                    provider.name
+                                                                }
+                                                            </FieldTitle>
+                                                            <FieldDescription className="mt-0 text-xs">
+                                                                Business owner
+                                                            </FieldDescription>
+                                                        </div>
+                                                    </div>
+                                                    <FieldDescription>
+                                                        Book directly with the
+                                                        provider.
+                                                    </FieldDescription>
+                                                </FieldContent>
+                                                <RadioGroupItem
+                                                    value="__provider__"
+                                                    id="provider-owner"
+                                                />
+                                            </Field>
+                                        </FieldLabel>
 
                                         {teamMembers.map((member) => (
-                                            <button
+                                            <FieldLabel
                                                 key={member.id}
-                                                type="button"
-                                                onClick={() => {
-                                                    if (!canBookProvider)
-                                                        return;
-                                                    setSelectedTeamMemberId(
-                                                        member.id,
-                                                    );
-                                                    setSelectedSlot('');
-                                                }}
-                                                className={cn(
-                                                    'rounded-xl border p-4 text-left transition-all',
-                                                    !canBookProvider &&
-                                                        'cursor-not-allowed opacity-60',
-                                                    selectedTeamMemberId ===
-                                                        member.id
-                                                        ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                                                        : 'border-border hover:border-primary/30',
-                                                )}
+                                                htmlFor={`team-member-${member.id}`}
                                             >
-                                                <div className="mb-3 flex items-center gap-3">
-                                                    <Avatar
-                                                        className={cn(
-                                                            'h-12 w-12',
-                                                            selectedTeamMemberId ===
-                                                                member.id &&
-                                                                'border-grey-300 border-2',
-                                                        )}
-                                                    >
-                                                        <AvatarImage
-                                                            src={
-                                                                member.avatar ||
-                                                                undefined
-                                                            }
-                                                            alt={member.name}
-                                                        />
-                                                        <AvatarFallback>
-                                                            {member.name
-                                                                .split(' ')
-                                                                .map(
-                                                                    (part) =>
-                                                                        part[0],
-                                                                )
-                                                                .join('')
-                                                                .slice(0, 2)
-                                                                .toUpperCase()}
-                                                        </AvatarFallback>
-                                                    </Avatar>
-                                                    <div>
-                                                        <p className="font-semibold capitalize">
-                                                            {member.name}
-                                                        </p>
-                                                        <p className="text-xs text-muted-foreground capitalize">
-                                                            {member.role}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <p className="truncate text-sm text-muted-foreground">
-                                                    {member.email}
-                                                </p>
-                                            </button>
+                                                <Field orientation="horizontal">
+                                                    <FieldContent className="gap-3">
+                                                        <div className="flex items-center gap-3">
+                                                            <Avatar className="h-12 w-12">
+                                                                <AvatarImage
+                                                                    src={
+                                                                        member.avatar ||
+                                                                        undefined
+                                                                    }
+                                                                    alt={
+                                                                        member.name
+                                                                    }
+                                                                />
+                                                                <AvatarFallback>
+                                                                    {member.name
+                                                                        .split(
+                                                                            ' ',
+                                                                        )
+                                                                        .map(
+                                                                            (
+                                                                                part,
+                                                                            ) =>
+                                                                                part[0],
+                                                                        )
+                                                                        .join(
+                                                                            '',
+                                                                        )
+                                                                        .slice(
+                                                                            0,
+                                                                            2,
+                                                                        )
+                                                                        .toUpperCase()}
+                                                                </AvatarFallback>
+                                                            </Avatar>
+                                                            <div className="min-w-0">
+                                                                <FieldTitle className="capitalize">
+                                                                    {
+                                                                        member.name
+                                                                    }
+                                                                </FieldTitle>
+                                                                <FieldDescription className="mt-0 text-xs capitalize">
+                                                                    {
+                                                                        member.role
+                                                                    }
+                                                                </FieldDescription>
+                                                            </div>
+                                                        </div>
+                                                        <FieldDescription className="truncate">
+                                                            {member.email}
+                                                        </FieldDescription>
+                                                    </FieldContent>
+                                                    <RadioGroupItem
+                                                        value={member.id}
+                                                        id={`team-member-${member.id}`}
+                                                    />
+                                                </Field>
+                                            </FieldLabel>
                                         ))}
-                                    </div>
+                                    </RadioGroup>
                                 </div>
                             )}
 

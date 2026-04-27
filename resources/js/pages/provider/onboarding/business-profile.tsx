@@ -821,7 +821,7 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                     </div>
 
                     {/* ── Phone ─────────────────────────────────────────────────── */}
-                    <div className="space-y-1.5">
+                    {/* <div className="space-y-1.5">
                         <Label className="text-sm font-medium">Business Phone</Label>
                         <Input
                             type="tel"
@@ -843,7 +843,7 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                         />
                         {phoneLocalError && <p className="text-xs text-destructive mt-1">{phoneLocalError}</p>}
                         {errors.phone && <p className="text-xs text-destructive mt-1">{errors.phone}</p>}
-                    </div>
+                    </div> */}
 
                     {/* ── Submit ────────────────────────────────────────────────── */}
                     <div className="flex items-center justify-end gap-4 pt-4">

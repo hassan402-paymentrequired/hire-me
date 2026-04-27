@@ -4,6 +4,7 @@ use App\Jobs\AutoCancelUnconfirmedAppointmentJob;
 use App\Jobs\CreditCompletedAppointmentDeplay;
 use App\Jobs\GenerateRecurringAppointments;
 use App\Jobs\Provider\AppointmentApproveDelayedJob;
+use App\Console\Commands\SendProviderSubscriptionReminders;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -22,3 +23,4 @@ Schedule::job(new AutoCancelUnconfirmedAppointmentJob())->everyTwentySeconds();
 
 
 Schedule::command('app:release-funds-for-completed-appointments')->everyFifteenMinutes();
+Schedule::command('app:send-provider-subscription-reminders')->daily();

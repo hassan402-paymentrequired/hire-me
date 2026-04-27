@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\FinancialController;
 use App\Http\Controllers\Admin\ModerationController;
+use App\Http\Controllers\Admin\SubscriptionPlanController;
 use App\Http\Controllers\Admin\SupportRequestController;
 use App\Http\Controllers\Admin\VerificationController;
 
@@ -44,6 +45,13 @@ Route::middleware(['admin'])->group(function () {
     // Financial Reporting
     Route::prefix('financial')->name('admin.financial.')->group(function () {
         Route::get('/', [FinancialController::class, 'index'])->name('index');
+    });
+
+    Route::prefix('subscriptions')->name('admin.subscriptions.')->group(function () {
+        Route::get('/', [SubscriptionPlanController::class, 'index'])->name('index');
+        Route::post('/', [SubscriptionPlanController::class, 'store'])->name('store');
+        Route::put('/{subscriptionPlan}', [SubscriptionPlanController::class, 'update'])->name('update');
+        Route::delete('/{subscriptionPlan}', [SubscriptionPlanController::class, 'destroy'])->name('destroy');
     });
 
     // Content Moderation

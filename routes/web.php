@@ -72,6 +72,7 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
         Route::get('/work-hours', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'workHours'])->name('work-hours');
         Route::post('/work-hours', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'storeWorkHours'])->name('work-hours.store');
         Route::get('/services', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'services'])->name('services');
+        Route::post('/services/categories', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'storeServiceCategory'])->name('services.categories.store');
         Route::post('/services', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'storeServices'])->name('services.store');
         Route::get('/verification', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'verification'])->name('verification');
         Route::post('/verification', [\App\Http\Controllers\Provider\Onboarding\OnboardingController::class, 'storeVerification'])->name('verification.store');
@@ -95,12 +96,18 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
 
             // Services
             Route::get('/services', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'services'])->name('services');
+            Route::post('/services/categories', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'storeServiceCategory'])->name('services.categories.store');
+            Route::put('/services/categories/{id}', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateServiceCategory'])->name('services.categories.update');
+            Route::delete('/services/categories/{id}', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'destroyServiceCategory'])->name('services.categories.destroy');
             Route::post('/services', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'storeService'])->name('services.store');
             Route::put('/services/{id}', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateService'])->name('services.update');
             Route::delete('/services/{id}', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'destroyService'])->name('services.destroy');
             Route::post('/services/{id}/toggle', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'toggleServiceStatus'])->name('services.toggle');
 
             Route::get('/analytics', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'analytics'])->name('analytics');
+            Route::get('/billing', [\App\Http\Controllers\Provider\Billing\SubscriptionBillingController::class, 'index'])->name('billing');
+            Route::post('/billing/subscribe', [\App\Http\Controllers\Provider\Billing\SubscriptionBillingController::class, 'subscribe'])->name('billing.subscribe');
+            Route::post('/billing/cancel', [\App\Http\Controllers\Provider\Billing\SubscriptionBillingController::class, 'cancel'])->name('billing.cancel');
             Route::get('/settings', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'settings'])->name('settings');
             Route::get('/settings/location', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'settingsLocation'])->name('settings.location');
             Route::get('/settings/advanced', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'settingsAdvanced'])->name('settings.advanced');
