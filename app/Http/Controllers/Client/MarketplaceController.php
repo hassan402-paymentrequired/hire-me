@@ -11,6 +11,7 @@ use App\Models\Appointment;
 use App\Models\ClientAddress;
 use App\Models\TeamMember;
 use App\Models\Wallet;
+use App\Models\ProviderGalleryImage;
 use App\Models\ProviderGalleryItem;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
@@ -248,6 +249,27 @@ class MarketplaceController extends Controller
                     'isLogo' => $img->is_logo
                 ]);
 
+        // Pull the latest images from the provider's actual gallery (ProviderGalleryItem/Image),
+        // not the business hero images. Only need a small teaser + total count for "+N more".
+        $galleryImageQuery = ProviderGalleryImage::query()
+            ->whereHas('galleryItem', function ($query) use ($provider, $businessProfile) {
+                $query->where('provider_id', $provider->id)
+                    ->where('business_profile_id', $businessProfile->id);
+            });
+
+        $galleryPreview = (clone $galleryImageQuery)
+            ->latest('id')
+            ->limit(3)
+            ->get(['id', 'image_path'])
+            ->map(fn (ProviderGalleryImage $image) => [
+                'id' => (string) $image->id,
+                'url' => \App\Services\FileUploadService::url($image->image_path, 'public')
+                    ?? '/storage/' . ltrim((string) $image->image_path, '/'),
+            ])
+            ->values();
+
+        $galleryTotal = (clone $galleryImageQuery)->count();
+
 
         return Inertia::render('marketplace/provider', [
             'provider' => [
@@ -296,6 +318,8 @@ class MarketplaceController extends Controller
             'canEdit' => Auth::check(),
             'isFavourite' => $isFavourite,
             'nearbyProviders' => $nearbyProviders,
+            'galleryPreview' => $galleryPreview,
+            'galleryTotal' => $galleryTotal,
         ]);
     }
 

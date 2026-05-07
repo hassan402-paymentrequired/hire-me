@@ -73,6 +73,11 @@ interface Review {
     created_at: string;
 }
 
+interface GalleryPreviewImage {
+    id: string;
+    url: string;
+}
+
 interface Props {
     provider: Provider;
     services: Service[];
@@ -96,6 +101,8 @@ interface Props {
         category?: string;
         isVerified?: boolean;
     }>;
+    galleryPreview?: GalleryPreviewImage[];
+    galleryTotal?: number;
 }
 
 function calculateDistance(
@@ -168,6 +175,8 @@ export default function ProviderProfile({
     canEdit,
     isFavourite,
     nearbyProviders,
+    galleryPreview = [],
+    galleryTotal = 0,
 }: Props) {
     const [distance, setDistance] = useState<number | null>(null);
     const [currentSlide, setCurrentSlide] = useState(0);
@@ -800,6 +809,63 @@ export default function ProviderProfile({
                                 </div>
                             </div>
                         </section>
+
+                        {galleryPreview.length >= 3 && (
+                            <section className="space-y-5 border-t border-border/70 pt-8">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-1 w-8 rounded bg-primary sm:w-12" />
+                                        <h2 className="text-xl font-bold sm:text-2xl">
+                                            Gallery
+                                        </h2>
+                                    </div>
+                                    <Link
+                                        href={`/provider/${provider.slug}/gallery`}
+                                        className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                                    >
+                                        <ImageIcon className="h-4 w-4" />
+                                        View all
+                                        {galleryTotal > 3 && (
+                                            <span className="opacity-80">
+                                                ({galleryTotal})
+                                            </span>
+                                        )}
+                                    </Link>
+                                </div>
+
+                                <div className="grid aspect-[5/3] grid-cols-2 grid-rows-2 gap-2 sm:aspect-[2/1] sm:gap-3">
+                                    {galleryPreview
+                                        .slice(0, 3)
+                                        .map((image, idx) => (
+                                            <Link
+                                                key={`gallery-teaser-${image.id}`}
+                                                href={`/provider/${provider.slug}/gallery`}
+                                                aria-label={`Open gallery — image ${idx + 1}`}
+                                                className={`group relative overflow-hidden rounded-xl bg-muted ${
+                                                    idx === 0
+                                                        ? 'row-span-2'
+                                                        : ''
+                                                }`}
+                                            >
+                                                <img
+                                                    src={image.url}
+                                                    alt={`${provider.businessName} gallery ${idx + 1}`}
+                                                    loading="lazy"
+                                                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                                                />
+                                                {idx === 2 &&
+                                                    galleryTotal > 3 && (
+                                                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-base font-semibold text-white transition group-hover:bg-black/50 sm:text-lg">
+                                                            +
+                                                            {galleryTotal - 3}{' '}
+                                                            more
+                                                        </div>
+                                                    )}
+                                            </Link>
+                                        ))}
+                                </div>
+                            </section>
+                        )}
 
                         <section className="pb-20 md:pb-0">
                             <div className="mb-6 flex items-center justify-between">
