@@ -747,7 +747,7 @@ class BusinessController extends Controller
                 'id' => $profile->id,
                 'images' => $profile->images->map(fn($img) => [
                     'id' => $img->id,
-                    'path' => \App\Services\FileUploadService::url($img->image_path, config('filesystems.default')),
+                    'path' => \App\Services\FileUploadService::url($img->image_path, 'public'),
                     'is_logo' => $img->is_logo,
                 ]),
             ] : null,
@@ -882,7 +882,7 @@ class BusinessController extends Controller
                 $oldLogo = $profile->images()->where('is_logo', true)->first();
 
                 if ($oldLogo) {
-                    \App\Services\FileUploadService::delete($oldLogo->image_path, config('filesystems.default'));
+                    \App\Services\FileUploadService::delete($oldLogo->image_path, 'public');
                     $oldLogo->delete();
                 }
 
@@ -921,7 +921,7 @@ class BusinessController extends Controller
                     ->get();
 
                 foreach ($imagesToDelete as $img) {
-                    \App\Services\FileUploadService::delete($img->image_path, config('filesystems.default'));
+                    \App\Services\FileUploadService::delete($img->image_path, 'public');
                     $img->delete();
                 }
             }

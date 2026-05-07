@@ -196,48 +196,45 @@ class VerificationController extends Controller
             abort(403, 'Unauthorized access. you are not authorized to view this document');
         }
 
-        // Check if file exists
         if (! $verification->document_path) {
             abort(404, 'Document not found');
         }
 
-        // Determine storage disk
-        $disk = \App\Services\FileUploadService::getDisk('private');
+        $documentPath = $verification->document_path;
 
-        // Check if file exists
-        if (! \Illuminate\Support\Facades\Storage::disk($disk)->exists($verification->document_path)) {
+        if (! \App\Services\FileUploadService::exists($documentPath, 'private')) {
             abort(404, 'Document file not found');
         }
 
-        // For S3, generate a temporary signed URL
-        if ($disk === 's3') {
-            try {
-                $url = \Illuminate\Support\Facades\Storage::disk($disk)->temporaryUrl(
-                    $verification->document_path,
-                    now()->addMinutes(15) // URL expires in 15 minutes
-                );
+        // On S3, hand the admin a short-lived pre-signed URL so the file is
+        // streamed straight from object storage without proxying through PHP.
+        if (\App\Services\FileUploadService::isS3Configured()) {
+            $signedUrl = \App\Services\FileUploadService::temporaryUrl($documentPath, 15);
 
-                return redirect($url);
-            } catch (\Exception $e) {
-                abort(500, 'Failed to generate document URL: '.$e->getMessage());
+            if (! $signedUrl) {
+                abort(500, 'Failed to generate document URL');
             }
+
+            return redirect($signedUrl);
         }
 
-        // For local private storage, serve the file directly
+        // Local private storage: stream the file through this controller so
+        // it stays behind the admin auth layer.
         try {
-            $filePath = \Illuminate\Support\Facades\Storage::disk($disk)->path($verification->document_path);
+            $disk = \Illuminate\Support\Facades\Storage::disk('private');
+            $filePath = $disk->path($documentPath);
 
             if (! file_exists($filePath)) {
                 abort(404, 'Document file not found');
             }
 
-            $mimeType = \Illuminate\Support\Facades\Storage::disk($disk)->mimeType($verification->document_path)
+            $mimeType = $disk->mimeType($documentPath)
                 ?? mime_content_type($filePath)
                 ?? 'application/octet-stream';
 
             return response()->file($filePath, [
                 'Content-Type' => $mimeType,
-                'Content-Disposition' => 'inline; filename="'.basename($verification->document_path).'"',
+                'Content-Disposition' => 'inline; filename="'.basename($documentPath).'"',
                 'Cache-Control' => 'private, max-age=3600',
             ]);
         } catch (\Exception $e) {

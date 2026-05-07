@@ -245,7 +245,7 @@ class MarketplaceController extends Controller
         }
 
         $images = $businessProfile->images->map(fn($img) => [
-                    'url' => \App\Services\FileUploadService::url($img->image_path, config('filesystems.default')),
+                    'url' => \App\Services\FileUploadService::url($img->image_path, 'public'),
                     'isLogo' => $img->is_logo
                 ]);
 
