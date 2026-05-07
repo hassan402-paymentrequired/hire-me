@@ -23,8 +23,10 @@ import {
     Navigation,
     Share2,
     Star,
+    X,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 
 interface Service {
     id: string;
@@ -184,6 +186,38 @@ export default function ProviderProfile({
     const [selectedService, setSelectedService] = useState<Service | null>(
         null,
     );
+    const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+    const lightboxOpen = lightboxIndex !== null;
+    const galleryPreviewCount = galleryPreview.length;
+
+    const closeLightbox = useCallback(() => setLightboxIndex(null), []);
+
+    const showNextLightbox = useCallback(() => {
+        if (galleryPreviewCount === 0) return;
+        setLightboxIndex((current) =>
+            current === null ? null : (current + 1) % galleryPreviewCount,
+        );
+    }, [galleryPreviewCount]);
+
+    const showPrevLightbox = useCallback(() => {
+        if (galleryPreviewCount === 0) return;
+        setLightboxIndex((current) =>
+            current === null
+                ? null
+                : (current - 1 + galleryPreviewCount) % galleryPreviewCount,
+        );
+    }, [galleryPreviewCount]);
+
+    useEffect(() => {
+        if (!lightboxOpen) return;
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key === 'ArrowRight') showNextLightbox();
+            if (event.key === 'ArrowLeft') showPrevLightbox();
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [lightboxOpen, showNextLightbox, showPrevLightbox]);
+
     const canBookProvider = provider.canBook ?? true;
     const bookingBlockedReason =
         provider.bookingBlockedReason ||
@@ -837,11 +871,14 @@ export default function ProviderProfile({
                                     {galleryPreview
                                         .slice(0, 3)
                                         .map((image, idx) => (
-                                            <Link
+                                            <button
                                                 key={`gallery-teaser-${image.id}`}
-                                                href={`/provider/${provider.slug}/gallery`}
-                                                aria-label={`Open gallery — image ${idx + 1}`}
-                                                className={`group relative overflow-hidden rounded-xl bg-muted ${
+                                                type="button"
+                                                onClick={() =>
+                                                    setLightboxIndex(idx)
+                                                }
+                                                aria-label={`Preview gallery image ${idx + 1}`}
+                                                className={`group relative overflow-hidden rounded-xl bg-muted text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                                                     idx === 0
                                                         ? 'row-span-2'
                                                         : ''
@@ -861,7 +898,7 @@ export default function ProviderProfile({
                                                             more
                                                         </div>
                                                     )}
-                                            </Link>
+                                            </button>
                                         ))}
                                 </div>
                             </section>
@@ -1025,6 +1062,87 @@ export default function ProviderProfile({
                     onClose={() => setSelectedService(null)}
                 />
             )}
+
+            <DialogPrimitive.Root
+                open={lightboxOpen}
+                onOpenChange={(open) => {
+                    if (!open) closeLightbox();
+                }}
+            >
+                <DialogPrimitive.Portal>
+                    <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/90 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0" />
+                    <DialogPrimitive.Content
+                        aria-describedby={undefined}
+                        className="fixed inset-0 z-50 flex flex-col items-center justify-center outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0"
+                    >
+                        <DialogPrimitive.Title className="sr-only">
+                            {provider.businessName} gallery
+                        </DialogPrimitive.Title>
+
+                        <DialogPrimitive.Close
+                            className="absolute top-4 right-4 inline-flex size-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white sm:top-6 sm:right-6"
+                            aria-label="Close gallery preview"
+                        >
+                            <X className="size-5" />
+                        </DialogPrimitive.Close>
+
+                        {galleryPreviewCount > 1 && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={showPrevLightbox}
+                                    aria-label="Previous image"
+                                    className="absolute top-1/2 left-3 z-10 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white sm:left-6 sm:size-12"
+                                >
+                                    <ChevronLeft className="size-5 sm:size-6" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={showNextLightbox}
+                                    aria-label="Next image"
+                                    className="absolute top-1/2 right-3 z-10 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white sm:right-6 sm:size-12"
+                                >
+                                    <ChevronRight className="size-5 sm:size-6" />
+                                </button>
+                            </>
+                        )}
+
+                        {lightboxIndex !== null &&
+                            galleryPreview[lightboxIndex] && (
+                                <img
+                                    src={galleryPreview[lightboxIndex].url}
+                                    alt={`${provider.businessName} gallery ${lightboxIndex + 1}`}
+                                    className="max-h-[85vh] max-w-[92vw] object-contain"
+                                />
+                            )}
+
+                        <div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-3 text-xs text-white/80 sm:text-sm">
+                            {galleryPreviewCount > 1 && (
+                                <div className="flex items-center gap-1.5">
+                                    {galleryPreview.map((image, idx) => (
+                                        <span
+                                            key={`lightbox-dot-${image.id}`}
+                                            className={`h-1.5 rounded-full transition-all ${
+                                                idx === lightboxIndex
+                                                    ? 'w-6 bg-white'
+                                                    : 'w-3 bg-white/40'
+                                            }`}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                            {galleryTotal > galleryPreviewCount && (
+                                <Link
+                                    href={`/provider/${provider.slug}/gallery`}
+                                    className="rounded-full border border-white/20 bg-white/10 px-3 py-1 backdrop-blur transition hover:bg-white/20"
+                                >
+                                    View all {galleryTotal} photos
+                                </Link>
+                            )}
+                        </div>
+                    </DialogPrimitive.Content>
+                </DialogPrimitive.Portal>
+            </DialogPrimitive.Root>
         </GuestLayout>
     );
 }
