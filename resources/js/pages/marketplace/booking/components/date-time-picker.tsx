@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
@@ -50,9 +49,9 @@ export function DateTimePicker({
             : '';
 
     return (
-        <div className="overflow-hidden rounded border bg-card">
-            <div className="grid grid-cols-1 sm:h-[360px] md:grid-cols-2">
-                <div className="flex justify-center border-b p-3 md:border-r md:border-b-0">
+        <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+            <div className="flex flex-col md:h-[420px] md:flex-row">
+                <div className="flex shrink-0 justify-center border-b px-2 py-3 md:border-r md:border-b-0 md:p-3">
                     <Calendar
                         mode="single"
                         selected={selectedDate}
@@ -90,13 +89,13 @@ export function DateTimePicker({
 
                             return false;
                         }}
-                        className="h-full w-full rounded-md"
+                        className="w-[280px] rounded-md"
                     />
                 </div>
 
-                <div className="space-y-3 bg-muted/5 p-4 sm:h-full sm:w-full sm:overflow-hidden sm:overflow-y-auto">
+                <div className="flex min-w-0 flex-1 flex-col space-y-3 bg-muted/5 px-3 pb-2 pt-4 md:overflow-hidden md:p-4">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold tracking-tighter uppercase md:text-xl">
+                        <h3 className="text-base font-semibold tracking-tight uppercase md:text-xl md:tracking-tighter">
                             {format(selectedDate, 'EEEE, MMM d')}
                         </h3>
                     </div>
@@ -142,18 +141,18 @@ export function DateTimePicker({
                             )}
                         </div>
                     ) : (
-                        <ScrollArea className="h-96 pr-4">
-                            <div className="space-y-8">
+                        <div className="pb-6 md:min-h-0 md:flex-1 md:overflow-y-auto md:pb-0 md:pr-1">
+                            <div className="space-y-6 md:space-y-8">
                                 {(['morning', 'afternoon', 'evening'] as const).map(
                                     (cat) => {
                                         const slots = categorizedSlots[cat];
                                         if (slots.length === 0) return null;
                                         return (
-                                            <div key={cat} className="space-y-4">
+                                            <div key={cat} className="space-y-3 md:space-y-4">
                                                 <h4 className="text-[10px] font-semibold tracking-[0.2em] text-muted-foreground/60 uppercase">
                                                     {cat}
                                                 </h4>
-                                                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                                                <div className="grid grid-cols-3 gap-2 md:grid-cols-3 md:gap-3 lg:grid-cols-4">
                                                     {slots.map((slot) => (
                                                         <Button
                                                             key={slot.datetime}
@@ -165,10 +164,10 @@ export function DateTimePicker({
                                                                     : 'outline'
                                                             }
                                                             className={cn(
-                                                                'rounded text-xs font-semibold transition-all sm:text-sm',
+                                                                'h-9 rounded-md px-2 text-[11px] font-semibold transition-all md:h-10 md:text-xs lg:text-sm',
                                                                 selectedSlot ===
                                                                     slot.datetime
-                                                                    ? 'scale-[1.05] border-primary'
+                                                                    ? 'border-primary md:scale-[1.02]'
                                                                     : 'hover:border-primary/30 hover:bg-primary/5',
                                                             )}
                                                             disabled={
@@ -196,7 +195,7 @@ export function DateTimePicker({
                                 )}
                                 {providerSettings.allowOffHoursRequests && (
                                     <div className="rounded-lg border bg-background p-3">
-                                        <div className="flex items-center justify-between gap-3">
+                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                             <div>
                                                 <p className="text-xs font-bold text-foreground">
                                                     Request off-hours time
@@ -211,6 +210,7 @@ export function DateTimePicker({
                                                 type="button"
                                                 variant="outline"
                                                 size="sm"
+                                                className="shrink-0 self-start sm:self-auto"
                                                 disabled={!canBookProvider}
                                                 onClick={() => {
                                                     onUseCustomTimeChange(
@@ -245,7 +245,7 @@ export function DateTimePicker({
                                     </div>
                                 )}
                             </div>
-                        </ScrollArea>
+                        </div>
                     )}
                 </div>
             </div>

@@ -1,6 +1,7 @@
+import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { Box, Check, Clock } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import type { Service } from '../types';
@@ -56,14 +57,19 @@ function ServiceCard({
     onToggle: (id: string) => void;
 }) {
     return (
-        <div
-            onClick={() => {
-                if (canBookProvider) {
-                    onToggle(service.id);
+        <label
+            onClick={(event) => {
+                if (!canBookProvider) {
+                    event.preventDefault();
+                    return;
                 }
+                // The label wraps a non-form Checkbox primitive, so we drive
+                // toggling through the parent's controlled state ourselves.
+                event.preventDefault();
+                onToggle(service.id);
             }}
             className={cn(
-                'flex items-start gap-2 rounded-xl border p-2',
+                'flex items-start gap-3 rounded-xl border p-3',
                 canBookProvider
                     ? 'cursor-pointer'
                     : 'cursor-not-allowed opacity-60',
@@ -72,27 +78,18 @@ function ServiceCard({
                     : 'border-border bg-card hover:border-primary/20',
             )}
         >
-            <div
-                className={cn(
-                    'flex size-8 shrink-0 items-center justify-center rounded border-2',
-                    isSelected
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-muted bg-muted/50',
-                )}
-            >
-                {isSelected ? (
-                    <Check className="size-5" />
-                ) : (
-                    <Box className="size-5" />
-                )}
-            </div>
+            <Checkbox
+                checked={isSelected}
+                disabled={!canBookProvider}
+                aria-label={`Select ${service.name}`}
+                className="mt-1"
+                tabIndex={-1}
+            />
             <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between">
-                    <h4 className="truncate text-base capitalize">
-                        {service.name}
-                    </h4>
-                </div>
-                <div className="flex items-center justify-between">
+                <h4 className="truncate text-base capitalize">
+                    {service.name}
+                </h4>
+                <div className="mt-1 flex items-center justify-between">
                     <span className="text-sm font-semibold">
                         ₦{Number(service.price).toLocaleString()}
                     </span>
@@ -102,7 +99,7 @@ function ServiceCard({
                     </span>
                 </div>
             </div>
-        </div>
+        </label>
     );
 }
 
