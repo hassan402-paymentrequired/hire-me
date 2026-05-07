@@ -396,7 +396,11 @@ class AppointmentController extends Controller
         $services = Service::whereIn('id', $request->service_ids)->get();
 
         $originalPrice = $services->sum('price');
-        $discountPercent = $request->discount_percent ?? 0;
+        // Derive the discount from server-trusted config so the FE cannot
+        // tamper with it. Only apply when the booking is actually recurring.
+        $discountPercent = $request->recurrence_pattern
+            ? (float) config('booking.recurring_discount_percent', 10)
+            : 0;
         $totalPrice = $originalPrice * (1 - ($discountPercent / 100));
         $totalDuration = $services->sum('duration_minutes');
         $maxBuffer = ($services->max('buffer_time_minutes') ?? 0) + $providerBufferTimeMinutes;

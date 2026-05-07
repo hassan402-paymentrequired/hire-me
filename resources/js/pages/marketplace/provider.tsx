@@ -627,7 +627,7 @@ export default function ProviderProfile({
                         <Link href={`/provider/${provider.slug}/gallery`}>
                             <Button variant="outline" className="h-11">
                                 <ImageIcon className="mr-2 h-4 w-4" />
-                                View Gallery
+                                View Gallery  
                             </Button>
                         </Link>
                         {canBookProvider ? (
@@ -888,15 +888,14 @@ export default function ProviderProfile({
                                 })}
                             </div>
 
-                            {provider.latitude && provider.longitude && (
-                                <Button
-                                    variant="outline"
-                                    className="mt-4 h-10 w-full sm:mt-6 sm:h-11"
-                                    onClick={getDirections}
-                                >
-                                    <Navigation className="mr-2 h-4 w-4" />
-                                    Get Directions
-                                </Button>
+                            {canBookProvider && (
+                                    <Link prefetch href={`/provider/${provider.slug}/book`}>
+                                        <Button className="h-11 px-6 w-full mt-2">
+                                            <Calendar className="mr-2 h-4 w-4" />
+                                            Book Appointment
+                                        </Button>
+                                    </Link>
+                                
                             )}
                         </div>
                     </aside>

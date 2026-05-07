@@ -27,7 +27,7 @@ const ReviewDrawal = ({ reviews }: { reviews: Review[] }) => {
             </SheetTrigger>
 
             <SheetContent className="sm:max-w-md">
-                <SheetHeader>
+                <SheetHeader className="pb-0">
                     <SheetTitle className="text-lg">
                         Customer Reviews
                     </SheetTitle>
@@ -37,7 +37,7 @@ const ReviewDrawal = ({ reviews }: { reviews: Review[] }) => {
                 </SheetHeader>
 
                 {/* CONTENT */}
-                <div className="mt-6 space-y-4">
+                <div className="mt-6 space-y-4 divide-y divide-border h-full overflow-y-auto">
                     {reviews.length === 0 ? (
                         <div className="flex flex-col items-center justify-center  p-8 text-center">
                             <MessageSquare className="mb-3 size-8 text-muted-foreground" />
@@ -52,7 +52,7 @@ const ReviewDrawal = ({ reviews }: { reviews: Review[] }) => {
                         reviews.map((review, index) => (
                             <div
                                 key={index}
-                                className="flex flex-col gap-3 rounded-lg bg-background p-5 shadow-sm"
+                                className="flex flex-col gap-3 bg-background p-5 "
                             >
                                 {/* Stars */}
                                 <div className="flex gap-0.5">
@@ -80,8 +80,8 @@ const ReviewDrawal = ({ reviews }: { reviews: Review[] }) => {
                                 </div>
 
                                 {/* Author */}
-                                <div className="text-sm text-muted-foreground">
-                                    — {review.client_name}
+                                <div className="text-sm text-muted-foreground flex items-center gap-2">
+                                  <span className='size-8 rounded-full bg-primary text-white flex items-center justify-center'>{review.client_name.charAt(0).toUpperCase()}</span>  — {review.client_name}
                                 </div>
                             </div>
                         ))

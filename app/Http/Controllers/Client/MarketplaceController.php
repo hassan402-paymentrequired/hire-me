@@ -409,6 +409,7 @@ class MarketplaceController extends Controller
                 'accept_offline_booking' => $settings['accept_offline_booking'] ?? false,
                 'offers_home_service' => $settings['offers_home_service'] ?? false,
             ],
+            'recurringDiscountPercent' => (float) config('booking.recurring_discount_percent', 10),
         ]);
     }
 

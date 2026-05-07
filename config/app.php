@@ -13,7 +13,18 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Laravel'),
+    'name' => env('APP_NAME', 'Proxideck'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Twitter handle
+    |--------------------------------------------------------------------------
+    |
+    | Used for Twitter/X card meta tags (without leading @ on env; HTML adds @).
+    |
+    */
+
+    'twitter_handle' => env('TWITTER_HANDLE', 'proxideck'),
 
     /*
     |--------------------------------------------------------------------------

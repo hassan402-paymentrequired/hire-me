@@ -29,8 +29,8 @@
         <meta name="twitter:title" content="{{ $twitterTitle ?? config('app.name') . ' - Smart Booking Management' }}">
         <meta name="twitter:description" content="{{ $twitterDescription ?? 'The easiest way to manage appointments and grow your service business.' }}">
         <meta name="twitter:image" content="{{ $twitterImage ?? asset('images/twitter-card.jpg') }}">
-        <meta name="twitter:site" content="@{{ config('app.twitter_handle', 'bookflow') }}">
-        <meta name="twitter:creator" content="@{{ config('app.twitter_handle', 'bookflow') }}">
+        <meta name="twitter:site" content="{{ '@' . ltrim((string) config('app.twitter_handle'), '@') }}">
+        <meta name="twitter:creator" content="{{ '@' . ltrim((string) config('app.twitter_handle'), '@') }}">
 
         {{-- Additional SEO --}}
         <meta name="theme-color" content="#3b82f6">
