@@ -18,6 +18,8 @@ import { NotesSection } from './booking/components/notes-section';
 import { PaymentSection } from './booking/components/payment-section';
 import { RecurrenceSection } from './booking/components/recurrence-section';
 import { ServicePicker } from './booking/components/service-picker';
+import { StepGate } from './booking/components/step-gate';
+import { StepHeading } from './booking/components/step-heading';
 import { StickyMobileCta } from './booking/components/sticky-mobile-cta';
 import { TeamMemberPicker } from './booking/components/team-member-picker';
 import { useBookingPricing } from './booking/hooks/use-booking-pricing';
@@ -85,15 +87,15 @@ export default function Booking({
         'Booking is unavailable for this provider.';
 
     // Read URL params once at mount so we don't have to re-sync via an effect.
+    // Note: We intentionally do not auto-pick the first service here — the user
+    // must explicitly choose a service, which keeps the slots query idle until
+    // a real selection exists (see plan: services-first slot fetch).
     const initialFromUrl = ((): {
         serviceIds: string[];
         rescheduleId: string | null;
     } => {
         if (typeof window === 'undefined') {
-            return {
-                serviceIds: services.length > 0 ? [services[0].id] : [],
-                rescheduleId: null,
-            };
+            return { serviceIds: [], rescheduleId: null };
         }
         const params = new URLSearchParams(window.location.search);
         const serviceIdParam = params.get('service');
@@ -109,10 +111,7 @@ export default function Booking({
         if (serviceIdParam && services.find((s) => s.id === serviceIdParam)) {
             return { serviceIds: [serviceIdParam], rescheduleId: resId };
         }
-        return {
-            serviceIds: services.length > 0 ? [services[0].id] : [],
-            rescheduleId: resId,
-        };
+        return { serviceIds: [], rescheduleId: resId };
     })();
 
     const [selectedDate, setSelectedDateInternal] = useState<Date>(new Date());
@@ -274,6 +273,10 @@ export default function Booking({
     const hasAnyAddressOption =
         addresses.hasSavedAddressOptions || addresses.hasBusinessAddressOption;
 
+    // Step gating: each later section is muted until its prerequisite is set.
+    const hasServices = selectedServiceIds.length > 0;
+    const hasDateTime = hasServices && Boolean(selectedSlot);
+
     return (
         <GuestLayout>
             <Head title={`Book with ${provider.businessName}`} />
@@ -343,11 +346,7 @@ export default function Booking({
 
             <div className="mx-auto min-h-screen max-w-6xl bg-background pb-32 lg:pb-20">
                 <div className="mx-auto max-w-7xl px-4 py-8">
-                    <BookingHeader
-                        provider={provider}
-                        selectedServiceCount={selectedServiceIds.length}
-                        paymentOption={paymentOption}
-                    />
+                    <BookingHeader provider={provider} />
 
                     <BookingPolicies
                         settings={providerSettings}
@@ -358,72 +357,148 @@ export default function Booking({
                         <BookingBlockedBanner reason={bookingBlockedReason} />
                     )}
 
-                    <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-3">
-                        <div className="space-y-12 lg:col-span-2">
-                            <Suspense
-                                fallback={
-                                    <div className="overflow-hidden rounded border bg-card">
-                                        <div className="grid grid-cols-1 gap-3 sm:h-[360px] md:grid-cols-2">
-                                            <Skeleton className="h-[340px] m-3" />
-                                            <Skeleton className="h-[340px] m-3" />
-                                        </div>
-                                    </div>
-                                }
-                            >
-                                <DateTimePicker
-                                    selectedDate={selectedDate}
-                                    onSelectedDateChange={setSelectedDate}
-                                    canBookProvider={canBookProvider}
-                                    providerSettings={providerSettings}
-                                    loading={slots.loading}
-                                    apiMessage={slots.apiMessage}
-                                    selectedSlot={selectedSlot}
-                                    onSelectedSlotChange={setSelectedSlot}
-                                    categorizedSlots={slots.categorizedSlots}
-                                    availableSlots={slots.availableSlots}
-                                    useCustomTime={useCustomTime}
-                                    onUseCustomTimeChange={setUseCustomTime}
-                                    customTime={customTime}
-                                    onCustomTimeChange={setCustomTime}
+                    <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-3">
+                        <div className="space-y-8 lg:col-span-2">
+                            <section className="space-y-4">
+                                <StepHeading
+                                    step={1}
+                                    title="Choose services"
+                                    description="Pick one or more services to book."
                                 />
-                            </Suspense>
+                                <ServicePicker
+                                    services={services}
+                                    selectedServiceIds={selectedServiceIds}
+                                    onToggleService={toggleService}
+                                    canBookProvider={canBookProvider}
+                                />
+                            </section>
 
-                            <ServicePicker
-                                services={services}
-                                selectedServiceIds={selectedServiceIds}
-                                onToggleService={toggleService}
-                                canBookProvider={canBookProvider}
-                            />
+                            {teamMembers.length > 0 && (
+                                <section className="space-y-4">
+                                    <StepHeading
+                                        step={2}
+                                        title="Choose who attends"
+                                        optional
+                                        description="Leave on the provider if you have no preference."
+                                    />
+                                    <StepGate
+                                        enabled={hasServices}
+                                        hint="Choose at least one service to continue."
+                                    >
+                                        <TeamMemberPicker
+                                            provider={provider}
+                                            teamMembers={teamMembers}
+                                            selectedTeamMemberId={selectedTeamMemberId}
+                                            onSelectedTeamMemberIdChange={(id) => {
+                                                setSelectedTeamMemberId(id);
+                                                setSelectedSlot('');
+                                            }}
+                                            canBookProvider={canBookProvider}
+                                        />
+                                    </StepGate>
+                                </section>
+                            )}
 
-                            <TeamMemberPicker
-                                provider={provider}
-                                teamMembers={teamMembers}
-                                selectedTeamMemberId={selectedTeamMemberId}
-                                onSelectedTeamMemberIdChange={(id) => {
-                                    setSelectedTeamMemberId(id);
-                                    setSelectedSlot('');
-                                }}
-                                canBookProvider={canBookProvider}
-                            />
+                            <section className="space-y-4">
+                                <StepHeading
+                                    step={teamMembers.length > 0 ? 3 : 2}
+                                    title="Pick date and time"
+                                    description={
+                                        hasServices
+                                            ? 'Available slots are based on the services you picked.'
+                                            : 'Choose a service first so we can show available slots.'
+                                    }
+                                />
+                                <StepGate
+                                    enabled={hasServices}
+                                    hint="Choose at least one service to load available slots."
+                                >
+                                    <Suspense
+                                        fallback={
+                                            <div className="overflow-hidden rounded-xl border bg-card">
+                                                <div className="grid grid-cols-1 gap-3 sm:h-[360px] md:grid-cols-2">
+                                                    <Skeleton className="m-3 h-[340px]" />
+                                                    <Skeleton className="m-3 h-[340px]" />
+                                                </div>
+                                            </div>
+                                        }
+                                    >
+                                        <DateTimePicker
+                                            selectedDate={selectedDate}
+                                            onSelectedDateChange={setSelectedDate}
+                                            canBookProvider={canBookProvider}
+                                            providerSettings={providerSettings}
+                                            loading={slots.loading}
+                                            apiMessage={slots.apiMessage}
+                                            selectedSlot={selectedSlot}
+                                            onSelectedSlotChange={setSelectedSlot}
+                                            categorizedSlots={slots.categorizedSlots}
+                                            availableSlots={slots.availableSlots}
+                                            useCustomTime={useCustomTime}
+                                            onUseCustomTimeChange={setUseCustomTime}
+                                            customTime={customTime}
+                                            onCustomTimeChange={setCustomTime}
+                                        />
+                                    </Suspense>
+                                </StepGate>
+                            </section>
 
-                            <NotesSection notes={notes} onNotesChange={setNotes} />
+                            <section className="space-y-4">
+                                <StepHeading
+                                    step={teamMembers.length > 0 ? 4 : 3}
+                                    title="Add notes"
+                                    optional
+                                    description="Anything the provider should know ahead of time."
+                                />
+                                <StepGate
+                                    enabled={hasDateTime}
+                                    hint="Pick a date and time to add notes."
+                                >
+                                    <NotesSection
+                                        notes={notes}
+                                        onNotesChange={setNotes}
+                                    />
+                                </StepGate>
+                            </section>
 
-                            <RecurrenceSection
-                                canBookProvider={canBookProvider}
-                                selectedDate={selectedDate}
-                                recurrencePattern={recurrencePattern}
-                                onRecurrencePatternChange={setRecurrencePattern}
-                                recurrenceEndDate={recurrenceEndDate}
-                                onRecurrenceEndDateChange={setRecurrenceEndDate}
-                                recurrenceCount={recurrenceCount}
-                                onRecurrenceCountChange={setRecurrenceCount}
-                                discountPercent={pricing.discountPercent || recurringDiscountPercent}
-                                discountAmount={pricing.discountAmount}
-                            />
+                            <section className="space-y-4">
+                                <StepHeading
+                                    step={teamMembers.length > 0 ? 5 : 4}
+                                    title="Make it recurring"
+                                    optional
+                                    description="Repeat this booking on a schedule and unlock a discount."
+                                />
+                                <StepGate
+                                    enabled={hasDateTime}
+                                    hint="Pick a date and time to set up recurrence."
+                                >
+                                    <RecurrenceSection
+                                        canBookProvider={canBookProvider}
+                                        selectedDate={selectedDate}
+                                        recurrencePattern={recurrencePattern}
+                                        onRecurrencePatternChange={
+                                            setRecurrencePattern
+                                        }
+                                        recurrenceEndDate={recurrenceEndDate}
+                                        onRecurrenceEndDateChange={
+                                            setRecurrenceEndDate
+                                        }
+                                        recurrenceCount={recurrenceCount}
+                                        onRecurrenceCountChange={
+                                            setRecurrenceCount
+                                        }
+                                        discountPercent={
+                                            pricing.discountPercent ||
+                                            recurringDiscountPercent
+                                        }
+                                        discountAmount={pricing.discountAmount}
+                                    />
+                                </StepGate>
+                            </section>
                         </div>
 
                         <div className="order-last lg:sticky lg:top-8 lg:order-last">
-                            <div className="flex flex-col overflow-hidden rounded-3xl border border-border/70 bg-card">
+                            <div className="flex flex-col overflow-hidden rounded-xl border border-border/70 bg-card">
                                 <BookingSummary
                                     provider={provider}
                                     selectedServices={pricing.selectedServices}

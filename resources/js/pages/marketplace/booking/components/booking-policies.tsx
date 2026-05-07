@@ -1,9 +1,9 @@
-import KeenIcon from '@/components/keen-icon';
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Info } from 'lucide-react';
 
 import type { ProviderSettings } from '../types';
 
@@ -93,12 +93,9 @@ export function BookingPolicies({
     }
 
     return (
-        <div className="mb-8 space-y-3">
-            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <KeenIcon
-                    name="information"
-                    className="text-sm text-muted-foreground"
-                />
+        <div className="mb-8 space-y-2">
+            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <Info className="size-3.5" />
                 Booking policies
             </div>
             <div className="flex flex-wrap gap-2">
@@ -107,12 +104,8 @@ export function BookingPolicies({
                         <TooltipTrigger asChild>
                             <button
                                 type="button"
-                                className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                                className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/30 px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                             >
-                                <KeenIcon
-                                    name="status"
-                                    className="text-[11px]"
-                                />
                                 {policy.label}
                             </button>
                         </TooltipTrigger>

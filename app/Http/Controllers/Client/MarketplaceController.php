@@ -306,7 +306,8 @@ class MarketplaceController extends Controller
         $provider = $businessProfile->user()
             ->with([
                 'services' => function ($query) {
-                    $query->where('status', 'active');
+                    $query->where('status', 'active')
+                        ->with('serviceCategory:id,name');
                 }
             ])
             ->firstOrFail();
@@ -384,6 +385,8 @@ class MarketplaceController extends Controller
                 'description' => $service->description,
                 'duration' => $service->duration_minutes,
                 'price' => $service->price,
+                'categoryId' => $service->service_category_id,
+                'categoryName' => $service->serviceCategory?->name,
             ]),
             'walletBalance' => $walletBalance,
             'clientAddresses' => $clientAddresses,

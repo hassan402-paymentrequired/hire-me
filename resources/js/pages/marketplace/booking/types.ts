@@ -13,6 +13,8 @@ export interface Service {
     description: string;
     duration: number;
     price: number;
+    categoryId?: string | null;
+    categoryName?: string | null;
 }
 
 export interface Provider {

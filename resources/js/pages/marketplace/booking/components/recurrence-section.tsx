@@ -38,17 +38,17 @@ export function RecurrenceSection({
     discountAmount,
 }: RecurrenceSectionProps) {
     return (
-        <div className="space-y-4 rounded-lg border border-border bg-muted/30 p-4">
-            <div className="flex items-center gap-2">
-                <Repeat className="size-5 text-primary" />
-                <h3 className="text-xl font-semibold tracking-tight">
-                    Make This Recurring
-                </h3>
+        <div className="space-y-4 rounded-xl border border-border bg-muted/30 p-4">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Repeat className="size-4 text-primary" />
+                <span>
+                    Book on a schedule and save{' '}
+                    <span className="font-semibold text-foreground">
+                        {discountPercent || '—'}%
+                    </span>{' '}
+                    on each booking.
+                </span>
             </div>
-            <p className="text-sm text-muted-foreground">
-                Book this appointment on a regular schedule and save{' '}
-                {discountPercent || '—'}% on each booking.
-            </p>
 
             <div className="space-y-4">
                 <div className="space-y-2">

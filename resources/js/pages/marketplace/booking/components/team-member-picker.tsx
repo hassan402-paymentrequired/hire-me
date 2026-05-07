@@ -40,15 +40,6 @@ export function TeamMemberPicker({
 
     return (
         <div className="space-y-3">
-            <div>
-                <h3 className="text-xl font-semibold tracking-tight">
-                    Choose who attends to you
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                    Optional. Leave this set to provider if you do not have a
-                    preference.
-                </p>
-            </div>
             <RadioGroup
                 value={selectedTeamMemberId || '__provider__'}
                 onValueChange={(value) => {

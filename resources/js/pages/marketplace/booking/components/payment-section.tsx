@@ -1,7 +1,6 @@
-import KeenIcon from '@/components/keen-icon';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, ShieldCheck } from 'lucide-react';
 
 import type { PaymentOption, ProviderSettings } from '../types';
 
@@ -54,9 +53,9 @@ export function PaymentSection({
         insufficientBalance;
 
     return (
-        <div className="space-y-5 px-5 pb-5">
+        <div className="space-y-5 border-t border-border/60 px-5 pt-5 pb-5">
             {(supportsOnlinePayment || supportsOfflineBooking) && (
-                <div className="space-y-3 rounded-2xl border border-border/70 bg-muted/20 p-4">
+                <div className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-4">
                     <div>
                         <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">
                             Payment option
@@ -88,10 +87,9 @@ export function PaymentSection({
                                             completion is confirmed.
                                         </p>
                                     </div>
-                                    <KeenIcon
-                                        name="verify"
+                                    <ShieldCheck
                                         className={cn(
-                                            'text-sm',
+                                            'size-4',
                                             paymentOption === 'online'
                                                 ? 'text-primary'
                                                 : 'text-muted-foreground/40',
@@ -122,10 +120,9 @@ export function PaymentSection({
                                             wallet now.
                                         </p>
                                     </div>
-                                    <KeenIcon
-                                        name="verify"
+                                    <ShieldCheck
                                         className={cn(
-                                            'text-sm',
+                                            'size-4',
                                             paymentOption === 'offline'
                                                 ? 'text-primary'
                                                 : 'text-muted-foreground/40',
@@ -141,7 +138,7 @@ export function PaymentSection({
             {paymentOption === 'online' &&
                 walletBalance !== null &&
                 walletBalance !== undefined && (
-                    <div className="rounded-2xl border border-border bg-muted/30 p-4">
+                    <div className="rounded-xl border border-border bg-muted/30 p-4">
                         <div className="mb-1 flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">
                                 Your Wallet Balance
@@ -186,7 +183,7 @@ export function PaymentSection({
                 </>
             )}
 
-            <div className="space-y-4 rounded-2xl border border-border/70 bg-background p-4">
+            <div className="space-y-4 rounded-xl border border-border/70 bg-background p-4">
                 <div className="flex items-center justify-between">
                     <span className="text-base">Total</span>
                     <div className="text-right">
