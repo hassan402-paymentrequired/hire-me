@@ -88,12 +88,16 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
     const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
     const [isLocating, setIsLocating] = useState(false);
     const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
+    const [mapPickedLabel, setMapPickedLabel] = useState<string | null>(null);
+    const [autocompleteResetKey, setAutocompleteResetKey] = useState(0);
 
     const advancedMarkerRef = useRef<any>(null);
     const advancedMarkerListenerRef = useRef<any>(null);
     const classicMarkerRef = useRef<google.maps.Marker | null>(null);
     const addressTypedRef = useRef(false);
     const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const reverseGeocodeSeqRef = useRef(0);
+    const reverseGeocodeResultRef = useRef<google.maps.GeocoderResult | null>(null);
 
     const isValidNgE164 = (phone: string) => /^\+234\d{10}$/.test(phone);
 
@@ -156,9 +160,13 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                     latitude: place.geometry?.location?.lat() ?? null,
                     longitude: place.geometry?.location?.lng() ?? null,
                 }));
+                setAddressDraft(place.formatted_address);
                 setGoogleResolved(true);
                 setShowFallbackHint(false);
                 setAddressMode('autocomplete');
+                // Force the new PlaceAutocompleteElement to remount with the
+                // resolved value (Web Components don't react to setData).
+                setAutocompleteResetKey((k) => k + 1);
                 return true;
             }
             return false;
@@ -199,6 +207,7 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                 latitude: lat,
                 longitude: lng,
             }));
+            setAddressDraft(formattedAddress);
             setGoogleResolved(true);
             setShowFallbackHint(false);
             setAddressMode('autocomplete');
@@ -352,7 +361,7 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
             }
             if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
         };
-    }, [isLoaded, onPlaceChanged, fillAddressFromNewPlace, scheduleFallbackHint]);
+    }, [isLoaded, onPlaceChanged, fillAddressFromNewPlace, scheduleFallbackHint, autocompleteResetKey]);
 
     // ─── Map Picker ───────────────────────────────────────────────────────────────
 
@@ -384,34 +393,88 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
         );
     };
 
-    const confirmMapLocation = async () => {
-        if (!markerPosition || !geocoderRef.current) return;
-        setIsReverseGeocoding(true);
-        geocoderRef.current.geocode({ location: markerPosition }, (results, status) => {
-            setIsReverseGeocoding(false);
-            if (status === 'OK' && results?.[0]) {
-                const place = results[0] as unknown as google.maps.places.PlaceResult;
-                place.formatted_address = results[0].formatted_address;
-                place.geometry = results[0].geometry as google.maps.places.PlaceResult['geometry'];
+    const applyMapPickResult = useCallback(
+        (result: google.maps.GeocoderResult | null, marker: { lat: number; lng: number }) => {
+            if (result) {
+                const place = result as unknown as google.maps.places.PlaceResult;
+                place.formatted_address = result.formatted_address;
+                place.geometry = result.geometry as google.maps.places.PlaceResult['geometry'];
                 fillAddressFromPlace(place);
                 setData((prev: typeof data) => ({
                     ...prev,
-                    latitude: markerPosition.lat,
-                    longitude: markerPosition.lng,
+                    latitude: marker.lat,
+                    longitude: marker.lng,
                 }));
             } else {
                 setData((prev: typeof data) => ({
                     ...prev,
-                    latitude: markerPosition.lat,
-                    longitude: markerPosition.lng,
+                    latitude: marker.lat,
+                    longitude: marker.lng,
                 }));
                 setAddressMode('manual');
             }
             setMapOpen(false);
             setShowFallbackHint(false);
             setGoogleResolved(true);
+        },
+        [fillAddressFromPlace, setData],
+    );
+
+    const confirmMapLocation = async () => {
+        if (!markerPosition) return;
+
+        // Prefer the result we already fetched while the user was placing
+        // the pin — saves a round-trip and keeps the visible label and the
+        // committed address consistent.
+        const cached = reverseGeocodeResultRef.current;
+        if (cached) {
+            applyMapPickResult(cached, markerPosition);
+            return;
+        }
+
+        if (!geocoderRef.current) {
+            applyMapPickResult(null, markerPosition);
+            return;
+        }
+
+        setIsReverseGeocoding(true);
+        geocoderRef.current.geocode({ location: markerPosition }, (results, status) => {
+            setIsReverseGeocoding(false);
+            applyMapPickResult(
+                status === 'OK' && results?.[0] ? results[0] : null,
+                markerPosition,
+            );
         });
     };
+
+    // Live reverse-geocode the pin while the modal is open so the user sees
+    // the actual address they're picking, not just lat/lng.
+    useEffect(() => {
+        if (!mapOpen) {
+            reverseGeocodeSeqRef.current++;
+            reverseGeocodeResultRef.current = null;
+            setMapPickedLabel(null);
+            return;
+        }
+        if (!markerPosition || !geocoderRef.current) {
+            reverseGeocodeResultRef.current = null;
+            setMapPickedLabel(null);
+            return;
+        }
+        const seq = ++reverseGeocodeSeqRef.current;
+        reverseGeocodeResultRef.current = null;
+        setMapPickedLabel(null);
+        geocoderRef.current.geocode({ location: markerPosition }, (results, status) => {
+            if (seq !== reverseGeocodeSeqRef.current) return;
+            if (status === 'OK' && results?.[0]) {
+                reverseGeocodeResultRef.current = results[0];
+                setMapPickedLabel(results[0].formatted_address || null);
+            } else {
+                reverseGeocodeResultRef.current = null;
+                setMapPickedLabel(null);
+            }
+        });
+    }, [mapOpen, markerPosition]);
 
     // ─── Advanced / classic marker sync ──────────────────────────────────────────
 
@@ -903,13 +966,24 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                         </button>
                     </div>
 
-                    <div className="flex items-center justify-between px-5 py-4 border-t bg-muted/30">
-                        <p className="text-xs text-muted-foreground">
-                            {markerPosition
-                                ? `📍 ${markerPosition.lat.toFixed(5)}, ${markerPosition.lng.toFixed(5)}`
-                                : 'No pin dropped yet — click the map to place one'}
-                        </p>
-                        <div className="flex items-center gap-2">
+                    <div className="flex items-end justify-between gap-3 px-5 py-4 border-t bg-muted/30">
+                        <div className="min-w-0 flex-1">
+                            {markerPosition ? (
+                                <>
+                                    <p className="text-sm font-medium text-foreground line-clamp-2">
+                                        {mapPickedLabel || 'Resolving address…'}
+                                    </p>
+                                    <p className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">
+                                        {markerPosition.lat.toFixed(5)}, {markerPosition.lng.toFixed(5)}
+                                    </p>
+                                </>
+                            ) : (
+                                <p className="text-xs text-muted-foreground">
+                                    No pin dropped yet — click the map to place one
+                                </p>
+                            )}
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
                             <Button type="button" variant="outline" size="sm" onClick={() => setMapOpen(false)}>
                                 Cancel
                             </Button>
