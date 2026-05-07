@@ -469,8 +469,22 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
             if (status === 'OK' && results?.[0]) {
                 reverseGeocodeResultRef.current = results[0];
                 setMapPickedLabel(results[0].formatted_address || null);
+                return;
+            }
+            reverseGeocodeResultRef.current = null;
+            // ZERO_RESULTS just means no nearby address — don't shout. Any
+            // other status (REQUEST_DENIED, OVER_QUERY_LIMIT, INVALID_REQUEST,
+            // ...) is almost always a misconfigured API key or the Geocoding
+            // API not being enabled, and silently failing makes that look
+            // like an autofill bug.
+            if (status !== 'ZERO_RESULTS') {
+                console.warn(
+                    '[BusinessProfile] Reverse geocoding failed:',
+                    status,
+                    '— make sure the Geocoding API is enabled for your Google Maps key.',
+                );
+                setMapPickedLabel("Couldn't resolve address — confirm to use coordinates only");
             } else {
-                reverseGeocodeResultRef.current = null;
                 setMapPickedLabel(null);
             }
         });
