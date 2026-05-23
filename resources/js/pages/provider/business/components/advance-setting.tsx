@@ -27,6 +27,10 @@ interface AdvancedSettingsProps {
         accept_online_payment?: boolean;
         accept_offline_booking?: boolean;
         offers_home_service?: boolean;
+        service_delivery_mode?:
+            | 'client_visits_provider'
+            | 'provider_visits_client'
+            | 'both';
         billing_model?: 'commission' | 'subscription';
         [key: string]: any;
     };
@@ -473,36 +477,70 @@ const AdvancedSettings = ({
                             name="geolocation-home"
                             className="text-sm text-primary"
                         />
-                        <span>Service Delivery</span>
+                        <span>Service delivery</span>
                     </h4>
                     <p className="-mt-3 text-xs text-muted-foreground">
-                        Choose whether clients can book appointments at their
-                        own location.
+                        Tell clients whether they visit you, you go to them, or
+                        both. This controls booking address requirements.
                     </p>
-                    <div className="flex items-start gap-3">
-                        <Checkbox
-                            id="offers_home_service"
-                            checked={settings?.offers_home_service ?? false}
-                            onCheckedChange={(checked) =>
-                                onSettingsChange(
-                                    'offers_home_service',
-                                    checked === true,
-                                )
-                            }
-                        />
-                        <div className="flex-1 space-y-1">
-                            <Label
-                                htmlFor="offers_home_service"
-                                className="cursor-pointer"
+                    <RadioGroup
+                        value={
+                            settings?.service_delivery_mode ??
+                            (settings?.offers_home_service
+                                ? 'provider_visits_client'
+                                : 'client_visits_provider')
+                        }
+                        onValueChange={(value) => {
+                            onSettingsChange('service_delivery_mode', value);
+                            onSettingsChange(
+                                'offers_home_service',
+                                value === 'provider_visits_client' ||
+                                    value === 'both',
+                            );
+                        }}
+                        className="space-y-3"
+                    >
+                        {[
+                            {
+                                value: 'client_visits_provider',
+                                title: 'Clients visit my location',
+                                description:
+                                    'Salon, barbershop, or studio — clients come to your address.',
+                            },
+                            {
+                                value: 'provider_visits_client',
+                                title: 'I go to the client',
+                                description:
+                                    'Mobile stylists, handymen, cleaners — clients must add their service address.',
+                            },
+                            {
+                                value: 'both',
+                                title: 'Both options',
+                                description:
+                                    'Clients choose to visit you or receive service at their address.',
+                            },
+                        ].map((option) => (
+                            <label
+                                key={option.value}
+                                htmlFor={`delivery-${option.value}`}
+                                className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/30"
                             >
-                                Offer home service
-                            </Label>
-                            <p className="text-xs text-muted-foreground">
-                                Clients will need to provide a service address
-                                when they book.
-                            </p>
-                        </div>
-                    </div>
+                                <RadioGroupItem
+                                    value={option.value}
+                                    id={`delivery-${option.value}`}
+                                    className="mt-0.5"
+                                />
+                                <div className="space-y-1">
+                                    <p className="text-sm font-medium text-foreground">
+                                        {option.title}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {option.description}
+                                    </p>
+                                </div>
+                            </label>
+                        ))}
+                    </RadioGroup>
                 </div>
             </div>
         </div>

@@ -2,6 +2,12 @@ import { gooeyToast as toast } from 'goey-toast';
 import axios from 'axios';
 import { useEffect, useMemo, useState } from 'react';
 
+import {
+    defaultAddressChoice,
+    type ServiceDeliveryMode,
+    VISIT_PROVIDER_CHOICE,
+} from '@/lib/service-delivery-mode';
+
 import type {
     AddressFormState,
     AddressSummary,
@@ -21,6 +27,7 @@ const EMPTY_FORM: AddressFormState = {
 interface UseClientAddressesArgs {
     initialClientAddresses: ClientAddressOption[];
     businessAddressOption?: BusinessAddressOption | null;
+    deliveryMode: ServiceDeliveryMode;
 }
 
 interface UseClientAddressesResult {
@@ -28,6 +35,7 @@ interface UseClientAddressesResult {
     selectedAddressChoice: string;
     setSelectedAddressChoice: (next: string) => void;
     selectedAddressSummary: AddressSummary | null;
+    visitProviderSummary: AddressSummary | null;
     addressForm: AddressFormState;
     setAddressForm: (next: AddressFormState) => void;
     resetAddressForm: () => void;
@@ -46,13 +54,14 @@ interface UseClientAddressesResult {
 export function useClientAddresses({
     initialClientAddresses,
     businessAddressOption,
+    deliveryMode,
 }: UseClientAddressesArgs): UseClientAddressesResult {
+    const activeClientId = initialClientAddresses.find((a) => a.is_active)?.id;
     const [clientAddresses, setClientAddresses] = useState<ClientAddressOption[]>(
         initialClientAddresses,
     );
     const [selectedAddressChoice, setSelectedAddressChoice] = useState<string>(
-        initialClientAddresses.find((address) => address.is_active)?.id ||
-            '__none__',
+        () => defaultAddressChoice(deliveryMode, activeClientId),
     );
     const [addressForm, setAddressForm] = useState<AddressFormState>(EMPTY_FORM);
     const [creatingAddress, setCreatingAddress] = useState(false);
@@ -154,6 +163,10 @@ export function useClientAddresses({
     };
 
     const selectedAddressSummary = useMemo<AddressSummary | null>(() => {
+        if (selectedAddressChoice === VISIT_PROVIDER_CHOICE) {
+            return null;
+        }
+
         if (selectedAddressChoice === '__business__' && businessAddressOption) {
             return {
                 label: businessAddressOption.label,
@@ -186,6 +199,7 @@ export function useClientAddresses({
         selectedAddressChoice,
         setSelectedAddressChoice,
         selectedAddressSummary,
+        visitProviderSummary: null,
         addressForm,
         setAddressForm,
         resetAddressForm,

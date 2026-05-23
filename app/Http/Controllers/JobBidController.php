@@ -6,8 +6,14 @@ use Illuminate\Http\Request;
 
 class JobBidController extends Controller
 {
+    protected function ensureJobBoardEnabled(): void
+    {
+        abort_unless(config('features.job_board', false), 404);
+    }
+
     public function store(\Illuminate\Http\Request $request, \App\Models\JobPost $jobPost)
     {
+        $this->ensureJobBoardEnabled();
         // Check if provider is verified (optional feature for later)
         if (!auth()->user()->hasProviderSetup()) {
             abort(403, 'Only providers can bid.');
@@ -29,6 +35,7 @@ class JobBidController extends Controller
 
     public function accept(\App\Models\JobBid $bid)
     {
+        $this->ensureJobBoardEnabled();
         $jobPost = $bid->jobPost;
 
         if (auth()->id() !== $jobPost->client_id) {

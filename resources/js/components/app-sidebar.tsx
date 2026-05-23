@@ -13,7 +13,9 @@ import {
 } from '@/components/ui/sidebar';
 import business, { dashboard } from '@/routes/business';
 import schedule from '@/routes/schedule';
-import { Link } from '@inertiajs/react';
+import { type SharedData } from '@/types';
+import { Link, usePage } from '@inertiajs/react';
+import { useMemo } from 'react';
 import AppLogo from './app-logo';
 import KeenIcon from './keen-icon';
 
@@ -30,88 +32,6 @@ const SettingsIcon = () => <KeenIcon name="setting" className="text-base" />;
 const IntegrationIcon = () => <KeenIcon name="technology-2" className="text-base" />;
 const MarketplaceIcon = () => <KeenIcon name="compass" className="text-base" />;
 
-const mainNavItems: any[] = [
-    {
-        name: 'Dashboard',
-        links: [
-            {
-                title: 'Dashboard',
-                href: dashboard(),
-                icon: DashboardIcon,
-            },
-        ],
-    },
-    {
-        name: 'Schedule',
-        links: [
-            {
-                title: 'Calender',
-                href: schedule.calender.index(),
-                icon: CalendarIcon,
-            },
-            {
-                title: 'Appointments',
-                href: schedule.appointments.index(),
-                icon: AppointmentIcon,
-            },
-        ],
-    },
-    {
-        name: 'Business',
-        links: [
-            {
-                title: 'Business hours',
-                href: business.hours(),
-                icon: BusinessHoursIcon,
-            },
-            {
-                title: 'Analytics',
-                href: business.analytics(),
-                icon: AnalyticsIcon,
-                isLocked: false,
-            },
-            {
-                title: 'Services',
-                href: business.services(),
-                icon: ServicesIcon,
-            },
-            {
-                title: 'Gallery',
-                href: business.gallery.index(),
-                icon: GalleryIcon,
-                isLocked: false,
-            },
-            {
-                title: 'Team Members',
-                href: business.team.index(),
-                icon: TeamIcon,
-                isLocked: false,
-            },
-            {
-                title: 'Wallet',
-                href: '/wallet/withdraw',
-                icon: WalletIcon,
-            },
-            {
-                title: 'Business Settings',
-                href: business.settings(),
-                icon: SettingsIcon,
-            },
-        ],
-    },
-    {
-        name: 'Integration',
-        links: [
-            {
-                title: 'Booking Widget',
-                href: business.integration.index(),
-                icon: IntegrationIcon,
-                isLocked: true,
-            },
-        ],
-    },
-];
-
 const footerNavItems: any[] = [
     {
         title: 'Go to marketplace',
@@ -121,6 +41,94 @@ const footerNavItems: any[] = [
 ];
 
 export function AppSidebar() {
+    const { features } = usePage<SharedData>().props;
+    const providerWidgetEnabled = features?.provider_widget ?? false;
+
+    const mainNavItems: any[] = useMemo(
+        () => [
+            {
+                name: 'Dashboard',
+                links: [
+                    {
+                        title: 'Dashboard',
+                        href: dashboard(),
+                        icon: DashboardIcon,
+                    },
+                ],
+            },
+            {
+                name: 'Schedule',
+                links: [
+                    {
+                        title: 'Calender',
+                        href: schedule.calender.index(),
+                        icon: CalendarIcon,
+                    },
+                    {
+                        title: 'Appointments',
+                        href: schedule.appointments.index(),
+                        icon: AppointmentIcon,
+                    },
+                ],
+            },
+            {
+                name: 'Business',
+                links: [
+                    {
+                        title: 'Business hours',
+                        href: business.hours(),
+                        icon: BusinessHoursIcon,
+                    },
+                    {
+                        title: 'Analytics',
+                        href: business.analytics(),
+                        icon: AnalyticsIcon,
+                        isLocked: false,
+                    },
+                    {
+                        title: 'Services',
+                        href: business.services(),
+                        icon: ServicesIcon,
+                    },
+                    {
+                        title: 'Gallery',
+                        href: business.gallery.index(),
+                        icon: GalleryIcon,
+                        isLocked: false,
+                    },
+                    {
+                        title: 'Team Members',
+                        href: business.team.index(),
+                        icon: TeamIcon,
+                        isLocked: false,
+                    },
+                    {
+                        title: 'Wallet',
+                        href: '/wallet/withdraw',
+                        icon: WalletIcon,
+                    },
+                    {
+                        title: 'Business Settings',
+                        href: business.settings(),
+                        icon: SettingsIcon,
+                    },
+                ],
+            },
+            {
+                name: 'Integration',
+                links: [
+                    {
+                        title: 'Booking Widget',
+                        href: business.integration.index(),
+                        icon: IntegrationIcon,
+                        isLocked: !providerWidgetEnabled,
+                    },
+                ],
+            },
+        ],
+        [providerWidgetEnabled],
+    );
+
     return (
         <Sidebar collapsible="icon" variant="sidebar">
             <SidebarHeader>

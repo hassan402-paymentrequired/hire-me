@@ -10,6 +10,8 @@ class IntegrationController extends Controller
 {
     public function index()
     {
+        abort_unless(config('features.provider_widget', false), 404);
+
         $user = auth()->user();
         
         $profile = BusinessProfile::where('user_id', $user->id)->first();

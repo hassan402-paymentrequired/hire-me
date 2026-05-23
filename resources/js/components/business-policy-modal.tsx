@@ -1,6 +1,7 @@
 import React from 'react';
 import { useForm, usePage } from '@inertiajs/react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
     Tooltip,
     TooltipContent,
@@ -21,6 +22,10 @@ const defaultBusinessSettings = {
     accept_online_payment: true,
     accept_offline_booking: false,
     offers_home_service: false,
+    service_delivery_mode: 'client_visits_provider' as
+        | 'client_visits_provider'
+        | 'provider_visits_client'
+        | 'both',
     billing_model: 'commission',
 };
 
@@ -57,6 +62,23 @@ export default function BusinessPolicyModal() {
             billing_model: value,
         });
     };
+
+    const setDeliveryMode = (
+        value: 'client_visits_provider' | 'provider_visits_client' | 'both',
+    ) => {
+        form.setData('settings', {
+            ...form.data.settings,
+            service_delivery_mode: value,
+            offers_home_service:
+                value === 'provider_visits_client' || value === 'both',
+        });
+    };
+
+    const deliveryMode =
+        form.data.settings.service_delivery_mode ??
+        (form.data.settings.offers_home_service
+            ? 'provider_visits_client'
+            : 'client_visits_provider');
 
     return (
         <Dialog open={true} >
@@ -166,15 +188,64 @@ export default function BusinessPolicyModal() {
                                 <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-4">
                                     Service delivery
                                 </p>
-                                <div className="space-y-0 divide-y divide-border/40">
-                                    <ToggleRow
-                                        label="Offer home service"
-                                        description="Clients can expect you to travel to their location for appointments"
-                                        tooltip="This tells clients that your business can deliver services at their home, office, or another client-provided location instead of only at your business address."
-                                        enabled={form.data.settings.offers_home_service}
-                                        onChange={() => toggleSetting('offers_home_service')}
-                                    />
-                                </div>
+                                <p className="mb-4 text-sm text-muted-foreground">
+                                    Tell clients whether they visit you, you go
+                                    to them, or both. This controls booking
+                                    address requirements.
+                                </p>
+                                <RadioGroup
+                                    value={deliveryMode}
+                                    onValueChange={(value) =>
+                                        setDeliveryMode(
+                                            value as
+                                                | 'client_visits_provider'
+                                                | 'provider_visits_client'
+                                                | 'both',
+                                        )
+                                    }
+                                    className="space-y-3"
+                                >
+                                    {[
+                                        {
+                                            value: 'client_visits_provider',
+                                            title: 'Clients visit my location',
+                                            description:
+                                                'Salon, barbershop, or studio — clients come to your address.',
+                                        },
+                                        {
+                                            value: 'provider_visits_client',
+                                            title: 'I go to the client',
+                                            description:
+                                                'Mobile stylists, handymen, cleaners — clients must add their service address.',
+                                        },
+                                        {
+                                            value: 'both',
+                                            title: 'Both options',
+                                            description:
+                                                'Clients choose to visit you or receive service at their address.',
+                                        },
+                                    ].map((option) => (
+                                        <label
+                                            key={option.value}
+                                            htmlFor={`policy-delivery-${option.value}`}
+                                            className="flex cursor-pointer items-start gap-3 rounded-xl border border-border/60 p-4 transition-colors hover:bg-muted/20"
+                                        >
+                                            <RadioGroupItem
+                                                value={option.value}
+                                                id={`policy-delivery-${option.value}`}
+                                                className="mt-0.5"
+                                            />
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-medium text-foreground">
+                                                    {option.title}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {option.description}
+                                                </p>
+                                            </div>
+                                        </label>
+                                    ))}
+                                </RadioGroup>
                             </div>
                         </div>
 

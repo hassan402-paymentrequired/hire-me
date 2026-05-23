@@ -37,6 +37,7 @@ export interface NavItem {
         href: NonNullable<InertiaLinkProps['href']>;
         icon?: AppIcon | null;
         isActive?: boolean;
+        isLocked?: boolean;
     }>
 }
 
@@ -47,6 +48,8 @@ export interface SharedData {
     sidebarOpen: boolean;
     features?: {
         subscriptions?: boolean;
+        job_board?: boolean;
+        provider_widget?: boolean;
     };
     [key: string]: unknown;
 }

@@ -10,8 +10,14 @@ use Illuminate\Support\Facades\Auth;
 
 class JobPostController extends Controller
 {
+    protected function ensureJobBoardEnabled(): void
+    {
+        abort_unless(config('features.job_board', false), 404);
+    }
+
     public function store(Request $request)
     {
+        $this->ensureJobBoardEnabled();
         $validated = $request->validate([
             'category' => 'required|string',
             'title' => 'required|string|max:255',
@@ -41,12 +47,14 @@ class JobPostController extends Controller
 
     public function create()
     {
+        $this->ensureJobBoardEnabled();
         $categories = \App\Models\Category::all();
         return Inertia::render('client/jobs/post', ['categories' => $categories]);
     }
 
     public function clientIndex()
     {
+        $this->ensureJobBoardEnabled();
         $jobs = \App\Models\JobPost::query()->where('client_id', Auth::id())
             ->with([
                 'bids' => function ($query) {
@@ -62,6 +70,7 @@ class JobPostController extends Controller
 
     public function providerBoard(\Illuminate\Http\Request $request)
     {
+        $this->ensureJobBoardEnabled();
         $user = Auth::user();
         $profile = $user->businessProfile;
 

@@ -16,6 +16,7 @@ interface ServiceModalProps {
     providerSlug: string;
     canBook?: boolean;
     bookingBlockedReason?: string | null;
+    bookingCtaLabel?: string;
     onClose: () => void;
 }
 
@@ -24,6 +25,7 @@ export default function ServiceModal({
     providerSlug,
     canBook = true,
     bookingBlockedReason,
+    bookingCtaLabel = 'Book now',
     onClose,
 }: ServiceModalProps) {
     if (!service) return null;
@@ -158,7 +160,7 @@ export default function ServiceModal({
                         >
                             <Button className="h-11 w-full font-bold shadow-md transition-all hover:scale-[1.02] hover:shadow-lg">
                                 <Calendar className="mr-2 h-4 w-4" />
-                                Book Now
+                                {bookingCtaLabel}
                             </Button>
                         </Link>
                     ) : (

@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Carbon\Carbon;
 use App\Support\ProviderSettings;
+use App\Support\ServiceDeliveryMode;
 
 class MarketplaceController extends Controller
 {
@@ -126,6 +127,8 @@ class MarketplaceController extends Controller
         $canReview = false;
         $isFavourite = false;
         $bookingEligibility = $this->bookingEligibilityForProvider($provider);
+        $deliverySettings = ProviderSettings::resolve($businessProfile->settings ?? []);
+        $serviceDeliveryMode = ServiceDeliveryMode::resolve($deliverySettings);
 
         if (auth()->check()) {
             $canReview = Appointment::where('client_id', auth()->id())
@@ -297,6 +300,9 @@ class MarketplaceController extends Controller
                 'total_service_hours' => round($totalServiceHours, 1),
                 'canBook' => $bookingEligibility['canBook'],
                 'bookingBlockedReason' => $bookingEligibility['bookingBlockedReason'],
+                'serviceDeliveryMode' => $serviceDeliveryMode,
+                'deliveryModeLabel' => ServiceDeliveryMode::clientLocationLabel($serviceDeliveryMode),
+                'bookingCtaLabel' => ServiceDeliveryMode::bookingCtaLabel($serviceDeliveryMode),
             ],
             'services' => $provider->services->map(fn ($service) => [
                 'id' => $service->id,
@@ -374,8 +380,8 @@ class MarketplaceController extends Controller
             ];
         }
 
-        // Get provider settings
         $settings = ProviderSettings::resolve($businessProfile->settings ?? []);
+        $serviceDeliveryMode = ServiceDeliveryMode::resolve($settings);
         $teamMembers = TeamMember::query()
             ->where('provider_id', $provider->id)
             ->where('is_active', true)
@@ -402,8 +408,10 @@ class MarketplaceController extends Controller
                     : null,
                 'canBook' => $bookingEligibility['canBook'],
                 'bookingBlockedReason' => $bookingEligibility['bookingBlockedReason'],
+                'serviceDeliveryMode' => $serviceDeliveryMode,
+                'deliveryModeLabel' => ServiceDeliveryMode::clientLocationLabel($serviceDeliveryMode),
             ],
-            'services' => $provider->services->map(fn($service) => [
+            'service' => [
                 'id' => $service->id,
                 'name' => $service->name,
                 'description' => $service->description,
@@ -411,7 +419,7 @@ class MarketplaceController extends Controller
                 'price' => $service->price,
                 'categoryId' => $service->service_category_id,
                 'categoryName' => $service->serviceCategory?->name,
-            ]),
+            ],
             'walletBalance' => $walletBalance,
             'clientAddresses' => $clientAddresses,
             'businessAddressOption' => $businessAddressOption,
@@ -435,6 +443,7 @@ class MarketplaceController extends Controller
                 'accept_online_payment' => $settings['accept_online_payment'] ?? true,
                 'accept_offline_booking' => $settings['accept_offline_booking'] ?? false,
                 'offers_home_service' => $settings['offers_home_service'] ?? false,
+                'service_delivery_mode' => $serviceDeliveryMode,
             ],
             'recurringDiscountPercent' => (float) config('booking.recurring_discount_percent', 10),
         ]);

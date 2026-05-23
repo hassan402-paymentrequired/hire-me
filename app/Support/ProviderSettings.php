@@ -52,7 +52,12 @@ class ProviderSettings
             $settings['accept_online_payment'] = true;
         }
 
-        return $settings;
+        $mode = $settings['service_delivery_mode'] ?? null;
+        if (! in_array($mode, ServiceDeliveryMode::allowed(), true)) {
+            unset($settings['service_delivery_mode']);
+        }
+
+        return ServiceDeliveryMode::sync($settings);
     }
 
     public static function ensurePersisted(BusinessProfile $profile): void

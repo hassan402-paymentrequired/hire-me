@@ -27,6 +27,11 @@ export interface Provider {
     isVerified?: boolean;
     canBook?: boolean;
     bookingBlockedReason?: string | null;
+    serviceDeliveryMode?:
+        | 'client_visits_provider'
+        | 'provider_visits_client'
+        | 'both';
+    deliveryModeLabel?: string;
 }
 
 export interface TeamMember {
@@ -54,6 +59,11 @@ export interface ProviderSettings {
     max_bookings_per_month: string | number | null;
     accept_online_payment?: boolean;
     accept_offline_booking?: boolean;
+    offers_home_service?: boolean;
+    service_delivery_mode?:
+        | 'client_visits_provider'
+        | 'provider_visits_client'
+        | 'both';
 }
 
 export interface AddressFormState {

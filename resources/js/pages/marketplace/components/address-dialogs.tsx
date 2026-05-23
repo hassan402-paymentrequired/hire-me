@@ -10,6 +10,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
+import {
+    allowsHomeService,
+    allowsVisitProvider,
+    normalizeDeliveryMode,
+    requiresClientServiceAddress,
+    type ServiceDeliveryMode,
+    VISIT_PROVIDER_CHOICE,
+} from '@/lib/service-delivery-mode';
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 import { Building2, Check, LocateFixed, MapPin, MapPinned, Plus } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -64,6 +72,13 @@ interface AddressDialogsProps {
     setAsActive: boolean;
     onSetAsActiveChange: (next: boolean) => void;
     onContinue: () => void;
+    deliveryMode?: ServiceDeliveryMode;
+    providerVisitOption?: {
+        label: string;
+        address: string;
+        city?: string | null;
+        state?: string | null;
+    } | null;
 }
 
 export default function AddressDialogs({
@@ -82,8 +97,16 @@ export default function AddressDialogs({
     setAsActive,
     onSetAsActiveChange,
     onContinue,
+    deliveryMode: deliveryModeProp,
+    providerVisitOption,
 }: AddressDialogsProps) {
     const hasBusinessAddressOption = Boolean(businessAddressOption?.address);
+    const deliveryMode = deliveryModeProp ?? 'client_visits_provider';
+    const showClientAddresses = allowsHomeService(deliveryMode);
+    const showVisitProvider =
+        allowsVisitProvider(deliveryMode) && Boolean(providerVisitOption?.address);
+    const showSkipOption =
+        deliveryMode === 'both' && !requiresClientServiceAddress(deliveryMode);
     const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
     // useJsApiLoader is idempotent — won't re-inject the script on remount
@@ -368,10 +391,14 @@ export default function AddressDialogs({
                             </div>
                             <div>
                                 <DialogTitle className="text-base font-semibold leading-tight">
-                                    Select a booking address
+                                    {requiresClientServiceAddress(deliveryMode)
+                                        ? 'Where should we send the professional?'
+                                        : 'Where will the service happen?'}
                                 </DialogTitle>
                                 <DialogDescription className="mt-0.5 text-xs text-muted-foreground">
-                                    Choose a saved address or continue without one.
+                                    {requiresClientServiceAddress(deliveryMode)
+                                        ? 'Add your service address so they know where to come.'
+                                        : 'Choose your address or visit the provider.'}
                                 </DialogDescription>
                             </div>
                         </div>
@@ -380,7 +407,61 @@ export default function AddressDialogs({
                     {/* Address list */}
                     <div className="max-h-[420px] overflow-y-auto px-6 py-5">
                         <div className="space-y-2.5">
-                            {clientAddresses.map((address) => {
+                            {showVisitProvider &&
+                                providerVisitOption &&
+                                (() => {
+                                    const isSelected =
+                                        selectedAddressChoice === VISIT_PROVIDER_CHOICE;
+                                    return (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                onSelectedAddressChoiceChange(
+                                                    VISIT_PROVIDER_CHOICE,
+                                                )
+                                            }
+                                            className={cn(
+                                                'group relative w-full rounded-xl border p-4 text-left transition-all duration-150',
+                                                isSelected
+                                                    ? 'border-primary bg-primary/5 shadow-sm'
+                                                    : 'border-border bg-background hover:border-primary/40 hover:bg-muted/30',
+                                            )}
+                                        >
+                                            <div className="flex items-start gap-3">
+                                                <div
+                                                    className={cn(
+                                                        'mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition-colors',
+                                                        isSelected
+                                                            ? 'border-primary bg-primary text-primary-foreground'
+                                                            : 'border-border bg-muted text-muted-foreground',
+                                                    )}
+                                                >
+                                                    {isSelected ? (
+                                                        <Check className="h-3.5 w-3.5" />
+                                                    ) : (
+                                                        <Building2 className="h-3 w-3" />
+                                                    )}
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <span className="text-sm font-semibold text-foreground">
+                                                            Visit {providerVisitOption.label}
+                                                        </span>
+                                                        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                                                            At their location
+                                                        </span>
+                                                    </div>
+                                                    <p className="mt-1 text-sm leading-snug text-foreground/80">
+                                                        {providerVisitOption.address}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </button>
+                                    );
+                                })()}
+
+                            {showClientAddresses &&
+                            clientAddresses.map((address) => {
                                 const isSelected = selectedAddressChoice === address.id;
                                 return (
                                     <button
@@ -431,7 +512,8 @@ export default function AddressDialogs({
                                 );
                             })}
 
-                            {hasBusinessAddressOption &&
+                            {showClientAddresses &&
+                            hasBusinessAddressOption &&
                                 businessAddressOption &&
                                 (() => {
                                     const isSelected = selectedAddressChoice === '__business__';
@@ -483,8 +565,9 @@ export default function AddressDialogs({
                                     );
                                 })()}
 
-                            {/* No address option */}
-                            {(() => {
+                            {/* No address option — only when both modes allowed */}
+                            {showSkipOption &&
+                            (() => {
                                 const isSelected = selectedAddressChoice === '__none__';
                                 return (
                                     <button
@@ -510,10 +593,10 @@ export default function AddressDialogs({
                                             </div>
                                             <div>
                                                 <p className="text-sm font-semibold text-foreground">
-                                                    Continue without address
+                                                    Decide later
                                                 </p>
                                                 <p className="mt-0.5 text-xs text-muted-foreground">
-                                                    You can still complete this booking without a location.
+                                                    You can confirm the location with the provider after booking.
                                                 </p>
                                             </div>
                                         </div>

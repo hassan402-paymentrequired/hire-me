@@ -1,13 +1,12 @@
 import { Button } from '@/components/ui/button';
 import { ArrowDownIcon } from '@heroicons/react/24/solid';
 import { Link } from '@inertiajs/react';
-import { ArrowUpRight, Star, TrendingUp, Users, Zap } from 'lucide-react';
+import { ArrowUpRight, ShieldCheck } from 'lucide-react';
 
-const STATS = [
-    { icon: Users, label: 'Verified providers', value: '2,000+' },
-    { icon: Star, label: 'Reviews collected', value: '18,400+' },
-    { icon: TrendingUp, label: 'Bookings this month', value: '3,200+' },
-    { icon: Zap, label: 'Avg. response time', value: '< 2 hrs' },
+const TRUST_PILLARS = [
+    'Escrow-protected payments',
+    'Verified providers',
+    'Dispute support',
 ];
 
 export default function Landing() {
@@ -47,7 +46,7 @@ export default function Landing() {
                                             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500/70" />
                                             <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-600" />
                                         </span>
-                                        trusted local booking
+                                        early access in Lagos
                                     </div>
 
                                     <h1 className="mx-auto max-w-4xl text-5xl font-semibold tracking-[-0.06em] text-balance text-gray-950 xl:text-7xl">
@@ -83,21 +82,28 @@ export default function Landing() {
                                     </Button>
                                 </div>
 
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-center gap-1.5 text-amber-400">
-                                        {[...Array(5)].map((_, index) => (
-                                            <Star
-                                                key={index}
-                                                className="h-4 w-4 fill-current"
-                                            />
+                                <div className="space-y-3">
+                                    <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-sm text-gray-600">
+                                        {TRUST_PILLARS.map((pillar, index) => (
+                                            <span
+                                                key={pillar}
+                                                className="inline-flex items-center gap-3"
+                                            >
+                                                {index > 0 && (
+                                                    <span
+                                                        aria-hidden
+                                                        className="text-gray-300"
+                                                    >
+                                                        ·
+                                                    </span>
+                                                )}
+                                                {pillar}
+                                            </span>
                                         ))}
-                                        <span className="ml-2 text-base font-semibold text-gray-900">
-                                            4.9
-                                        </span>
                                     </div>
                                     <p className="text-sm text-gray-500">
-                                        Trusted by clients booking beauty,
-                                        repairs, wellness, and home services.
+                                        Beauty, repairs, wellness, and home
+                                        services — book at their place or yours.
                                     </p>
                                 </div>
                             </div>
@@ -116,12 +122,12 @@ export default function Landing() {
 
                             <div className="self-start justify-self-end xl:translate-x-4">
                                 <div className="flex min-h-[220px] w-[200px] flex-col justify-end rounded-[2rem] bg-emerald-950 p-8 text-left text-white shadow-[0_32px_70px_-44px_rgba(6,78,59,0.68)]">
-                                    <p className="text-4xl font-semibold tracking-[-0.05em]">
-                                        100+
+                                    <p className="text-2xl font-semibold tracking-[-0.05em]">
+                                        Early access
                                     </p>
                                     <p className="mt-3 max-w-[11rem] text-sm leading-7 text-white/75">
-                                        service categories clients search every
-                                        week
+                                        Salons, barbers, and mobile pros are
+                                        onboarding in Lagos first.
                                     </p>
                                 </div>
                             </div>
@@ -130,22 +136,22 @@ export default function Landing() {
                                 <div className="flex min-h-[220px] w-[235px] flex-col justify-between rounded-[2rem] bg-white p-7 text-left shadow-[0_22px_50px_-34px_rgba(17,24,39,0.18)] ring-1 ring-black/6">
                                     <div className="flex items-center justify-between">
                                         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100">
-                                            <ArrowUpRight className="h-4 w-4 text-emerald-950" />
+                                            <ShieldCheck className="h-4 w-4 text-emerald-950" />
                                         </div>
                                         <span className="text-xs font-medium text-emerald-700">
-                                            live
+                                            v1
                                         </span>
                                     </div>
                                     <div>
                                         <p className="text-sm text-gray-500">
-                                            Searches this month
+                                            Payments held in escrow
                                         </p>
-                                        <p className="mt-2 text-4xl font-semibold tracking-[-0.05em] text-gray-950">
-                                            1,951+
+                                        <p className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-gray-950">
+                                            Pay when you&apos;re satisfied
                                         </p>
                                         <p className="mt-2 text-sm text-gray-500">
-                                            More clients are discovering local
-                                            providers on proxideck.
+                                            Funds release after you confirm the
+                                            job is done.
                                         </p>
                                     </div>
                                 </div>
@@ -159,7 +165,7 @@ export default function Landing() {
                                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500/70" />
                                         <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-600" />
                                     </span>
-                                    trusted local booking
+                                    early access in Lagos
                                 </div>
 
                                 <h1 className="mx-auto max-w-4xl text-5xl font-semibold tracking-[-0.06em] text-balance text-gray-950 sm:text-6xl xl:text-7xl">
@@ -194,21 +200,28 @@ export default function Landing() {
                                 </Button>
                             </div>
 
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-center gap-1.5 text-amber-400">
-                                    {[...Array(5)].map((_, index) => (
-                                        <Star
-                                            key={index}
-                                            className="h-4 w-4 fill-current"
-                                        />
+                            <div className="space-y-3">
+                                <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-sm text-gray-600">
+                                    {TRUST_PILLARS.map((pillar, index) => (
+                                        <span
+                                            key={pillar}
+                                            className="inline-flex items-center gap-3"
+                                        >
+                                            {index > 0 && (
+                                                <span
+                                                    aria-hidden
+                                                    className="text-gray-300"
+                                                >
+                                                    ·
+                                                </span>
+                                            )}
+                                            {pillar}
+                                        </span>
                                     ))}
-                                    <span className="ml-2 text-base font-semibold text-gray-900">
-                                        4.9
-                                    </span>
                                 </div>
                                 <p className="text-sm text-gray-500">
-                                    Trusted by clients booking beauty, repairs,
-                                    wellness, and home services.
+                                    Beauty, repairs, wellness, and home services
+                                    — book at their place or yours.
                                 </p>
                             </div>
                         </div>
@@ -225,33 +238,34 @@ export default function Landing() {
                             </div>
 
                             <div className="flex min-h-[220px] flex-col justify-end rounded-[2rem] bg-emerald-950 p-8 text-left text-white">
-                                <p className="text-4xl font-semibold tracking-[-0.05em]">
-                                    100+
+                                <p className="text-2xl font-semibold tracking-[-0.05em]">
+                                    Early access
                                 </p>
                                 <p className="mt-3 max-w-[12rem] text-sm leading-7 text-white/75">
-                                    service categories clients search every week
+                                    Salons, barbers, and mobile pros are
+                                    onboarding in Lagos first.
                                 </p>
                             </div>
 
                             <div className="flex min-h-[220px] flex-col justify-between rounded-[2rem] bg-white p-7 text-left shadow-[0_22px_50px_-34px_rgba(17,24,39,0.22)] ring-1 ring-black/5">
                                 <div className="flex items-center justify-between">
                                     <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100">
-                                        <ArrowUpRight className="h-4 w-4 text-emerald-950" />
+                                        <ShieldCheck className="h-4 w-4 text-emerald-950" />
                                     </div>
                                     <span className="text-xs font-medium text-emerald-700">
-                                        live
+                                        v1
                                     </span>
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-500">
-                                        Searches this month
+                                        Payments held in escrow
                                     </p>
-                                    <p className="mt-2 text-4xl font-semibold tracking-[-0.05em] text-gray-950">
-                                        1,951+
+                                    <p className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-gray-950">
+                                        Pay when you&apos;re satisfied
                                     </p>
                                     <p className="mt-2 text-sm text-gray-500">
-                                        More clients are discovering local
-                                        providers on proxideck.
+                                        Funds release after you confirm the job
+                                        is done.
                                     </p>
                                 </div>
                             </div>

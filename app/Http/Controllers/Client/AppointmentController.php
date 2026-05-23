@@ -26,6 +26,7 @@ use App\Mail\AppointmentCancelledMail;
 use App\Mail\AppointmentCompletedMail;
 use App\Notifications\NewAppoinmentBookedNotification;
 use App\Support\ProviderSettings;
+use App\Support\ServiceDeliveryMode;
 
 class AppointmentController extends Controller
 {
@@ -109,8 +110,12 @@ class AppointmentController extends Controller
             ]);
         }
 
-        $settings = $provider->businessProfile->settings ?? [];
+        $settings = ProviderSettings::resolve($provider->businessProfile->settings ?? []);
         $providerBufferTimeMinutes = (int) ($settings['bufferTime'] ?? 0);
+
+        if ($response = $this->validateServiceLocationForBooking($request, $settings)) {
+            return $response;
+        }
 
         $services = Service::whereIn('id', $request->service_ids)->get();
 
@@ -200,9 +205,7 @@ class AppointmentController extends Controller
                 'provider_approved_at' => $autoConfirm ? now() : null,
                 ...$this->resolveAppointmentServiceAddressData(
                     auth_user(),
-                    $request->input('client_address_id'),
-                    $request->boolean('use_business_address'),
-                    $request->boolean('set_address_active'),
+                    ...$this->serviceAddressInputsForBooking($request, $settings),
                 ),
             ]);
             $appointment->services()->sync($request->service_ids);
@@ -339,6 +342,11 @@ class AppointmentController extends Controller
         }
 
         $settings = ProviderSettings::resolve($provider->businessProfile->settings ?? []);
+
+        if ($response = $this->validateServiceLocationForBooking($request, $settings)) {
+            return $response;
+        }
+
         $maxPerWeek = $settings['max_bookings_per_week'] ?? null;
         $maxPerMonth = $settings['max_bookings_per_month'] ?? null;
         $maxDaily = $settings['maxDaily'] ?? null;
@@ -489,9 +497,7 @@ class AppointmentController extends Controller
                 'provider_approved_at' => $autoConfirm ? now() : null,
                 ...$this->resolveAppointmentServiceAddressData(
                     $client,
-                    $request->input('client_address_id'),
-                    $request->boolean('use_business_address'),
-                    $request->boolean('set_address_active'),
+                    ...$this->serviceAddressInputsForBooking($request, $settings),
                 ),
             ];
 
@@ -1264,5 +1270,33 @@ class AppointmentController extends Controller
             'email' => $member->user?->email,
             'role' => $member->role,
         ])->values()->all();
+    }
+
+    protected function validateServiceLocationForBooking(Request $request, array $settings): ?\Illuminate\Http\RedirectResponse
+    {
+        $mode = ServiceDeliveryMode::resolve($settings);
+
+        if (ServiceDeliveryMode::requiresClientServiceAddress($mode) && ! $request->filled('client_address_id')) {
+            return back()->withErrors([
+                'client_address_id' => 'Please add your service address so the professional knows where to come.',
+            ])->with('error-toast', 'A service address is required for this booking.');
+        }
+
+        return null;
+    }
+
+    protected function serviceAddressInputsForBooking(Request $request, array $settings): array
+    {
+        $mode = ServiceDeliveryMode::resolve($settings);
+
+        if ($mode === ServiceDeliveryMode::CLIENT_VISITS_PROVIDER) {
+            return [null, false, $request->boolean('set_address_active')];
+        }
+
+        return [
+            $request->input('client_address_id'),
+            $request->boolean('use_business_address'),
+            $request->boolean('set_address_active'),
+        ];
     }
 }

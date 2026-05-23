@@ -76,6 +76,8 @@ class HandleInertiaRequests extends Middleware
             ],
             'features' => [
                 'subscriptions' => SubscriptionFeature::enabled(),
+                'job_board' => (bool) config('features.job_board', false),
+                'provider_widget' => (bool) config('features.provider_widget', false),
             ],
         ];
     }

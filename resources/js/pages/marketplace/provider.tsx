@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import VerifiedProviderBadge from '@/components/verified-provider-badge';
 import GuestLayout from '@/layouts/guest-layout';
+import { getBookingCtaLabel, getDeliveryModeBadge, normalizeDeliveryMode } from '@/lib/service-delivery-mode';
 import BusinessCard from '@/pages/guest/components/business-card';
 import ReviewDrawal from '@/pages/marketplace/components/review-drawal';
 import ServiceModal from '@/pages/marketplace/components/service-modal';
@@ -58,6 +59,12 @@ interface Provider {
     canBook?: boolean;
     bookingBlockedReason?: string | null;
     isVerified?: boolean;
+    serviceDeliveryMode?:
+        | 'client_visits_provider'
+        | 'provider_visits_client'
+        | 'both';
+    deliveryModeLabel?: string;
+    bookingCtaLabel?: string;
 }
 
 interface WorkHours {
@@ -222,6 +229,13 @@ export default function ProviderProfile({
     const bookingBlockedReason =
         provider.bookingBlockedReason ||
         'Booking is unavailable for this provider.';
+    const deliveryMode = normalizeDeliveryMode(provider.serviceDeliveryMode);
+    const bookingCtaLabel =
+        provider.bookingCtaLabel ?? getBookingCtaLabel(deliveryMode);
+    const deliveryBadge =
+        provider.deliveryModeLabel ?? getDeliveryModeBadge(deliveryMode);
+    const showProviderAddress =
+        deliveryMode === 'client_visits_provider' || deliveryMode === 'both';
     const nearbyRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
@@ -537,7 +551,7 @@ export default function ProviderProfile({
                                                     className="h-12 px-6 text-base"
                                                 >
                                                     <Calendar className="mr-2 h-4 w-4" />
-                                                    Book Appointment
+                                                    {bookingCtaLabel}
                                                 </Button>
                                             </Link>
                                         ) : (
@@ -594,7 +608,7 @@ export default function ProviderProfile({
                                 className="h-12 w-full text-base font-bold"
                             >
                                 <Calendar className="mr-2 h-4 w-4" />
-                                Book
+                                {bookingCtaLabel}
                             </Button>
                         </Link>
                     ) : (
@@ -623,8 +637,19 @@ export default function ProviderProfile({
 
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                     <div>
-                        <h1 className="text-2xl leading-tight font-black sm:text-3xl md:text-4xl">
+                        <h1 className="flex flex-wrap items-center gap-2 text-2xl leading-tight font-black sm:text-3xl md:text-4xl">
                             {provider.businessName}
+                            <Badge
+                                variant="secondary"
+                                className="text-[10px] font-semibold tracking-wide uppercase"
+                            >
+                                {deliveryMode === 'provider_visits_client' ? (
+                                    <Navigation className="mr-1 inline size-3" />
+                                ) : (
+                                    <MapPin className="mr-1 inline size-3" />
+                                )}
+                                {deliveryBadge}
+                            </Badge>
                         </h1>
                         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
@@ -634,11 +659,23 @@ export default function ProviderProfile({
                                 </span>
                                 <span>({provider.reviews_count || 0})</span>
                             </div>
-                            <span>·</span>
-                            <div className="flex items-center gap-1">
-                                <MapPin className="h-3.5 w-3.5" />
-                                {provider.address}
-                            </div>
+                            {showProviderAddress && provider.address && (
+                                <>
+                                    <span>·</span>
+                                    <div className="flex items-center gap-1">
+                                        <MapPin className="h-3.5 w-3.5" />
+                                        Visit us: {provider.address}
+                                    </div>
+                                </>
+                            )}
+                            {deliveryMode === 'provider_visits_client' && (
+                                <>
+                                    <span>·</span>
+                                    <span>
+                                        Add your service address when booking
+                                    </span>
+                                </>
+                            )}
                             {distance !== null && (
                                 <>
                                     <span>·</span>
@@ -677,7 +714,7 @@ export default function ProviderProfile({
                             <Link href={`/provider/${provider.slug}/book`}>
                                 <Button className="h-11 px-6">
                                     <Calendar className="mr-2 h-4 w-4" />
-                                    Book Appointment
+                                    {bookingCtaLabel}
                                 </Button>
                             </Link>
                         ) : (
@@ -995,7 +1032,7 @@ export default function ProviderProfile({
                                     <Link prefetch href={`/provider/${provider.slug}/book`}>
                                         <Button className="h-11 px-6 w-full mt-2">
                                             <Calendar className="mr-2 h-4 w-4" />
-                                            Book Appointment
+                                            {bookingCtaLabel}
                                         </Button>
                                     </Link>
                                 
@@ -1059,6 +1096,7 @@ export default function ProviderProfile({
                     providerSlug={provider.slug}
                     canBook={canBookProvider}
                     bookingBlockedReason={bookingBlockedReason}
+                    bookingCtaLabel={bookingCtaLabel}
                     onClose={() => setSelectedService(null)}
                 />
             )}

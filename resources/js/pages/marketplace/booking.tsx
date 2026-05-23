@@ -1,9 +1,17 @@
 import { CustomAlertDialog } from '@/components/ui/custom-alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import GuestLayout from '@/layouts/guest-layout';
+import {
+    isValidAddressChoiceForMode,
+    normalizeDeliveryMode,
+    requiresClientServiceAddress,
+    type ServiceDeliveryMode,
+    VISIT_PROVIDER_CHOICE,
+} from '@/lib/service-delivery-mode';
 import { ShieldExclamationIcon } from '@heroicons/react/24/solid';
 import { Head, router } from '@inertiajs/react';
-import { Suspense, lazy, useState } from 'react';
+import { gooeyToast as toast } from 'goey-toast';
+import { Suspense, lazy, useMemo, useState } from 'react';
 import { Wallet } from 'lucide-react';
 
 import type {
@@ -75,7 +83,23 @@ export default function Booking({
         max_bookings_per_month: null,
         accept_online_payment: true,
         accept_offline_booking: false,
+        offers_home_service: false,
+        service_delivery_mode: 'client_visits_provider',
     };
+
+    const deliveryMode: ServiceDeliveryMode = useMemo(
+        () =>
+            normalizeDeliveryMode(
+                provider.serviceDeliveryMode ??
+                    providerSettings.service_delivery_mode,
+                providerSettings.offers_home_service,
+            ),
+        [
+            provider.serviceDeliveryMode,
+            providerSettings.service_delivery_mode,
+            providerSettings.offers_home_service,
+        ],
+    );
 
     const supportsOnlinePayment =
         providerSettings.accept_online_payment ?? true;
@@ -155,7 +179,19 @@ export default function Booking({
     const addresses = useClientAddresses({
         initialClientAddresses,
         businessAddressOption,
+        deliveryMode,
     });
+
+    const providerVisitOption = useMemo(
+        () =>
+            provider.address
+                ? {
+                      label: provider.businessName,
+                      address: provider.address,
+                  }
+                : null,
+        [provider.address, provider.businessName],
+    );
 
     const slots = useBookingSlots({
         providerId: provider.id,
@@ -196,7 +232,47 @@ export default function Booking({
         ) {
             return;
         }
+
+        if (deliveryMode === 'client_visits_provider') {
+            addresses.setSelectedAddressChoice(VISIT_PROVIDER_CHOICE);
+            continueBookingAfterAddressSelection();
+            return;
+        }
+
         setAddressSelectionDialogOpen(true);
+    };
+
+    const continueBookingAfterAddressSelection = () => {
+        if (
+            !isValidAddressChoiceForMode(
+                deliveryMode,
+                addresses.selectedAddressChoice,
+            )
+        ) {
+            toast.error(
+                requiresClientServiceAddress(deliveryMode)
+                    ? 'Please add your service address before booking.'
+                    : 'Please choose where the service will happen.',
+            );
+            setAddressSelectionDialogOpen(true);
+            return;
+        }
+
+        setAddressSelectionDialogOpen(false);
+        if (paymentOption === 'online') {
+            if (
+                walletBalance !== null &&
+                walletBalance !== undefined &&
+                walletBalance < pricing.totalPrice
+            ) {
+                setPendingShortfall(pricing.totalPrice - walletBalance);
+                setInsufficientBalanceDialogOpen(true);
+                return;
+            }
+            setPaymentConfirmDialogOpen(true);
+            return;
+        }
+        submitBooking();
     };
 
     const submitBooking = () => {
@@ -212,7 +288,9 @@ export default function Booking({
         if (addresses.selectedAddressChoice !== '__none__') {
             if (addresses.selectedAddressChoice === '__business__') {
                 payload.use_business_address = true;
-            } else {
+            } else if (
+                addresses.selectedAddressChoice !== VISIT_PROVIDER_CHOICE
+            ) {
                 payload.client_address_id = addresses.selectedAddressChoice;
                 if (
                     addresses.selectedAddressChoice ===
@@ -237,24 +315,6 @@ export default function Booking({
         }
 
         submit(payload);
-    };
-
-    const continueBookingAfterAddressSelection = () => {
-        setAddressSelectionDialogOpen(false);
-        if (paymentOption === 'online') {
-            if (
-                walletBalance !== null &&
-                walletBalance !== undefined &&
-                walletBalance < pricing.totalPrice
-            ) {
-                setPendingShortfall(pricing.totalPrice - walletBalance);
-                setInsufficientBalanceDialogOpen(true);
-                return;
-            }
-            setPaymentConfirmDialogOpen(true);
-            return;
-        }
-        submitBooking();
     };
 
     const insufficientBalance =
@@ -340,13 +400,15 @@ export default function Booking({
                         setAsActive={addresses.setAddressAsActive}
                         onSetAsActiveChange={addresses.setSetAddressAsActive}
                         onContinue={continueBookingAfterAddressSelection}
+                        deliveryMode={deliveryMode}
+                        providerVisitOption={providerVisitOption}
                     />
                 </Suspense>
             )}
 
             <div className="mx-auto min-h-screen max-w-6xl bg-background pb-32 lg:pb-20">
                 <div className="mx-auto max-w-7xl px-4 py-8">
-                    <BookingHeader provider={provider} />
+                    <BookingHeader provider={provider} settings={providerSettings} />
 
                     <BookingPolicies
                         settings={providerSettings}
@@ -501,9 +563,13 @@ export default function Booking({
                             <div className="flex flex-col overflow-hidden rounded-xl border border-border/70 bg-card">
                                 <BookingSummary
                                     provider={provider}
+                                    settings={providerSettings}
                                     selectedServices={pricing.selectedServices}
                                     selectedDate={selectedDate}
                                     selectedSlot={selectedSlot}
+                                    selectedAddressChoice={
+                                        addresses.selectedAddressChoice
+                                    }
                                     selectedAddressSummary={
                                         addresses.selectedAddressSummary
                                     }
