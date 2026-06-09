@@ -37,7 +37,7 @@ const libraries: ('places')[] = ['places'];
 type AddressMode = 'autocomplete' | 'manual' | 'map';
 type AddressAutocompleteUi = 'new' | 'legacy';
 
-const mapContainerStyle = { width: '100%', height: '400px' };
+const mapContainerStyle = { width: '100%', height: 'min(400px, 55dvh)' };
 const defaultCenter = { lat: 6.5244, lng: 3.3792 };
 
 export default function BusinessProfile({ categories, businessProfile }: BusinessProfileProps) {
@@ -636,15 +636,15 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
 
     return (
         <OnboardingLayout title="Business Profile" steps={getStepsWithStatus('profile')} currentStepId="profile">
-            <div className="space-y-6">
+            <div className="min-w-0 space-y-6">
                 <div className="space-y-2">
-                    <h2 className="text-2xl font-bold tracking-tight">Tell us about your business</h2>
+                    <h2 className="text-xl font-bold tracking-tight sm:text-2xl">Tell us about your business</h2>
                     <p className="text-sm text-muted-foreground">
                         This information will be visible to clients on your public profile.
                     </p>
                 </div>
 
-                <form onSubmit={submit} className="gap-4 grid">
+                <form onSubmit={submit} className="grid min-w-0 gap-4">
                     {/* ── Images Upload ─────────────────────────────────────────── */}
                     <div className="space-y-3">
                         <div className="relative overflow-hidden rounded-2xl border bg-muted/15">
@@ -661,7 +661,7 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                                 <button
                                     type="button"
                                     onClick={() => imageInputRef.current?.click()}
-                                    className="flex h-[220px] w-full flex-col items-center justify-center gap-2 px-6 text-center transition-colors hover:bg-muted/25 sm:h-[260px]"
+                                    className="flex h-[180px] w-full flex-col items-center justify-center gap-2 px-4 text-center transition-colors hover:bg-muted/25 sm:h-[260px] sm:px-6"
                                 >
                                     <div className="flex size-14 items-center justify-center rounded-2xl border bg-background/60">
                                         <CloudArrowUpIcon className="h-7 w-7 text-muted-foreground" />
@@ -672,24 +672,24 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                                     </div>
                                 </button>
                             ) : (
-                                <div className="relative h-[220px] sm:h-[360px]">
+                                <div className="relative h-[200px] sm:h-[360px]">
                                     <img src={imagePreviews[selectedIndex]} alt="" className="h-full w-full object-cover" />
                                     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/65 to-transparent" />
-                                    <div className="absolute left-3 top-3 flex items-center gap-2">
+                                    <div className="absolute left-2 top-2 flex flex-wrap items-center gap-1.5 sm:left-3 sm:top-3 sm:gap-2">
                                         {imagePreviews.length < 3 && (
-                                            <Button type="button" size="sm" className="h-8" onClick={() => imageInputRef.current?.click()}>
+                                            <Button type="button" size="sm" className="h-7 px-2 text-xs sm:h-8 sm:px-3 sm:text-sm" onClick={() => imageInputRef.current?.click()}>
                                                 Add image
                                             </Button>
                                         )}
-                                        <Button type="button" size="sm" variant="secondary" className="h-8" onClick={() => removeImage(selectedIndex)}>
+                                        <Button type="button" size="sm" variant="secondary" className="h-7 px-2 text-xs sm:h-8 sm:px-3 sm:text-sm" onClick={() => removeImage(selectedIndex)}>
                                             Remove
                                         </Button>
                                     </div>
-                                    <div className="absolute bottom-3 left-3 rounded-full bg-black/55 px-3 py-1 text-[11px] font-semibold tracking-wide text-white">
+                                    <div className="absolute bottom-2 left-2 rounded-full bg-black/55 px-2.5 py-0.5 text-[10px] font-semibold tracking-wide text-white sm:bottom-3 sm:left-3 sm:px-3 sm:py-1 sm:text-[11px]">
                                         LOGO
                                     </div>
                                     {otherThumbs.length > 0 && (
-                                        <div className="absolute bottom-3 right-3 flex items-end gap-2">
+                                        <div className="absolute bottom-2 right-2 flex max-w-[55%] items-end gap-1.5 overflow-x-auto sm:bottom-3 sm:right-3 sm:max-w-none sm:gap-2">
                                             {otherThumbs.map(({ src, i }) => (
                                                 <button
                                                     key={i}
@@ -729,18 +729,16 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                             {errors.business_name && <p className="text-xs text-destructive mt-1">{errors.business_name}</p>}
                         </div>
 
-                        <div className="space-y-1.5">
-                            <SearchableSelect
-                                label="Business Category"
-                                required={true}
-                                options={categories}
-                                value={data.category}
-                                onChange={(value: string) => setData('category', value)}
-                                placeholder="Select a category"
-                                searchPlaceholder="Search categories..."
-                                error={errors.category}
-                            />
-                        </div>
+                        <SearchableSelect
+                            label="Business Category"
+                            required={true}
+                            options={categories}
+                            value={data.category}
+                            onChange={(value: string) => setData('category', value)}
+                            placeholder="Select a category"
+                            searchPlaceholder="Search categories..."
+                            error={errors.category}
+                        />
                     </div>
 
                     {/* ── Description ──────────────────────────────────────────── */}
@@ -759,14 +757,14 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                     {/* ── Address Block ─────────────────────────────────────────── */}
                     <div className="space-y-3">
                         <div className="space-y-1.5">
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
                                 <Label className="text-sm font-medium">
                                     Business Address <span className="text-destructive">*</span>
                                 </Label>
 
                                 {googleResolved && (
-                                    <span className="flex items-center gap-1 text-xs text-emerald-600 font-medium">
-                                        <CheckCircle2 className="w-3.5 h-3.5" />
+                                    <span className="flex items-center gap-1 text-xs font-medium text-emerald-600">
+                                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                                         Location confirmed
                                     </span>
                                 )}
@@ -775,7 +773,7 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                                     <button
                                         type="button"
                                         onClick={() => { setAddressMode('autocomplete'); setShowFallbackHint(false); }}
-                                        className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
+                                        className="w-fit text-xs text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
                                     >
                                         Use autocomplete instead
                                     </button>
@@ -837,18 +835,18 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                                         Can't find your address? Enter it manually or{' '}
                                         <span className="font-medium">pin it on a map.</span>
                                     </span>
-                                    <div className="flex items-center gap-2 shrink-0">
+                                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
                                         <Button
                                             type="button"
                                             variant="outline"
                                             size="sm"
-                                            className="h-7 text-xs border-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900 gap-1.5"
+                                            className="h-8 w-full text-xs border-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900 gap-1.5 sm:h-7 sm:w-auto"
                                             onClick={() => { setAddressMode('manual'); setShowFallbackHint(false); }}
                                         >
                                             <PencilLine className="w-3 h-3" />
                                             Type manually
                                         </Button>
-                                        <Button type="button" size="sm" className="h-7 text-xs gap-1.5" onClick={openMapPicker}>
+                                        <Button type="button" size="sm" className="h-8 w-full text-xs gap-1.5 sm:h-7 sm:w-auto" onClick={openMapPicker}>
                                             <Map className="w-3 h-3" />
                                             Pick on map
                                         </Button>
@@ -934,7 +932,7 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
 
             {/* ── Map Picker Dialog ─────────────────────────────────────────────── */}
             <Dialog open={mapOpen} onOpenChange={setMapOpen}>
-                <DialogContent className="sm:max-w-2xl p-0 overflow-hidden gap-0" aria-describedby="for map">
+                <DialogContent className="flex max-h-[95dvh] w-[calc(100%-1rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl sm:w-full" aria-describedby="for map">
                     <DialogHeader className="px-5 py-4 border-b">
                         <DialogTitle className="text-base font-semibold flex items-center gap-2">
                             <MapPin className="w-4 h-4 text-primary" />
@@ -964,7 +962,7 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                                 }}
                             />
                         ) : (
-                            <div className="flex items-center justify-center h-[400px] bg-muted">
+                            <div className="flex items-center justify-center bg-muted" style={{ height: 'min(400px, 55dvh)' }}>
                                 <Spinner />
                             </div>
                         )}
@@ -980,7 +978,7 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                         </button>
                     </div>
 
-                    <div className="flex items-end justify-between gap-3 px-5 py-4 border-t bg-muted/30">
+                    <div className="flex flex-col gap-3 border-t bg-muted/30 px-4 py-4 sm:flex-row sm:items-end sm:justify-between sm:px-5">
                         <div className="min-w-0 flex-1">
                             {markerPosition ? (
                                 <>
@@ -993,12 +991,12 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                                 </>
                             ) : (
                                 <p className="text-xs text-muted-foreground">
-                                    No pin dropped yet — click the map to place one
+                                    No pin dropped yet — tap the map to place one
                                 </p>
                             )}
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
-                            <Button type="button" variant="outline" size="sm" onClick={() => setMapOpen(false)}>
+                            <Button type="button" variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => setMapOpen(false)}>
                                 Cancel
                             </Button>
                             <Button
@@ -1006,7 +1004,7 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                                 size="sm"
                                 disabled={!markerPosition || isReverseGeocoding}
                                 onClick={confirmMapLocation}
-                                className="gap-1.5"
+                                className="flex-1 gap-1.5 sm:flex-none"
                             >
                                 {isReverseGeocoding && <Spinner className="w-3 h-3" />}
                                 Confirm location

@@ -10,6 +10,7 @@ Internal product docs aligned after CTO feedback (May 2026). Use these before de
 | [DEMO_SCRIPT.md](./DEMO_SCRIPT.md) | Standard 5-minute demo flow (trust loop first, not marketplace scroll) |
 | [DISPUTE_RESOLUTION_SOP.md](./DISPUTE_RESOLUTION_SOP.md) | Admin/support playbook for refunds, disputes, and escrow decisions |
 | [V1_SCOPE.md](./V1_SCOPE.md) | What ships in v1 vs deferred (job board, widget, WhatsApp) |
+| [CATEGORY_VERTICALS.md](./CATEGORY_VERTICALS.md) | Parent/subcategory tree, vertical templates, v1 beauty launch plan |
 
 ## Quick answers (for alignment)
 

@@ -652,13 +652,21 @@ export default function ProviderProfile({
                             </Badge>
                         </h1>
                         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                                <span className="font-semibold text-foreground">
-                                    {(provider.rating ?? 0).toFixed(1)}
-                                </span>
-                                <span>({provider.reviews_count || 0})</span>
-                            </div>
+                            {provider.reviews_count > 0 ? (
+                                <div className="flex items-center gap-1">
+                                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                                    <span className="font-semibold text-foreground">
+                                        {(provider.rating ?? 0).toFixed(1)}
+                                    </span>
+                                    <span>({provider.reviews_count})</span>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-1 text-muted-foreground">
+                                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                                    <span>No reviews yet</span>
+                                </div>
+                            )}
+                       
                             {showProviderAddress && provider.address && (
                                 <>
                                     <span>·</span>
