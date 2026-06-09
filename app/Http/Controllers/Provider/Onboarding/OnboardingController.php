@@ -346,7 +346,16 @@ class OnboardingController extends Controller
             'price' => 'required|numeric',
             'duration_minutes' => 'required|integer',
             'description' => 'nullable|string',
-        ]);
+        ], 
+    [
+        'service_category_id.required' => 'Please select a service category.',
+        'service_category_id.exists' => 'Please select a valid service category.',
+        'name.required' => 'Please enter a service name.',
+        'name.string' => 'Please enter a valid service name.',
+        'name.max' => 'Please enter a service name less than 255 characters.',
+        'price.required' => 'Please enter a service price.',
+        'price.numeric' => 'Please enter a valid service price.',
+    ]);
 
         $user = auth_user();
         $categoryId = null;
