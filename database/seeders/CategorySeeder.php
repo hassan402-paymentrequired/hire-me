@@ -39,6 +39,8 @@ class CategorySeeder extends Seeder
             'Private Tutors',
 
             'Professional Services',
+
+            'Personal Shopping',
             
             'Legal Services',
 

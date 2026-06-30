@@ -23,6 +23,9 @@ jobs:
           port: 22
           script: |
             cd /var/www/proxideck_prod
+
+            echo "→ stashing code..."
+            git stash
             
             echo "→ Pulling latest code..."
             git pull origin develop

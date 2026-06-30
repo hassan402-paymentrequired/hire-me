@@ -747,9 +747,9 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                         <Textarea
                             value={data.description}
                             onChange={(e) => setData('description', e.target.value)}
-                            rows={4}
+                            rows={6}
                             placeholder="Tell clients about your business..."
-                            className="resize-none"
+                            className="field-sizing-fixed min-h-36 max-h-60 resize-none overflow-auto whitespace-pre-wrap"
                         />
                         {errors.description && <p className="text-xs text-destructive mt-1">{errors.description}</p>}
                     </div>
