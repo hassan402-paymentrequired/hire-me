@@ -1,5 +1,6 @@
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Blobatar } from '@blobatar/react';
 import { Link } from '@inertiajs/react';
 import { MapPin, Star } from 'lucide-react';
 import { useState } from 'react';
@@ -121,17 +122,16 @@ const BusinessCard = ({ provider }: { provider: ProviderProps }) => {
                 {/* Business Name + Avatar + Verified Badge */}
                 <div className="flex items-start gap-2">
                     {/* Avatar */}
-                    <Avatar className="mt-0.5 h-10 w-10 shrink-0 border-2 border-border">
-                        {provider.avatar && (
+                    {provider.avatar ? (
+                        <Avatar className="mt-0.5 h-10 w-10 shrink-0 border-2 border-border">
                             <AvatarImage
                                 src={provider.avatar}
                                 alt={provider.name}
                             />
-                        )}
-                        <AvatarFallback className="bg-muted text-xs font-semibold text-primary">
-                            {initials}
-                        </AvatarFallback>
-                    </Avatar>
+                        </Avatar>
+                    ) : (
+                        <Blobatar name={provider.name} animate="hover" className='size-10 bg-gray-200 rounded-full'/>
+                    )}
 
                     {/* Business Info */}
                     <div className="min-w-0 flex-1">
@@ -167,7 +167,7 @@ const BusinessCard = ({ provider }: { provider: ProviderProps }) => {
                         <span>
                             {provider.rating
                                 ? provider.rating.toFixed(1)
-                                : '0.0'}
+                                : 'No review'}
                         </span>
                         <span className="text-xs font-normal text-muted-foreground">
                             ({provider.reviewsCount || 0})

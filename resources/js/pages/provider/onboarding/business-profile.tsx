@@ -1,19 +1,31 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { useForm } from '@inertiajs/react';
-import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
-import OnboardingLayout from '@/layouts/onboarding-layout';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { MapPin, PencilLine, Map, AlertCircle, CheckCircle2, LocateFixed } from 'lucide-react';
-import { SearchableSelect } from '@/components/ui/searchable-select';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Spinner } from '@/components/ui/spinner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
+import OnboardingLayout from '@/layouts/onboarding-layout';
 import { cn } from '@/lib/utils';
-import { getStepsWithStatus } from './onboarding-steps';
 import { CloudArrowUpIcon } from '@heroicons/react/24/solid';
+import { useForm, usePage } from '@inertiajs/react';
+import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
+import {
+    AlertCircle,
+    CheckCircle2,
+    LocateFixed,
+    Map,
+    MapPin,
+    PencilLine,
+} from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { getStepsWithStatus } from './onboarding-steps';
 
 interface BusinessProfileProps {
     categories: { value: string; label: string }[];
@@ -32,7 +44,7 @@ interface BusinessProfileProps {
     } | null;
 }
 
-const libraries: ('places')[] = ['places'];
+const libraries: 'places'[] = ['places'];
 
 type AddressMode = 'autocomplete' | 'manual' | 'map';
 type AddressAutocompleteUi = 'new' | 'legacy';
@@ -40,12 +52,16 @@ type AddressAutocompleteUi = 'new' | 'legacy';
 const mapContainerStyle = { width: '100%', height: 'min(400px, 55dvh)' };
 const defaultCenter = { lat: 6.5244, lng: 3.3792 };
 
-export default function BusinessProfile({ categories, businessProfile }: BusinessProfileProps) {
+export default function BusinessProfile({
+    categories,
+    businessProfile,
+}: BusinessProfileProps) {
     const { data, setData, post, processing, errors } = useForm({
         business_name: businessProfile?.business_name || '',
         description: businessProfile?.description || '',
         images: [] as File[],
-        logo_index: businessProfile?.images?.findIndex(img => img.is_logo) ?? 0,
+        logo_index:
+            businessProfile?.images?.findIndex((img) => img.is_logo) ?? 0,
         address: businessProfile?.address || '',
         city: businessProfile?.city || '',
         state: businessProfile?.state || '',
@@ -56,6 +72,8 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
         longitude: businessProfile?.longitude ?? null,
     });
 
+    const { map_enabled } = usePage().props;
+
     const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
     // ── useJsApiLoader is idempotent — won't re-inject the script on remount ──
@@ -64,7 +82,9 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
         libraries,
     });
 
-    const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+    const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(
+        null,
+    );
     const inputRef = useRef<HTMLInputElement | null>(null);
     const geocoderRef = useRef<google.maps.Geocoder | null>(null);
     const imageInputRef = useRef<HTMLInputElement | null>(null);
@@ -72,22 +92,33 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
     const placeAutocompleteElRef = useRef<HTMLElement | null>(null);
 
     const [imagePreviews, setImagePreviews] = useState<string[]>(
-        businessProfile?.images?.map(img => img.image_path) || []
+        businessProfile?.images?.map((img) => img.image_path) || [],
     );
-    const [addressAutocompleteUi, setAddressAutocompleteUi] = useState<AddressAutocompleteUi>('legacy');
-    const [addressDraft, setAddressDraft] = useState(businessProfile?.address || '');
-    const [phoneDisplay, setPhoneDisplay] = useState('');
+    const [addressAutocompleteUi, setAddressAutocompleteUi] =
+        useState<AddressAutocompleteUi>('legacy');
+    const [addressDraft, setAddressDraft] = useState(
+        businessProfile?.address || '',
+    );
     const [phoneLocalError, setPhoneLocalError] = useState<string | null>(null);
 
-    const [addressMode, setAddressMode] = useState<AddressMode>(businessProfile?.address ? 'manual' : 'autocomplete');
-    const [googleResolved, setGoogleResolved] = useState(!!businessProfile?.latitude);
+    const [addressMode, setAddressMode] = useState<AddressMode>(
+        businessProfile?.address ? 'manual' : 'autocomplete',
+    );
+    const [googleResolved, setGoogleResolved] = useState(
+        !!businessProfile?.latitude,
+    );
     const [showFallbackHint, setShowFallbackHint] = useState(false);
     const [mapOpen, setMapOpen] = useState(false);
     const [mapCenter, setMapCenter] = useState(defaultCenter);
-    const [markerPosition, setMarkerPosition] = useState<{ lat: number; lng: number } | null>(null);
+    const [markerPosition, setMarkerPosition] = useState<{
+        lat: number;
+        lng: number;
+    } | null>(null);
     const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
     const [isLocating, setIsLocating] = useState(false);
-    const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
+    const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(
+        null,
+    );
     const [mapPickedLabel, setMapPickedLabel] = useState<string | null>(null);
     const [autocompleteResetKey, setAutocompleteResetKey] = useState(0);
 
@@ -97,7 +128,9 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
     const addressTypedRef = useRef(false);
     const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const reverseGeocodeSeqRef = useRef(0);
-    const reverseGeocodeResultRef = useRef<google.maps.GeocoderResult | null>(null);
+    const reverseGeocodeResultRef = useRef<google.maps.GeocoderResult | null>(
+        null,
+    );
 
     const isValidNgE164 = (phone: string) => /^\+234\d{10}$/.test(phone);
 
@@ -122,7 +155,8 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
     const scheduleFallbackHint = useCallback(
         (value: string) => {
             setShowFallbackHint(false);
-            if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+            if (fallbackTimerRef.current)
+                clearTimeout(fallbackTimerRef.current);
             if (value.length > 5) {
                 fallbackTimerRef.current = setTimeout(() => {
                     if (!googleResolved) setShowFallbackHint(true);
@@ -144,11 +178,18 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                 const types = component.types;
                 if (!city) {
                     if (types.includes('locality')) city = component.long_name;
-                    else if (types.includes('sublocality') || types.includes('sublocality_level_1')) city = component.long_name;
-                    else if (types.includes('administrative_area_level_2')) city = component.long_name;
+                    else if (
+                        types.includes('sublocality') ||
+                        types.includes('sublocality_level_1')
+                    )
+                        city = component.long_name;
+                    else if (types.includes('administrative_area_level_2'))
+                        city = component.long_name;
                 }
-                if (!state && types.includes('administrative_area_level_1')) state = component.short_name || component.long_name;
-                if (!zipCode && types.includes('postal_code')) zipCode = component.long_name;
+                if (!state && types.includes('administrative_area_level_1'))
+                    state = component.short_name || component.long_name;
+                if (!zipCode && types.includes('postal_code'))
+                    zipCode = component.long_name;
             });
             if (place.formatted_address) {
                 setData((prev: typeof data) => ({
@@ -176,28 +217,50 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
 
     const fillAddressFromNewPlace = useCallback(
         (place: any) => {
-            const components = Array.isArray(place?.addressComponents) ? place.addressComponents : [];
+            const components = Array.isArray(place?.addressComponents)
+                ? place.addressComponents
+                : [];
             if (!components.length) return false;
             let city = '';
             let state = '';
             let zipCode = '';
             components.forEach((component: any) => {
                 const types: string[] = component?.types || [];
-                const longName = component?.longText ?? component?.long_name ?? '';
-                const shortName = component?.shortText ?? component?.short_name ?? longName;
+                const longName =
+                    component?.longText ?? component?.long_name ?? '';
+                const shortName =
+                    component?.shortText ?? component?.short_name ?? longName;
                 if (!city) {
                     if (types.includes('locality')) city = longName;
-                    else if (types.includes('sublocality') || types.includes('sublocality_level_1')) city = longName;
-                    else if (types.includes('administrative_area_level_2')) city = longName;
+                    else if (
+                        types.includes('sublocality') ||
+                        types.includes('sublocality_level_1')
+                    )
+                        city = longName;
+                    else if (types.includes('administrative_area_level_2'))
+                        city = longName;
                 }
-                if (!state && types.includes('administrative_area_level_1')) state = shortName || longName;
-                if (!zipCode && types.includes('postal_code')) zipCode = longName;
+                if (!state && types.includes('administrative_area_level_1'))
+                    state = shortName || longName;
+                if (!zipCode && types.includes('postal_code'))
+                    zipCode = longName;
             });
-            const formattedAddress = place?.formattedAddress || place?.formatted_address;
+            const formattedAddress =
+                place?.formattedAddress || place?.formatted_address;
             if (!formattedAddress) return false;
             const loc = place?.location;
-            const lat = typeof loc?.lat === 'function' ? loc.lat() : typeof loc?.lat === 'number' ? loc.lat : null;
-            const lng = typeof loc?.lng === 'function' ? loc.lng() : typeof loc?.lng === 'number' ? loc.lng : null;
+            const lat =
+                typeof loc?.lat === 'function'
+                    ? loc.lat()
+                    : typeof loc?.lat === 'number'
+                      ? loc.lat
+                      : null;
+            const lng =
+                typeof loc?.lng === 'function'
+                    ? loc.lng()
+                    : typeof loc?.lng === 'number'
+                      ? loc.lng
+                      : null;
             setData((prev: typeof data) => ({
                 ...prev,
                 address: formattedAddress,
@@ -225,16 +288,24 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
     }, [fillAddressFromPlace]);
 
     const handleAddressInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setData('address', e.target.value);
-        setAddressDraft(e.target.value);
+        const target = e.target.value;
+        console.log(target);
+
+        setData('address', target);
+        setAddressDraft(target);
         setGoogleResolved(false);
         addressTypedRef.current = true;
-        scheduleFallbackHint(e.target.value);
+        scheduleFallbackHint(target);
     };
 
     const handleAddressBlur = () => {
-        if (addressTypedRef.current && !googleResolved && data.address.length > 3) {
-            if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+        if (
+            addressTypedRef.current &&
+            !googleResolved &&
+            data.address.length > 3
+        ) {
+            if (fallbackTimerRef.current)
+                clearTimeout(fallbackTimerRef.current);
             setShowFallbackHint(true);
         }
     };
@@ -281,11 +352,21 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                         const prediction = ev?.placePrediction;
                         if (!prediction) return;
                         const place = await prediction.toPlace();
-                        await place.fetchFields({ fields: ['formattedAddress', 'location', 'addressComponents'] });
+                        await place.fetchFields({
+                            fields: [
+                                'formattedAddress',
+                                'location',
+                                'addressComponents',
+                            ],
+                        });
                         if (!isActive) return;
                         const resolved = fillAddressFromNewPlace(place);
                         if (!resolved) setShowFallbackHint(true);
-                        setAddressDraft(place?.formattedAddress || place?.formatted_address || '');
+                        setAddressDraft(
+                            place?.formattedAddress ||
+                                place?.formatted_address ||
+                                '',
+                        );
                     } catch {
                         if (!isActive) return;
                         setShowFallbackHint(true);
@@ -301,7 +382,9 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                             setAddressDraft(next);
                             scheduleFallbackHint(next);
                         }
-                    } catch { /* ignore */ }
+                    } catch {
+                        /* ignore */
+                    }
                 };
 
                 el.addEventListener('gmp-select', onSelect);
@@ -331,7 +414,9 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
             if (didSetupNew) {
                 setAddressAutocompleteUi('new');
                 if (autocompleteRef.current) {
-                    window.google?.maps?.event?.clearInstanceListeners?.(autocompleteRef.current);
+                    window.google?.maps?.event?.clearInstanceListeners?.(
+                        autocompleteRef.current,
+                    );
                     autocompleteRef.current = null;
                 }
                 return;
@@ -339,11 +424,22 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
 
             // Legacy autocomplete fallback
             setAddressAutocompleteUi('legacy');
-            if (inputRef.current && !autocompleteRef.current && window.google?.maps?.places?.Autocomplete) {
-                const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
-                    types: ['address'],
-                    fields: ['address_components', 'formatted_address', 'geometry'],
-                });
+            if (
+                inputRef.current &&
+                !autocompleteRef.current &&
+                window.google?.maps?.places?.Autocomplete
+            ) {
+                const autocomplete = new window.google.maps.places.Autocomplete(
+                    inputRef.current,
+                    {
+                        types: ['address'],
+                        fields: [
+                            'address_components',
+                            'formatted_address',
+                            'geometry',
+                        ],
+                    },
+                );
                 autocomplete.addListener('place_changed', onPlaceChanged);
                 autocompleteRef.current = autocomplete;
             }
@@ -356,12 +452,21 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
             if (newElCleanup) newElCleanup();
             placeAutocompleteElRef.current = null;
             if (autocompleteRef.current) {
-                window.google?.maps?.event?.clearInstanceListeners?.(autocompleteRef.current);
+                window.google?.maps?.event?.clearInstanceListeners?.(
+                    autocompleteRef.current,
+                );
                 autocompleteRef.current = null;
             }
-            if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+            if (fallbackTimerRef.current)
+                clearTimeout(fallbackTimerRef.current);
         };
-    }, [isLoaded, onPlaceChanged, fillAddressFromNewPlace, scheduleFallbackHint, autocompleteResetKey]);
+    }, [
+        isLoaded,
+        onPlaceChanged,
+        fillAddressFromNewPlace,
+        scheduleFallbackHint,
+        autocompleteResetKey,
+    ]);
 
     // ─── Map Picker ───────────────────────────────────────────────────────────────
 
@@ -384,7 +489,10 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
         setIsLocating(true);
         navigator.geolocation.getCurrentPosition(
             (pos) => {
-                const location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                const location = {
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                };
                 setMarkerPosition(location);
                 setMapCenter(location);
                 setIsLocating(false);
@@ -394,11 +502,16 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
     };
 
     const applyMapPickResult = useCallback(
-        (result: google.maps.GeocoderResult | null, marker: { lat: number; lng: number }) => {
+        (
+            result: google.maps.GeocoderResult | null,
+            marker: { lat: number; lng: number },
+        ) => {
             if (result) {
-                const place = result as unknown as google.maps.places.PlaceResult;
+                const place =
+                    result as unknown as google.maps.places.PlaceResult;
                 place.formatted_address = result.formatted_address;
-                place.geometry = result.geometry as google.maps.places.PlaceResult['geometry'];
+                place.geometry =
+                    result.geometry as google.maps.places.PlaceResult['geometry'];
                 fillAddressFromPlace(place);
                 setData((prev: typeof data) => ({
                     ...prev,
@@ -438,13 +551,16 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
         }
 
         setIsReverseGeocoding(true);
-        geocoderRef.current.geocode({ location: markerPosition }, (results, status) => {
-            setIsReverseGeocoding(false);
-            applyMapPickResult(
-                status === 'OK' && results?.[0] ? results[0] : null,
-                markerPosition,
-            );
-        });
+        geocoderRef.current.geocode(
+            { location: markerPosition },
+            (results, status) => {
+                setIsReverseGeocoding(false);
+                applyMapPickResult(
+                    status === 'OK' && results?.[0] ? results[0] : null,
+                    markerPosition,
+                );
+            },
+        );
     };
 
     // Live reverse-geocode the pin while the modal is open so the user sees
@@ -464,30 +580,35 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
         const seq = ++reverseGeocodeSeqRef.current;
         reverseGeocodeResultRef.current = null;
         setMapPickedLabel(null);
-        geocoderRef.current.geocode({ location: markerPosition }, (results, status) => {
-            if (seq !== reverseGeocodeSeqRef.current) return;
-            if (status === 'OK' && results?.[0]) {
-                reverseGeocodeResultRef.current = results[0];
-                setMapPickedLabel(results[0].formatted_address || null);
-                return;
-            }
-            reverseGeocodeResultRef.current = null;
-            // ZERO_RESULTS just means no nearby address — don't shout. Any
-            // other status (REQUEST_DENIED, OVER_QUERY_LIMIT, INVALID_REQUEST,
-            // ...) is almost always a misconfigured API key or the Geocoding
-            // API not being enabled, and silently failing makes that look
-            // like an autofill bug.
-            if (status !== 'ZERO_RESULTS') {
-                console.warn(
-                    '[BusinessProfile] Reverse geocoding failed:',
-                    status,
-                    '— make sure the Geocoding API is enabled for your Google Maps key.',
-                );
-                setMapPickedLabel("Couldn't resolve address — confirm to use coordinates only");
-            } else {
-                setMapPickedLabel(null);
-            }
-        });
+        geocoderRef.current.geocode(
+            { location: markerPosition },
+            (results, status) => {
+                if (seq !== reverseGeocodeSeqRef.current) return;
+                if (status === 'OK' && results?.[0]) {
+                    reverseGeocodeResultRef.current = results[0];
+                    setMapPickedLabel(results[0].formatted_address || null);
+                    return;
+                }
+                reverseGeocodeResultRef.current = null;
+                // ZERO_RESULTS just means no nearby address — don't shout. Any
+                // other status (REQUEST_DENIED, OVER_QUERY_LIMIT, INVALID_REQUEST,
+                // ...) is almost always a misconfigured API key or the Geocoding
+                // API not being enabled, and silently failing makes that look
+                // like an autofill bug.
+                if (status !== 'ZERO_RESULTS') {
+                    console.warn(
+                        '[BusinessProfile] Reverse geocoding failed:',
+                        status,
+                        '— make sure the Geocoding API is enabled for your Google Maps key.',
+                    );
+                    setMapPickedLabel(
+                        "Couldn't resolve address — confirm to use coordinates only",
+                    );
+                } else {
+                    setMapPickedLabel(null);
+                }
+            },
+        );
     }, [mapOpen, markerPosition]);
 
     // ─── Advanced / classic marker sync ──────────────────────────────────────────
@@ -502,14 +623,17 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                 if (!g?.maps) return;
 
                 const cleanupAdvanced = () => {
-                    if (advancedMarkerListenerRef.current?.remove) advancedMarkerListenerRef.current.remove();
+                    if (advancedMarkerListenerRef.current?.remove)
+                        advancedMarkerListenerRef.current.remove();
                     advancedMarkerListenerRef.current = null;
-                    if (advancedMarkerRef.current) advancedMarkerRef.current.map = null;
+                    if (advancedMarkerRef.current)
+                        advancedMarkerRef.current.map = null;
                     advancedMarkerRef.current = null;
                 };
 
                 const cleanupClassic = () => {
-                    if (classicMarkerRef.current) classicMarkerRef.current.setMap(null);
+                    if (classicMarkerRef.current)
+                        classicMarkerRef.current.setMap(null);
                     classicMarkerRef.current = null;
                 };
 
@@ -521,40 +645,68 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
 
                 if (cancelled) return;
 
-                const mapId = (import.meta as any).env?.VITE_GOOGLE_MAP_ID as string | undefined;
+                const mapId = (import.meta as any).env?.VITE_GOOGLE_MAP_ID as
+                    | string
+                    | undefined;
                 const canTryAdvanced = Boolean(mapId && g.maps.importLibrary);
 
                 if (canTryAdvanced) {
                     try {
                         await g.maps.importLibrary('marker');
                         if (cancelled) return;
-                        const AdvancedMarkerElement = g.maps.marker?.AdvancedMarkerElement;
+                        const AdvancedMarkerElement =
+                            g.maps.marker?.AdvancedMarkerElement;
                         if (AdvancedMarkerElement) {
                             cleanupClassic();
                             if (!advancedMarkerRef.current) {
-                                const marker = new AdvancedMarkerElement({ map: mapInstance, position: markerPosition, gmpDraggable: true });
-                                advancedMarkerRef.current = marker;
-                                const listener = marker.addListener?.('dragend', (e: any) => {
-                                    const ll = e?.latLng || marker.position;
-                                    if (!ll) return;
-                                    const lat = typeof ll.lat === 'function' ? ll.lat() : ll.lat;
-                                    const lng = typeof ll.lng === 'function' ? ll.lng() : ll.lng;
-                                    if (typeof lat === 'number' && typeof lng === 'number') setMarkerPosition({ lat, lng });
+                                const marker = new AdvancedMarkerElement({
+                                    map: mapInstance,
+                                    position: markerPosition,
+                                    gmpDraggable: true,
                                 });
-                                advancedMarkerListenerRef.current = listener || null;
+                                advancedMarkerRef.current = marker;
+                                const listener = marker.addListener?.(
+                                    'dragend',
+                                    (e: any) => {
+                                        const ll = e?.latLng || marker.position;
+                                        if (!ll) return;
+                                        const lat =
+                                            typeof ll.lat === 'function'
+                                                ? ll.lat()
+                                                : ll.lat;
+                                        const lng =
+                                            typeof ll.lng === 'function'
+                                                ? ll.lng()
+                                                : ll.lng;
+                                        if (
+                                            typeof lat === 'number' &&
+                                            typeof lng === 'number'
+                                        )
+                                            setMarkerPosition({ lat, lng });
+                                    },
+                                );
+                                advancedMarkerListenerRef.current =
+                                    listener || null;
                             } else {
                                 advancedMarkerRef.current.map = mapInstance;
-                                advancedMarkerRef.current.position = markerPosition;
+                                advancedMarkerRef.current.position =
+                                    markerPosition;
                             }
                             return;
                         }
-                    } catch { /* fall through */ }
+                    } catch {
+                        /* fall through */
+                    }
                 }
 
                 // Classic marker fallback
                 cleanupAdvanced();
                 if (!classicMarkerRef.current) {
-                    classicMarkerRef.current = new g.maps.Marker({ map: mapInstance, position: markerPosition, draggable: true });
+                    classicMarkerRef.current = new g.maps.Marker({
+                        map: mapInstance,
+                        position: markerPosition,
+                        draggable: true,
+                    });
                     classicMarkerRef.current.addListener('dragend', () => {
                         const pos = classicMarkerRef.current?.getPosition?.();
                         if (!pos) return;
@@ -564,14 +716,17 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                     classicMarkerRef.current.setMap(mapInstance);
                     classicMarkerRef.current.setPosition(markerPosition);
                 }
-            } catch { /* ignore */ }
+            } catch {
+                /* ignore */
+            }
         };
 
         sync();
 
         return () => {
             cancelled = true;
-            if (advancedMarkerListenerRef.current?.remove) advancedMarkerListenerRef.current.remove();
+            if (advancedMarkerListenerRef.current?.remove)
+                advancedMarkerListenerRef.current.remove();
             advancedMarkerListenerRef.current = null;
             if (advancedMarkerRef.current) advancedMarkerRef.current.map = null;
             advancedMarkerRef.current = null;
@@ -589,14 +744,18 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
         setData((prev: typeof data) => ({
             ...prev,
             images: merged,
-            logo_index: Math.min(prev.logo_index, Math.max(0, merged.length - 1)),
+            logo_index: Math.min(
+                prev.logo_index,
+                Math.max(0, merged.length - 1),
+            ),
         }));
         Promise.all(
             merged.map(
                 (file) =>
                     new Promise<string>((resolve) => {
                         const reader = new FileReader();
-                        reader.onloadend = () => resolve(String(reader.result || ''));
+                        reader.onloadend = () =>
+                            resolve(String(reader.result || ''));
                         reader.readAsDataURL(file);
                     }),
             ),
@@ -608,8 +767,19 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
         const newImages = data.images.filter((_, i) => i !== index);
         const newPreviews = imagePreviews.filter((_, i) => i !== index);
         const nextLogoIndex =
-            data.logo_index === index ? 0 : data.logo_index > index ? data.logo_index - 1 : data.logo_index;
-        setData({ ...data, images: newImages, logo_index: Math.min(nextLogoIndex, Math.max(0, newImages.length - 1)) });
+            data.logo_index === index
+                ? 0
+                : data.logo_index > index
+                  ? data.logo_index - 1
+                  : data.logo_index;
+        setData({
+            ...data,
+            images: newImages,
+            logo_index: Math.min(
+                nextLogoIndex,
+                Math.max(0, newImages.length - 1),
+            ),
+        });
         setImagePreviews(newPreviews);
     };
 
@@ -617,30 +787,45 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (data.phone && !isValidNgE164(data.phone)) {
-            setPhoneLocalError('Enter a valid Nigerian phone number.');
-            return;
-        }
+        // if (data.phone && !isValidNgE164(data.phone)) {
+        //     setPhoneLocalError('Enter a valid Nigerian phone number.');
+        //     return;
+        // }
         post('/onboarding/business-profile', { forceFormData: true });
     };
 
     // ─── Derived ─────────────────────────────────────────────────────────────────
 
     const isManualMode = addressMode === 'manual';
-    const selectedIndex = Math.min(Math.max(0, data.logo_index ?? 0), Math.max(0, imagePreviews.length - 1));
-    const otherThumbs = imagePreviews.map((src, i) => ({ src, i })).filter((x) => x.i !== selectedIndex);
+    const selectedIndex = Math.min(
+        Math.max(0, data.logo_index ?? 0),
+        Math.max(0, imagePreviews.length - 1),
+    );
+    const otherThumbs = imagePreviews
+        .map((src, i) => ({ src, i }))
+        .filter((x) => x.i !== selectedIndex);
     const shouldShowFallbackActions =
-        !googleResolved && !isManualMode && addressDraft.trim().length > 0 && (showFallbackHint || addressDraft.trim().length > 3);
+        !googleResolved &&
+        !isManualMode &&
+        addressDraft.trim().length > 0 &&
+        (showFallbackHint || addressDraft.trim().length > 3);
 
     // ─── Render ──────────────────────────────────────────────────────────────────
 
     return (
-        <OnboardingLayout title="Business Profile" steps={getStepsWithStatus('profile')} currentStepId="profile">
+        <OnboardingLayout
+            title="Business Profile"
+            steps={getStepsWithStatus('profile')}
+            currentStepId="profile"
+        >
             <div className="min-w-0 space-y-6">
                 <div className="space-y-2">
-                    <h2 className="text-xl font-bold tracking-tight sm:text-2xl">Tell us about your business</h2>
+                    <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
+                        Tell us about your business
+                    </h2>
                     <p className="text-sm text-muted-foreground">
-                        This information will be visible to clients on your public profile.
+                        This information will be visible to clients on your
+                        public profile.
                     </p>
                 </div>
 
@@ -660,28 +845,53 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                             {imagePreviews.length === 0 ? (
                                 <button
                                     type="button"
-                                    onClick={() => imageInputRef.current?.click()}
+                                    onClick={() =>
+                                        imageInputRef.current?.click()
+                                    }
                                     className="flex h-[180px] w-full flex-col items-center justify-center gap-2 px-4 text-center transition-colors hover:bg-muted/25 sm:h-[260px] sm:px-6"
                                 >
                                     <div className="flex size-14 items-center justify-center rounded-2xl border bg-background/60">
                                         <CloudArrowUpIcon className="h-7 w-7 text-muted-foreground" />
                                     </div>
-                                    <div className="text-sm font-semibold">Upload your banner</div>
+                                    <div className="text-sm font-semibold">
+                                        Upload your banner
+                                    </div>
                                     <div className="max-w-md text-xs text-muted-foreground">
-                                        Click to upload up to 3 images. After uploading, pick the one you want clients to see first as your logo.
+                                        Click to upload up to 3 images. After
+                                        uploading, pick the one you want clients
+                                        to see first as your logo.
                                     </div>
                                 </button>
                             ) : (
                                 <div className="relative h-[200px] sm:h-[360px]">
-                                    <img src={imagePreviews[selectedIndex]} alt="" className="h-full w-full object-cover" />
+                                    <img
+                                        src={imagePreviews[selectedIndex]}
+                                        alt=""
+                                        className="h-full w-full object-cover"
+                                    />
                                     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/65 to-transparent" />
-                                    <div className="absolute left-2 top-2 flex flex-wrap items-center gap-1.5 sm:left-3 sm:top-3 sm:gap-2">
+                                    <div className="absolute top-2 left-2 flex flex-wrap items-center gap-1.5 sm:top-3 sm:left-3 sm:gap-2">
                                         {imagePreviews.length < 3 && (
-                                            <Button type="button" size="sm" className="h-7 px-2 text-xs sm:h-8 sm:px-3 sm:text-sm" onClick={() => imageInputRef.current?.click()}>
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                className="h-7 px-2 text-xs sm:h-8 sm:px-3 sm:text-sm"
+                                                onClick={() =>
+                                                    imageInputRef.current?.click()
+                                                }
+                                            >
                                                 Add image
                                             </Button>
                                         )}
-                                        <Button type="button" size="sm" variant="secondary" className="h-7 px-2 text-xs sm:h-8 sm:px-3 sm:text-sm" onClick={() => removeImage(selectedIndex)}>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="secondary"
+                                            className="h-7 px-2 text-xs sm:h-8 sm:px-3 sm:text-sm"
+                                            onClick={() =>
+                                                removeImage(selectedIndex)
+                                            }
+                                        >
                                             Remove
                                         </Button>
                                     </div>
@@ -689,17 +899,23 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                                         LOGO
                                     </div>
                                     {otherThumbs.length > 0 && (
-                                        <div className="absolute bottom-2 right-2 flex max-w-[55%] items-end gap-1.5 overflow-x-auto sm:bottom-3 sm:right-3 sm:max-w-none sm:gap-2">
+                                        <div className="absolute right-2 bottom-2 flex max-w-[55%] items-end gap-1.5 overflow-x-auto sm:right-3 sm:bottom-3 sm:max-w-none sm:gap-2">
                                             {otherThumbs.map(({ src, i }) => (
                                                 <button
                                                     key={i}
                                                     type="button"
-                                                    onClick={() => setData('logo_index', i)}
+                                                    onClick={() =>
+                                                        setData('logo_index', i)
+                                                    }
                                                     className="group relative overflow-hidden rounded-xl border border-white/20 bg-black/30 shadow-sm backdrop-blur-sm transition-transform hover:-translate-y-0.5"
                                                     aria-label="Set as logo"
                                                 >
-                                                    <img src={src} alt="" className="h-14 w-16 object-cover sm:h-16 sm:w-20" />
-                                                    <div className="absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100 bg-black/35" />
+                                                    <img
+                                                        src={src}
+                                                        alt=""
+                                                        className="h-14 w-16 object-cover sm:h-16 sm:w-20"
+                                                    />
+                                                    <div className="absolute inset-0 bg-black/35 opacity-0 transition-opacity group-hover:opacity-100" />
                                                 </button>
                                             ))}
                                         </div>
@@ -708,25 +924,40 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                             )}
                         </div>
 
-                        {errors.images && <p className="text-sm text-destructive mt-1">{errors.images}</p>}
-                        {errors.logo_index && <p className="text-sm text-destructive mt-1">{errors.logo_index}</p>}
+                        {errors.images && (
+                            <p className="mt-1 text-sm text-destructive">
+                                {errors.images}
+                            </p>
+                        )}
+                        {errors.logo_index && (
+                            <p className="mt-1 text-sm text-destructive">
+                                {errors.logo_index}
+                            </p>
+                        )}
                     </div>
 
                     {/* ── Business Name & Category ──────────────────────────────── */}
-                    <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
                         <div className="space-y-1.5">
                             <Label className="text-sm font-medium">
-                                Business Name <span className="text-destructive">*</span>
+                                Business Name{' '}
+                                <span className="text-destructive">*</span>
                             </Label>
                             <Input
                                 type="text"
                                 value={data.business_name}
-                                onChange={(e) => setData('business_name', e.target.value)}
+                                onChange={(e) =>
+                                    setData('business_name', e.target.value)
+                                }
                                 placeholder="What's your business name?"
                                 required
                                 className="h-10"
                             />
-                            {errors.business_name && <p className="text-xs text-destructive mt-1">{errors.business_name}</p>}
+                            {errors.business_name && (
+                                <p className="mt-1 text-xs text-destructive">
+                                    {errors.business_name}
+                                </p>
+                            )}
                         </div>
 
                         <SearchableSelect
@@ -734,7 +965,9 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                             required={true}
                             options={categories}
                             value={data.category}
-                            onChange={(value: string) => setData('category', value)}
+                            onChange={(value: string) =>
+                                setData('category', value)
+                            }
                             placeholder="Select a category"
                             searchPlaceholder="Search categories..."
                             error={errors.category}
@@ -743,15 +976,23 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
 
                     {/* ── Description ──────────────────────────────────────────── */}
                     <div className="space-y-1.5">
-                        <Label className="text-sm font-medium">Description</Label>
+                        <Label className="text-sm font-medium">
+                            Description
+                        </Label>
                         <Textarea
                             value={data.description}
-                            onChange={(e) => setData('description', e.target.value)}
+                            onChange={(e) =>
+                                setData('description', e.target.value)
+                            }
                             rows={6}
                             placeholder="Tell clients about your business..."
-                            className="field-sizing-fixed min-h-36 max-h-60 resize-none overflow-auto whitespace-pre-wrap"
+                            className="field-sizing-fixed max-h-60 min-h-36 resize-none overflow-auto whitespace-pre-wrap"
                         />
-                        {errors.description && <p className="text-xs text-destructive mt-1">{errors.description}</p>}
+                        {errors.description && (
+                            <p className="mt-1 text-xs text-destructive">
+                                {errors.description}
+                            </p>
+                        )}
                     </div>
 
                     {/* ── Address Block ─────────────────────────────────────────── */}
@@ -759,12 +1000,13 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                         <div className="space-y-1.5">
                             <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
                                 <Label className="text-sm font-medium">
-                                    Business Address <span className="text-destructive">*</span>
+                                    Business Address{' '}
+                                    <span className="text-destructive">*</span>
                                 </Label>
 
                                 {googleResolved && (
                                     <span className="flex items-center gap-1 text-xs font-medium text-emerald-600">
-                                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
                                         Location confirmed
                                     </span>
                                 )}
@@ -772,7 +1014,10 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                                 {isManualMode && !googleResolved && (
                                     <button
                                         type="button"
-                                        onClick={() => { setAddressMode('autocomplete'); setShowFallbackHint(false); }}
+                                        onClick={() => {
+                                            setAddressMode('autocomplete');
+                                            setShowFallbackHint(false);
+                                        }}
                                         className="w-fit text-xs text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
                                     >
                                         Use autocomplete instead
@@ -781,73 +1026,117 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                             </div>
 
                             {/* Address input */}
-                            <div className="relative">
-                                <MapPin
-                                    className={cn(
-                                        'absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none transition-colors z-10',
-                                        googleResolved ? 'text-emerald-500' : 'text-muted-foreground',
-                                    )}
-                                />
+                            {map_enabled ? (
+                                <div className="relative">
+                                    <MapPin
+                                        className={cn(
+                                            'pointer-events-none absolute top-1/2 left-3 z-10 h-4 w-4 -translate-y-1/2 transition-colors',
+                                            googleResolved
+                                                ? 'text-emerald-500'
+                                                : 'text-muted-foreground',
+                                        )}
+                                    />
 
-                                {/* New PlaceAutocompleteElement container */}
-                                <div
-                                    className={cn(
-                                        'h-10 rounded-md border bg-background pl-9 pr-3 flex items-center',
-                                        googleResolved && 'border-emerald-500 focus-visible:ring-emerald-500/30',
-                                        (!isLoaded || addressAutocompleteUi !== 'new') && 'hidden',
-                                    )}
-                                    style={{ colorScheme: 'only light' }}
-                                >
-                                    <div ref={placeAutocompleteContainerRef} className="w-full" />
+                                    {/* New PlaceAutocompleteElement container */}
+                                    <div
+                                        className={cn(
+                                            'flex h-10 items-center rounded-md border bg-background pr-3 pl-9',
+                                            googleResolved &&
+                                                'border-emerald-500 focus-visible:ring-emerald-500/30',
+                                            (!isLoaded ||
+                                                addressAutocompleteUi !==
+                                                    'new') &&
+                                                'hidden',
+                                        )}
+                                        style={{ colorScheme: 'only light' }}
+                                    >
+                                        <div
+                                            ref={placeAutocompleteContainerRef}
+                                            className="w-full"
+                                        />
+                                    </div>
+
+                                    {/* Legacy autocomplete / no-Maps fallback */}
+
+                                    <Input
+                                        ref={inputRef}
+                                        value={data.address}
+                                        onChange={handleAddressInput}
+                                        onBlur={handleAddressBlur}
+                                        placeholder={
+                                            googleMapsApiKey && !isLoaded
+                                                ? 'Loading maps…'
+                                                : 'Start typing your address...'
+                                        }
+                                        disabled={
+                                            Boolean(googleMapsApiKey) &&
+                                            !isLoaded
+                                        }
+                                        autoComplete="off"
+                                        className={cn(
+                                            'h-10 pr-4 pl-9',
+                                            googleResolved &&
+                                                'border-emerald-500 focus-visible:ring-emerald-500/30',
+                                            isLoaded &&
+                                                addressAutocompleteUi ===
+                                                    'new' &&
+                                                'hidden',
+                                        )}
+                                    />
                                 </div>
-
-                                {/* Legacy autocomplete / no-Maps fallback */}
+                            ) : (
                                 <Input
-                                    ref={inputRef}
+                                    type="text"
                                     value={data.address}
-                                    onChange={handleAddressInput}
-                                    onBlur={handleAddressBlur}
-                                    placeholder={
-                                        googleMapsApiKey && !isLoaded
-                                            ? 'Loading maps…'
-                                            : 'Start typing your address...'
+                                    onChange={(e) =>
+                                        setData('address', e.target.value)
                                     }
-                                    disabled={Boolean(googleMapsApiKey) && !isLoaded}
-                                    autoComplete="off"
-                                    className={cn(
-                                        'h-10 pl-9 pr-4',
-                                        googleResolved && 'border-emerald-500 focus-visible:ring-emerald-500/30',
-                                        isLoaded && addressAutocompleteUi === 'new' && 'hidden',
-                                    )}
+                                    placeholder="Start typing your address?"
                                     required
+                                    className="h-10"
                                 />
-                            </div>
+                            )}
 
-                            {errors.address && <p className="text-xs text-destructive mt-1">{errors.address}</p>}
+                            {errors.address && (
+                                <p className="mt-1 text-xs text-destructive">
+                                    {errors.address}
+                                </p>
+                            )}
                         </div>
 
                         {/* ── Fallback hint ──────────────────────────────────────── */}
                         {shouldShowFallbackActions && !isManualMode && (
-                            <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 py-3 px-4">
-                                <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                                <AlertDescription className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 ml-2">
-                                    <span className="text-xs font-heading text-amber-700 dark:text-amber-300 leading-snug">
-                                        Can't find your address? Enter it manually or{' '}
-                                        <span className="font-medium">pin it on a map.</span>
+                            <Alert className="border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/20">
+                                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                                <AlertDescription className="ml-2 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+                                    <span className="font-heading text-xs leading-snug text-amber-700 dark:text-amber-300">
+                                        Can't find your address? Enter it
+                                        manually or{' '}
+                                        <span className="font-medium">
+                                            pin it on a map.
+                                        </span>
                                     </span>
                                     <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
                                         <Button
                                             type="button"
                                             variant="outline"
                                             size="sm"
-                                            className="h-8 w-full text-xs border-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900 gap-1.5 sm:h-7 sm:w-auto"
-                                            onClick={() => { setAddressMode('manual'); setShowFallbackHint(false); }}
+                                            className="h-8 w-full gap-1.5 border-amber-300 text-xs hover:bg-amber-100 sm:h-7 sm:w-auto dark:hover:bg-amber-900"
+                                            onClick={() => {
+                                                setAddressMode('manual');
+                                                setShowFallbackHint(false);
+                                            }}
                                         >
-                                            <PencilLine className="w-3 h-3" />
+                                            <PencilLine className="h-3 w-3" />
                                             Type manually
                                         </Button>
-                                        <Button type="button" size="sm" className="h-8 w-full text-xs gap-1.5 sm:h-7 sm:w-auto" onClick={openMapPicker}>
-                                            <Map className="w-3 h-3" />
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            className="h-8 w-full gap-1.5 text-xs sm:h-7 sm:w-auto"
+                                            onClick={openMapPicker}
+                                        >
+                                            <Map className="h-3 w-3" />
                                             Pick on map
                                         </Button>
                                     </div>
@@ -858,27 +1147,47 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                         {/* ── City / State (manual or after resolve) ──────────────── */}
                         <div
                             className={cn(
-                                'grid grid-cols-1 md:grid-cols-2 gap-3 overflow-hidden transition-all duration-300 ease-in-out',
-                                isManualMode || googleResolved ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0 pointer-events-none',
+                                'grid grid-cols-1 gap-3 overflow-hidden transition-all duration-300 ease-in-out md:grid-cols-2',
+                                isManualMode || googleResolved || !map_enabled
+                                    ? 'max-h-40 opacity-100'
+                                    : 'pointer-events-none max-h-0 opacity-0',
                             )}
                         >
                             <div className="space-y-1.5">
-                                <Label className="text-sm font-medium">City</Label>
+                                <Label className="text-sm font-medium">
+                                    City
+                                </Label>
                                 <Input
                                     value={data.city}
-                                    onChange={(e) => setData('city', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('city', e.target.value)
+                                    }
                                     placeholder="City"
-                                    className={cn('h-10', googleResolved && !isManualMode && 'bg-muted/50 text-muted-foreground cursor-default')}
+                                    className={cn(
+                                        'h-10',
+                                        googleResolved &&
+                                            !isManualMode &&
+                                            'cursor-default bg-muted/50 text-muted-foreground',
+                                    )}
                                     readOnly={googleResolved && !isManualMode}
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <Label className="text-sm font-medium">State</Label>
+                                <Label className="text-sm font-medium">
+                                    State
+                                </Label>
                                 <Input
                                     value={data.state}
-                                    onChange={(e) => setData('state', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('state', e.target.value)
+                                    }
                                     placeholder="State"
-                                    className={cn('h-10', googleResolved && !isManualMode && 'bg-muted/50 text-muted-foreground cursor-default')}
+                                    className={cn(
+                                        'h-10',
+                                        googleResolved &&
+                                            !isManualMode &&
+                                            'cursor-default bg-muted/50 text-muted-foreground',
+                                    )}
                                     readOnly={googleResolved && !isManualMode}
                                 />
                             </div>
@@ -888,7 +1197,7 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                             <button
                                 type="button"
                                 onClick={() => setAddressMode('manual')}
-                                className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors w-fit"
+                                className="w-fit text-xs text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
                             >
                                 Edit city / state
                             </button>
@@ -922,7 +1231,12 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
 
                     {/* ── Submit ────────────────────────────────────────────────── */}
                     <div className="flex items-center justify-end gap-4 pt-4">
-                        <Button type="submit" size="lg" disabled={processing} className="w-full sm:w-auto min-w-[120px]">
+                        <Button
+                            type="submit"
+                            size="lg"
+                            disabled={processing}
+                            className="w-full min-w-[120px] sm:w-auto"
+                        >
                             {processing && <Spinner className="mr-2" />}
                             Continue
                         </Button>
@@ -932,14 +1246,18 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
 
             {/* ── Map Picker Dialog ─────────────────────────────────────────────── */}
             <Dialog open={mapOpen} onOpenChange={setMapOpen}>
-                <DialogContent className="flex max-h-[95dvh] w-[calc(100%-1rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl sm:w-full" aria-describedby="for map">
-                    <DialogHeader className="px-5 py-4 border-b">
-                        <DialogTitle className="text-base font-semibold flex items-center gap-2">
-                            <MapPin className="w-4 h-4 text-primary" />
+                <DialogContent
+                    className="flex max-h-[95dvh] w-[calc(100%-1rem)] flex-col gap-0 overflow-hidden p-0 sm:w-full sm:max-w-2xl"
+                    aria-describedby="for map"
+                >
+                    <DialogHeader className="border-b px-5 py-4">
+                        <DialogTitle className="flex items-center gap-2 text-base font-semibold">
+                            <MapPin className="h-4 w-4 text-primary" />
                             Pin your business location
                         </DialogTitle>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                            Click anywhere on the map to drop a pin, then confirm.
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                            Click anywhere on the map to drop a pin, then
+                            confirm.
                         </p>
                     </DialogHeader>
 
@@ -958,11 +1276,15 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                                     streetViewControl: false,
                                     mapTypeControl: false,
                                     fullscreenControl: false,
-                                    mapId: (import.meta as any).env?.VITE_GOOGLE_MAP_ID,
+                                    mapId: (import.meta as any).env
+                                        ?.VITE_GOOGLE_MAP_ID,
                                 }}
                             />
                         ) : (
-                            <div className="flex items-center justify-center bg-muted" style={{ height: 'min(400px, 55dvh)' }}>
+                            <div
+                                className="flex items-center justify-center bg-muted"
+                                style={{ height: 'min(400px, 55dvh)' }}
+                            >
                                 <Spinner />
                             </div>
                         )}
@@ -971,9 +1293,13 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                             type="button"
                             onClick={handleUseMyLocation}
                             disabled={isLocating}
-                            className="absolute top-3 right-3 z-10 flex items-center gap-1.5 bg-background border border-border shadow-md rounded-md px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors disabled:opacity-60"
+                            className="absolute top-3 right-3 z-10 flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium shadow-md transition-colors hover:bg-muted disabled:opacity-60"
                         >
-                            {isLocating ? <Spinner className="w-3 h-3" /> : <LocateFixed className="w-3.5 h-3.5 text-primary" />}
+                            {isLocating ? (
+                                <Spinner className="h-3 w-3" />
+                            ) : (
+                                <LocateFixed className="h-3.5 w-3.5 text-primary" />
+                            )}
                             Use my location
                         </button>
                     </div>
@@ -982,21 +1308,29 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                         <div className="min-w-0 flex-1">
                             {markerPosition ? (
                                 <>
-                                    <p className="text-sm font-medium text-foreground line-clamp-2">
+                                    <p className="line-clamp-2 text-sm font-medium text-foreground">
                                         {mapPickedLabel || 'Resolving address…'}
                                     </p>
                                     <p className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">
-                                        {markerPosition.lat.toFixed(5)}, {markerPosition.lng.toFixed(5)}
+                                        {markerPosition.lat.toFixed(5)},{' '}
+                                        {markerPosition.lng.toFixed(5)}
                                     </p>
                                 </>
                             ) : (
                                 <p className="text-xs text-muted-foreground">
-                                    No pin dropped yet — tap the map to place one
+                                    No pin dropped yet — tap the map to place
+                                    one
                                 </p>
                             )}
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
-                            <Button type="button" variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => setMapOpen(false)}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 sm:flex-none"
+                                onClick={() => setMapOpen(false)}
+                            >
                                 Cancel
                             </Button>
                             <Button
@@ -1006,7 +1340,9 @@ export default function BusinessProfile({ categories, businessProfile }: Busines
                                 onClick={confirmMapLocation}
                                 className="flex-1 gap-1.5 sm:flex-none"
                             >
-                                {isReverseGeocoding && <Spinner className="w-3 h-3" />}
+                                {isReverseGeocoding && (
+                                    <Spinner className="h-3 w-3" />
+                                )}
                                 Confirm location
                             </Button>
                         </div>

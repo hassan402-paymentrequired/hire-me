@@ -133,4 +133,6 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'map_enabled' => env('GOOGLE_MAP_ENABLED', true),
+
 ];

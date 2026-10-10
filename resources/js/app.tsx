@@ -9,6 +9,7 @@ import 'goey-toast/styles.css';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import "blobatar/motion.css";
 
 const appName = import.meta.env.VITE_APP_NAME || 'Proxideck';
 
@@ -38,7 +39,7 @@ createInertiaApp({
                     >
                         <App {...props} />
                         <PushNotificationSetup auth={auth} />
-                        <GooeyToaster position="top-center" />
+                        <GooeyToaster position="top-center"  />
                     </LocationPermissionProvider>
                 </LoadingProvider>
             </StrictMode>,

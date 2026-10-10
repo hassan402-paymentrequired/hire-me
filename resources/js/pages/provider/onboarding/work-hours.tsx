@@ -1,19 +1,19 @@
-import { Button } from '@/components/ui/button';
-import OnboardingLayout from '@/layouts/onboarding-layout';
-import onboarding from '@/routes/onboarding';
-import { useForm, router } from '@inertiajs/react';
-import { AlertCircle, Copy } from 'lucide-react';
-import React, { useState } from 'react';
-import DayScheduleRow from '@/pages/provider/business/components/day-schedule-row';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { getStepsWithStatus } from './onboarding-steps';
 import {
     Tooltip,
     TooltipContent,
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import OnboardingLayout from '@/layouts/onboarding-layout';
+import DayScheduleRow from '@/pages/provider/business/components/day-schedule-row';
+import onboarding from '@/routes/onboarding';
+import { router, useForm } from '@inertiajs/react';
+import { AlertCircle, Copy } from 'lucide-react';
+import React, { useState } from 'react';
+import { getStepsWithStatus } from './onboarding-steps';
 
 interface Shift {
     start: string;
@@ -26,19 +26,48 @@ interface DaySchedule {
     shifts: Shift[];
 }
 
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as const;
-type Day = typeof DAYS[number];
+const DAYS = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+] as const;
+type Day = (typeof DAYS)[number];
 
 type WeekSchedule = Record<Day, DaySchedule>;
 
 const defaultSchedule: WeekSchedule = {
-    Monday:    { isOpen: true,  shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
-    Tuesday:   { isOpen: true,  shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
-    Wednesday: { isOpen: true,  shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
-    Thursday:  { isOpen: true,  shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
-    Friday:    { isOpen: true,  shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
-    Saturday:  { isOpen: false, shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
-    Sunday:    { isOpen: false, shifts: [{ start: '09:00', end: '17:00', breaks: [] }] },
+    Monday: {
+        isOpen: true,
+        shifts: [{ start: '09:00', end: '17:00', breaks: [] }],
+    },
+    Tuesday: {
+        isOpen: true,
+        shifts: [{ start: '09:00', end: '17:00', breaks: [] }],
+    },
+    Wednesday: {
+        isOpen: true,
+        shifts: [{ start: '09:00', end: '17:00', breaks: [] }],
+    },
+    Thursday: {
+        isOpen: true,
+        shifts: [{ start: '09:00', end: '17:00', breaks: [] }],
+    },
+    Friday: {
+        isOpen: true,
+        shifts: [{ start: '09:00', end: '17:00', breaks: [] }],
+    },
+    Saturday: {
+        isOpen: false,
+        shifts: [{ start: '09:00', end: '17:00', breaks: [] }],
+    },
+    Sunday: {
+        isOpen: false,
+        shifts: [{ start: '09:00', end: '17:00', breaks: [] }],
+    },
 };
 
 interface WorkHoursProps {
@@ -57,17 +86,25 @@ export default function WorkHours({ schedule }: WorkHoursProps) {
     const handleToggleDay = (day: Day) => {
         setData('schedule', {
             ...data.schedule,
-            [day]: { ...data.schedule[day], isOpen: !data.schedule[day].isOpen },
+            [day]: {
+                ...data.schedule[day],
+                isOpen: !data.schedule[day].isOpen,
+            },
         });
     };
 
-    const handleTimeChange = (day: Day, shiftIndex: number, field: string, value: any) => {
+    const handleTimeChange = (
+        day: Day,
+        shiftIndex: number,
+        field: string,
+        value: any,
+    ) => {
         setData('schedule', {
             ...data.schedule,
             [day]: {
                 ...data.schedule[day],
                 shifts: data.schedule[day].shifts.map((shift, idx) =>
-                    idx === shiftIndex ? { ...shift, [field]: value } : shift
+                    idx === shiftIndex ? { ...shift, [field]: value } : shift,
                 ),
             },
         });
@@ -80,22 +117,37 @@ export default function WorkHours({ schedule }: WorkHoursProps) {
                 ...data.schedule[day],
                 shifts: data.schedule[day].shifts.map((shift, idx) =>
                     idx === shiftIndex
-                        ? { ...shift, breaks: [...shift.breaks, { start: '12:00', end: '13:00' }] }
-                        : shift
+                        ? {
+                              ...shift,
+                              breaks: [
+                                  ...shift.breaks,
+                                  { start: '12:00', end: '13:00' },
+                              ],
+                          }
+                        : shift,
                 ),
             },
         });
     };
 
-    const handleRemoveBreak = (day: Day, shiftIndex: number, breakIndex: number) => {
+    const handleRemoveBreak = (
+        day: Day,
+        shiftIndex: number,
+        breakIndex: number,
+    ) => {
         setData('schedule', {
             ...data.schedule,
             [day]: {
                 ...data.schedule[day],
                 shifts: data.schedule[day].shifts.map((shift, idx) =>
                     idx === shiftIndex
-                        ? { ...shift, breaks: shift.breaks.filter((_, bIdx) => bIdx !== breakIndex) }
-                        : shift
+                        ? {
+                              ...shift,
+                              breaks: shift.breaks.filter(
+                                  (_, bIdx) => bIdx !== breakIndex,
+                              ),
+                          }
+                        : shift,
                 ),
             },
         });
@@ -106,7 +158,7 @@ export default function WorkHours({ schedule }: WorkHoursProps) {
         shiftIndex: number,
         breakIndex: number,
         field: string,
-        value: any
+        value: any,
     ) => {
         setData('schedule', {
             ...data.schedule,
@@ -117,10 +169,12 @@ export default function WorkHours({ schedule }: WorkHoursProps) {
                         ? {
                               ...shift,
                               breaks: shift.breaks.map((breakTime, bIdx) =>
-                                  bIdx === breakIndex ? { ...breakTime, [field]: value } : breakTime
+                                  bIdx === breakIndex
+                                      ? { ...breakTime, [field]: value }
+                                      : breakTime,
                               ),
                           }
-                        : shift
+                        : shift,
                 ),
             },
         });
@@ -169,14 +223,33 @@ export default function WorkHours({ schedule }: WorkHoursProps) {
     };
 
     return (
-        <OnboardingLayout title="Work Hours" steps={getStepsWithStatus('hours')} currentStepId="hours">
+        <OnboardingLayout
+            title="Work Hours"
+            steps={getStepsWithStatus('hours')}
+            currentStepId="hours"
+        >
             <div className="space-y-4">
                 {/* ── Heading ── */}
-                <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Set your availability</h2>
-                    <p className="text-sm text-muted-foreground mt-1">
-                        Configure your working hours for each day. You can always update this later.
-                    </p>
+                <div className="flex w-full items-center justify-between">
+                    <div>
+                        <h2 className="text-2xl font-bold tracking-tight">
+                            Set your availability
+                        </h2>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Configure your working hours for each day. You can
+                            always update this later.
+                        </p>
+                    </div>
+
+                    <div>
+                        <button
+                            type="button"
+                            onClick={skip}
+                            className="text-sm text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
+                        >
+                            Skip for now
+                        </button>
+                    </div>
                 </div>
 
                 {/* ── Validation errors ── */}
@@ -205,14 +278,20 @@ export default function WorkHours({ schedule }: WorkHoursProps) {
                                         variant="outline"
                                         size="sm"
                                         onClick={handleApplyToAll}
-                                        className="h-7 text-xs gap-1.5 shrink-0"
+                                        className="h-7 shrink-0 gap-1.5 text-xs"
                                     >
-                                        <Copy className="w-3 h-3" />
-                                        {applyAllFeedback ? '✓ Applied!' : 'Apply Monday to all open days'}
+                                        <Copy className="h-3 w-3" />
+                                        {applyAllFeedback
+                                            ? '✓ Applied!'
+                                            : 'Apply Monday to all open days'}
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent side="left" className="text-xs max-w-[180px] text-center">
-                                    Copies Monday's start time, end time, and breaks to every other open day
+                                <TooltipContent
+                                    side="left"
+                                    className="max-w-[180px] text-center text-xs"
+                                >
+                                    Copies Monday's start time, end time, and
+                                    breaks to every other open day
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -236,30 +315,21 @@ export default function WorkHours({ schedule }: WorkHoursProps) {
                     </div>
 
                     {/* ── Footer actions ── */}
-                    <div className="flex items-center justify-between gap-4 pt-4 border-t">
-                        <div className="flex items-center gap-4">
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                onClick={goBack}
-                                className="text-sm"
-                            >
-                                Back
-                            </Button>
-                            <button
-                                type="button"
-                                onClick={skip}
-                                className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
-                            >
-                                Skip for now
-                            </button>
-                        </div>
+                    <div className="flex items-center justify-between gap-4 pt-4">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={goBack}
+                            className="text-sm"
+                        >
+                            Back
+                        </Button>
 
                         <Button
                             type="submit"
                             size="lg"
                             disabled={processing}
-                            className="w-full sm:w-auto min-w-[120px]"
+                            className="w-full min-w-[120px] sm:w-auto"
                         >
                             {processing && <Spinner className="mr-2" />}
                             Continue

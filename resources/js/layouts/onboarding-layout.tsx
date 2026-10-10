@@ -30,11 +30,11 @@ export default function OnboardingLayout({
     const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
     return (
-        <div className="flex min-h-screen overflow-hidden bg-background">
+        <div className="flex h-screen overflow-hidden bg-background">
             <Head title={title} />
 
             {/* Sidebar / Left Panel */}
-            <div className="relative hidden w-[420px] shrink-0 flex-col overflow-hidden border-r lg:flex">
+            <div className="relative hidden w-[420px] shrink-0 flex-col overflow-hidden min-h-screen border-r lg:flex">
                 <div className="absolute inset-0 bg-[radial-gradient(1000px_circle_at_-10%_-10%,rgba(255,255,255,0.14),transparent_55%),radial-gradient(900px_circle_at_110%_20%,rgba(255,255,255,0.10),transparent_50%),linear-gradient(180deg,#0B1220_0%,#071018_100%)]" />
                 <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(255,255,255,.25)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.25)_1px,transparent_1px)] [background-size:24px_24px] [background-position:0_0]" />
 

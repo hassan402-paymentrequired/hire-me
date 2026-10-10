@@ -4,6 +4,38 @@
 
 @import "tw-animate-css";
 
+@font-face {
+    font-family: 'Satoshi';
+    src: url('../../public/assets') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Satoshi';
+    src: url('../../public/assets/fonts/WEB/fonts/Satoshi-Medium.woff2') format('woff2');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Satoshi';
+    src: url('../../public/assets/fonts/WEB/fonts/Satoshi-Bold.woff2') format('woff2');
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Satoshi';
+    src: url('../../public/assets/fonts/WEB/fonts/Satoshi-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 
@@ -15,7 +47,8 @@
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
 
-    --font-heading: 'Roboto Flex', var(--font-sans);
+    --font-heading: 'Satoshi', 'Roboto Flex';
+
     --font-buttons:
         'Figtree', 'Courier New', Courier, monospace,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',

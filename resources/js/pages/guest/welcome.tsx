@@ -3,16 +3,16 @@ import AppLayout from '@/layouts/guest-layout';
 import BusinessCard from '@/pages/guest/components/business-card';
 import { HeaderFilter } from '@/pages/guest/components/filter';
 import { WelcomeProps } from '@/types';
-import { Head, InfiniteScroll, router, usePage } from '@inertiajs/react';
-import { toast } from 'sonner';
+import { Head, InfiniteScroll, router } from '@inertiajs/react';
 import Landing from './components/landing-page';
+import { gooeyToast as toast } from 'goey-toast'
+
 
 export default function Welcome({
     providers,
     categories,
     filters,
 }: WelcomeProps) {
-    const { auth } = usePage().props as { auth?: { user?: unknown } };
 
     const requestLocation = () => {
         if ('geolocation' in navigator) {
@@ -149,16 +149,6 @@ export default function Welcome({
                                                 )}
                                             </div>
                                         </InfiniteScroll>
-
-                                        {/* Guest gate: login to continue viewing more providers */}
-                                        {/* {isGuest && (
-                                            <div className="mt-10">
-                                                <MiniLoginForm
-                                                    gate
-                                                    canRegister={canRegister}
-                                                />
-                                            </div>
-                                        )} */}
                                     </>
                                 )}
                             </div>

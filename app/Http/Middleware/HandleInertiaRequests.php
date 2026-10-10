@@ -79,6 +79,7 @@ class HandleInertiaRequests extends Middleware
                 'job_board' => (bool) config('features.job_board', false),
                 'provider_widget' => (bool) config('features.provider_widget', false),
             ],
+            'map_enabled' => config('app.map_enabled', true),
         ];
     }
 }
