@@ -1,12 +1,6 @@
+import { AppSelect } from '@/components/ui/app-select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { addMonths, format } from 'date-fns';
 import { Repeat } from 'lucide-react';
 
@@ -53,9 +47,9 @@ export function RecurrenceSection({
             <div className="space-y-4">
                 <div className="space-y-2">
                     <Label>Repeat Frequency</Label>
-                    <Select
+                    <AppSelect
                         value={recurrencePattern || ''}
-                        onValueChange={(value) => {
+                        onChange={(value) => {
                             if (!value || value === 'once') {
                                 onRecurrencePatternChange(null);
                                 onRecurrenceEndDateChange(null);
@@ -66,21 +60,18 @@ export function RecurrenceSection({
                                 value as RecurrencePattern,
                             );
                         }}
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select frequency (optional)" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="once">
-                                One-time booking
-                            </SelectItem>
-                            <SelectItem value="weekly">Weekly</SelectItem>
-                            <SelectItem value="bi_weekly">
-                                Bi-weekly (Every 2 weeks)
-                            </SelectItem>
-                            <SelectItem value="monthly">Monthly</SelectItem>
-                        </SelectContent>
-                    </Select>
+                        placeholder="Select frequency (optional)"
+                        searchable={false}
+                        options={[
+                            { value: 'once', label: 'One-time booking' },
+                            { value: 'weekly', label: 'Weekly' },
+                            {
+                                value: 'bi_weekly',
+                                label: 'Bi-weekly (Every 2 weeks)',
+                            },
+                            { value: 'monthly', label: 'Monthly' },
+                        ]}
+                    />
                 </div>
 
                 {recurrencePattern && (
@@ -100,7 +91,10 @@ export function RecurrenceSection({
                                 )}
                                 value={
                                     recurrenceEndDate
-                                        ? format(recurrenceEndDate, 'yyyy-MM-dd')
+                                        ? format(
+                                              recurrenceEndDate,
+                                              'yyyy-MM-dd',
+                                          )
                                         : ''
                                 }
                                 onChange={(e) => {

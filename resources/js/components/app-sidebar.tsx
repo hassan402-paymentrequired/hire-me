@@ -19,17 +19,26 @@ import { useMemo } from 'react';
 import AppLogo from './app-logo';
 import KeenIcon from './keen-icon';
 
-const DashboardIcon = () => <KeenIcon  name="home-2" className="text-base" />;
-const CalendarIcon = () => <KeenIcon name="calendar-tick" className="text-base" />;
+const DashboardIcon = () => <KeenIcon name="home-2" className="text-base" />;
+const CalendarIcon = () => (
+    <KeenIcon name="calendar-tick" className="text-base" />
+);
 const AppointmentIcon = () => <KeenIcon name="parcel" className="text-base" />;
-const BusinessHoursIcon = () => <KeenIcon name="night-day" className="text-base" />;
-const AnalyticsIcon = () => <KeenIcon name="chart-line" className="text-base" />;
+const BusinessHoursIcon = () => (
+    <KeenIcon name="night-day" className="text-base" />
+);
+const AnalyticsIcon = () => (
+    <KeenIcon name="chart-line" className="text-base" />
+);
 const ServicesIcon = () => <KeenIcon name="element-8" className="text-base" />;
 const GalleryIcon = () => <KeenIcon name="picture" className="text-base" />;
 const TeamIcon = () => <KeenIcon name="people" className="text-base" />;
 const WalletIcon = () => <KeenIcon name="credit-cart" className="text-base" />;
+const BillingIcon = () => <KeenIcon name="bill" className="text-base" />;
 const SettingsIcon = () => <KeenIcon name="setting" className="text-base" />;
-const IntegrationIcon = () => <KeenIcon name="technology-2" className="text-base" />;
+const IntegrationIcon = () => (
+    <KeenIcon name="technology-2" className="text-base" />
+);
 const MarketplaceIcon = () => <KeenIcon name="compass" className="text-base" />;
 
 const footerNavItems: any[] = [
@@ -108,6 +117,11 @@ export function AppSidebar() {
                         icon: WalletIcon,
                     },
                     {
+                        title: 'Billing',
+                        href: business.billing(),
+                        icon: BillingIcon,
+                    },
+                    {
                         title: 'Business Settings',
                         href: business.settings(),
                         icon: SettingsIcon,
@@ -136,7 +150,7 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
                             <Link href={dashboard()} prefetch>
-                                <AppLogo />
+                                <AppLogo variant="sidebar" />
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

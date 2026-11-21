@@ -1,78 +1,132 @@
-import KeenIcon from '@/components/keen-icon';
-import React from 'react';
-import { Info } from 'lucide-react';
+import {
+    openHoursFor,
+    toHours,
+    WEEK_DAYS,
+    type WeeklySchedule,
+} from '@/lib/schedule';
 
-const SchedulePreview = ({ schedule }) => {
-    const formatTime = (time) => {
-        const [hour, minute] = time?.split(':');
-        const hourNum = parseInt(hour);
-        const displayHour = hourNum === 0 ? 12 : hourNum > 12 ? hourNum - 12 : hourNum;
-        const period = hourNum < 12 ? 'AM' : 'PM';
-        return `${displayHour}:${minute} ${period}`;
-    };
+const SCALE_START = 6;
+const SCALE_END = 22;
+const SCALE = SCALE_END - SCALE_START;
 
-    const getDayStatus = (daySchedule) => {
-        if (!daySchedule?.isOpen) return 'Closed';
-        const shifts = daySchedule?.shifts?.filter(s => s?.start && s?.end);
-        if (shifts?.length === 0) return 'Not configured';
-        return shifts?.map(s => `${formatTime(s?.start)} - ${formatTime(s?.end)}`)?.join(', ');
-    };
+const percent = (hour: number) =>
+    `${((Math.min(Math.max(hour, SCALE_START), SCALE_END) - SCALE_START) / SCALE) * 100}%`;
+
+const width = (start: number, end: number) =>
+    `${((Math.min(Math.max(end, SCALE_START), SCALE_END) - Math.min(Math.max(start, SCALE_START), SCALE_END)) / SCALE) * 100}%`;
+
+const breakStripes =
+    'bg-[repeating-linear-gradient(135deg,#C8F169_0_3px,#0E3B2E_3px_6px)]';
+
+export default function SchedulePreview({
+    schedule,
+}: {
+    schedule?: WeeklySchedule | null;
+}) {
+    const totalHours = WEEK_DAYS.reduce(
+        (total, day) => total + openHoursFor(schedule?.[day]),
+        0,
+    );
 
     return (
-        <div className="sticky top-6 overflow-hidden rounded-3xl border border-border/70 bg-background">
-            <div className="border-b border-border/60 bg-muted/20 px-5 py-5">
-                <div className="flex items-start gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-border/70 bg-background text-sky-600 dark:text-sky-300">
-                        <KeenIcon name="electronic-clock" className="text-lg" />
-                    </div>
-                    <div>
-                        <h3 className="text-lg md:text-xl font-semibold text-foreground">
-                        Schedule Preview
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                            How customers will see your availability
-                        </p>
-                    </div>
-                </div>
+        <div className="flex flex-col gap-3.5 rounded-[20px] border border-[#0E3B2E]/10 bg-card p-5 shadow-[0_1px_2px_rgba(19,32,27,0.04)] dark:border-white/10">
+            <div className="flex items-baseline justify-between">
+                <span className="font-[Sora] text-base font-semibold text-foreground">
+                    Week at a glance
+                </span>
+                <span className="text-[13px] text-muted-foreground">
+                    <b className="font-[Sora] text-[#0E3B2E] dark:text-[#C8F169]">
+                        {Math.round(totalHours * 10) / 10}h
+                    </b>{' '}
+                    open
+                </span>
             </div>
-            <div className="space-y-3 px-5 py-5">
-                {schedule && Object.entries(schedule)?.map(([day, daySchedule]) => (
-                    <div
-                        key={day}
-                        className="flex flex-col justify-between gap-2 rounded-2xl border border-border/70 bg-muted/20 p-4 md:flex-row md:items-center"
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className={`h-2.5 w-2.5 rounded-full ${daySchedule?.isOpen ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
-                            <span className="text-sm md:text-base font-medium text-foreground min-w-[80px]">
-                {day}
-              </span>
+
+            {WEEK_DAYS.map((day) => {
+                const daySchedule = schedule?.[day];
+                const isOpen = Boolean(daySchedule?.isOpen);
+                const hours = openHoursFor(daySchedule);
+
+                return (
+                    <div key={day} className="flex items-center gap-2.5">
+                        <span
+                            className={
+                                isOpen
+                                    ? 'w-[34px] text-xs font-bold text-foreground'
+                                    : 'w-[34px] text-xs font-bold text-muted-foreground'
+                            }
+                        >
+                            {day.slice(0, 3)}
+                        </span>
+                        <div className="relative h-3.5 flex-1 overflow-hidden rounded-full bg-muted">
+                            {isOpen &&
+                                daySchedule?.shifts.map((shift, shiftIndex) => (
+                                    <div key={shiftIndex}>
+                                        <div
+                                            className="absolute inset-y-0 rounded-full bg-[#0E3B2E] dark:bg-[#C8F169]"
+                                            style={{
+                                                left: percent(
+                                                    toHours(shift.start),
+                                                ),
+                                                width: width(
+                                                    toHours(shift.start),
+                                                    toHours(shift.end),
+                                                ),
+                                            }}
+                                        />
+                                        {(shift.breaks ?? []).map(
+                                            (breakTime, breakIndex) => (
+                                                <div
+                                                    key={breakIndex}
+                                                    className={`absolute inset-y-0 ${breakStripes}`}
+                                                    style={{
+                                                        left: percent(
+                                                            toHours(
+                                                                breakTime.start,
+                                                            ),
+                                                        ),
+                                                        width: width(
+                                                            toHours(
+                                                                breakTime.start,
+                                                            ),
+                                                            toHours(
+                                                                breakTime.end,
+                                                            ),
+                                                        ),
+                                                    }}
+                                                />
+                                            ),
+                                        )}
+                                    </div>
+                                ))}
                         </div>
-                        <span className="text-xs md:text-sm text-muted-foreground md:text-right">
-              {getDayStatus(daySchedule)}
-            </span>
+                        <span className="w-11 text-right text-[11px] font-bold text-muted-foreground">
+                            {isOpen
+                                ? `${Math.round(hours * 10) / 10}h`
+                                : 'Closed'}
+                        </span>
                     </div>
-                ))}
-                {!schedule && (
-                    <div className="text-center py-8">
-                        <p className="text-sm text-muted-foreground">No schedule configured yet.</p>
-                    </div>
-                )}
+                );
+            })}
+
+            <div className="flex justify-between pr-[54px] pl-11 text-[10px] text-muted-foreground">
+                <span>6 AM</span>
+                <span>12 PM</span>
+                <span>6 PM</span>
+                <span>10 PM</span>
             </div>
-            <div className="mx-5 mb-5 rounded-2xl border border-primary/15 bg-primary/5 p-4">
-                <div className="flex gap-3">
-                    <Info size={20} className="mt-0.5 flex-shrink-0" />
-                    <div>
-                        <p className="text-sm font-medium text-foreground mb-1">
-                            Booking Availability
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                            Customers can only book appointments during your configured business hours. Break times will be blocked automatically.
-                        </p>
-                    </div>
-                </div>
+            <div className="flex gap-3.5 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                    <span className="size-2.5 rounded-[3px] bg-[#0E3B2E] dark:bg-[#C8F169]" />
+                    Open
+                </span>
+                <span className="flex items-center gap-1.5">
+                    <span
+                        className={`size-2.5 rounded-[3px] ${breakStripes}`}
+                    />
+                    Break
+                </span>
             </div>
         </div>
     );
-};
-
-export default SchedulePreview;
+}

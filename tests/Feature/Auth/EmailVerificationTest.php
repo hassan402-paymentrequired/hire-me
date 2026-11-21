@@ -1,92 +1,77 @@
 <?php
 
 use App\Models\User;
+use App\Services\EmailVerificationOtpService;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\URL;
 
 test('email verification screen can be rendered', function () {
     $user = User::factory()->unverified()->create();
 
-    $response = $this->actingAs($user)->get(route('verification.notice'));
-
-    $response->assertStatus(200);
+    $this->actingAs($user)
+        ->get(route('verification.notice'))
+        ->assertOk();
 });
 
-test('email can be verified', function () {
+test('email can be verified with a valid code', function () {
     $user = User::factory()->unverified()->create();
+    $code = app(EmailVerificationOtpService::class)->issue($user);
 
-    Event::fake();
+    Event::fake([Verified::class]);
 
-    $verificationUrl = URL::temporarySignedRoute(
-        'verification.verify',
-        now()->addMinutes(60),
-        ['id' => $user->id, 'hash' => sha1($user->email)]
-    );
-
-    $response = $this->actingAs($user)->get($verificationUrl);
+    $this->actingAs($user)
+        ->post(route('verification.otp.verify'), ['code' => $code])
+        ->assertRedirect(route('home'));
 
     Event::assertDispatched(Verified::class);
     expect($user->fresh()->hasVerifiedEmail())->toBeTrue();
-    $response->assertRedirect(route('dashboard', absolute: false).'?verified=1');
 });
 
-test('email is not verified with invalid hash', function () {
+test('email is not verified with an invalid code', function () {
+    $user = User::factory()->unverified()->create();
+    $code = app(EmailVerificationOtpService::class)->issue($user);
+    $wrongCode = $code === '111111' ? '222222' : '111111';
+
+    $this->actingAs($user)
+        ->post(route('verification.otp.verify'), ['code' => $wrongCode])
+        ->assertSessionHasErrors('code');
+
+    expect($user->fresh()->hasVerifiedEmail())->toBeFalse();
+});
+
+test('email is not verified without an issued code', function () {
     $user = User::factory()->unverified()->create();
 
-    $verificationUrl = URL::temporarySignedRoute(
-        'verification.verify',
-        now()->addMinutes(60),
-        ['id' => $user->id, 'hash' => sha1('wrong-email')]
-    );
-
-    $this->actingAs($user)->get($verificationUrl);
+    $this->actingAs($user)
+        ->post(route('verification.otp.verify'), ['code' => '123456'])
+        ->assertSessionHasErrors('code');
 
     expect($user->fresh()->hasVerifiedEmail())->toBeFalse();
 });
 
-test('email is not verified with invalid user id', function () {
-    $user = User::factory()->create([
-        'email_verified_at' => null,
+test('verified providers are sent to the business dashboard', function () {
+    $provider = User::factory()->unverified()->create(['role' => 'provider']);
+    \App\Models\BusinessProfile::factory()->create([
+        'user_id' => $provider->id,
+        'address' => '1 Main St',
+        'has_onboarded' => true,
     ]);
+    $code = app(EmailVerificationOtpService::class)->issue($provider);
 
-    $verificationUrl = URL::temporarySignedRoute(
-        'verification.verify',
-        now()->addMinutes(60),
-        ['id' => 123, 'hash' => sha1($user->email)]
-    );
-
-    $this->actingAs($user)->get($verificationUrl);
-
-    expect($user->fresh()->hasVerifiedEmail())->toBeFalse();
+    $this->actingAs($provider)
+        ->post(route('verification.otp.verify'), ['code' => $code])
+        ->assertRedirect(route('business.dashboard'))
+        ->assertSessionHas('success-toast');
 });
 
-test('verified user is redirected to dashboard from verification prompt', function () {
-    $user = User::factory()->create([
-        'email_verified_at' => now(),
-    ]);
+test('already verified user submitting a code is redirected without firing event again', function () {
+    $user = User::factory()->create(['email_verified_at' => now()]);
 
-    $response = $this->actingAs($user)->get(route('verification.notice'));
+    Event::fake([Verified::class]);
 
-    $response->assertRedirect(route('dashboard', absolute: false));
-});
+    $this->actingAs($user)
+        ->post(route('verification.otp.verify'), ['code' => '123456'])
+        ->assertRedirect(route('home'));
 
-test('already verified user visiting verification link is redirected without firing event again', function () {
-    $user = User::factory()->create([
-        'email_verified_at' => now(),
-    ]);
-
-    Event::fake();
-
-    $verificationUrl = URL::temporarySignedRoute(
-        'verification.verify',
-        now()->addMinutes(60),
-        ['id' => $user->id, 'hash' => sha1($user->email)]
-    );
-
-    $this->actingAs($user)->get($verificationUrl)
-        ->assertRedirect(route('dashboard', absolute: false).'?verified=1');
-
-    expect($user->fresh()->hasVerifiedEmail())->toBeTrue();
     Event::assertNotDispatched(Verified::class);
 });

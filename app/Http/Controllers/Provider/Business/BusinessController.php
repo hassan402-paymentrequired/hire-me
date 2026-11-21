@@ -8,14 +8,13 @@ use App\Models\BusinessProfile;
 use App\Models\Category;
 use App\Models\FavouriteBusiness;
 use App\Models\ProviderServiceCategory;
+use App\Support\ProviderSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
-use App\Support\ProviderSettings;
 
 class BusinessController extends Controller
 {
@@ -45,41 +44,7 @@ class BusinessController extends Controller
         $businessProfile = $this->managedBusinessProfile();
         $settings = ProviderSettings::resolve($businessProfile?->settings);
 
-        // Fetch WorkHours from DB
-        $workHours = \App\Models\WorkHour::where('provider_id', $provider?->id)->get();
-
-        $schedule = null;
-        if ($workHours->isNotEmpty()) {
-            $schedule = [];
-            $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-
-            foreach ($days as $day) {
-                $dayRecords = $workHours->where('day_of_week', $day);
-
-                if ($dayRecords->isEmpty()) {
-                    // Default to closed if no record exists for this day but others exist
-                    $schedule[$day] = ['isOpen' => false, 'shifts' => []];
-                } else {
-                    $firstRecord = $dayRecords->first();
-                    if ($firstRecord->is_closed) {
-                        $schedule[$day] = ['isOpen' => false, 'shifts' => []];
-                    } else {
-                        $shifts = $dayRecords->map(function ($record) {
-                            return [
-                                'start' => $record->start_time ? \Carbon\Carbon::parse($record->start_time)->format('H:i') : '09:00',
-                                'end' => $record->end_time ? \Carbon\Carbon::parse($record->end_time)->format('H:i') : '17:00',
-                                'breaks' => $record->breaks ?? []
-                            ];
-                        })->values()->toArray();
-
-                        $schedule[$day] = [
-                            'isOpen' => true,
-                            'shifts' => $shifts
-                        ];
-                    }
-                }
-            }
-        }
+        $schedule = \App\Models\WorkHour::weeklyScheduleFor($provider?->id);
 
         return [
             'initialSchedule' => $schedule,
@@ -126,7 +91,7 @@ class BusinessController extends Controller
                         'is_closed' => true,
                     ]);
                 } else {
-                    if (!empty($data['shifts'])) {
+                    if (! empty($data['shifts'])) {
                         foreach ($data['shifts'] as $shift) {
                             \App\Models\WorkHour::create([
                                 'provider_id' => $provider?->id,
@@ -149,8 +114,12 @@ class BusinessController extends Controller
         $profile = $this->managedBusinessProfile();
         $search = trim((string) $request->get('search', ''));
 
+        $monthStart = now()->startOfMonth();
         $servicesQuery = $provider->services()
             ->with(['category', 'serviceCategory'])
+            ->withCount(['appointments as bookings_this_month' => fn ($query) => $query
+                ->whereIn('status', ['confirmed', 'completed'])
+                ->where('start_time', '>=', $monthStart)])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($inner) use ($search) {
                     $inner->where('name', 'like', "%{$search}%")
@@ -187,12 +156,13 @@ class BusinessController extends Controller
             ->join('services', 'appointments.service_id', '=', 'services.id')
             ->selectRaw('services.name, COUNT(appointments.id) as bookings')
             ->whereIn('appointments.status', ['confirmed', 'completed'])
+            ->where('appointments.start_time', '>=', $monthStart)
             ->groupBy('services.id', 'services.name')
             ->orderByRaw('COUNT(appointments.id) DESC')
             ->first();
 
         return Inertia::render('provider/business/services/index', [
-            'services' => $services->through(fn($s) => [
+            'services' => $services->through(fn ($s) => [
                 'id' => $s->id,
                 'name' => $s->name,
                 'description' => $s->description,
@@ -203,6 +173,7 @@ class BusinessController extends Controller
                 'service_category_id' => $s->service_category_id,
                 'service_category_name' => $s->serviceCategory?->name,
                 'status' => $s->status,
+                'bookings_this_month' => (int) $s->bookings_this_month,
             ]),
             'businessCategory' => $businessCategory,
             'serviceCategories' => $serviceCategories->map(fn ($category) => [
@@ -222,9 +193,9 @@ class BusinessController extends Controller
                 'inactiveServices' => $inactiveServicesCount,
                 'mostBooked' => [
                     'name' => $mostBookedService?->name ?? 'N/A',
-                    'change' => '+5%', // Mock
-                ]
-            ]
+                    'bookings' => (int) ($mostBookedService?->bookings ?? 0),
+                ],
+            ],
         ]);
     }
 
@@ -242,6 +213,8 @@ class BusinessController extends Controller
             'name' => 'required|string|max:255',
             'price' => 'required|numeric|min:0',
             'duration_minutes' => 'required|integer|min:1',
+            'description' => 'nullable|string|max:1000',
+            'status' => 'nullable|in:active,inactive',
         ]);
 
         $profile = $this->managedBusinessProfile();
@@ -263,7 +236,7 @@ class BusinessController extends Controller
             'description' => $request->description,
             'price' => $request->price,
             'duration_minutes' => $request->duration_minutes,
-            'status' => 'active',
+            'status' => $request->input('status', 'active'),
         ]);
 
         return back()->with('success-toast', 'Service created successfully.');
@@ -283,6 +256,8 @@ class BusinessController extends Controller
             'name' => 'required|string|max:255',
             'price' => 'required|numeric|min:0',
             'duration_minutes' => 'required|integer|min:1',
+            'description' => 'nullable|string|max:1000',
+            'status' => 'nullable|in:active,inactive',
         ]);
 
         $service->update($request->only([
@@ -291,7 +266,7 @@ class BusinessController extends Controller
             'description',
             'price',
             'duration_minutes',
-        ]));
+        ]) + ['status' => $request->input('status', $service->status)]);
 
         return back()->with('success-toast', 'Service updated successfully.');
     }
@@ -388,7 +363,7 @@ class BusinessController extends Controller
 
         // Calculate date range
         $now = now();
-        $startDate = match($range) {
+        $startDate = match ($range) {
             'this_week' => $now->copy()->startOfWeek(),
             'this_month' => $now->copy()->startOfMonth(),
             'this_year' => $now->copy()->startOfYear(),
@@ -396,12 +371,12 @@ class BusinessController extends Controller
         };
 
         // Helper function to create fresh query instances
-        $baseQuery = function() use ($provider, $startDate) {
+        $baseQuery = function () use ($provider, $startDate) {
             return $provider->appointmentsAsProvider()->where('start_time', '>=', $startDate);
         };
 
         // 1. Revenue Trends (Daily, Weekly, Monthly based on range) - Create fresh instances
-        $revenueData = match($range) {
+        $revenueData = match ($range) {
             'this_week' => $this->getDailyRevenue($provider->appointmentsAsProvider()->where('start_time', '>=', $startDate), $startDate),
             'this_month' => $this->getWeeklyRevenue($provider->appointmentsAsProvider()->where('start_time', '>=', $startDate), $startDate),
             'this_year' => $this->getMonthlyRevenue($provider->appointmentsAsProvider()->where('start_time', '>=', $startDate), $startDate),
@@ -433,7 +408,7 @@ class BusinessController extends Controller
                     'name' => $row->name,
                     'bookings' => $row->bookings,
                     'revenue' => (float) $row->revenue,
-                    'revenue_formatted' => '₦' . number_format($row->revenue),
+                    'revenue_formatted' => '₦'.number_format($row->revenue),
                     'avg_price' => (float) $row->avg_price,
                 ];
             });
@@ -448,6 +423,7 @@ class BusinessController extends Controller
             ->get()
             ->map(function ($row) {
                 $hour = (int) $row->hour;
+
                 return [
                     'hour' => $hour,
                     'display' => date('g A', mktime($hour, 0, 0)),
@@ -458,6 +434,7 @@ class BusinessController extends Controller
         // Fill all 24 hours for chart
         $allHours = collect(range(0, 23))->map(function ($h) use ($peakHours) {
             $found = $peakHours->firstWhere('hour', $h);
+
             return $found ?? [
                 'hour' => $h,
                 'display' => date('g A', mktime($h, 0, 0)),
@@ -472,7 +449,7 @@ class BusinessController extends Controller
             ->whereNotNull('client_id')
             ->distinct('client_id')
             ->count('client_id');
-        
+
         $returningClients = $provider->appointmentsAsProvider()
             ->where('start_time', '>=', $startDate)
             ->whereNotNull('client_id')
@@ -481,7 +458,7 @@ class BusinessController extends Controller
             ->havingRaw('COUNT(*) > 1')
             ->get()
             ->count();
-        
+
         $retentionRate = $uniqueClients > 0 ? ($returningClients / $uniqueClients) * 100 : 0;
 
         // Calculate repeat customer bookings
@@ -591,13 +568,13 @@ class BusinessController extends Controller
             'sentimentData' => $sentimentData,
             'geographicData' => $geographicData,
             'metrics' => [
-                'totalRevenue' => '₦' . number_format($currentRevenue),
-                'revenueChange' => ($revenueChange >= 0 ? '+' : '') . number_format($revenueChange, 1) . '%',
+                'totalRevenue' => '₦'.number_format($currentRevenue),
+                'revenueChange' => ($revenueChange >= 0 ? '+' : '').number_format($revenueChange, 1).'%',
                 'totalBookings' => $currentBookings,
-                'bookingsChange' => ($bookingsChange >= 0 ? '+' : '') . number_format($bookingsChange, 1) . '%',
-                'cancelRate' => number_format($cancelRate, 1) . '%',
-                'cancelChange' => ($cancelChange >= 0 ? '+' : '') . number_format($cancelChange, 1) . '%',
-            ]
+                'bookingsChange' => ($bookingsChange >= 0 ? '+' : '').number_format($bookingsChange, 1).'%',
+                'cancelRate' => number_format($cancelRate, 1).'%',
+                'cancelChange' => ($cancelChange >= 0 ? '+' : '').number_format($cancelChange, 1).'%',
+            ],
         ]);
     }
 
@@ -605,7 +582,7 @@ class BusinessController extends Controller
     {
         $endDate = now();
         $days = $startDate->diffInDays($endDate) + 1;
-        
+
         $revenueData = $appointments
             ->whereIn('status', ['confirmed', 'completed'])
             ->selectRaw('DATE(start_time) as date, SUM(price) as value')
@@ -620,6 +597,7 @@ class BusinessController extends Controller
             $date = $startDate->copy()->addDays($day);
             $key = $date->format('Y-m-d');
             $found = $revenueData->get($key);
+
             return [
                 'label' => $date->format('M d'),
                 'value' => $found ? (float) $found->value : 0,
@@ -631,7 +609,7 @@ class BusinessController extends Controller
     {
         $endDate = now();
         $weeks = $startDate->diffInWeeks($endDate) + 1;
-        
+
         $revenueData = $appointments
             ->whereIn('status', ['confirmed', 'completed'])
             ->selectRaw('DATE(DATE_SUB(start_time, INTERVAL WEEKDAY(start_time) DAY)) as week_start, SUM(price) as value')
@@ -646,8 +624,9 @@ class BusinessController extends Controller
             $weekStart = $startDate->copy()->addWeeks($week)->startOfWeek();
             $weekKey = $weekStart->format('Y-m-d');
             $found = $revenueData->get($weekKey);
+
             return [
-                'label' => 'Week ' . ($week + 1) . ' (' . $weekStart->format('M d') . ')',
+                'label' => 'Week '.($week + 1).' ('.$weekStart->format('M d').')',
                 'value' => $found ? (float) $found->value : 0,
             ];
         });
@@ -676,9 +655,10 @@ class BusinessController extends Controller
                 'name' => date('M', mktime(0, 0, 0, $m, 1)),
             ];
         });
-        
+
         return $allMonths->map(function ($month) use ($revenueData) {
             $found = $revenueData->firstWhere('month', $month['number']);
+
             return [
                 'label' => $month['name'],
                 'value' => $found ? $found['value'] : 0,
@@ -688,8 +668,7 @@ class BusinessController extends Controller
 
     public function settings()
     {
-        $provider = $this->managedProvider();
-        $profile = $provider?->businessProfile()->first();
+        $profile = $this->managedProvider()?->businessProfile()->with('images')->first();
         $categories = Category::orderBy('name')->get()->map(function ($category) {
             return [
                 'value' => $category->slug,
@@ -700,29 +679,27 @@ class BusinessController extends Controller
         return Inertia::render('provider/business/settings/index', [
             'profile' => $profile ? [
                 'id' => $profile->id,
+                'slug' => $profile->slug,
                 'business_name' => $profile->business_name,
                 'description' => $profile->description,
                 'phone' => $profile->phone,
                 'category' => $profile->category,
-            ] : null,
-            'categories' => $categories,
-        ]);
-    }
-
-    public function settingsLocation()
-    {
-        $profile = $this->managedProvider()?->businessProfile()->first();
-
-        return Inertia::render('provider/business/settings/location', [
-            'profile' => $profile ? [
-                'id' => $profile->id,
                 'address' => $profile->address,
                 'city' => $profile->city,
                 'state' => $profile->state,
                 'zip_code' => $profile->zip_code,
                 'latitude' => $profile->latitude,
                 'longitude' => $profile->longitude,
+                'logo_path' => $profile->logo_path
+                    ? \App\Services\FileUploadService::url($profile->logo_path, 'public')
+                    : null,
+                'images' => $profile->images->map(fn ($img) => [
+                    'id' => $img->id,
+                    'path' => \App\Services\FileUploadService::url($img->image_path, 'public'),
+                    'is_logo' => $img->is_logo,
+                ]),
             ] : null,
+            'categories' => $categories,
         ]);
     }
 
@@ -738,27 +715,14 @@ class BusinessController extends Controller
         ]);
     }
 
-    public function settingsAppearance()
-    {
-        $profile = $this->managedProvider()?->businessProfile()->with('images')->first();
-
-        return Inertia::render('provider/business/settings/appearance', [
-            'profile' => $profile ? [
-                'id' => $profile->id,
-                'images' => $profile->images->map(fn($img) => [
-                    'id' => $img->id,
-                    'path' => \App\Services\FileUploadService::url($img->image_path, 'public'),
-                    'is_logo' => $img->is_logo,
-                ]),
-            ] : null,
-        ]);
-    }
-
     public function updateSettings(Request $request)
     {
         return $this->updateGeneralSettings($request);
     }
 
+    /**
+     * Save business details, location, logo and banner from the combined General settings page.
+     */
     public function updateGeneralSettings(Request $request)
     {
         $profile = $this->managedBusinessProfile();
@@ -768,58 +732,86 @@ class BusinessController extends Controller
             'phone' => 'nullable|string|max:20',
             'category' => 'nullable|string|max:50',
             'description' => 'nullable|string',
-        ]);
-
-        try {
-            if (! $profile) {
-                return back()->with('error-toast', 'Business profile not found.');
-            }
-
-            $profile->update([
-                'business_name' => $request->business_name,
-                'description' => $request->description,
-                'phone' => $request->phone,
-                'category' => $request->category,
-            ]);
-
-            return back()->with('success-toast', 'General business information updated successfully.');
-        } catch (\Exception $e) {
-            Log::error("Error updating business general settings: {$e->getMessage()}");
-            return back()->with('error-toast', 'Error updating business settings. Please try again.');
-        }
-    }
-
-    public function updateLocationSettings(Request $request)
-    {
-        $profile = $this->managedBusinessProfile();
-
-        $request->validate([
             'address' => 'nullable|string|max:500',
             'city' => 'nullable|string|max:100',
             'state' => 'nullable|string|max:100',
             'zip_code' => 'nullable|string|max:20',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
+            'logo' => 'nullable|image|max:5120',
+            'new_images' => 'nullable|array',
+            'new_images.*' => 'image|max:5120',
+            'delete_image_ids' => 'nullable|array',
+            'delete_image_ids.*' => 'exists:business_images,id',
         ]);
 
+        if (! $profile) {
+            return back()->with('error-toast', 'Business profile not found.');
+        }
+
+        $currentBannerCount = $profile->images()->where('is_logo', false)->count();
+        $remainingBannerCount = max(0, $currentBannerCount - count($request->input('delete_image_ids', [])));
+
+        if (($remainingBannerCount + count($request->file('new_images', []))) > 3) {
+            return back()->withErrors([
+                'new_images' => 'You can only keep up to 3 banner images at a time, excluding your logo.',
+            ]);
+        }
+
         try {
-            if (! $profile) {
-                return back()->with('error-toast', 'Business profile not found.');
+            DB::beginTransaction();
+
+            $profile->update($request->only([
+                'business_name',
+                'description',
+                'phone',
+                'category',
+                'address',
+                'city',
+                'state',
+                'zip_code',
+                'latitude',
+                'longitude',
+            ]));
+
+            if ($request->hasFile('logo')) {
+                $oldLogo = $profile->images()->where('is_logo', true)->first();
+
+                if ($oldLogo) {
+                    \App\Services\FileUploadService::delete($oldLogo->image_path, 'public');
+                    $oldLogo->delete();
+                }
+
+                $path = \App\Services\FileUploadService::upload($request->file('logo'), 'business-logos', 'public');
+
+                $profile->update(['logo_path' => $path]);
+                $profile->images()->create(['image_path' => $path, 'is_logo' => true]);
             }
 
-            $profile->update([
-                'address' => $request->address,
-                'city' => $request->city,
-                'state' => $request->state,
-                'zip_code' => $request->zip_code,
-                'latitude' => $request->latitude,
-                'longitude' => $request->longitude,
-            ]);
+            if ($request->delete_image_ids) {
+                $imagesToDelete = BusinessImage::whereIn('id', $request->delete_image_ids)
+                    ->where('business_profile_id', $profile->id)
+                    ->get();
 
-            return back()->with('success-toast', 'Business location updated successfully.');
+                foreach ($imagesToDelete as $img) {
+                    \App\Services\FileUploadService::delete($img->image_path, 'public');
+                    $img->delete();
+                }
+            }
+
+            foreach ($request->file('new_images', []) as $image) {
+                $path = \App\Services\FileUploadService::upload($image, 'business-images', 'public');
+                $profile->images()->create(['image_path' => $path, 'is_logo' => false]);
+            }
+
+            DB::commit();
+
+            return back()->with('success-toast', 'Business settings updated successfully.');
         } catch (\Exception $e) {
-            Log::error("Error updating business location settings: {$e->getMessage()}");
-            return back()->with('error-toast', 'Error updating business location. Please try again.');
+            DB::rollBack();
+            Log::error("Error updating business general settings: {$e->getMessage()}");
+
+            return back()->with('error-toast', 'Error updating business settings. Please try again.');
         }
     }
 
@@ -844,94 +836,8 @@ class BusinessController extends Controller
             return back()->with('success-toast', 'Advanced business settings updated successfully.');
         } catch (\Exception $e) {
             Log::error("Error updating business advanced settings: {$e->getMessage()}");
+
             return back()->with('error-toast', 'Error updating advanced settings. Please try again.');
-        }
-    }
-
-    public function updateAppearanceSettings(Request $request)
-    {
-        $profile = $this->managedBusinessProfile();
-
-        if (! $profile) {
-            return back()->with('error-toast', 'Business profile not found.');
-        }
-
-        $currentBannerCount = $profile->images()->where('is_logo', false)->count();
-        $deleteCount = count($request->input('delete_image_ids', []));
-        $remainingBannerCount = max(0, $currentBannerCount - $deleteCount);
-        $incomingBannerCount = count($request->file('new_images', []));
-
-        $request->validate([
-            'logo' => 'nullable|image|max:5120',
-            'new_images' => 'nullable|array',
-            'new_images.*' => 'image|max:5120',
-            'delete_image_ids' => 'nullable|array',
-            'delete_image_ids.*' => 'exists:business_images,id',
-        ]);
-
-        if (($remainingBannerCount + $incomingBannerCount) > 3) {
-            return back()->withErrors([
-                'new_images' => 'You can only keep up to 3 banner images at a time, excluding your logo.',
-            ]);
-        }
-
-        try {
-            DB::beginTransaction();
-
-            if ($request->hasFile('logo')) {
-                $oldLogo = $profile->images()->where('is_logo', true)->first();
-
-                if ($oldLogo) {
-                    \App\Services\FileUploadService::delete($oldLogo->image_path, 'public');
-                    $oldLogo->delete();
-                }
-
-                $path = \App\Services\FileUploadService::upload(
-                    $request->file('logo'),
-                    'business-logos',
-                    'public'
-                );
-
-                // update the logo pa
-                $profile->update(['logo_path' => $path]);
-
-                $profile->images()->create([
-                    'image_path' => $path,
-                    'is_logo' => true,
-                ]);
-            }
-
-            if ($request->hasFile('new_images')) {
-                foreach ($request->file('new_images') as $image) {
-                    $path = \App\Services\FileUploadService::upload(
-                        $image,
-                        'business-images',
-                        'public'
-                    );
-                    $profile->images()->create([
-                        'image_path' => $path,
-                        'is_logo' => false,
-                    ]);
-                }
-            }
-
-            if ($request->delete_image_ids) {
-                $imagesToDelete = BusinessImage::whereIn('id', $request->delete_image_ids)
-                    ->where('business_profile_id', $profile->id)
-                    ->get();
-
-                foreach ($imagesToDelete as $img) {
-                    \App\Services\FileUploadService::delete($img->image_path, 'public');
-                    $img->delete();
-                }
-            }
-
-            DB::commit();
-            return back()->with('success-toast', 'Business appearance updated successfully.');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error("Error updating business appearance settings: {$e->getMessage()}");
-            return back()->with('error-toast', 'Error updating business appearance. Please try again.');
         }
     }
 
@@ -941,25 +847,25 @@ class BusinessController extends Controller
             $request->validate(['id' => 'required|exists:business_profiles,id']);
 
             $existing = FavouriteBusiness::query()->where('user_id', auth()->id())->where('business_profile_id', $request->id)->first();
-$message = '';
-            if(!$existing)
-            {
-                 FavouriteBusiness::query()->create(
+            $message = '';
+            if (! $existing) {
+                FavouriteBusiness::query()->create(
                     [
                         'user_id' => auth()->id(),
-                        'business_profile_id' => $request->id
+                        'business_profile_id' => $request->id,
                     ]
                 );
                 $message = 'Business marked as favourite.';
-            }else{
+            } else {
                 $existing->delete();
                 $message = 'Business removed from favourites.';
             }
 
             return back()->with('success-toast', $message);
 
-        }catch (\Exception $e) {
+        } catch (\Exception $e) {
             Log::error("Error marking business as favourite: {$e->getMessage()}");
+
             return back()->with('error-toast', 'Error marking business as favourite. Please try again.');
         }
     }
@@ -969,6 +875,7 @@ $message = '';
         $favourites = FavouriteBusiness::query()->where('user_id', auth()->id())
             ->with(['businessProfile.user', 'user'])
             ->get();
+
         return response()->json($favourites);
     }
 }

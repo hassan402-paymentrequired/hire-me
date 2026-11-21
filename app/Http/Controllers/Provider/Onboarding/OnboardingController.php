@@ -346,16 +346,16 @@ class OnboardingController extends Controller
             'price' => 'required|numeric',
             'duration_minutes' => 'required|integer',
             'description' => 'nullable|string',
-        ], 
-    [
-        'service_category_id.required' => 'Please select a service category.',
-        'service_category_id.exists' => 'Please select a valid service category.',
-        'name.required' => 'Please enter a service name.',
-        'name.string' => 'Please enter a valid service name.',
-        'name.max' => 'Please enter a service name less than 255 characters.',
-        'price.required' => 'Please enter a service price.',
-        'price.numeric' => 'Please enter a valid service price.',
-    ]);
+        ],
+            [
+                'service_category_id.required' => 'Please select a service category.',
+                'service_category_id.exists' => 'Please select a valid service category.',
+                'name.required' => 'Please enter a service name.',
+                'name.string' => 'Please enter a valid service name.',
+                'name.max' => 'Please enter a service name less than 255 characters.',
+                'price.required' => 'Please enter a service price.',
+                'price.numeric' => 'Please enter a valid service price.',
+            ]);
 
         $user = auth_user();
         $categoryId = null;
@@ -368,18 +368,16 @@ class OnboardingController extends Controller
             ]);
         }
 
-        Service::updateOrCreate(
-            ['provider_id' => $user->id],
-            [
-                'category_id' => $categoryId,
-                'service_category_id' => $request->service_category_id,
-                'name' => $request->name,
-                'description' => $request->description,
-                'duration_minutes' => $request->duration_minutes,
-                'price' => $request->price,
-                'status' => 'active',
-            ]
-        );
+        Service::create([
+            'provider_id' => $user->id,
+            'category_id' => $categoryId,
+            'service_category_id' => $request->service_category_id,
+            'name' => $request->name,
+            'description' => $request->description,
+            'duration_minutes' => $request->duration_minutes,
+            'price' => $request->price,
+            'status' => 'active',
+        ]);
 
         $this->ensureProviderTeamMember($user);
 

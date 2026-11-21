@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import KeenIcon from '@/components/keen-icon';
 import { ReviewSection } from '@/components/reviews/review-section';
+import { AppSelect } from '@/components/ui/app-select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,13 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import GuestLayout from '@/layouts/guest-layout';
-import {
-    formatDate,
-    formatPrice,
-    formatStatus,
-    formatTime,
-    getStatusVariant,
-} from '@/lib/utils';
+import { formatDate, formatPrice, formatStatus, formatTime } from '@/lib/utils';
 import { Head, router } from '@inertiajs/react';
 import {
     AlertCircle,
@@ -277,13 +272,12 @@ export default function BookingDetails({
                             <div className="space-y-4">
                                 <div className="flex flex-wrap items-center gap-2">
                                     <Badge
-                                    
                                         variant={
                                             booking.payment_method === 'offline'
                                                 ? 'destructive'
                                                 : 'primary'
                                         }
-                                         className="flex items-center gap-2 px-4 py-1.5 text-xs"
+                                        className="flex items-center gap-2 px-4 py-1.5 text-xs"
                                     >
                                         {paymentStateLabel}
                                     </Badge>
@@ -320,7 +314,6 @@ export default function BookingDetails({
                                         completion status from one place.
                                     </p>
                                 </div>
-                                
                             </div>
 
                             <div className="grid grid-cols-2 gap-3 sm:min-w-[320px]">
@@ -1064,50 +1057,46 @@ export default function BookingDetails({
                                                             <Label htmlFor="reason">
                                                                 Reason *
                                                             </Label>
-                                                            <select
-                                                                title="reason"
+                                                            <AppSelect
                                                                 id="reason"
-                                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                                                                 value={
                                                                     reportReason
                                                                 }
-                                                                onChange={(e) =>
-                                                                    setReportReason(
-                                                                        e.target
-                                                                            .value,
-                                                                    )
+                                                                onChange={
+                                                                    setReportReason
                                                                 }
+                                                                placeholder="Select a reason"
                                                                 required
-                                                            >
-                                                                <option value="">
-                                                                    Select a
-                                                                    reason
-                                                                </option>
-                                                                <option value="no-show">
-                                                                    Provider did
-                                                                    not show up
-                                                                </option>
-                                                                <option value="poor-service">
-                                                                    Poor service
-                                                                    quality
-                                                                </option>
-                                                                <option value="incorrect-price">
-                                                                    Incorrect
-                                                                    pricing
-                                                                    charged
-                                                                </option>
-                                                                <option value="unprofessional">
-                                                                    Unprofessional
-                                                                    behavior
-                                                                </option>
-                                                                <option value="safety-concern">
-                                                                    Safety
-                                                                    concern
-                                                                </option>
-                                                                <option value="other">
-                                                                    Other
-                                                                </option>
-                                                            </select>
+                                                                searchable={
+                                                                    false
+                                                                }
+                                                                options={[
+                                                                    {
+                                                                        value: 'no-show',
+                                                                        label: 'Provider did not show up',
+                                                                    },
+                                                                    {
+                                                                        value: 'poor-service',
+                                                                        label: 'Poor service quality',
+                                                                    },
+                                                                    {
+                                                                        value: 'incorrect-price',
+                                                                        label: 'Incorrect pricing charged',
+                                                                    },
+                                                                    {
+                                                                        value: 'unprofessional',
+                                                                        label: 'Unprofessional behavior',
+                                                                    },
+                                                                    {
+                                                                        value: 'safety-concern',
+                                                                        label: 'Safety concern',
+                                                                    },
+                                                                    {
+                                                                        value: 'other',
+                                                                        label: 'Other',
+                                                                    },
+                                                                ]}
+                                                            />
                                                         </div>
                                                         <div className="flex flex-col gap-2">
                                                             <Label htmlFor="description">

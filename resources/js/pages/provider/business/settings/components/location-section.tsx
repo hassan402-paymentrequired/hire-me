@@ -1,13 +1,19 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import KeenIcon from '@/components/keen-icon';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { GoogleMap, LoadScript } from '@react-google-maps/api';
 import React from 'react';
 
-const libraries: ('places')[] = ['places'];
+const libraries: 'places'[] = ['places'];
 const mapContainerStyle = { width: '100%', height: '400px' };
 const defaultCenter = { lat: 6.5244, lng: 3.3792 };
 
@@ -20,7 +26,8 @@ export default function LocationSection({
     setData: (key: string, value: any) => void;
     errors: Record<string, string>;
 }) {
-    const autocompleteRef = React.useRef<google.maps.places.Autocomplete | null>(null);
+    const autocompleteRef =
+        React.useRef<google.maps.places.Autocomplete | null>(null);
     const inputRef = React.useRef<HTMLInputElement | null>(null);
     const geocoderRef = React.useRef<google.maps.Geocoder | null>(null);
     const advancedMarkerRef = React.useRef<any>(null);
@@ -30,8 +37,12 @@ export default function LocationSection({
     const [isScriptLoaded, setIsScriptLoaded] = React.useState(false);
     const [mapOpen, setMapOpen] = React.useState(false);
     const [mapCenter, setMapCenter] = React.useState(defaultCenter);
-    const [markerPosition, setMarkerPosition] = React.useState<{ lat: number; lng: number } | null>(null);
-    const [mapInstance, setMapInstance] = React.useState<google.maps.Map | null>(null);
+    const [markerPosition, setMarkerPosition] = React.useState<{
+        lat: number;
+        lng: number;
+    } | null>(null);
+    const [mapInstance, setMapInstance] =
+        React.useState<google.maps.Map | null>(null);
     const [isReverseGeocoding, setIsReverseGeocoding] = React.useState(false);
     const [isLocating, setIsLocating] = React.useState(false);
 
@@ -39,7 +50,8 @@ export default function LocationSection({
 
     const fillAddressFromPlace = React.useCallback(
         (place: google.maps.places.PlaceResult) => {
-            if (!place.address_components?.length || !place.formatted_address) return false;
+            if (!place.address_components?.length || !place.formatted_address)
+                return false;
 
             let city = '';
             let state = '';
@@ -49,8 +61,13 @@ export default function LocationSection({
 
                 if (!city) {
                     if (types.includes('locality')) city = component.long_name;
-                    else if (types.includes('sublocality') || types.includes('sublocality_level_1')) city = component.long_name;
-                    else if (types.includes('administrative_area_level_2')) city = component.long_name;
+                    else if (
+                        types.includes('sublocality') ||
+                        types.includes('sublocality_level_1')
+                    )
+                        city = component.long_name;
+                    else if (types.includes('administrative_area_level_2'))
+                        city = component.long_name;
                 }
 
                 if (!state && types.includes('administrative_area_level_1')) {
@@ -75,33 +92,47 @@ export default function LocationSection({
     }, [fillAddressFromPlace]);
 
     React.useEffect(() => {
-        if (!isScriptLoaded || !window.google?.maps || geocoderRef.current) return;
+        if (!isScriptLoaded || !window.google?.maps || geocoderRef.current)
+            return;
         geocoderRef.current = new window.google.maps.Geocoder();
     }, [isScriptLoaded]);
 
     React.useEffect(() => {
-        if (!isScriptLoaded || !inputRef.current || autocompleteRef.current || !window.google?.maps?.places) {
+        if (
+            !isScriptLoaded ||
+            !inputRef.current ||
+            autocompleteRef.current ||
+            !window.google?.maps?.places
+        ) {
             return;
         }
 
-        const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
-            types: ['address'],
-            fields: ['address_components', 'formatted_address', 'geometry'],
-        });
+        const autocomplete = new window.google.maps.places.Autocomplete(
+            inputRef.current,
+            {
+                types: ['address'],
+                fields: ['address_components', 'formatted_address', 'geometry'],
+            },
+        );
 
         autocomplete.addListener('place_changed', onPlaceChanged);
         autocompleteRef.current = autocomplete;
 
         return () => {
             if (autocompleteRef.current) {
-                window.google?.maps?.event?.clearInstanceListeners?.(autocompleteRef.current);
+                window.google?.maps?.event?.clearInstanceListeners?.(
+                    autocompleteRef.current,
+                );
                 autocompleteRef.current = null;
             }
         };
     }, [isScriptLoaded, onPlaceChanged]);
 
     const openMapPicker = React.useCallback(() => {
-        if (typeof data.latitude === 'number' && typeof data.longitude === 'number') {
+        if (
+            typeof data.latitude === 'number' &&
+            typeof data.longitude === 'number'
+        ) {
             const current = { lat: data.latitude, lng: data.longitude };
             setMapCenter(current);
             setMarkerPosition(current);
@@ -140,23 +171,28 @@ export default function LocationSection({
         if (!markerPosition || !geocoderRef.current) return;
 
         setIsReverseGeocoding(true);
-        geocoderRef.current.geocode({ location: markerPosition }, (results, status) => {
-            setIsReverseGeocoding(false);
+        geocoderRef.current.geocode(
+            { location: markerPosition },
+            (results, status) => {
+                setIsReverseGeocoding(false);
 
-            if (status === 'OK' && results?.[0]) {
-                const place = results[0] as unknown as google.maps.places.PlaceResult;
-                place.formatted_address = results[0].formatted_address;
-                place.geometry = results[0].geometry as google.maps.places.PlaceResult['geometry'];
-                fillAddressFromPlace(place);
-                setData('latitude', markerPosition.lat);
-                setData('longitude', markerPosition.lng);
-            } else {
-                setData('latitude', markerPosition.lat);
-                setData('longitude', markerPosition.lng);
-            }
+                if (status === 'OK' && results?.[0]) {
+                    const place =
+                        results[0] as unknown as google.maps.places.PlaceResult;
+                    place.formatted_address = results[0].formatted_address;
+                    place.geometry = results[0]
+                        .geometry as google.maps.places.PlaceResult['geometry'];
+                    fillAddressFromPlace(place);
+                    setData('latitude', markerPosition.lat);
+                    setData('longitude', markerPosition.lng);
+                } else {
+                    setData('latitude', markerPosition.lat);
+                    setData('longitude', markerPosition.lng);
+                }
 
-            setMapOpen(false);
-        });
+                setMapOpen(false);
+            },
+        );
     }, [fillAddressFromPlace, markerPosition, setData]);
 
     React.useEffect(() => {
@@ -193,7 +229,9 @@ export default function LocationSection({
                     return;
                 }
 
-                const mapId = (import.meta as any).env?.VITE_GOOGLE_MAP_ID as string | undefined;
+                const mapId = (import.meta as any).env?.VITE_GOOGLE_MAP_ID as
+                    | string
+                    | undefined;
                 const canTryAdvanced = Boolean(mapId && g.maps.importLibrary);
 
                 if (canTryAdvanced) {
@@ -201,7 +239,8 @@ export default function LocationSection({
                         await g.maps.importLibrary('marker');
                         if (cancelled) return;
 
-                        const AdvancedMarkerElement = g.maps.marker?.AdvancedMarkerElement;
+                        const AdvancedMarkerElement =
+                            g.maps.marker?.AdvancedMarkerElement;
                         if (AdvancedMarkerElement) {
                             cleanupClassic();
 
@@ -213,19 +252,33 @@ export default function LocationSection({
                                 });
                                 advancedMarkerRef.current = marker;
 
-                                const listener = marker.addListener?.('dragend', (e: any) => {
-                                    const ll = e?.latLng || marker.position;
-                                    if (!ll) return;
-                                    const lat = typeof ll.lat === 'function' ? ll.lat() : ll.lat;
-                                    const lng = typeof ll.lng === 'function' ? ll.lng() : ll.lng;
-                                    if (typeof lat === 'number' && typeof lng === 'number') {
-                                        setMarkerPosition({ lat, lng });
-                                    }
-                                });
-                                advancedMarkerListenerRef.current = listener || null;
+                                const listener = marker.addListener?.(
+                                    'dragend',
+                                    (e: any) => {
+                                        const ll = e?.latLng || marker.position;
+                                        if (!ll) return;
+                                        const lat =
+                                            typeof ll.lat === 'function'
+                                                ? ll.lat()
+                                                : ll.lat;
+                                        const lng =
+                                            typeof ll.lng === 'function'
+                                                ? ll.lng()
+                                                : ll.lng;
+                                        if (
+                                            typeof lat === 'number' &&
+                                            typeof lng === 'number'
+                                        ) {
+                                            setMarkerPosition({ lat, lng });
+                                        }
+                                    },
+                                );
+                                advancedMarkerListenerRef.current =
+                                    listener || null;
                             } else {
                                 advancedMarkerRef.current.map = mapInstance;
-                                advancedMarkerRef.current.position = markerPosition;
+                                advancedMarkerRef.current.position =
+                                    markerPosition;
                             }
 
                             return;
@@ -242,7 +295,7 @@ export default function LocationSection({
                         position: markerPosition,
                         draggable: true,
                     });
-                    classicMarkerRef.current.addListener('dragend', () => {
+                    classicMarkerRef.current?.addListener('dragend', () => {
                         const pos = classicMarkerRef.current?.getPosition?.();
                         if (!pos) return;
                         setMarkerPosition({ lat: pos.lat(), lng: pos.lng() });
@@ -288,32 +341,51 @@ export default function LocationSection({
                     onChange={(e) => setData('address', e.target.value)}
                     placeholder="Start typing your business address..."
                     autoComplete="off"
-                    className="pl-10"
+                    className="h-12 rounded-xl pl-10"
                 />
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
                 {googleMapsApiKey && (
-                    <Button type="button" variant="outline" size="sm" onClick={openMapPicker} className="gap-2">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={openMapPicker}
+                        className="gap-2"
+                    >
                         <KeenIcon name="map" className="text-sm" />
                         Pick on map
                     </Button>
                 )}
 
-                {typeof data.latitude === 'number' && typeof data.longitude === 'number' && (
-                    <span className="text-xs text-muted-foreground">
-                        Pin saved at {data.latitude.toFixed(5)}, {data.longitude.toFixed(5)}
-                    </span>
-                )}
+                {typeof data.latitude === 'number' &&
+                    typeof data.longitude === 'number' && (
+                        <span className="text-xs text-muted-foreground">
+                            Pin saved at {data.latitude.toFixed(5)},{' '}
+                            {data.longitude.toFixed(5)}
+                        </span>
+                    )}
             </div>
 
-            {errors.address && <p className="text-xs text-destructive">{errors.address}</p>}
+            {errors.address && (
+                <p className="text-xs text-destructive">{errors.address}</p>
+            )}
         </div>
     );
 
     return (
         <>
-            <div className="space-y-6">
+            <section className="flex flex-col gap-4 rounded-[20px] border border-[#0E3B2E]/10 bg-card p-[22px] shadow-[0_1px_2px_rgba(19,32,27,0.04)] dark:border-white/10">
+                <div className="flex flex-col gap-0.5">
+                    <h2 className="font-[Sora] text-lg font-semibold text-foreground">
+                        Location
+                    </h2>
+                    <span className="text-[13px] text-muted-foreground">
+                        Where clients find you. Pin it on the map so “near me”
+                        search works.
+                    </span>
+                </div>
                 {googleMapsApiKey ? (
                     <LoadScript
                         googleMapsApiKey={googleMapsApiKey}
@@ -325,7 +397,9 @@ export default function LocationSection({
                 ) : (
                     <div className="space-y-2">
                         {addressField}
-                        <p className="text-[10px] text-yellow-600">Google Maps API not configured.</p>
+                        <p className="text-[10px] text-yellow-600">
+                            Google Maps API not configured.
+                        </p>
                     </div>
                 )}
 
@@ -338,9 +412,11 @@ export default function LocationSection({
                             </div>
                             <Input
                                 value={data.city}
-                                onChange={(e) => setData('city', e.target.value)}
+                                onChange={(e) =>
+                                    setData('city', e.target.value)
+                                }
                                 placeholder="Enter city"
-                                className="pl-10"
+                                className="h-12 rounded-xl pl-10"
                             />
                         </div>
                     </div>
@@ -353,24 +429,33 @@ export default function LocationSection({
                             </div>
                             <Input
                                 value={data.state}
-                                onChange={(e) => setData('state', e.target.value)}
+                                onChange={(e) =>
+                                    setData('state', e.target.value)
+                                }
                                 placeholder="Enter state"
-                                className="pl-10"
+                                className="h-12 rounded-xl pl-10"
                             />
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
 
             <Dialog open={mapOpen} onOpenChange={setMapOpen}>
-                <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-2xl" aria-describedby="pick your business location on the map">
+                <DialogContent
+                    className="gap-0 overflow-hidden p-0 sm:max-w-2xl"
+                    aria-describedby="pick your business location on the map"
+                >
                     <DialogHeader className="border-b px-5 py-4">
                         <DialogTitle className="flex items-center gap-2 text-base font-semibold">
-                            <KeenIcon name="map" className="text-sm text-primary" />
+                            <KeenIcon
+                                name="map"
+                                className="text-sm text-primary"
+                            />
                             Pick your business location
                         </DialogTitle>
                         <p className="text-xs text-muted-foreground">
-                            Click on the map to drop a pin, then confirm your location.
+                            Click on the map to drop a pin, then confirm your
+                            location.
                         </p>
                     </DialogHeader>
 
@@ -389,7 +474,8 @@ export default function LocationSection({
                                     streetViewControl: false,
                                     mapTypeControl: false,
                                     fullscreenControl: false,
-                                    mapId: (import.meta as any).env?.VITE_GOOGLE_MAP_ID,
+                                    mapId: (import.meta as any).env
+                                        ?.VITE_GOOGLE_MAP_ID,
                                 }}
                             />
                         ) : (
@@ -402,9 +488,16 @@ export default function LocationSection({
                             type="button"
                             onClick={handleUseMyLocation}
                             disabled={isLocating}
-                            className="absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium shadow-md transition-colors hover:bg-muted disabled:opacity-60"
+                            className="absolute top-3 right-3 z-10 flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium shadow-md transition-colors hover:bg-muted disabled:opacity-60"
                         >
-                            {isLocating ? <Spinner className="h-3 w-3" /> : <KeenIcon name="geolocation" className="text-sm text-primary" />}
+                            {isLocating ? (
+                                <Spinner className="h-3 w-3" />
+                            ) : (
+                                <KeenIcon
+                                    name="geolocation"
+                                    className="text-sm text-primary"
+                                />
+                            )}
                             Use my location
                         </button>
                     </div>
@@ -417,7 +510,12 @@ export default function LocationSection({
                         </p>
 
                         <div className="flex items-center gap-2">
-                            <Button type="button" variant="outline" size="sm" onClick={() => setMapOpen(false)}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setMapOpen(false)}
+                            >
                                 Cancel
                             </Button>
                             <Button
@@ -426,7 +524,9 @@ export default function LocationSection({
                                 disabled={!markerPosition || isReverseGeocoding}
                                 onClick={confirmMapLocation}
                             >
-                                {isReverseGeocoding && <Spinner className="mr-2 h-3 w-3" />}
+                                {isReverseGeocoding && (
+                                    <Spinner className="mr-2 h-3 w-3" />
+                                )}
                                 Confirm location
                             </Button>
                         </div>

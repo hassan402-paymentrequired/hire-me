@@ -1,15 +1,9 @@
 import { Pagination } from '@/components/pagination';
+import { AppSelect } from '@/components/ui/app-select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import {
     Table,
     TableBody,
@@ -149,79 +143,61 @@ export default function UserManagement({ users, filters }: Props) {
                                 <label className="text-sm font-medium">
                                     Role
                                 </label>
-                                <Select
+                                <AppSelect
                                     value={data.role || 'all'}
-                                    onValueChange={(value) =>
-                                        setData('role', value)
-                                    }
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="All roles" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">
-                                            All roles
-                                        </SelectItem>
-                                        <SelectItem value="client">
-                                            Client
-                                        </SelectItem>
-                                        <SelectItem value="provider">
-                                            Provider
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                    onChange={(value) => setData('role', value)}
+                                    placeholder="All roles"
+                                    size="sm"
+                                    searchable={false}
+                                    options={[
+                                        { value: 'all', label: 'All roles' },
+                                        { value: 'client', label: 'Client' },
+                                        {
+                                            value: 'provider',
+                                            label: 'Provider',
+                                        },
+                                    ]}
+                                />
                             </div>
 
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">
                                     Provider Status
                                 </label>
-                                <Select
+                                <AppSelect
                                     value={data.is_provider || 'all'}
-                                    onValueChange={(value) =>
+                                    onChange={(value) =>
                                         setData('is_provider', value)
                                     }
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="All users" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">
-                                            All users
-                                        </SelectItem>
-                                        <SelectItem value="1">
-                                            Providers only
-                                        </SelectItem>
-                                        <SelectItem value="0">
-                                            Clients only
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                    placeholder="All users"
+                                    size="sm"
+                                    searchable={false}
+                                    options={[
+                                        { value: 'all', label: 'All users' },
+                                        { value: '1', label: 'Providers only' },
+                                        { value: '0', label: 'Clients only' },
+                                    ]}
+                                />
                             </div>
 
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">
                                     Verification
                                 </label>
-                                <Select
+                                <AppSelect
                                     value={data.is_verified || 'all'}
-                                    onValueChange={(value) =>
+                                    onChange={(value) =>
                                         setData('is_verified', value)
                                     }
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="All" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All</SelectItem>
-                                        <SelectItem value="1">
-                                            Verified
-                                        </SelectItem>
-                                        <SelectItem value="0">
-                                            Not verified
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                    placeholder="All"
+                                    size="sm"
+                                    searchable={false}
+                                    options={[
+                                        { value: 'all', label: 'All' },
+                                        { value: '1', label: 'Verified' },
+                                        { value: '0', label: 'Not verified' },
+                                    ]}
+                                />
                             </div>
                         </div>
 
@@ -347,7 +323,8 @@ export default function UserManagement({ users, filters }: Props) {
                                                             </div>
                                                             <div className="text-muted-foreground">
                                                                 Available: ₦
-                                                                {user?.wallet?.available_balance?.toLocaleString() || 0}
+                                                                {user?.wallet?.available_balance?.toLocaleString() ||
+                                                                    0}
                                                             </div>
                                                         </div>
                                                     ) : (

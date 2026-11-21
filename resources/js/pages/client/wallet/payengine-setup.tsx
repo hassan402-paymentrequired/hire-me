@@ -1,3 +1,4 @@
+import { AppSelect } from '@/components/ui/app-select';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -184,25 +185,29 @@ export default function PayEngineSetup({ wallet }: Props) {
                                             <Label htmlFor="gender">
                                                 Gender (optional)
                                             </Label>
-                                            <select
+                                            <AppSelect
                                                 id="gender"
-                                                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                                                 value={form.data.gender}
-                                                onChange={(event) =>
+                                                onChange={(value) =>
                                                     form.setData(
                                                         'gender',
-                                                        event.target.value,
+                                                        value,
                                                     )
                                                 }
-                                            >
-                                                <option value="">Select</option>
-                                                <option value="male">
-                                                    Male
-                                                </option>
-                                                <option value="female">
-                                                    Female
-                                                </option>
-                                            </select>
+                                                placeholder="Select"
+                                                size="sm"
+                                                searchable={false}
+                                                options={[
+                                                    {
+                                                        value: 'male',
+                                                        label: 'Male',
+                                                    },
+                                                    {
+                                                        value: 'female',
+                                                        label: 'Female',
+                                                    },
+                                                ]}
+                                            />
                                             {form.errors.gender && (
                                                 <p className="text-sm text-destructive">
                                                     {form.errors.gender}

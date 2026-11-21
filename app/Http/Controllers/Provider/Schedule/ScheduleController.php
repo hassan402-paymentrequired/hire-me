@@ -8,8 +8,10 @@ use App\Jobs\DeleteGoogleCalendarEventJob;
 use App\Models\Appointment;
 use App\Models\Report;
 use App\Models\Wallet;
+use App\Models\WorkHour;
 use App\Notifications\AppointmentConfirmedNotification;
 use App\Notifications\AwaitingClientConfirmation;
+use App\Support\ProviderSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -43,9 +45,25 @@ class ScheduleController extends Controller
             ->orderBy('start_time', 'asc')
             ->get();
 
+        $monthStart = $startDate->copy()->startOfMonth();
+        $monthEnd = $startDate->copy()->endOfMonth();
+
+        $bookedDays = $provider->appointmentsAsProvider()
+            ->where('status', '!=', 'cancelled')
+            ->whereBetween('start_time', [$monthStart, $monthEnd])
+            ->pluck('start_time')
+            ->map(fn ($startTime) => \Carbon\Carbon::parse($startTime)->toDateString())
+            ->unique()
+            ->values();
+
+        $settings = ProviderSettings::resolve($provider->businessProfile?->settings);
+
         return Inertia::render('provider/schedule/calendar', [
             'appointments' => $appointments,
             'currentWeekStart' => $startDate->toIso8601String(),
+            'businessHours' => WorkHour::weeklyScheduleFor($provider->id),
+            'holidays' => $settings['holidays'] ?? [],
+            'bookedDays' => $bookedDays,
         ]);
     }
 
@@ -57,20 +75,40 @@ class ScheduleController extends Controller
 
         $query = $provider->appointmentsAsProvider()->with(['services', 'client', 'teamMember.user'])
             ->when($search, function ($q, $search) {
-                $q->whereHas('client', function($q2) use ($search) {
+                $q->whereHas('client', function ($q2) use ($search) {
                     $q2->where('name', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%");
                 });
             })
-            ->when($status && $status !== 'all', function ($q) use($status) {
+            ->when($status && $status !== 'all', function ($q) use ($status) {
                 $q->where('status', $status);
             });
 
-        $appointments = $query->latest()->paginate(10)->withQueryString();
+        $appointments = $query->orderByDesc('start_time')->paginate(10)->withQueryString();
+
+        $countsByStatus = $provider->appointmentsAsProvider()
+            ->when($search, function ($q, $search) {
+                $q->whereHas('client', function ($q2) use ($search) {
+                    $q2->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        $statusCounts = [
+            'all' => (int) $countsByStatus->sum(),
+            'pending' => (int) ($countsByStatus['pending'] ?? 0),
+            'confirmed' => (int) ($countsByStatus['confirmed'] ?? 0),
+            'completed' => (int) ($countsByStatus['completed'] ?? 0),
+            'cancelled' => (int) ($countsByStatus['cancelled'] ?? 0),
+        ];
 
         return Inertia::render('provider/schedule/appointments', [
             'appointments' => $appointments,
             'filters' => $request->only(['search', 'status']),
+            'statusCounts' => $statusCounts,
         ]);
     }
 
@@ -88,6 +126,10 @@ class ScheduleController extends Controller
             DB::commit();
 
             $appointment->client->notify(new AppointmentConfirmedNotification($appointment));
+
+            if (request()->boolean('return_back')) {
+                return back()->with('success-toast', 'Appointment confirmed successfully.');
+            }
 
             return to_route('provider.appointments.show', ['id' => $appointment->id])->with('success-toast', 'Appointment confirmed successfully.');
         } catch (\Exception $e) {
@@ -148,7 +190,7 @@ class ScheduleController extends Controller
         $appointment = $this->providerAppointmentsQuery()
             ->whereIn('status', ['confirmed', 'pending', 'pending_completion'])
             ->findOrFail($id);
-        
+
         try {
             DB::beginTransaction();
 
@@ -205,7 +247,7 @@ class ScheduleController extends Controller
         return Inertia::render('provider/schedule/appointment-details', [
             'appointment' => [
                 'id' => $appointment->id,
-                'client_name' => $appointment->client?->name  ?? 'Guest',
+                'client_name' => $appointment->client?->name ?? 'Guest',
                 'email' => $appointment->client?->email ?? $appointment->client_email ?? null,
                 'services' => $appointment->services->map(fn ($s) => [
                     'id' => $s->id,

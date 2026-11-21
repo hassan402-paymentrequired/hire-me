@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\BusinessProfile;
 use App\Models\Category;
 use App\Models\Service;
+use App\Models\TeamMember;
 use App\Models\User;
 use App\Models\WorkHour;
 use Illuminate\Database\Seeder;
@@ -36,14 +37,15 @@ class ProviderSeeder extends Seeder
         $categories = Category::all();
         if ($categories->isEmpty()) {
             $this->command->warn('Run CategorySeeder first. Skipping ProviderSeeder.');
+
             return;
         }
 
-        $categoryNames = $categories->pluck('name')->all();
+        $categorySlugs = $categories->pluck('slug')->all();
 
         for ($i = 0; $i < self::COUNT; $i++) {
             $name = fake()->name();
-            $email = 'provider' . ($i + 1) . '@proxideck.test';
+            $email = 'provider'.($i + 1).'@proxideck.test';
 
             $user = User::firstOrCreate(
                 ['email' => $email],
@@ -57,7 +59,7 @@ class ProviderSeeder extends Seeder
             );
 
             $businessName = $this->uniqueBusinessName($i);
-            $slug = Str::slug($businessName) . '-' . ($i + 1);
+            $slug = Str::slug($businessName).'-'.($i + 1);
 
             $profile = BusinessProfile::updateOrCreate(
                 ['user_id' => $user->id],
@@ -70,17 +72,29 @@ class ProviderSeeder extends Seeder
                     'state' => fake()->stateAbbr(),
                     'zip_code' => fake()->postcode(),
                     'phone' => fake()->phoneNumber(),
-                    'category' => fake()->randomElement($categoryNames),
+                    'category' => fake()->randomElement($categorySlugs),
                     'latitude' => fake()->latitude(),
                     'longitude' => fake()->longitude(),
+                    'has_onboarded' => true,
                 ]
+            );
+
+            TeamMember::firstOrCreate(
+                ['provider_id' => $user->id, 'user_id' => $user->id],
+                [
+                    'role' => 'admin',
+                    'is_active' => true,
+                    'invited_by' => $user->id,
+                    'invited_at' => now(),
+                    'accepted_at' => now(),
+                ],
             );
 
             $this->seedServices($user, $categories);
             $this->seedWorkHours($user);
         }
 
-        $this->command->info('Seeded ' . self::COUNT . ' providers. Login: provider1@proxideck.test … provider' . self::COUNT . '@proxideck.test / password');
+        $this->command->info('Seeded '.self::COUNT.' providers. Login: provider1@proxideck.test … provider'.self::COUNT.'@proxideck.test / password');
     }
 
     private function uniqueBusinessName(int $index): string
@@ -88,7 +102,7 @@ class ProviderSeeder extends Seeder
         $prefix = self::BUSINESS_PREFIXES[$index % count(self::BUSINESS_PREFIXES)];
         $suffix = self::BUSINESS_SUFFIXES[(int) ($index / count(self::BUSINESS_PREFIXES)) % count(self::BUSINESS_SUFFIXES)];
 
-        return $prefix . ' ' . $suffix;
+        return $prefix.' '.$suffix;
     }
 
     private function seedServices(User $provider, $categories): void

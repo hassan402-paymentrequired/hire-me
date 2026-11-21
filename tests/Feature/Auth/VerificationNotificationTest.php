@@ -1,33 +1,32 @@
 <?php
 
 use App\Models\User;
-use Illuminate\Auth\Notifications\VerifyEmail;
+use App\Notifications\EmailVerificationOtpNotification;
 use Illuminate\Support\Facades\Notification;
 
-test('sends verification notification', function () {
+test('sends verification code notification', function () {
     Notification::fake();
 
-    $user = User::factory()->create([
-        'email_verified_at' => null,
-    ]);
+    $user = User::factory()->unverified()->create();
 
     $this->actingAs($user)
+        ->from(route('verification.notice'))
         ->post(route('verification.send'))
-        ->assertRedirect(route('home'));
+        ->assertRedirect(route('verification.notice'))
+        ->assertSessionHas('status', 'verification-link-sent');
 
-    Notification::assertSentTo($user, VerifyEmail::class);
+    Notification::assertSentTo($user, EmailVerificationOtpNotification::class);
 });
 
-test('does not send verification notification if email is verified', function () {
+test('does not send verification code if email is verified', function () {
     Notification::fake();
 
-    $user = User::factory()->create([
-        'email_verified_at' => now(),
-    ]);
+    $user = User::factory()->create(['email_verified_at' => now()]);
 
     $this->actingAs($user)
+        ->from(route('home'))
         ->post(route('verification.send'))
-        ->assertRedirect(route('dashboard', absolute: false));
+        ->assertRedirect(route('home'));
 
     Notification::assertNothingSent();
 });

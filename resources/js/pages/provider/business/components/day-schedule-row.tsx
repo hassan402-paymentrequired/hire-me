@@ -1,9 +1,65 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { FormSelect } from '@/components/ui/form-select';
-import { Coffee, Trash2 } from 'lucide-react';
+import KeenIcon from '@/components/keen-icon';
+import { AppSelect } from '@/components/ui/app-select';
+import { formatHour, toHours, type DaySchedule } from '@/lib/schedule';
+import { cn } from '@/lib/utils';
 
-const DayScheduleRow = ({
+interface DayScheduleRowProps {
+    day: string;
+    schedule?: DaySchedule;
+    onToggle(day: string): void;
+    onTimeChange(
+        day: string,
+        shiftIndex: number,
+        field: 'start' | 'end',
+        value: string,
+    ): void;
+    onAddBreak(day: string, shiftIndex: number): void;
+    onRemoveBreak(day: string, shiftIndex: number, breakIndex: number): void;
+    onBreakChange(
+        day: string,
+        shiftIndex: number,
+        breakIndex: number,
+        field: 'start' | 'end',
+        value: string,
+    ): void;
+    onCopyToAll?(day: string): void;
+    errors?: Record<string, string>;
+}
+
+const timeOptions = Array.from({ length: 48 }, (_, index) => {
+    const value = `${String(Math.floor(index / 2)).padStart(2, '0')}:${index % 2 === 0 ? '00' : '30'}`;
+
+    return { value, label: formatHour(toHours(value)) };
+});
+
+function TimeSelect({
+    value,
+    label,
+    onChange,
+    error,
+}: {
+    value?: string;
+    label: string;
+    onChange: (value: string) => void;
+    error?: string;
+}) {
+    return (
+        <AppSelect
+            value={value}
+            onChange={onChange}
+            options={timeOptions}
+            error={error}
+            searchable={false}
+            size="sm"
+            className="w-[136px]"
+            triggerClassName="min-h-11 rounded-[10px] font-semibold"
+            placeholder={label}
+            ariaLabel={label}
+        />
+    );
+}
+
+export default function DayScheduleRow({
     day,
     schedule,
     onToggle,
@@ -11,142 +67,170 @@ const DayScheduleRow = ({
     onAddBreak,
     onRemoveBreak,
     onBreakChange,
-    errors
-}) => {
-    const getError = (path) => errors?.[`schedule.${day}.shifts.0.${path}`];
-    const getBreakError = (breakIndex, field) =>
-        errors?.[`schedule.${day}.shifts.0.breaks.${breakIndex}.${field}`];
-
-    const timeOptions = Array.from({ length: 48 }, (_, i) => {
-        const hour = Math.floor(i / 2);
-        const minute = i % 2 === 0 ? '00' : '30';
-        const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-        const period = hour < 12 ? 'AM' : 'PM';
-        const value = `${hour.toString().padStart(2, '0')}:${minute}`;
-        return { value, label: `${displayHour}:${minute} ${period}` };
-    });
-
-    const shift = schedule?.shifts?.[0];
+    onCopyToAll,
+    errors,
+}: DayScheduleRowProps) {
     const shiftIndex = 0;
+    const shift = schedule?.shifts?.[shiftIndex];
+    const isOpen = Boolean(schedule?.isOpen);
+    const errorFor = (path: string) =>
+        errors?.[`schedule.${day}.shifts.0.${path}`];
 
     return (
         <div
-            className={`p-3 md:p-4 rounded border transition-all duration-200 ${
-                schedule?.isOpen ? 'bg-card border-border' : 'bg-muted/40 border-border/50'
-            }`}
+            className={cn(
+                'flex flex-wrap items-start gap-x-5 gap-y-4 px-[22px] py-[18px]',
+                !isOpen && 'bg-muted/40',
+            )}
         >
-            {/* ── Header row: always flex-row, toggle on the right ── */}
-            <div className="flex items-center justify-between gap-3">
-                <div>
-                    <h3 className="text-sm md:text-base font-semibold text-foreground">{day}</h3>
-                    <p className="text-xs text-muted-foreground">
-                        {schedule?.isOpen ? 'Open for business' : 'Closed'}
-                    </p>
-                </div>
-
-                {/* Toggle */}
+            <div className="flex min-h-11 w-[170px] items-center gap-3.5">
                 <button
                     type="button"
-                    onClick={() => onToggle(day)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
-                        schedule?.isOpen ? 'bg-primary' : 'bg-muted-foreground/30'
-                    }`}
                     role="switch"
-                    aria-checked={schedule?.isOpen}
+                    aria-checked={isOpen}
+                    aria-label={`${day} open`}
+                    onClick={() => onToggle(day)}
+                    className={cn(
+                        'flex h-7 w-12 shrink-0 items-center rounded-full p-[3px] transition-colors focus-visible:ring-[3px] focus-visible:ring-[#C8F169]/60 focus-visible:outline-none',
+                        isOpen
+                            ? 'justify-end bg-[#0E3B2E]'
+                            : 'justify-start bg-[#D5DDD8] dark:bg-white/15',
+                    )}
                 >
                     <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
-                            schedule?.isOpen ? 'translate-x-6' : 'translate-x-1'
-                        }`}
+                        className={cn(
+                            'size-[22px] rounded-full',
+                            isOpen ? 'bg-[#C8F169]' : 'bg-white',
+                        )}
                     />
                 </button>
+                <span
+                    className={cn(
+                        'font-[Sora] text-[15px] font-semibold',
+                        isOpen ? 'text-foreground' : 'text-muted-foreground',
+                    )}
+                >
+                    {day}
+                </span>
             </div>
 
-            {/* ── Open state content ── */}
-            {schedule?.isOpen && shift && (
-                <div className="mt-4 space-y-4">
-                    {/* Start / End time */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormSelect
-                            label="Start Time"
-                            options={timeOptions}
-                            value={shift?.start}
-                            onChange={(value) => onTimeChange(day, shiftIndex, 'start', value)}
-                            required
-                            error={getError('start')}
+            {isOpen && shift ? (
+                <div className="flex flex-[1_1_360px] flex-col gap-2.5">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                        <TimeSelect
+                            value={shift.start}
+                            label={`${day} opens`}
+                            onChange={(value) =>
+                                onTimeChange(day, shiftIndex, 'start', value)
+                            }
+                            error={errorFor('start')}
                         />
-                        <FormSelect
-                            label="End Time"
-                            options={timeOptions}
-                            value={shift?.end}
-                            onChange={(value) => onTimeChange(day, shiftIndex, 'end', value)}
-                            required
-                            error={getError('end')}
+                        <span className="font-bold text-muted-foreground">
+                            –
+                        </span>
+                        <TimeSelect
+                            value={shift.end}
+                            label={`${day} closes`}
+                            onChange={(value) =>
+                                onTimeChange(day, shiftIndex, 'end', value)
+                            }
+                            error={errorFor('end')}
                         />
                     </div>
 
-                    {/* Break times */}
-                    {shift?.breaks?.length > 0 && (
-                        <div className="space-y-3">
-                            <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                Break Times
-                            </h5>
-                            {shift.breaks.map((breakTime, breakIndex) => (
-                                <div
-                                    key={breakIndex}
-                                    className="flex flex-col md:flex-row gap-3 p-3 bg-muted/50 rounded-md"
+                    <div className="flex flex-wrap items-center gap-2">
+                        {(shift.breaks ?? []).map((breakTime, breakIndex) => (
+                            <div
+                                key={breakIndex}
+                                className="flex items-center gap-1.5 rounded-full border border-dashed border-[#0E3B2E]/20 bg-muted/60 py-1 pr-1 pl-3 dark:border-white/15"
+                            >
+                                <span className="text-xs font-bold text-muted-foreground">
+                                    Break
+                                </span>
+                                <AppSelect
+                                    value={breakTime.start}
+                                    ariaLabel={`${day} break ${breakIndex + 1} start`}
+                                    onChange={(value) =>
+                                        onBreakChange(
+                                            day,
+                                            shiftIndex,
+                                            breakIndex,
+                                            'start',
+                                            value,
+                                        )
+                                    }
+                                    options={timeOptions}
+                                    searchable={false}
+                                    size="sm"
+                                    triggerClassName="h-7 min-h-7 w-[104px] gap-1 border-0 bg-transparent px-1.5 text-xs font-bold hover:bg-card"
+                                />
+                                <span className="text-xs text-muted-foreground">
+                                    –
+                                </span>
+                                <AppSelect
+                                    value={breakTime.end}
+                                    ariaLabel={`${day} break ${breakIndex + 1} end`}
+                                    onChange={(value) =>
+                                        onBreakChange(
+                                            day,
+                                            shiftIndex,
+                                            breakIndex,
+                                            'end',
+                                            value,
+                                        )
+                                    }
+                                    options={timeOptions}
+                                    searchable={false}
+                                    size="sm"
+                                    triggerClassName="h-7 min-h-7 w-[104px] gap-1 border-0 bg-transparent px-1.5 text-xs font-bold hover:bg-card"
+                                />
+                                <button
+                                    type="button"
+                                    aria-label={`Remove ${day} break ${breakIndex + 1}`}
+                                    onClick={() =>
+                                        onRemoveBreak(
+                                            day,
+                                            shiftIndex,
+                                            breakIndex,
+                                        )
+                                    }
+                                    className="flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-card hover:text-foreground"
                                 >
-                                    <div className="flex-1 grid grid-cols-2 gap-3">
-                                        <FormSelect
-                                            label="Break Start"
-                                            options={timeOptions}
-                                            value={breakTime?.start}
-                                            onChange={(value) =>
-                                                onBreakChange(day, shiftIndex, breakIndex, 'start', value)
-                                            }
-                                            required
-                                            error={getBreakError(breakIndex, 'start')}
-                                        />
-                                        <FormSelect
-                                            label="Break End"
-                                            options={timeOptions}
-                                            value={breakTime?.end}
-                                            onChange={(value) =>
-                                                onBreakChange(day, shiftIndex, breakIndex, 'end', value)
-                                            }
-                                            required
-                                            error={getBreakError(breakIndex, 'end')}
-                                        />
-                                    </div>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => onRemoveBreak(day, shiftIndex, breakIndex)}
-                                        className="md:self-end text-destructive hover:text-destructive hover:bg-destructive/10"
-                                    >
-                                        <Trash2 className="size-4" />
-                                    </Button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* Add Break — inside open block so no layout gap when closed */}
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onAddBreak(day, shiftIndex)}
-                        className="w-full md:w-auto gap-2"
-                    >
-                        <Coffee className="size-3.5" />
-                        Add Break
-                    </Button>
+                                    <KeenIcon
+                                        name="cross-circle"
+                                        className="text-sm"
+                                    />
+                                </button>
+                            </div>
+                        ))}
+                        <button
+                            type="button"
+                            onClick={() => onAddBreak(day, shiftIndex)}
+                            className="flex h-8 items-center gap-1 rounded-full px-2.5 text-xs font-bold text-[#0E3B2E] hover:bg-[#E6F4EC] dark:text-[#C8F169] dark:hover:bg-[#0E3B2E]"
+                        >
+                            <KeenIcon name="plus" className="text-xs" />
+                            Add break
+                        </button>
+                    </div>
                 </div>
+            ) : (
+                <div className="flex min-h-11 flex-[1_1_360px] items-center">
+                    <span className="rounded-full bg-muted px-3 py-1.5 text-[13px] font-bold text-muted-foreground">
+                        Closed all day
+                    </span>
+                </div>
+            )}
+
+            {onCopyToAll && isOpen && (
+                <button
+                    type="button"
+                    onClick={() => onCopyToAll(day)}
+                    className="flex h-9 items-center gap-1.5 rounded-[10px] bg-[#E6F4EC] px-3 text-xs font-bold whitespace-nowrap text-[#0E3B2E] hover:bg-[#d6ecdf] dark:bg-[#0E3B2E] dark:text-[#C8F169]"
+                >
+                    <KeenIcon name="copy" className="text-[13px]" />
+                    Copy to all
+                </button>
             )}
         </div>
     );
-};
-
-export default DayScheduleRow;
+}

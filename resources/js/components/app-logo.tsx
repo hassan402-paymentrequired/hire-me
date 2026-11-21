@@ -1,20 +1,22 @@
 import AppLogoIcon from './app-logo-icon';
+import BrandMark from './brand-mark';
 
-// export default function AppLogo() {
-//     return (
-//         <div className="flex items-end">
-//             <div className="flex aspect-square size-8 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
-//                 <AppLogoIcon className="size-5 fill-current text-white dark:text-black" />
-//             </div>
-//             <div className="ml-1 flex-1 text-left text-sm hidden md:block ">
-//                 <span className="mb-0.5 truncate leading-tight font-semibold font-logo tracking-widest">
-//                     proxideck.
-//                 </span>
-//             </div>
-//         </div>
-//     );
-// }
-export default function AppLogo() {
+export default function AppLogo({
+    variant = 'default',
+}: {
+    variant?: 'default' | 'sidebar';
+}) {
+    if (variant === 'sidebar') {
+        return (
+            <div className="flex items-center gap-2.5">
+                <BrandMark className="size-8 shrink-0" onDark />
+                <span className="font-[Sora] text-lg font-bold tracking-[-0.03em] text-white group-data-[collapsible=icon]:hidden">
+                    proxideck
+                </span>
+            </div>
+        );
+    }
+
     return (
         <div>
             <AppLogoIcon />

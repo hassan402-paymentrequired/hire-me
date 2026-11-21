@@ -10,15 +10,13 @@ use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
-
     public function dashboard()
     {
         $user = auth_user();
 
-        if (!$user->hasProviderSetup()) {
+        if (! $user->hasProviderSetup()) {
             return redirect()->route('onboarding.index')->with('error-toast', 'Please complete your provider profile before continuing.');
         }
-
 
         // Calculate date ranges for comparison
         $now = now();
@@ -31,13 +29,13 @@ class DashboardController extends Controller
             ->whereIn('status', ['confirmed', 'completed'])
             ->where('start_time', '>=', $currentMonthStart)
             ->sum('price');
-        
+
         $previousRevenue = $user->appointmentsAsProvider()
             ->whereIn('status', ['confirmed', 'completed'])
             ->whereBetween('start_time', [$lastMonthStart, $lastMonthEnd])
             ->sum('price');
-        
-        $revenueChange = $previousRevenue > 0 
+
+        $revenueChange = $previousRevenue > 0
             ? round((($currentRevenue - $previousRevenue) / $previousRevenue) * 100, 1)
             : ($currentRevenue > 0 ? 100 : 0);
 
@@ -45,11 +43,11 @@ class DashboardController extends Controller
         $currentBookings = $user->appointmentsAsProvider()
             ->where('start_time', '>=', $currentMonthStart)
             ->count();
-        
+
         $previousBookings = $user->appointmentsAsProvider()
             ->whereBetween('start_time', [$lastMonthStart, $lastMonthEnd])
             ->count();
-        
+
         $bookingsChange = $previousBookings > 0
             ? round((($currentBookings - $previousBookings) / $previousBookings) * 100, 1)
             : ($currentBookings > 0 ? 100 : 0);
@@ -60,13 +58,13 @@ class DashboardController extends Controller
             ->whereNotNull('client_email')
             ->distinct('client_email')
             ->count('client_email');
-        
+
         $previousClients = $user->appointmentsAsProvider()
             ->whereBetween('start_time', [$lastMonthStart, $lastMonthEnd])
             ->whereNotNull('client_email')
             ->distinct('client_email')
             ->count('client_email');
-        
+
         $clientsChange = $previousClients > 0
             ? round((($currentClients - $previousClients) / $previousClients) * 100, 1)
             : ($currentClients > 0 ? 100 : 0);
@@ -75,15 +73,15 @@ class DashboardController extends Controller
         $currentRating = Review::where('provider_id', $user->id)
             ->where('created_at', '>=', $currentMonthStart)
             ->avg('rating') ?? 0;
-        
+
         $previousRating = Review::where('provider_id', $user->id)
             ->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])
             ->avg('rating') ?? 0;
-        
+
         // Overall rating (all time)
         $overallRating = Review::where('provider_id', $user->id)
             ->avg('rating') ?? 0;
-        
+
         $ratingChange = $previousRating > 0
             ? round($overallRating - $previousRating, 1)
             : ($overallRating > 0 ? $overallRating : 0);
@@ -124,7 +122,7 @@ class DashboardController extends Controller
                     'time' => $apt->start_time->format('h:i A'),
                     'date' => $apt->start_time->isToday() ? 'Today' : $apt->start_time->format('M d'),
                     'status' => ucfirst($apt->status),
-                    'avatar' => 'https://ui-avatars.com/api/?name=' . urlencode($apt->client_name ?? 'User'),
+                    'avatar' => 'https://ui-avatars.com/api/?name='.urlencode($apt->client_name ?? 'User'),
                 ];
             });
 
@@ -133,7 +131,7 @@ class DashboardController extends Controller
         $existingVerification = ProviderVerification::where('user_id', $user->id)
             ->latest()
             ->first();
-        
+
         if ($existingVerification) {
             $verificationStatus = [
                 'status' => $existingVerification->status,
@@ -228,13 +226,45 @@ class DashboardController extends Controller
             ] : null,
         ])->filter()->values();
 
+        $weekStart = $now->copy()->startOfWeek();
+        $weekAppointments = $user->appointmentsAsProvider()
+            ->whereIn('status', ['confirmed', 'completed'])
+            ->whereBetween('start_time', [$weekStart, $weekStart->copy()->endOfWeek()])
+            ->get(['start_time', 'price']);
+
+        $revenueThisWeek = collect(range(0, 6))->map(function (int $offset) use ($weekStart, $weekAppointments): array {
+            $day = $weekStart->copy()->addDays($offset);
+
+            return [
+                'label' => $day->format('D'),
+                'date' => $day->toDateString(),
+                'value' => (float) $weekAppointments
+                    ->filter(fn ($appointment) => $appointment->start_time->isSameDay($day))
+                    ->sum('price'),
+                'is_today' => $day->isToday(),
+            ];
+        })->values();
+
+        $todayAppointmentsQuery = $user->appointmentsAsProvider()
+            ->whereIn('status', ['confirmed', 'pending'])
+            ->whereBetween('start_time', [$now->copy()->startOfDay(), $now->copy()->endOfDay()]);
+
+        $today = [
+            'count' => (clone $todayAppointmentsQuery)->count(),
+            'expected_revenue' => (float) (clone $todayAppointmentsQuery)->sum('price'),
+        ];
+
+        $businessSlug = $user->businessProfile?->slug;
+
         return Inertia::render('provider/dashboard/index', [
             'stats' => $stats,
             'upcomingAppointments' => $upcomingAppointments,
             'needsAttention' => $needsAttention,
             'is_verified' => $user->is_verified,
             'verification_status' => $verificationStatus,
+            'revenueThisWeek' => $revenueThisWeek,
+            'today' => $today,
+            'booking_url' => $businessSlug ? route('provider.show', $businessSlug) : null,
         ]);
     }
-
 }

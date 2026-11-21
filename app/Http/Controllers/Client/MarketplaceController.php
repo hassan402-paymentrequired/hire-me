@@ -10,6 +10,7 @@ use App\Models\ClientAddress;
 use App\Models\FavouriteBusiness;
 use App\Models\ProviderGalleryImage;
 use App\Models\ProviderGalleryItem;
+use App\Models\Service;
 use App\Models\TeamMember;
 use App\Models\User;
 use App\Models\Wallet;
@@ -227,7 +228,7 @@ class MarketplaceController extends Controller
             }
 
             $nearbyProviders = $nearbyQuery
-                ->limit(10)
+                ->limit(5)
                 ->get()
                 ->map(function ($row) {
                     $logoUrl = null;
@@ -287,12 +288,14 @@ class MarketplaceController extends Controller
             'provider' => [
                 'id' => $provider->id,
                 'name' => $provider->name,
+                'avatar' => $provider->avatar,
                 'isVerified' => (bool) $provider->is_verified,
                 'businessId' => $businessProfile->id,
                 'businessName' => $businessProfile->business_name,
                 'address' => $businessProfile->address,
                 'slug' => $businessProfile->slug,
                 'description' => $businessProfile->description,
+                'category' => $businessProfile->category,
                 'images' => $images,
                 'rating' => $reviews->avg('rating') ? round($reviews->avg('rating'), 1) : 0,
                 'reviews_count' => $reviews->count(),
@@ -424,7 +427,7 @@ class MarketplaceController extends Controller
                 'serviceDeliveryMode' => $serviceDeliveryMode,
                 'deliveryModeLabel' => ServiceDeliveryMode::clientLocationLabel($serviceDeliveryMode),
             ],
-            'service' => [
+            'services' => $provider->services->map(fn (Service $service): array => [
                 'id' => $service->id,
                 'name' => $service->name,
                 'description' => $service->description,
@@ -432,7 +435,7 @@ class MarketplaceController extends Controller
                 'price' => $service->price,
                 'categoryId' => $service->service_category_id,
                 'categoryName' => $service->serviceCategory?->name,
-            ],
+            ])->values(),
             'walletBalance' => $walletBalance,
             'clientAddresses' => $clientAddresses,
             'businessAddressOption' => $businessAddressOption,

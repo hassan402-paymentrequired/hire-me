@@ -9,8 +9,7 @@ it('credits a matching PayEngine virtual wallet once', function () {
     config(['services.payengine.webhook_token' => 'test-webhook-token']);
 
     $user = \App\Models\User::factory()->create();
-    $wallet = Wallet::create([
-        'user_id' => $user->id,
+    $wallet = Wallet::updateOrCreate(['user_id' => $user->id], [
         'balance' => 100,
         'escrow_balance' => 0,
         'payengine_account_number' => '1100061676',

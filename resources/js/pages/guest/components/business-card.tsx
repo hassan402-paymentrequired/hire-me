@@ -1,4 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getProviderDefaultBanner } from '@/lib/provider-banner';
 import { login } from '@/routes';
 import favourite from '@/routes/favourite';
 import { show as providerShow } from '@/routes/provider';
@@ -29,46 +30,6 @@ interface ProviderProps {
     isVerified?: boolean;
 }
 
-const bannerThemes = [
-    {
-        keywords: [
-            'beauty',
-            'salon',
-            'hair',
-            'barber',
-            'barbing',
-            'makeup',
-            'nail',
-            'spa',
-            'massage',
-        ],
-        name: 'beauty',
-    },
-    {
-        keywords: ['education', 'tutor', 'lesson', 'training'],
-        name: 'education',
-    },
-    {
-        keywords: ['event', 'photography', 'photo', 'video'],
-        name: 'events-photography',
-    },
-    {
-        keywords: ['fitness', 'wellness', 'yoga', 'trainer', 'gym'],
-        name: 'fitness-wellness',
-    },
-    {
-        keywords: [
-            'home',
-            'plumbing',
-            'electrical',
-            'cleaning',
-            'repair',
-            'carpentry',
-        ],
-        name: 'home-services',
-    },
-];
-
 const getStableIndex = (value: string | number, length: number): number => {
     const hash = Array.from(String(value)).reduce(
         (total, character) => (total * 31 + character.charCodeAt(0)) >>> 0,
@@ -76,17 +37,6 @@ const getStableIndex = (value: string | number, length: number): number => {
     );
 
     return hash % length;
-};
-
-const getDefaultBanner = (provider: ProviderProps): string => {
-    const category = provider.category?.toLowerCase() ?? '';
-    const theme = bannerThemes.find(({ keywords }) =>
-        keywords.some((keyword) => category.includes(keyword)),
-    );
-    const variant = getStableIndex(provider.id, 2) === 0 ? 'light' : 'dark';
-    const bannerName = theme?.name ?? 'general';
-
-    return `/brand/banners/proxideck-banner-${bannerName}-${variant}.jpg`;
 };
 
 const getInitials = (name: string): string =>
@@ -106,7 +56,10 @@ const BusinessCard = ({
     favoriteBusinessIds?: string[];
 }) => {
     const { auth } = usePage<SharedData>().props;
-    const defaultBanner = getDefaultBanner(provider);
+    const defaultBanner = getProviderDefaultBanner(
+        provider.category,
+        provider.id,
+    );
     const uploadedBanners = provider.banners ?? [];
     const bannerIndex = getStableIndex(
         provider.id,

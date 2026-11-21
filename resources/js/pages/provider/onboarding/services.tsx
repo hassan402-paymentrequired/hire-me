@@ -168,6 +168,12 @@ export default function Services({
 
                 <form onSubmit={submit} className="space-y-6">
                     <div className="space-y-4">
+                        {(errors as Record<string, string>).category_id && (
+                            <p className="text-xs text-destructive">
+                                {(errors as Record<string, string>).category_id}
+                            </p>
+                        )}
+
                         {errors.service_category_id && (
                             <p className="text-xs text-destructive">{errors.service_category_id}</p>
                         )}

@@ -1,37 +1,8 @@
-import AdminLayout from '@/layouts/admin-layout';
-import { Head,  useForm } from '@inertiajs/react';
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { BreadcrumbItem } from '@/types';
-import {
-    CheckCircle2,
-    AlertCircle,
-    Calendar,
-} from 'lucide-react';
 import { Pagination } from '@/components/pagination';
+import { AppSelect } from '@/components/ui/app-select';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -40,6 +11,20 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
+import AdminLayout from '@/layouts/admin-layout';
+import { BreadcrumbItem } from '@/types';
+import { Head, useForm } from '@inertiajs/react';
+import { AlertCircle, Calendar, CheckCircle2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface Report {
@@ -152,57 +137,61 @@ export default function ModerationReports({ reports, filters }: Props) {
                                 <label className="text-sm font-medium">
                                     Status
                                 </label>
-                                <Select
+                                <AppSelect
                                     value={data.status}
-                                    onValueChange={(value) =>
+                                    onChange={(value) =>
                                         setData('status', value)
                                     }
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="All statuses" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All statuses</SelectItem>
-                                        <SelectItem value="unresolved">
-                                            Unresolved
-                                        </SelectItem>
-                                        <SelectItem value="resolved">
-                                            Resolved
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                    placeholder="All statuses"
+                                    size="sm"
+                                    searchable={false}
+                                    options={[
+                                        { value: 'all', label: 'All statuses' },
+                                        {
+                                            value: 'unresolved',
+                                            label: 'Unresolved',
+                                        },
+                                        {
+                                            value: 'resolved',
+                                            label: 'Resolved',
+                                        },
+                                    ]}
+                                />
                             </div>
 
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">
                                     Reason
                                 </label>
-                                <Select
+                                <AppSelect
                                     value={data.reason}
-                                    onValueChange={(value) =>
+                                    onChange={(value) =>
                                         setData('reason', value)
                                     }
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="All reasons" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All reasons</SelectItem>
-                                        <SelectItem value="fraud">Fraud</SelectItem>
-                                        <SelectItem value="inappropriate">
-                                            Inappropriate
-                                        </SelectItem>
-                                        <SelectItem value="harassment">
-                                            Harassment
-                                        </SelectItem>
-                                        <SelectItem value="other">Other</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                    placeholder="All reasons"
+                                    size="sm"
+                                    searchable={false}
+                                    options={[
+                                        { value: 'all', label: 'All reasons' },
+                                        { value: 'fraud', label: 'Fraud' },
+                                        {
+                                            value: 'inappropriate',
+                                            label: 'Inappropriate',
+                                        },
+                                        {
+                                            value: 'harassment',
+                                            label: 'Harassment',
+                                        },
+                                        { value: 'other', label: 'Other' },
+                                    ]}
+                                />
                             </div>
                         </div>
 
                         <div className="mt-4">
-                            <Button onClick={handleFilter}>Apply Filters</Button>
+                            <Button onClick={handleFilter}>
+                                Apply Filters
+                            </Button>
                         </div>
                     </CardContent>
                 </Card>
@@ -252,7 +241,7 @@ export default function ModerationReports({ reports, filters }: Props) {
                                                     <Badge
                                                         variant={
                                                             getReasonBadgeVariant(
-                                                                report.reason
+                                                                report.reason,
                                                             ) as any
                                                         }
                                                     >
@@ -269,7 +258,7 @@ export default function ModerationReports({ reports, filters }: Props) {
                                                     {report.resolved_at ? (
                                                         <Badge
                                                             variant="outline"
-                                                            className="flex items-center gap-1 w-fit"
+                                                            className="flex w-fit items-center gap-1"
                                                         >
                                                             <CheckCircle2 className="h-3 w-3" />
                                                             Resolved
@@ -277,7 +266,7 @@ export default function ModerationReports({ reports, filters }: Props) {
                                                     ) : (
                                                         <Badge
                                                             variant="secondary"
-                                                            className="flex items-center gap-1 w-fit"
+                                                            className="flex w-fit items-center gap-1"
                                                         >
                                                             <AlertCircle className="h-3 w-3" />
                                                             Pending
@@ -288,7 +277,7 @@ export default function ModerationReports({ reports, filters }: Props) {
                                                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
                                                         <Calendar className="h-3 w-3" />
                                                         {new Date(
-                                                            report.created_at
+                                                            report.created_at,
                                                         ).toLocaleDateString()}
                                                     </div>
                                                 </TableCell>
@@ -299,7 +288,7 @@ export default function ModerationReports({ reports, filters }: Props) {
                                                             size="sm"
                                                             onClick={() =>
                                                                 setResolvingReport(
-                                                                    report
+                                                                    report,
                                                                 )
                                                             }
                                                         >
@@ -335,8 +324,8 @@ export default function ModerationReports({ reports, filters }: Props) {
                         <DialogHeader>
                             <DialogTitle>Resolve Report</DialogTitle>
                             <DialogDescription>
-                                Provide details about the action taken to resolve
-                                this report.
+                                Provide details about the action taken to
+                                resolve this report.
                             </DialogDescription>
                         </DialogHeader>
 
@@ -360,26 +349,22 @@ export default function ModerationReports({ reports, filters }: Props) {
                                 <Label htmlFor="penalty_applied">
                                     Penalty Applied (Optional)
                                 </Label>
-                                <Select
+                                <AppSelect
                                     value={penaltyApplied}
-                                    onValueChange={setPenaltyApplied}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select penalty" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">None</SelectItem>
-                                        <SelectItem value="warning">
-                                            Warning
-                                        </SelectItem>
-                                        <SelectItem value="suspend">
-                                            Suspend Account
-                                        </SelectItem>
-                                        <SelectItem value="ban">
-                                            Ban Account
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                    onChange={setPenaltyApplied}
+                                    placeholder="Select penalty"
+                                    size="sm"
+                                    searchable={false}
+                                    options={[
+                                        { value: 'none', label: 'None' },
+                                        { value: 'warning', label: 'Warning' },
+                                        {
+                                            value: 'suspend',
+                                            label: 'Suspend Account',
+                                        },
+                                        { value: 'ban', label: 'Ban Account' },
+                                    ]}
+                                />
                             </div>
                         </div>
 

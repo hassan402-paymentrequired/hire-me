@@ -1,33 +1,11 @@
 import KeenIcon from '@/components/keen-icon';
-import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/react';
-import {
-    ArrowDownRight,
-    ArrowUpRight,
-    Calendar,
-    MapPin,
-    Star,
-    Download,
-} from 'lucide-react';
+import { cn } from '@/lib/utils';
 import business from '@/routes/business';
+import { type BreadcrumbItem } from '@/types';
+import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
+import { PeakHoursChart, RevenueChart } from './components/analytics-charts';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -117,470 +95,628 @@ export default function Analytics({
 }: AnalyticsProps) {
     const [selectedRange, setSelectedRange] = useState(range);
 
-    const maxRevenue = Math.max(...revenueData.map((d) => d.value), 1);
-    const maxBookings = Math.max(...peakHours.map((h) => h.bookings), 1);
-    const totalServiceRevenue = topServices.reduce(
-        (sum, service) => sum + service.revenue,
-        0,
-    );
-    const revenueChangeValue = parseFloat(metrics.revenueChange.replace('%', ''));
-    const bookingsChangeValue = parseFloat(metrics.bookingsChange.replace('%', ''));
-    const cancelChangeValue = parseFloat(metrics.cancelChange.replace('%', ''));
-    const overviewCards = [
-        {
-            title: 'Total Revenue',
-            value: metrics.totalRevenue,
-            change: metrics.revenueChange,
-            changeValue: revenueChangeValue,
-            positiveTone: true,
-            icon: 'receipt-square',
-            note: 'Revenue generated in the selected range',
-        },
-        {
-            title: 'Bookings',
-            value: metrics.totalBookings.toLocaleString(),
-            change: metrics.bookingsChange,
-            changeValue: bookingsChangeValue,
-            positiveTone: true,
-            icon: 'people',
-            note: 'Confirmed and completed bookings combined',
-        },
-        {
-            title: 'Cancel Rate',
-            value: metrics.cancelRate,
-            change: metrics.cancelChange,
-            changeValue: cancelChangeValue,
-            positiveTone: false,
-            icon: 'status',
-            note: 'Share of appointments that did not go through',
-        },
-    ];
     const handleRangeChange = (newRange: string) => {
         setSelectedRange(newRange);
-        router.get('/business/analytics', { range: newRange }, {
-            preserveState: true,
-            preserveScroll: true,
-        });
+        router.get(
+            '/business/analytics',
+            { range: newRange },
+            { preserveState: true, preserveScroll: true },
+        );
     };
 
-    const handleDownloadReport = () => {
-        return;
-    };
+    const card =
+        'rounded-[20px] border border-[#0E3B2E]/10 bg-card shadow-[0_1px_2px_rgba(19,32,27,0.04)] dark:border-white/10';
+    const toNumber = (value: string) =>
+        parseFloat(String(value).replace('%', '')) || 0;
+    const totalServiceRevenue =
+        topServices.reduce((sum, service) => sum + service.revenue, 0) || 1;
+    const maxPeak = Math.max(...peakHours.map((hour) => hour.bookings), 1);
+    const busiest = peakHours.reduce<PeakHour | null>(
+        (top, hour) => (!top || hour.bookings > top.bookings ? hour : top),
+        null,
+    );
+    const maxGeo = Math.max(...geographicData.map((item) => item.bookings), 1);
+
+    const kpis = [
+        {
+            icon: 'receipt-square',
+            label: 'Revenue',
+            value: metrics.totalRevenue,
+            change: toNumber(metrics.revenueChange),
+            goodWhenUp: true,
+            note: 'vs previous period',
+        },
+        {
+            icon: 'electronic-clock',
+            label: 'Bookings',
+            value: metrics.totalBookings.toLocaleString(),
+            change: toNumber(metrics.bookingsChange),
+            goodWhenUp: true,
+            note: 'confirmed and completed',
+        },
+        {
+            icon: 'cross-circle',
+            label: 'Cancellation rate',
+            value: metrics.cancelRate,
+            change: toNumber(metrics.cancelChange),
+            goodWhenUp: false,
+            note: 'lower is better',
+        },
+        {
+            icon: 'star',
+            label: 'Average rating',
+            value: sentimentData.average_rating
+                ? sentimentData.average_rating.toFixed(1)
+                : 'N/A',
+            change: null,
+            goodWhenUp: true,
+            note: `from ${sentimentData.total} review${sentimentData.total === 1 ? '' : 's'}`,
+        },
+    ];
+
+    const funnel = [
+        {
+            label: 'Profile views',
+            value: conversionMetrics.total_views,
+            note: '100%',
+            width: 100,
+            color: 'bg-[#C9E2D3] dark:bg-white/15',
+        },
+        {
+            label: 'Bookings',
+            value: conversionMetrics.total_bookings,
+            note: `${conversionMetrics.conversion_rate}% conversion`,
+            width: conversionMetrics.total_views
+                ? Math.max(
+                      (conversionMetrics.total_bookings /
+                          conversionMetrics.total_views) *
+                          100,
+                      4,
+                  )
+                : 4,
+            color: 'bg-[#9BC63A]',
+        },
+        {
+            label: 'Confirmed',
+            value: Math.round(
+                (conversionMetrics.total_bookings *
+                    conversionMetrics.confirmation_rate) /
+                    100,
+            ),
+            note: `${conversionMetrics.confirmation_rate}% confirmed`,
+            width: conversionMetrics.total_views
+                ? Math.max(
+                      ((conversionMetrics.total_bookings *
+                          conversionMetrics.confirmation_rate) /
+                          100 /
+                          conversionMetrics.total_views) *
+                          100,
+                      3,
+                  )
+                : 3,
+            color: 'bg-[#0E3B2E] dark:bg-[#C8F169]',
+        },
+    ];
+
+    const sentimentTotal =
+        sentimentData.positive +
+            sentimentData.neutral +
+            sentimentData.negative || 1;
+    const sentiment = [
+        {
+            label: 'Positive',
+            value: sentimentData.positive,
+            color: 'bg-[#0E3B2E] dark:bg-[#C8F169]',
+        },
+        {
+            label: 'Neutral',
+            value: sentimentData.neutral,
+            color: 'bg-[#C8F169] dark:bg-[#9BC63A]',
+        },
+        {
+            label: 'Negative',
+            value: sentimentData.negative,
+            color: 'bg-[#E5928A]',
+        },
+    ];
+
+    const ringRadius = 48;
+    const ringCircumference = 2 * Math.PI * ringRadius;
+    const retention = Math.min(
+        Math.max(retentionMetrics.retention_rate, 0),
+        100,
+    );
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Analytics" />
-            <div className="flex flex-col gap-6 p-4">
-                <section className="overflow-hidden rounded-3xl border border-border/70 bg-background">
-                    <div className="relative">
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.06),_transparent_24%),radial-gradient(circle_at_left,_rgba(16,185,129,0.06),_transparent_24%)]" />
-                        <div className="relative flex flex-col gap-5 px-5 py-6 lg:flex-row lg:items-start lg:justify-between lg:px-7">
-                        <div className="space-y-4">
-                            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground">
-                                <KeenIcon name="status" className="text-sm text-primary" />
-                                Performance snapshot
-                            </div>
-                            <div className="space-y-2">
-                                <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-                                    Business analytics
-                                </h1>
-                                <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                                    Track how bookings, revenue, services, and client retention are moving so you can make better business decisions.
-                                </p>
-                            </div>
-                        </div>
 
-                        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-                            <Select
-                                value={selectedRange}
-                                onValueChange={handleRangeChange}
+            <div className="flex flex-col gap-[22px] p-4 md:p-6">
+                <header className="flex flex-wrap items-end gap-3">
+                    <div className="flex flex-[1_1_300px] flex-col gap-1">
+                        <span className="text-[13px] text-muted-foreground">
+                            Business
+                        </span>
+                        <h1 className="font-[Sora] text-[28px] font-bold tracking-[-0.02em] text-foreground">
+                            Analytics
+                        </h1>
+                        <span className="text-sm text-muted-foreground">
+                            How your business is doing, and where to grow next.
+                        </span>
+                    </div>
+                    <div
+                        role="tablist"
+                        aria-label="Date range"
+                        className="flex gap-1 rounded-xl border border-[#0E3B2E]/10 bg-card p-1 dark:border-white/10"
+                    >
+                        {[
+                            { value: 'this_week', label: 'This week' },
+                            { value: 'this_month', label: 'This month' },
+                            { value: 'this_year', label: 'This year' },
+                        ].map((option) => (
+                            <button
+                                key={option.value}
+                                type="button"
+                                role="tab"
+                                aria-selected={selectedRange === option.value}
+                                onClick={() => handleRangeChange(option.value)}
+                                className={cn(
+                                    'h-10 rounded-[9px] px-3.5 text-sm font-bold transition-colors',
+                                    selectedRange === option.value
+                                        ? 'bg-[#0E3B2E] text-white dark:bg-[#C8F169] dark:text-[#0E3B2E]'
+                                        : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                                )}
                             >
-                                <SelectTrigger className="w-full min-w-[180px] bg-background sm:w-[190px]">
-                                    <Calendar className="mr-2 h-4 w-4" />
-                                    <SelectValue placeholder="Select Range" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="this_week">
-                                        This Week
-                                    </SelectItem>
-                                    <SelectItem value="this_month">
-                                        This Month
-                                    </SelectItem>
-                                    <SelectItem value="this_year">
-                                        This Year
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <Button
-                                variant="outline"
-                                onClick={handleDownloadReport}
-                                disabled
-                                className="w-full sm:w-auto"
+                                {option.label}
+                            </button>
+                        ))}
+                    </div>
+                </header>
+
+                {/* KPIs */}
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
+                    {kpis.map((kpi) => {
+                        const isGood =
+                            kpi.change === null ||
+                            (kpi.goodWhenUp
+                                ? kpi.change >= 0
+                                : kpi.change <= 0);
+
+                        return (
+                            <div
+                                key={kpi.label}
+                                className={cn(
+                                    card,
+                                    'flex flex-col gap-3.5 p-5',
+                                )}
                             >
-                                <Download className="mr-2 h-4 w-4" />
-                                Export soon
-                            </Button>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex size-10 items-center justify-center rounded-xl bg-[#E6F4EC] text-[#0E3B2E] dark:bg-[#0E3B2E] dark:text-[#C8F169]">
+                                        <KeenIcon
+                                            name={kpi.icon}
+                                            className="text-xl"
+                                        />
+                                    </div>
+                                    {kpi.change !== null && (
+                                        <span
+                                            className={cn(
+                                                'rounded-full px-2.5 py-1 text-xs font-bold',
+                                                isGood
+                                                    ? 'bg-[#E6F4EC] text-[#2F7D4F] dark:bg-[#0E3B2E] dark:text-[#C8F169]'
+                                                    : 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300',
+                                            )}
+                                        >
+                                            {kpi.change >= 0 ? '↑' : '↓'}{' '}
+                                            {Math.abs(kpi.change)}%
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-[13px] text-muted-foreground">
+                                        {kpi.label}
+                                    </span>
+                                    <span className="font-[Sora] text-[28px] font-bold tracking-[-0.02em] text-foreground">
+                                        {kpi.value}
+                                    </span>
+                                </div>
+                                <span className="text-xs text-muted-foreground">
+                                    {kpi.note}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Revenue + funnel */}
+                <div className="flex flex-wrap items-stretch gap-6">
+                    <section
+                        className={cn(
+                            card,
+                            'flex min-w-0 flex-[999_1_560px] flex-col gap-4 px-6 py-[22px]',
+                        )}
+                    >
+                        <div className="flex flex-col gap-1">
+                            <h2 className="font-[Sora] text-lg font-semibold text-foreground">
+                                Revenue over time
+                            </h2>
+                            <span className="font-[Sora] text-[26px] font-bold text-[#0E3B2E] dark:text-[#C8F169]">
+                                {metrics.totalRevenue}{' '}
+                                <span
+                                    className={cn(
+                                        'font-sans text-[13px] font-bold',
+                                        toNumber(metrics.revenueChange) >= 0
+                                            ? 'text-[#2F7D4F] dark:text-[#C8F169]'
+                                            : 'text-red-700',
+                                    )}
+                                >
+                                    {toNumber(metrics.revenueChange) >= 0
+                                        ? '↑'
+                                        : '↓'}{' '}
+                                    {Math.abs(toNumber(metrics.revenueChange))}%
+                                </span>
+                            </span>
                         </div>
+                        {revenueData.length === 0 ? (
+                            <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">
+                                No revenue in this period yet.
+                            </div>
+                        ) : (
+                            <RevenueChart data={revenueData} />
+                        )}
+                    </section>
+
+                    <section
+                        className={cn(
+                            card,
+                            'flex flex-[1_1_300px] flex-col gap-3.5 p-[22px]',
+                        )}
+                    >
+                        <h2 className="font-[Sora] text-lg font-semibold text-foreground">
+                            From view to booking
+                        </h2>
+                        {funnel.map((step) => (
+                            <div
+                                key={step.label}
+                                className="flex flex-col gap-1.5"
+                            >
+                                <div className="flex justify-between text-[13px]">
+                                    <span className="font-bold text-foreground">
+                                        {step.label}
+                                    </span>
+                                    <span className="text-muted-foreground">
+                                        <b className="text-foreground">
+                                            {step.value.toLocaleString()}
+                                        </b>{' '}
+                                        · {step.note}
+                                    </span>
+                                </div>
+                                <div className="h-[30px] overflow-hidden rounded-[10px] bg-muted">
+                                    <div
+                                        className={cn(
+                                            'h-full rounded-[10px]',
+                                            step.color,
+                                        )}
+                                        style={{
+                                            width: `${Math.min(step.width, 100)}%`,
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                        <div className="mt-auto flex gap-2.5 rounded-[14px] bg-muted/60 px-3.5 py-3 text-[13px] leading-normal text-muted-foreground">
+                            <KeenIcon
+                                name="information-2"
+                                className="mt-0.5 text-lg text-[#0E3B2E] dark:text-[#C8F169]"
+                            />
+                            Share your booking link to turn more views into
+                            bookings.
                         </div>
-                        <div className="relative grid gap-3 px-5 pb-6 lg:grid-cols-3 lg:px-7">
-                        {overviewCards.map((card) => {
-                            const isPositive = card.positiveTone
-                                ? card.changeValue >= 0
-                                : card.changeValue < 0;
+                    </section>
+                </div>
+
+                {/* Top services + peak hours */}
+                <div className="flex flex-wrap items-stretch gap-6">
+                    <section
+                        className={cn(
+                            card,
+                            'flex flex-[1_1_320px] flex-col gap-1 p-[22px]',
+                        )}
+                    >
+                        <div className="flex items-center justify-between pb-1.5">
+                            <h2 className="font-[Sora] text-lg font-semibold text-foreground">
+                                Top services
+                            </h2>
+                            <Link
+                                href={business.services()}
+                                className="text-[13px] font-bold text-[#0E3B2E] dark:text-[#C8F169]"
+                                prefetch
+                            >
+                                All services →
+                            </Link>
+                        </div>
+                        {topServices.length === 0 && (
+                            <span className="py-6 text-center text-sm text-muted-foreground">
+                                No bookings in this period yet.
+                            </span>
+                        )}
+                        {topServices.map((service) => {
+                            const share = Math.round(
+                                (service.revenue / totalServiceRevenue) * 100,
+                            );
 
                             return (
-                                <div key={card.title} className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="space-y-1">
-                                            <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                                                {card.title}
-                                            </p>
-                                            <p className="mt-3 text-3xl font-semibold text-foreground">
-                                                {card.value}
-                                            </p>
-                                        </div>
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-background text-foreground">
-                                            <KeenIcon name={card.icon} className="text-base" />
-                                        </div>
+                                <div
+                                    key={service.name}
+                                    className="flex flex-col gap-1.5 border-t border-[#0E3B2E]/[0.07] py-2.5 dark:border-white/10"
+                                >
+                                    <div className="flex justify-between gap-2.5">
+                                        <span className="truncate text-sm font-bold text-foreground capitalize">
+                                            {service.name}
+                                        </span>
+                                        <span className="font-[Sora] text-sm font-bold text-[#0E3B2E] dark:text-[#C8F169]">
+                                            {service.revenue_formatted}
+                                        </span>
                                     </div>
-                                    <p className="mt-1 text-sm text-muted-foreground">
-                                        {card.note}
-                                    </p>
-                                    <p className={`mt-3 inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
-                                        isPositive
-                                            ? 'bg-emerald-50 text-emerald-700'
-                                            : 'bg-rose-50 text-rose-700'
-                                    }`}>
-                                        {isPositive ? (
-                                            <ArrowUpRight className="mr-1 h-3.5 w-3.5" />
-                                        ) : (
-                                            <ArrowDownRight className="mr-1 h-3.5 w-3.5" />
-                                        )}
-                                        {card.change} from last period
-                                    </p>
+                                    <div className="flex items-center gap-2.5">
+                                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                                            <div
+                                                className="h-full rounded-full bg-[#0E3B2E] dark:bg-[#C8F169]"
+                                                style={{ width: `${share}%` }}
+                                            />
+                                        </div>
+                                        <span className="w-[120px] text-right text-xs text-muted-foreground">
+                                            {service.bookings} bookings ·{' '}
+                                            {share}%
+                                        </span>
+                                    </div>
                                 </div>
                             );
                         })}
+                    </section>
+
+                    <section
+                        className={cn(
+                            card,
+                            'flex flex-[1_1_320px] flex-col gap-3.5 p-[22px]',
+                        )}
+                    >
+                        <div className="flex flex-col gap-0.5">
+                            <h2 className="font-[Sora] text-lg font-semibold text-foreground">
+                                Busiest hours
+                            </h2>
+                            {busiest && busiest.bookings > 0 && (
+                                <span className="text-[13px] text-muted-foreground">
+                                    Most bookings start at{' '}
+                                    <b className="text-foreground">
+                                        {busiest.display}
+                                    </b>
+                                </span>
+                            )}
                         </div>
-                    </div>
-                </section>
+                        {peakHours.length === 0 ? (
+                            <div className="flex h-[190px] items-center justify-center text-sm text-muted-foreground">
+                                No bookings in this period yet.
+                            </div>
+                        ) : (
+                            <PeakHoursChart
+                                data={peakHours}
+                                busiestHour={
+                                    busiest && busiest.bookings > 0
+                                        ? busiest.hour
+                                        : null
+                                }
+                            />
+                        )}
+                    </section>
+                </div>
 
-                <Tabs defaultValue="revenue" className="space-y-4">
-                    <div className="overflow-x-auto pb-1">
-                        <TabsList className="inline-flex h-auto min-w-max items-center gap-2 rounded-2xl border border-border/70 bg-muted/50 p-1">
-                            <TabsTrigger value="revenue" className="rounded-xl px-4 py-2.5">
-                                Revenue
-                            </TabsTrigger>
-                            <TabsTrigger value="bookings" className="rounded-xl px-4 py-2.5">
-                                Bookings
-                            </TabsTrigger>
-                            <TabsTrigger value="services" className="rounded-xl px-4 py-2.5">
-                                Services
-                            </TabsTrigger>
-                            <TabsTrigger value="customers" className="rounded-xl px-4 py-2.5">
-                                Customers
-                            </TabsTrigger>
-                            <TabsTrigger value="reviews" className="rounded-xl px-4 py-2.5">
-                                Reviews
-                            </TabsTrigger>
-                        </TabsList>
-                    </div>
+                {/* Loyalty, sentiment, geography */}
+                <div className="flex flex-wrap items-stretch gap-6">
+                    <section
+                        className={cn(
+                            card,
+                            'flex flex-[1_1_300px] flex-col gap-3.5 p-[22px]',
+                        )}
+                    >
+                        <h2 className="font-[Sora] text-lg font-semibold text-foreground">
+                            Client loyalty
+                        </h2>
+                        <div className="flex items-center gap-5">
+                            <svg
+                                width="128"
+                                height="128"
+                                viewBox="0 0 128 128"
+                                role="img"
+                                aria-label={`${retention}% of clients come back`}
+                                className="shrink-0"
+                            >
+                                <circle
+                                    cx="64"
+                                    cy="64"
+                                    r={ringRadius}
+                                    fill="none"
+                                    strokeWidth="16"
+                                    className="stroke-muted"
+                                />
+                                <circle
+                                    cx="64"
+                                    cy="64"
+                                    r={ringRadius}
+                                    fill="none"
+                                    strokeWidth="16"
+                                    strokeLinecap="round"
+                                    strokeDasharray={`${(ringCircumference * retention) / 100} ${ringCircumference}`}
+                                    transform="rotate(-90 64 64)"
+                                    className="stroke-[#0E3B2E] dark:stroke-[#C8F169]"
+                                />
+                                <text
+                                    x="64"
+                                    y="62"
+                                    textAnchor="middle"
+                                    className="fill-foreground font-[Sora] text-2xl font-bold"
+                                >
+                                    {Math.round(retention)}%
+                                </text>
+                                <text
+                                    x="64"
+                                    y="80"
+                                    textAnchor="middle"
+                                    className="fill-muted-foreground text-[11px]"
+                                >
+                                    come back
+                                </text>
+                            </svg>
+                            <div className="flex flex-col gap-3">
+                                {[
+                                    {
+                                        value: retentionMetrics.unique_clients,
+                                        label: 'unique clients',
+                                    },
+                                    {
+                                        value: retentionMetrics.returning_clients,
+                                        label: 'returning clients',
+                                    },
+                                    {
+                                        value: retentionMetrics.repeat_bookings,
+                                        label: 'repeat bookings',
+                                    },
+                                ].map((item) => (
+                                    <div
+                                        key={item.label}
+                                        className="flex flex-col"
+                                    >
+                                        <span className="font-[Sora] text-[22px] font-bold text-foreground">
+                                            {item.value.toLocaleString()}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                            {item.label}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </section>
 
-                    {/* Revenue Tab */}
-                    <TabsContent value="revenue" className="space-y-4">
-                        <Card className="border-border/70 shadow-none">
-                            <CardHeader className="space-y-1 pb-3">
-                                <CardTitle>Revenue Overview</CardTitle>
-                                <CardDescription>
-                                    {selectedRange === 'this_week' ? 'Daily' : selectedRange === 'this_month' ? 'Weekly' : 'Monthly'} revenue performance.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="px-4 pb-5 pt-0 sm:px-6">
-                                <div className="flex h-[300px] items-end gap-2 sm:gap-4">
-                                    {revenueData.map((data, i) => (
+                    <section
+                        className={cn(
+                            card,
+                            'flex flex-[1_1_300px] flex-col gap-3.5 p-[22px]',
+                        )}
+                    >
+                        <h2 className="font-[Sora] text-lg font-semibold text-foreground">
+                            What clients say
+                        </h2>
+                        <div className="flex items-center gap-3">
+                            <span className="font-[Sora] text-[40px] font-bold text-[#0E3B2E] dark:text-[#C8F169]">
+                                {sentimentData.average_rating
+                                    ? sentimentData.average_rating.toFixed(1)
+                                    : '–'}
+                            </span>
+                            <div className="flex flex-col gap-1">
+                                <div className="flex gap-0.5 text-[#E8A317]">
+                                    {Array.from({ length: 5 }).map(
+                                        (_, index) => (
+                                            <KeenIcon
+                                                key={index}
+                                                name="star"
+                                                className={cn(
+                                                    'text-base',
+                                                    index >=
+                                                        Math.round(
+                                                            sentimentData.average_rating,
+                                                        ) && 'opacity-30',
+                                                )}
+                                            />
+                                        ),
+                                    )}
+                                </div>
+                                <span className="text-xs text-muted-foreground">
+                                    {sentimentData.total} review
+                                    {sentimentData.total === 1 ? '' : 's'}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="flex h-3 gap-[3px] overflow-hidden rounded-full bg-muted">
+                            {sentiment.map((item) =>
+                                item.value > 0 ? (
+                                    <div
+                                        key={item.label}
+                                        className={item.color}
+                                        style={{
+                                            width: `${(item.value / sentimentTotal) * 100}%`,
+                                        }}
+                                    />
+                                ) : null,
+                            )}
+                        </div>
+                        <div className="flex flex-col gap-2 text-[13px]">
+                            {sentiment.map((item) => (
+                                <div
+                                    key={item.label}
+                                    className="flex justify-between text-foreground"
+                                >
+                                    <span className="flex items-center gap-2">
+                                        <span
+                                            className={cn(
+                                                'size-2.5 rounded-[3px]',
+                                                item.color,
+                                            )}
+                                        />
+                                        {item.label}
+                                    </span>
+                                    <b>{item.value}</b>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    <section
+                        className={cn(
+                            card,
+                            'flex flex-[1_1_300px] flex-col gap-1 p-[22px]',
+                        )}
+                    >
+                        <h2 className="mb-1.5 font-[Sora] text-lg font-semibold text-foreground">
+                            Where clients come from
+                        </h2>
+                        {geographicData.length === 0 && (
+                            <span className="py-6 text-center text-sm text-muted-foreground">
+                                No location data yet.
+                            </span>
+                        )}
+                        {geographicData.slice(0, 5).map((item) => (
+                            <div
+                                key={item.location}
+                                className="flex items-center gap-3 border-t border-[#0E3B2E]/[0.07] py-2.5 dark:border-white/10"
+                            >
+                                <div className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-[#E6F4EC] text-[#0E3B2E] dark:bg-[#0E3B2E] dark:text-[#C8F169]">
+                                    <KeenIcon
+                                        name="geolocation"
+                                        className="text-lg"
+                                    />
+                                </div>
+                                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                                    <div className="flex justify-between gap-2">
+                                        <span className="truncate text-sm font-bold text-foreground">
+                                            {item.location}
+                                        </span>
+                                        <span className="text-[13px] whitespace-nowrap text-muted-foreground">
+                                            {item.bookings} bookings
+                                        </span>
+                                    </div>
+                                    <div className="h-1.5 rounded-full bg-muted">
                                         <div
-                                            key={i}
-                                            className="group relative flex flex-1 flex-col items-center justify-end gap-2 h-full"
-                                        >
-                                            <div
-                                                className="w-full rounded-t-md bg-primary transition-all group-hover:bg-primary/80"
-                                                style={{
-                                                    height: `${(data.value / maxRevenue) * 100}%`,
-                                                }}
-                                            ></div>
-                                            <span className="text-xs text-muted-foreground text-center">
-                                                {data.label}
-                                            </span>
-                                            <div className="absolute -top-10 left-1/2 -translate-x-1/2 rounded bg-popover px-2 py-1 text-xs text-popover-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100 whitespace-nowrap z-10">
-                                                ₦{data.value.toLocaleString()}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    {/* Bookings Tab */}
-                    <TabsContent value="bookings" className="space-y-4">
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <Card className="border-border/70 shadow-none">
-                                <CardHeader className="space-y-1 pb-3">
-                                    <CardTitle>Peak Hours</CardTitle>
-                                    <CardDescription>
-                                        Most popular booking times.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="pt-0">
-                                    <div className="overflow-x-auto pb-2">
-                                        <div className="flex h-[300px] min-w-[680px] items-end gap-1 px-2 pb-4 sm:min-w-0 sm:px-4">
-                                        {peakHours.map((hour, i) => (
-                                            <div
-                                                key={i}
-                                                className="group relative flex flex-1 flex-col items-center justify-end gap-1 h-full"
-                                            >
-                                                <div
-                                                    className="w-full rounded-t-md bg-blue-500 transition-all group-hover:bg-blue-600"
-                                                    style={{
-                                                        height: `${(hour.bookings / maxBookings) * 100}%`,
-                                                    }}
-                                                ></div>
-                                                <span className="text-[9px] text-muted-foreground text-center rotate-90 origin-center whitespace-nowrap">
-                                                    {hour.display}
-                                                </span>
-                                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 rounded bg-popover px-2 py-1 text-xs text-popover-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100 whitespace-nowrap z-10">
-                                                    {hour.bookings} bookings
-                                                </div>
-                                            </div>
-                                        ))}
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card className="border-border/70 shadow-none">
-                                <CardHeader className="space-y-1 pb-3">
-                                    <CardTitle>Booking Conversion</CardTitle>
-                                    <CardDescription>
-                                        Conversion and confirmation rates.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="space-y-2">
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-muted-foreground">Profile Views</span>
-                                            <span className="font-semibold">{conversionMetrics.total_views.toLocaleString()}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-muted-foreground">Total Bookings</span>
-                                            <span className="font-semibold">{conversionMetrics.total_bookings.toLocaleString()}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-muted-foreground">Conversion Rate</span>
-                                            <span className="font-semibold text-primary">{conversionMetrics.conversion_rate.toFixed(2)}%</span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-muted-foreground">Confirmation Rate</span>
-                                            <span className="font-semibold text-green-600">{conversionMetrics.confirmation_rate.toFixed(2)}%</span>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </TabsContent>
-
-                    {/* Services Tab */}
-                    <TabsContent value="services" className="space-y-4">
-                        <Card className="border-border/70 shadow-none">
-                            <CardHeader className="space-y-1 pb-3">
-                                <CardTitle>Top Performing Services</CardTitle>
-                                <CardDescription>
-                                    Services contributing most to revenue.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="pt-0">
-                                <div className="space-y-6">
-                                    {topServices.map((service, i) => (
-                                        <div
-                                            key={i}
-                                            className="flex flex-col gap-3 rounded-lg border border-border/60 p-4 sm:flex-row sm:items-center sm:justify-between"
-                                        >
-                                            <div className="flex min-w-0 items-start gap-4">
-                                                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-primary font-bold">
-                                                    {i + 1}
-                                                </div>
-                                                <div className="min-w-0 space-y-1">
-                                                    <p className="break-words text-sm font-medium leading-5 sm:leading-none">
-                                                        {service.name}
-                                                    </p>
-                                                    <p className="break-words text-xs text-muted-foreground">
-                                                        {service.bookings} bookings • Avg: ₦{service.avg_price.toLocaleString()}
-                                                    </p>
-                                                    <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
-                                                        <div
-                                                            className="h-full rounded-full bg-primary transition-all"
-                                                            style={{
-                                                                width: `${totalServiceRevenue > 0 ? (service.revenue / totalServiceRevenue) * 100 : 0}%`,
-                                                            }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="text-left sm:text-right">
-                                                <div className="text-sm font-semibold">
-                                                    {service.revenue_formatted}
-                                                </div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    {(totalServiceRevenue > 0
-                                                        ? (service.revenue / totalServiceRevenue) * 100
-                                                        : 0
-                                                    ).toFixed(1)}
-                                                    % of total
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    {/* Customers Tab */}
-                    <TabsContent value="customers" className="space-y-4">
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <Card className="border-border/70 shadow-none">
-                                <CardHeader className="space-y-1 pb-3">
-                                    <CardTitle>Customer Retention</CardTitle>
-                                    <CardDescription>
-                                        Returning customer metrics.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="space-y-2">
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-muted-foreground">Unique Clients</span>
-                                            <span className="font-semibold">{retentionMetrics.unique_clients}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-muted-foreground">Returning Clients</span>
-                                            <span className="font-semibold text-primary">{retentionMetrics.returning_clients}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-muted-foreground">Retention Rate</span>
-                                            <span className="font-semibold text-green-600">{retentionMetrics.retention_rate.toFixed(2)}%</span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-muted-foreground">Repeat Bookings</span>
-                                            <span className="font-semibold">{retentionMetrics.repeat_bookings}</span>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card className="border-border/70 shadow-none">
-                                <CardHeader className="space-y-1 pb-3">
-                                    <CardTitle>Geographic Demand</CardTitle>
-                                    <CardDescription>
-                                        Top locations by bookings.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-4">
-                                        {geographicData.length > 0 ? (
-                                            geographicData.map((geo, i) => (
-                                                <div
-                                                    key={i}
-                                                    className="flex items-center justify-between"
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                                                        <div>
-                                                            <p className="text-sm font-medium">{geo.location}</p>
-                                                            <p className="text-xs text-muted-foreground">{geo.bookings} bookings</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <p className="text-sm font-semibold">₦{geo.revenue.toLocaleString()}</p>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        ) : (
-                                            <p className="text-sm text-muted-foreground text-center py-4">
-                                                No geographic data available
-                                            </p>
-                                        )}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </TabsContent>
-
-                    {/* Reviews Tab */}
-                    <TabsContent value="reviews" className="space-y-4">
-                        <Card className="border-border/70 shadow-none">
-                            <CardHeader className="space-y-1 pb-3">
-                                <CardTitle>Review Sentiment Analysis</CardTitle>
-                                <CardDescription>
-                                    Customer feedback breakdown.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-6">
-                                <div className="flex items-center justify-center gap-2">
-                                    <Star className="h-8 w-8 fill-yellow-400 text-yellow-400" />
-                                    <div>
-                                        <div className="text-3xl font-bold">
-                                            {sentimentData.average_rating.toFixed(1)}
-                                        </div>
-                                        <div className="text-sm text-muted-foreground">
-                                            Average Rating ({sentimentData.total} reviews)
-                                        </div>
+                                            className="h-full rounded-full bg-[#9BC63A]"
+                                            style={{
+                                                width: `${(item.bookings / maxGeo) * 100}%`,
+                                            }}
+                                        />
                                     </div>
                                 </div>
-
-                                <div className="space-y-4">
-                                    <div>
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-sm font-medium text-green-600">Positive (4-5 stars)</span>
-                                            <span className="text-sm font-semibold">{sentimentData.positive.toFixed(1)}%</span>
-                                        </div>
-                                        <div className="w-full bg-muted rounded-full h-2">
-                                            <div
-                                                className="bg-green-500 h-2 rounded-full"
-                                                style={{ width: `${sentimentData.positive}%` }}
-                                            ></div>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-sm font-medium text-yellow-600">Neutral (3 stars)</span>
-                                            <span className="text-sm font-semibold">{sentimentData.neutral.toFixed(1)}%</span>
-                                        </div>
-                                        <div className="w-full bg-muted rounded-full h-2">
-                                            <div
-                                                className="bg-yellow-500 h-2 rounded-full"
-                                                style={{ width: `${sentimentData.neutral}%` }}
-                                            ></div>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-sm font-medium text-red-600">Negative (1-2 stars)</span>
-                                            <span className="text-sm font-semibold">{sentimentData.negative.toFixed(1)}%</span>
-                                        </div>
-                                        <div className="w-full bg-muted rounded-full h-2">
-                                            <div
-                                                className="bg-red-500 h-2 rounded-full"
-                                                style={{ width: `${sentimentData.negative}%` }}
-                                            ></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                </Tabs>
+                            </div>
+                        ))}
+                    </section>
+                </div>
             </div>
         </AppLayout>
     );

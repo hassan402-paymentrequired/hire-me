@@ -1,44 +1,27 @@
 import KeenIcon from '@/components/keen-icon';
 import { Pagination } from '@/components/pagination';
-import { Spinner } from '@/components/ui/spinner';
-import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import { Spinner } from '@/components/ui/spinner';
 import AppLayout from '@/layouts/app-layout';
-import { Head, router, useForm } from '@inertiajs/react';
-import {
-    ArrowUpRight,
-    Box,
-    Clock,
-    Edit2,
-    Plus,
-    Search,
-    Trash2,
-} from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { BreadcrumbItem } from '@/types';
+import { Head, router, useForm } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
+import ServiceFormPanel, {
+    formatDuration,
+    type ServiceFormData,
+} from './components/service-form-panel';
 
 interface Service {
     id: string;
@@ -51,6 +34,7 @@ interface Service {
     service_category_id: string | null;
     service_category_name: string | null;
     status: 'active' | 'inactive';
+    bookings_this_month: number;
 }
 
 interface ServiceCategory {
@@ -92,7 +76,7 @@ interface Props {
         inactiveServices: number;
         mostBooked: {
             name: string;
-            change: string;
+            bookings: number;
         };
     };
 }
@@ -118,15 +102,18 @@ export default function ServicesIndex({
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingService, setEditingService] = useState<Service | null>(null);
-    const [editingCategory, setEditingCategory] = useState<ServiceCategory | null>(null);
+    const [editingCategory, setEditingCategory] =
+        useState<ServiceCategory | null>(null);
 
-    const { data, setData, post, put, processing, reset, errors } = useForm({
-        service_category_id: serviceCategories[0]?.id || '',
-        name: '',
-        description: '',
-        price: '',
-        duration_minutes: '',
-    });
+    const { data, setData, post, put, processing, reset, errors } =
+        useForm<ServiceFormData>({
+            service_category_id: serviceCategories[0]?.id || '',
+            name: '',
+            description: '',
+            price: '',
+            duration_minutes: '60',
+            status: 'active',
+        });
     const {
         data: categoryData,
         setData: setCategoryData,
@@ -154,10 +141,6 @@ export default function ServicesIndex({
 
         return () => window.clearTimeout(timeout);
     }, [searchQuery, filters.search]);
-
-    const averagePrice = services.data.length
-        ? Math.round(services.data.reduce((sum, service) => sum + Number(service.price || 0), 0) / services.data.length)
-        : 0;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -187,6 +170,7 @@ export default function ServicesIndex({
             description: service.description || '',
             price: service.price.toString(),
             duration_minutes: service.duration_minutes.toString(),
+            status: service.status,
         });
     };
 
@@ -233,466 +217,503 @@ export default function ServicesIndex({
         }
     };
 
+    const [categoryFilter, setCategoryFilter] = useState<string>('all');
+    const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
+    const isServiceFormOpen = isAddModalOpen || !!editingService;
+
+    const visibleServices = services.data.filter(
+        (service) =>
+            categoryFilter === 'all' ||
+            service.service_category_id === categoryFilter,
+    );
+
+    const closeServiceForm = () => {
+        setIsAddModalOpen(false);
+        setEditingService(null);
+        reset();
+    };
+
+    const openNewServiceForm = () => {
+        setEditingService(null);
+        reset();
+        setIsAddModalOpen(true);
+    };
+
+    const card =
+        'rounded-[20px] border border-[#0E3B2E]/10 bg-card shadow-[0_1px_2px_rgba(19,32,27,0.04)] dark:border-white/10';
+    const inputClass =
+        'h-12 w-full rounded-xl border border-[#0E3B2E]/15 bg-card px-3.5 text-sm text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-[#C8F169]/60 dark:border-white/15';
+
+    const statCards = [
+        {
+            icon: 'element-8',
+            label: 'Total services',
+            value: String(stats.totalServices.value),
+            note: `across ${stats.activeCategories} categories`,
+        },
+        {
+            icon: 'check-circle',
+            label: 'Active',
+            value: String(stats.activeServices),
+            note: 'visible to clients',
+        },
+        {
+            icon: 'eye',
+            label: 'Inactive',
+            value: String(stats.inactiveServices),
+            note: 'hidden from booking',
+        },
+        {
+            icon: 'medal-star',
+            label: 'Most booked',
+            value: stats.mostBooked.name,
+            note: `${stats.mostBooked.bookings} booking${stats.mostBooked.bookings === 1 ? '' : 's'} this month`,
+        },
+    ];
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Service Management" />
+            <Head title="Services" />
 
-            <div className="flex w-full flex-col gap-6 p-4">
-                <section className="overflow-hidden rounded-3xl border border-border/70 bg-background">
-                    <div className="relative">
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.06),_transparent_24%),radial-gradient(circle_at_left,_rgba(16,185,129,0.06),_transparent_24%)]" />
-                        <div className="relative space-y-5 px-6 py-6 lg:px-8 lg:py-8">
-                            <div className="flex flex-wrap items-center gap-3">
-                                <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-foreground/70">
-                                    <KeenIcon name="menu" className="text-sm text-sky-600 dark:text-sky-300" />
-                                    Service catalog
-                                </span>
-                                <span className="inline-flex rounded-full border border-border/70 bg-background px-3 py-1 text-xs font-medium text-muted-foreground">
-                                    {stats.totalServices.value} services configured
-                                </span>
-                            </div>
-
-                            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                                <div className="max-w-2xl space-y-2">
-                                    <h1 className="text-3xl font-semibold tracking-tight text-foreground lg:text-4xl">
-                                        Services
-                                    </h1>
-                                    <p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
-                                        Shape the services clients can actually book, keep pricing clear, and fine-tune what stays active on your storefront.
-                                    </p>
-                                </div>
-
-                                <Dialog
-                                    open={isAddModalOpen || !!editingService}
-                                    onOpenChange={(open) => {
-                                        if (!open) {
-                                            setIsAddModalOpen(false);
-                                            setEditingService(null);
-                                            reset();
-                                        }
-                                    }}
-                                >
-                                    <DialogTrigger asChild>
-                                        <Button
-                                            onClick={() => setIsAddModalOpen(true)}
-                                            className="rounded-full px-5"
-                                            disabled={serviceCategories.length === 0}
-                                        >
-                                            <Plus className="size-5" />
-                                            Add New Service
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="max-h-[90dvh] overflow-auto sm:max-w-[560px]">
-                                        <DialogHeader>
-                                            <DialogTitle className="text-2xl font-semibold">
-                                                {editingService ? 'Edit Service' : 'Add New Service'}
-                                            </DialogTitle>
-                                        </DialogHeader>
-                                        <form onSubmit={handleSubmit} className="space-y-5">
-                                            <div className="rounded-2xl border border-border/70 bg-muted/20 p-4">
-                                                <p className="text-sm font-medium text-foreground">Service details</p>
-                                                <p className="mt-1 text-sm text-muted-foreground">
-                                                    Add the core information clients need before they book this service.
-                                                </p>
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <Label htmlFor="name">Service Name</Label>
-                                                <Input
-                                                    id="name"
-                                                    value={data.name}
-                                                    onChange={(e) => setData('name', e.target.value)}
-                                                    placeholder="e.g. Premium House Cleaning"
-                                                />
-                                                {errors.name && <p className="text-xs font-bold text-destructive">{errors.name}</p>}
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <Label htmlFor="service-category">Service Category</Label>
-                                                <Select
-                                                    value={data.service_category_id}
-                                                    onValueChange={(value) => setData('service_category_id', value)}
-                                                >
-                                                    <SelectTrigger id="service-category">
-                                                        <SelectValue placeholder="Choose a category" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {serviceCategories.map((category) => (
-                                                            <SelectItem key={category.id} value={category.id}>
-                                                                {category.name}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                                {errors.service_category_id && (
-                                                    <p className="text-xs font-bold text-destructive">
-                                                        {errors.service_category_id}
-                                                    </p>
-                                                )}
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="price">Price (₦)</Label>
-                                                    <Input
-                                                        id="price"
-                                                        type="number"
-                                                        value={data.price}
-                                                        onChange={(e) => setData('price', e.target.value)}
-                                                        placeholder="0.00"
-                                                    />
-                                                    {errors.price && <p className="text-xs font-bold text-destructive">{errors.price}</p>}
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="duration">Duration (Min)</Label>
-                                                    <Input
-                                                        id="duration"
-                                                        type="number"
-                                                        value={data.duration_minutes}
-                                                        onChange={(e) => setData('duration_minutes', e.target.value)}
-                                                        placeholder="60"
-                                                    />
-                                                    {errors.duration_minutes && (
-                                                        <p className="text-xs font-bold text-destructive">{errors.duration_minutes}</p>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <Label htmlFor="description">Description</Label>
-                                                <Textarea
-                                                    id="description"
-                                                    value={data.description}
-                                                    onChange={(e) => setData('description', e.target.value)}
-                                                    placeholder="Briefly describe the service..."
-                                                    className="min-h-[120px]"
-                                                />
-                                                {errors.description && (
-                                                    <p className="text-xs font-bold text-destructive">{errors.description}</p>
-                                                )}
-                                            </div>
-
-                                            <div className="flex justify-end gap-3 pt-2">
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    onClick={() => {
-                                                        setIsAddModalOpen(false);
-                                                        setEditingService(null);
-                                                        reset();
-                                                    }}
-                                                >
-                                                    Cancel
-                                                </Button>
-                                                <Button type="submit" disabled={processing}>
-                                                    {processing && <Spinner />}
-                                                    {editingService ? 'Update Service' : 'Create Service'}
-                                                </Button>
-                                            </div>
-                                        </form>
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-
-                            <div className="grid gap-3 sm:grid-cols-3">
-                                <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
-                                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                                        <KeenIcon name="verify" className="text-sm text-emerald-600 dark:text-emerald-300" />
-                                        Active lineup
-                                    </div>
-                                    <p className="mt-3 text-3xl font-semibold text-foreground">
-                                        {stats.totalServices.value}
-                                    </p>
-                                    <p className="mt-1 text-sm text-muted-foreground">
-                                        {stats.activeServices} active, {stats.inactiveServices} inactive
-                                    </p>
-                                </div>
-                                <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
-                                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                                        <KeenIcon name="receipt-square" className="text-sm text-sky-600 dark:text-sky-300" />
-                                        Average ticket
-                                    </div>
-                                    <p className="mt-3 text-3xl font-semibold text-foreground">
-                                        ₦{averagePrice.toLocaleString()}
-                                    </p>
-                                    <p className="mt-1 text-sm text-muted-foreground">
-                                        across your current service menu
-                                    </p>
-                                </div>
-                                <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
-                                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                                        <KeenIcon name="star" className="text-sm text-violet-600 dark:text-violet-300" />
-                                        Top performer
-                                    </div>
-                                    <p className="mt-3 text-lg font-semibold text-foreground">
-                                        {stats.mostBooked.name}
-                                    </p>
-                                    <p className="mt-1 text-sm text-muted-foreground">
-                                        {stats.mostBooked.change} vs last month
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+            <div className="flex w-full flex-col gap-[22px] p-4 md:p-6">
+                {/* Header */}
+                <header className="flex flex-wrap items-end gap-3">
+                    <div className="flex flex-[1_1_300px] flex-col gap-1">
+                        <span className="text-[13px] text-muted-foreground">
+                            Business
+                            {businessCategory
+                                ? ` · ${businessCategory.name}`
+                                : ''}
+                        </span>
+                        <h1 className="font-[Sora] text-[28px] font-bold tracking-[-0.02em] text-foreground">
+                            Services
+                        </h1>
+                        <span className="text-sm text-muted-foreground">
+                            What clients can book, how long it takes and what it
+                            costs.
+                        </span>
                     </div>
-                </section>
+                    <button
+                        type="button"
+                        onClick={() => setIsCategoriesOpen(true)}
+                        className="flex h-11 items-center gap-2 rounded-xl border border-[#0E3B2E]/15 bg-card px-4 text-sm font-semibold text-foreground hover:bg-muted dark:border-white/15"
+                    >
+                        <KeenIcon name="category" className="text-lg" />
+                        Categories
+                    </button>
+                    <button
+                        type="button"
+                        onClick={openNewServiceForm}
+                        disabled={serviceCategories.length === 0}
+                        className="flex h-11 items-center gap-2 rounded-xl bg-[#0E3B2E] px-[18px] text-sm font-semibold text-white hover:bg-[#0E3B2E]/90 disabled:opacity-60 dark:bg-[#C8F169] dark:text-[#0E3B2E]"
+                    >
+                        <KeenIcon name="plus" className="text-lg" />
+                        Add service
+                    </button>
+                </header>
 
-                <Card className="overflow-hidden rounded-3xl border border-border/70">
-                    <CardHeader className="border-b border-border/60 bg-muted/20">
-                        <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
-                            <div>
-                                <CardTitle>Service Categories</CardTitle>
-                                <CardDescription className="mt-2">
-                                    Organize your catalog with provider-owned categories while keeping your storefront business category as{' '}
-                                    <span className="font-medium text-foreground">
-                                        {businessCategory?.name ?? 'not set'}
-                                    </span>
-                                    .
-                                </CardDescription>
-                            </div>
-                            <span className="inline-flex rounded-full border border-border/70 bg-background px-3 py-1 text-xs font-medium text-muted-foreground">
-                                {serviceCategories.length} categories
-                            </span>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="grid gap-6 pt-6 lg:grid-cols-[1.4fr_0.9fr]">
-                        <div className="space-y-3">
-                            {serviceCategories.length > 0 ? (
-                                serviceCategories.map((category) => (
-                                    <div
-                                        key={category.id}
-                                        className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-background p-4 sm:flex-row sm:items-center sm:justify-between"
-                                    >
-                                        <div>
-                                            <p className="font-semibold text-foreground">
-                                                {category.name}
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {category.services_count} service
-                                                {category.services_count === 1 ? '' : 's'} assigned
-                                            </p>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => handleEditCategory(category)}
-                                                className="rounded-full"
-                                            >
-                                                <Edit2 className="mr-2 size-3.5" />
-                                                Edit
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => handleDeleteCategory(category)}
-                                                className="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                            >
-                                                <Trash2 className="mr-2 size-3.5" />
-                                                Delete
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="rounded-2xl border border-dashed border-border/70 py-12 text-center text-sm text-muted-foreground">
-                                    No service categories yet. Create one before adding services.
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="rounded-2xl border border-border/70 bg-background p-5">
-                            <form onSubmit={handleCategorySubmit} className="space-y-4">
-                                <div>
-                                    <h3 className="text-lg font-semibold text-foreground">
-                                        {editingCategory ? 'Edit category' : 'Add category'}
-                                    </h3>
-                                    <p className="mt-1 text-sm text-muted-foreground">
-                                        Use categories to group similar services together.
-                                    </p>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="category-name">Category Name</Label>
-                                    <Input
-                                        id="category-name"
-                                        value={categoryData.name}
-                                        onChange={(e) => setCategoryData('name', e.target.value)}
-                                        placeholder="e.g. Installations"
-                                    />
-                                    {categoryErrors.name && (
-                                        <p className="text-xs font-bold text-destructive">
-                                            {categoryErrors.name}
-                                        </p>
-                                    )}
-                                    {errors.service_category_id && (
-                                        <p className="text-xs font-bold text-destructive">
-                                            {errors.service_category_id}
-                                        </p>
-                                    )}
-                                </div>
-                                <div className="flex justify-end gap-3">
-                                    {editingCategory && (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={() => {
-                                                setEditingCategory(null);
-                                                resetCategory();
-                                            }}
-                                        >
-                                            Cancel
-                                        </Button>
-                                    )}
-                                    <Button type="submit" disabled={categoryProcessing}>
-                                        {categoryProcessing && <Spinner />}
-                                        {editingCategory ? 'Update Category' : 'Create Category'}
-                                    </Button>
-                                </div>
-                            </form>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="overflow-hidden rounded-3xl border border-border/70">
-                    <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
-                        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                            <div>
-                                <CardTitle className="flex items-center gap-2">
-                                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/70 bg-background text-sky-600 dark:text-sky-300">
-                                        <Box className="h-4 w-4" />
-                                    </span>
-                                    Service List
-                                </CardTitle>
-                                <CardDescription className="mt-2">
-                                    Search your service menu, adjust what stays active, or open a service to update the details.
-                                </CardDescription>
-                            </div>
-                            <div className="relative flex-1 xl:max-w-sm">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Search services..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="rounded-full pl-12"
+                {/* Stats */}
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
+                    {statCards.map((stat) => (
+                        <div
+                            key={stat.label}
+                            className={`${card} flex items-center gap-3.5 p-[18px]`}
+                        >
+                            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#E6F4EC] text-[#0E3B2E] dark:bg-[#0E3B2E] dark:text-[#C8F169]">
+                                <KeenIcon
+                                    name={stat.icon}
+                                    className="text-[22px]"
                                 />
                             </div>
+                            <div className="flex min-w-0 flex-col gap-0.5">
+                                <span className="text-[13px] text-muted-foreground">
+                                    {stat.label}
+                                </span>
+                                <span className="truncate font-[Sora] text-[22px] font-bold text-foreground">
+                                    {stat.value}
+                                </span>
+                                <span className="truncate text-xs text-muted-foreground">
+                                    {stat.note}
+                                </span>
+                            </div>
                         </div>
-                    </CardHeader>
-                    <CardContent className="pt-5">
-                        <div className="space-y-4">
-                            {services.data.length > 0 ? (
-                                services.data.map((service) => (
-                                    <div
-                                        key={service.id}
-                                        className="rounded-2xl border border-border/70 bg-gradient-to-br from-background to-muted/20 p-5 transition-colors hover:bg-muted/20"
+                    ))}
+                </div>
+
+                {/* Filters */}
+                <div className="flex flex-wrap items-center gap-2.5">
+                    <div className="flex flex-auto flex-wrap gap-2">
+                        {[
+                            {
+                                id: 'all',
+                                name: 'All',
+                                services_count: stats.totalServices
+                                    .value as number,
+                            },
+                            ...serviceCategories,
+                        ].map((category) => {
+                            const isActive = categoryFilter === category.id;
+
+                            return (
+                                <button
+                                    key={category.id}
+                                    type="button"
+                                    onClick={() =>
+                                        setCategoryFilter(category.id)
+                                    }
+                                    aria-pressed={isActive}
+                                    className={
+                                        isActive
+                                            ? 'flex h-[38px] items-center gap-2 rounded-full bg-[#0E3B2E] px-3.5 text-[13px] font-bold text-white dark:bg-[#C8F169] dark:text-[#0E3B2E]'
+                                            : 'flex h-[38px] items-center gap-2 rounded-full border border-[#0E3B2E]/12 bg-card px-3.5 text-[13px] font-bold text-foreground hover:bg-muted dark:border-white/15'
+                                    }
+                                >
+                                    {category.name}
+                                    <span
+                                        className={
+                                            isActive
+                                                ? 'rounded-full bg-[#C8F169] px-[7px] py-px text-[11px] text-[#0E3B2E] dark:bg-[#0E3B2E] dark:text-[#C8F169]'
+                                                : 'rounded-full bg-muted px-[7px] py-px text-[11px] text-muted-foreground'
+                                        }
                                     >
-                                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                                            <div className="min-w-0 flex-1">
-                                                <div className="flex items-start gap-4">
-                                                    <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-border/70 bg-muted/20 text-primary">
-                                                        <KeenIcon name="menu" className="text-lg" />
-                                                    </div>
-                                                    <div className="min-w-0 space-y-2">
-                                                        <div className="flex flex-wrap items-center gap-2">
-                                                            <h3 className="max-w-[240px] truncate text-base font-semibold capitalize sm:max-w-[360px]">
-                                                                {service.name}
-                                                            </h3>
-                                                            <span
-                                                                className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize ${
-                                                                    service.status === 'active'
-                                                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300'
-                                                                        : 'bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300'
-                                                                }`}
-                                                            >
-                                                                {service.status}
-                                                            </span>
-                                                        </div>
+                                        {category.services_count}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                        <button
+                            type="button"
+                            onClick={() => setIsCategoriesOpen(true)}
+                            className="flex h-[38px] items-center gap-1.5 rounded-full border border-dashed border-[#0E3B2E]/25 px-3 text-[13px] font-bold text-[#0E3B2E] hover:bg-[#E6F4EC] dark:border-white/20 dark:text-[#C8F169] dark:hover:bg-[#0E3B2E]"
+                        >
+                            <KeenIcon name="plus" className="text-[13px]" />
+                            Category
+                        </button>
+                    </div>
+                    <label className="flex h-10 flex-[0_1_240px] items-center gap-2.5 rounded-[10px] border border-[#0E3B2E]/12 bg-card px-3 text-muted-foreground dark:border-white/15">
+                        <KeenIcon name="magnifier" className="text-base" />
+                        <input
+                            type="search"
+                            aria-label="Search services"
+                            placeholder="Search services…"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                        />
+                    </label>
+                </div>
 
-                                                        {service.description ? (
-                                                            <p className="max-w-2xl truncate text-sm text-muted-foreground">
-                                                                {service.description}
-                                                            </p>
-                                                        ) : (
-                                                            <p className="text-sm text-muted-foreground">
-                                                                No description added yet.
-                                                            </p>
-                                                        )}
+                {serviceCategories.length === 0 && (
+                    <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-[#C8F169] p-4 text-[#0E3B2E]">
+                        <KeenIcon name="information-2" className="text-xl" />
+                        <span className="flex-1 text-sm font-semibold">
+                            Create a category first, then add your services to
+                            it.
+                        </span>
+                        <button
+                            type="button"
+                            onClick={() => setIsCategoriesOpen(true)}
+                            className="h-10 rounded-xl bg-[#0E3B2E] px-4 text-sm font-bold text-white"
+                        >
+                            Create category
+                        </button>
+                    </div>
+                )}
 
-                                                        <div className="flex flex-wrap items-center gap-2 pt-1">
-                                                            {service.service_category_name && (
-                                                                <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1.5 text-sm font-medium text-foreground/80">
-                                                                    <KeenIcon name="tag" className="text-sm text-muted-foreground" />
-                                                                    {service.service_category_name}
-                                                                </span>
-                                                            )}
-                                                            <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1.5 text-sm font-medium text-foreground/80">
-                                                                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                                                                {service.duration_minutes} mins
-                                                            </span>
-                                                            <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1.5 text-sm font-medium text-foreground/80">
-                                                                <KeenIcon name="receipt-square" className="text-sm text-muted-foreground" />
-                                                                ₦{Number(service.price).toLocaleString()}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+                    {isServiceFormOpen && (
+                        <div className="order-first lg:order-last">
+                            <ServiceFormPanel
+                                key={editingService?.id ?? 'new'}
+                                isEditing={!!editingService}
+                                data={data}
+                                setData={setData}
+                                errors={errors}
+                                processing={processing}
+                                categories={serviceCategories}
+                                onSubmit={handleSubmit}
+                                onClose={closeServiceForm}
+                            />
+                        </div>
+                    )}
+                    {/* Grid */}
+                    <div className="grid min-w-0 flex-1 grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
+                        {visibleServices.map((service) => {
+                            const isActive = service.status === 'active';
 
-                                            <div className="flex flex-wrap items-center justify-end gap-2 lg:ml-4">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => toggleStatus(service.id)}
-                                                    className="rounded-full"
+                            return (
+                                <article
+                                    key={service.id}
+                                    className={`${card} flex flex-col gap-3 p-[18px] ${isActive ? '' : 'opacity-60'}`}
+                                >
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="truncate rounded-full bg-[#E6F4EC] px-2.5 py-1 text-[11px] font-bold text-[#0E3B2E] dark:bg-[#0E3B2E] dark:text-[#C8F169]">
+                                            {service.service_category_name ||
+                                                service.category_name ||
+                                                'Uncategorised'}
+                                        </span>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <button
+                                                    type="button"
+                                                    aria-label={`More for ${service.name}`}
+                                                    className="flex size-9 items-center justify-center rounded-[10px] text-muted-foreground hover:bg-muted"
                                                 >
-                                                    <ArrowUpRight className="mr-2 h-3.5 w-3.5" />
-                                                    {service.status === 'active' ? 'Deactivate' : 'Activate'}
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="icon"
-                                                    onClick={() => handleEdit(service)}
-                                                    className="rounded-full"
+                                                    <KeenIcon
+                                                        name="dots-horizontal"
+                                                        className="text-lg"
+                                                    />
+                                                </button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem
+                                                    onClick={() =>
+                                                        handleEdit(service)
+                                                    }
                                                 >
-                                                    <Edit2 className="size-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => handleDelete(service.id)}
-                                                    className="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                    <KeenIcon
+                                                        name="pencil"
+                                                        className="mr-2 text-sm"
+                                                    />
+                                                    Edit
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    onClick={() =>
+                                                        handleDelete(service.id)
+                                                    }
+                                                    className="text-destructive"
                                                 >
-                                                    <Trash2 className="size-4" />
-                                                </Button>
-                                            </div>
+                                                    <KeenIcon
+                                                        name="trash"
+                                                        className="mr-2 text-sm"
+                                                    />
+                                                    Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <h3 className="font-[Sora] text-[17px] font-semibold text-foreground capitalize">
+                                            {service.name}
+                                        </h3>
+                                        <p className="line-clamp-2 text-[13px] leading-normal text-muted-foreground">
+                                            {service.description ||
+                                                'No description yet.'}
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-bold text-foreground">
+                                            <KeenIcon
+                                                name="time"
+                                                className="text-[13px]"
+                                            />
+                                            {formatDuration(
+                                                Number(
+                                                    service.duration_minutes,
+                                                ),
+                                            )}
+                                        </span>
+                                        <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-bold text-foreground">
+                                            <KeenIcon
+                                                name="calendar-tick"
+                                                className="text-[13px]"
+                                            />
+                                            {service.bookings_this_month} this
+                                            month
+                                        </span>
+                                    </div>
+                                    <div className="mt-auto h-px bg-[#0E3B2E]/[0.08] dark:bg-white/10" />
+                                    <div className="flex items-center justify-between gap-2.5">
+                                        <span className="font-[Sora] text-xl font-bold text-[#0E3B2E] dark:text-[#C8F169]">
+                                            ₦
+                                            {Number(
+                                                service.price,
+                                            ).toLocaleString()}
+                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span
+                                                className={
+                                                    isActive
+                                                        ? 'text-xs font-bold text-[#1F6B43] dark:text-[#C8F169]'
+                                                        : 'text-xs font-bold text-muted-foreground'
+                                                }
+                                            >
+                                                {isActive ? 'Active' : 'Hidden'}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                role="switch"
+                                                aria-checked={isActive}
+                                                aria-label={`${service.name} available for booking`}
+                                                onClick={() =>
+                                                    toggleStatus(service.id)
+                                                }
+                                                className={`flex h-[26px] w-11 shrink-0 items-center rounded-full p-[3px] transition-colors ${
+                                                    isActive
+                                                        ? 'justify-end bg-[#0E3B2E]'
+                                                        : 'justify-start bg-[#D5DDD8] dark:bg-white/15'
+                                                }`}
+                                            >
+                                                <span
+                                                    className={`size-5 rounded-full ${isActive ? 'bg-[#C8F169]' : 'bg-white'}`}
+                                                />
+                                            </button>
                                         </div>
                                     </div>
-                                ))
-                            ) : (
-                                <div className="rounded-2xl border border-border/70 py-16 text-center">
-                                    <div className="mx-auto max-w-sm space-y-3">
-                                        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-border/70 bg-muted/20 text-muted-foreground">
-                                            <KeenIcon name="menu" className="text-xl" />
-                                        </div>
-                                        <div>
-                                            <p className="font-semibold text-foreground">No services found</p>
-                                            <p className="mt-1 text-sm text-muted-foreground">
-                                                {searchQuery
-                                                    ? 'Try another keyword or clear your search.'
-                                                    : 'Start by adding your first service offering.'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                        <div className="mt-6">
-                            <Pagination links={services.links} />
-                        </div>
-                    </CardContent>
-                </Card>
+                                </article>
+                            );
+                        })}
+
+                        {serviceCategories.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={openNewServiceForm}
+                                className="flex min-h-[240px] flex-col items-center justify-center gap-2.5 rounded-[20px] border-[1.5px] border-dashed border-[#0E3B2E]/25 text-[#0E3B2E] hover:bg-[#E6F4EC]/50 dark:border-white/20 dark:text-[#C8F169] dark:hover:bg-white/[0.03]"
+                            >
+                                <span className="flex size-12 items-center justify-center rounded-[14px] bg-[#C8F169] text-[#0E3B2E]">
+                                    <KeenIcon
+                                        name="plus"
+                                        className="text-[22px]"
+                                    />
+                                </span>
+                                <span className="font-[Sora] text-[15px] font-semibold">
+                                    Add a service
+                                </span>
+                                <span className="text-[13px] text-muted-foreground">
+                                    Price, duration and category
+                                </span>
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {visibleServices.length === 0 && services.data.length > 0 && (
+                    <p className="text-center text-sm text-muted-foreground">
+                        No services in this category on this page.
+                    </p>
+                )}
+
+                {services.links?.length > 3 && (
+                    <div className="flex justify-center">
+                        <Pagination links={services.links} />
+                    </div>
+                )}
             </div>
+
+            {/* Categories */}
+            <Dialog
+                open={isCategoriesOpen}
+                onOpenChange={(open) => {
+                    setIsCategoriesOpen(open);
+                    if (!open) {
+                        setEditingCategory(null);
+                        resetCategory();
+                    }
+                }}
+            >
+                <DialogContent className="max-h-[90dvh] overflow-auto sm:max-w-[480px]">
+                    <DialogHeader>
+                        <DialogTitle className="font-[Sora] text-xl font-semibold">
+                            Categories
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="flex flex-col">
+                        {serviceCategories.length === 0 && (
+                            <p className="py-4 text-sm text-muted-foreground">
+                                No categories yet. Add your first one below.
+                            </p>
+                        )}
+                        {serviceCategories.map((category) => (
+                            <div
+                                key={category.id}
+                                className="flex items-center gap-3 border-t border-[#0E3B2E]/[0.07] py-3 first:border-t-0 dark:border-white/10"
+                            >
+                                <div className="flex min-w-0 flex-1 flex-col">
+                                    <span className="truncate text-sm font-bold text-foreground">
+                                        {category.name}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                        {category.services_count} service
+                                        {category.services_count === 1
+                                            ? ''
+                                            : 's'}
+                                    </span>
+                                </div>
+                                <button
+                                    type="button"
+                                    aria-label={`Edit ${category.name}`}
+                                    onClick={() => handleEditCategory(category)}
+                                    className="flex size-9 items-center justify-center rounded-[10px] border border-[#0E3B2E]/12 text-muted-foreground hover:bg-muted dark:border-white/15"
+                                >
+                                    <KeenIcon
+                                        name="pencil"
+                                        className="text-sm"
+                                    />
+                                </button>
+                                <button
+                                    type="button"
+                                    aria-label={`Delete ${category.name}`}
+                                    onClick={() =>
+                                        handleDeleteCategory(category)
+                                    }
+                                    className="flex size-9 items-center justify-center rounded-[10px] border border-[#0E3B2E]/12 text-red-700 hover:bg-red-50 dark:border-white/15 dark:text-red-300"
+                                >
+                                    <KeenIcon
+                                        name="trash"
+                                        className="text-sm"
+                                    />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                    <form
+                        onSubmit={handleCategorySubmit}
+                        className="flex flex-col gap-2.5 rounded-2xl bg-muted/60 p-4"
+                    >
+                        <Label htmlFor="category-name">
+                            {editingCategory
+                                ? 'Rename category'
+                                : 'New category'}
+                        </Label>
+                        <div className="flex gap-2">
+                            <input
+                                id="category-name"
+                                value={categoryData.name}
+                                onChange={(e) =>
+                                    setCategoryData('name', e.target.value)
+                                }
+                                placeholder="e.g. Braids"
+                                className={inputClass}
+                            />
+                            <button
+                                type="submit"
+                                disabled={categoryProcessing}
+                                className="flex h-12 shrink-0 items-center gap-2 rounded-xl bg-[#0E3B2E] px-4 text-sm font-bold text-white disabled:opacity-70 dark:bg-[#C8F169] dark:text-[#0E3B2E]"
+                            >
+                                {categoryProcessing && <Spinner />}
+                                {editingCategory ? 'Save' : 'Add'}
+                            </button>
+                        </div>
+                        {categoryErrors.name && (
+                            <p className="text-xs font-bold text-destructive">
+                                {categoryErrors.name}
+                            </p>
+                        )}
+                        {editingCategory && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setEditingCategory(null);
+                                    resetCategory();
+                                }}
+                                className="self-start text-xs font-bold text-muted-foreground hover:text-foreground"
+                            >
+                                Cancel editing
+                            </button>
+                        )}
+                    </form>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 }

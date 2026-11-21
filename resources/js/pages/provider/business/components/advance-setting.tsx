@@ -1,16 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import KeenIcon from '@/components/keen-icon';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-    Field,
-    FieldContent,
-    FieldDescription,
-    FieldLabel,
-    FieldTitle,
-} from '@/components/ui/field';
-import { FormSelect } from '@/components/ui/form-select';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { AppSelect } from '@/components/ui/app-select';
+import { cn } from '@/lib/utils';
+import { type ReactNode } from 'react';
 
 interface AdvancedSettingsProps {
     settings: {
@@ -37,512 +29,413 @@ interface AdvancedSettingsProps {
     onSettingsChange: (field: string, value: any) => void;
 }
 
+const bufferOptions = [
+    { value: '0', label: 'No buffer' },
+    { value: '5', label: '5 minutes' },
+    { value: '10', label: '10 minutes' },
+    { value: '15', label: '15 minutes' },
+    { value: '30', label: '30 minutes' },
+];
+
+const advanceBookingOptions = [
+    { value: '7', label: '1 week' },
+    { value: '14', label: '2 weeks' },
+    { value: '30', label: '1 month' },
+    { value: '60', label: '2 months' },
+    { value: '90', label: '3 months' },
+];
+
+const deliveryOptions = [
+    {
+        value: 'client_visits_provider',
+        title: 'At my place',
+        description: 'Clients come to your address.',
+    },
+    {
+        value: 'provider_visits_client',
+        title: 'Home service',
+        description: 'You go to the client’s address.',
+    },
+    {
+        value: 'both',
+        title: 'Both',
+        description: 'Clients choose either option.',
+    },
+] as const;
+
+function Group({ title, children }: { title: string; children: ReactNode }) {
+    return (
+        <section className="overflow-hidden rounded-[20px] border border-[#0E3B2E]/10 bg-card shadow-[0_1px_2px_rgba(19,32,27,0.04)] dark:border-white/10">
+            <h2 className="px-[22px] py-[18px] font-[Sora] text-lg font-semibold text-foreground">
+                {title}
+            </h2>
+            <div className="divide-y divide-[#0E3B2E]/[0.07] border-t border-[#0E3B2E]/[0.07] dark:divide-white/10 dark:border-white/10">
+                {children}
+            </div>
+        </section>
+    );
+}
+
+function Rule({
+    title,
+    description,
+    htmlFor,
+    children,
+}: {
+    title: string;
+    description?: string;
+    htmlFor?: string;
+    children: ReactNode;
+}) {
+    return (
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3 px-[22px] py-4">
+            <div className="flex flex-[1_1_280px] flex-col gap-0.5">
+                <label
+                    htmlFor={htmlFor}
+                    className="text-[15px] font-bold text-foreground"
+                >
+                    {title}
+                </label>
+                {description && (
+                    <span className="text-[13px] leading-snug text-muted-foreground">
+                        {description}
+                    </span>
+                )}
+            </div>
+            {children}
+        </div>
+    );
+}
+
+function Toggle({
+    checked,
+    label,
+    onChange,
+}: {
+    checked: boolean;
+    label: string;
+    onChange: (value: boolean) => void;
+}) {
+    return (
+        <button
+            type="button"
+            role="switch"
+            aria-checked={checked}
+            aria-label={label}
+            onClick={() => onChange(!checked)}
+            className={cn(
+                'flex h-[26px] w-11 shrink-0 items-center rounded-full p-[3px] transition-colors focus-visible:ring-[3px] focus-visible:ring-[#C8F169]/60 focus-visible:outline-none',
+                checked
+                    ? 'justify-end bg-[#0E3B2E]'
+                    : 'justify-start bg-[#D5DDD8] dark:bg-white/15',
+            )}
+        >
+            <span
+                className={cn(
+                    'size-5 rounded-full',
+                    checked ? 'bg-[#C8F169]' : 'bg-white',
+                )}
+            />
+        </button>
+    );
+}
+
+function NumberInput({
+    id,
+    value,
+    suffix,
+    placeholder,
+    onChange,
+}: {
+    id: string;
+    value: any;
+    suffix: string;
+    placeholder?: string;
+    onChange: (value: string) => void;
+}) {
+    return (
+        <div className="flex h-11 w-[180px] items-center overflow-hidden rounded-[10px] border border-[#0E3B2E]/15 focus-within:ring-[3px] focus-within:ring-[#C8F169]/60 dark:border-white/15">
+            <input
+                id={id}
+                type="number"
+                min="0"
+                value={value ?? ''}
+                placeholder={placeholder ?? 'No limit'}
+                onChange={(e) => onChange(e.target.value)}
+                className="h-full min-w-0 flex-1 bg-transparent px-3 text-sm font-semibold text-foreground outline-none"
+            />
+            <span className="flex h-full items-center bg-muted px-3 text-xs font-bold whitespace-nowrap text-muted-foreground">
+                {suffix}
+            </span>
+        </div>
+    );
+}
+
 const AdvancedSettings = ({
     settings,
     onSettingsChange,
 }: AdvancedSettingsProps) => {
-    const bufferOptions = [
-        { value: '0', label: 'No buffer' },
-        { value: '5', label: '5 minutes' },
-        { value: '10', label: '10 minutes' },
-        { value: '15', label: '15 minutes' },
-        { value: '30', label: '30 minutes' },
-    ];
-
-    const advanceBookingOptions = [
-        { value: '7', label: '1 week' },
-        { value: '14', label: '2 weeks' },
-        { value: '30', label: '1 month' },
-        { value: '60', label: '2 months' },
-        { value: '90', label: '3 months' },
-    ];
+    const deliveryMode =
+        settings?.service_delivery_mode ??
+        (settings?.offers_home_service
+            ? 'provider_visits_client'
+            : 'client_visits_provider');
+    const billingModel = settings?.billing_model || 'commission';
 
     return (
-        <div className="bg-card p-4 md:p-6">
-            <div className="mb-6 flex items-center gap-2">
-                <KeenIcon name="slider" className="text-xl text-primary" />
-                <div>
-                    <h3 className="text-lg font-semibold text-foreground md:text-xl">
-                        Advanced Settings
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                        Fine-tune your booking availability
-                    </p>
-                </div>
-            </div>
-            <div className="space-y-6">
-                {/* General Time Settings */}
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                        <Label>Buffer Time Between Appointments</Label>
-                        <div className="relative">
-                            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-muted-foreground">
-                                <KeenIcon
-                                    name="electronic-clock"
-                                    className="text-sm"
-                                />
-                            </div>
-                            <FormSelect
-                                label=""
-                                options={bufferOptions}
-                                value={settings?.bufferTime || '0'}
-                                onChange={(value) =>
-                                    onSettingsChange('bufferTime', value)
-                                }
-                                placeholder="Select buffer time"
-                                className="[&_[data-slot=select-trigger]]:pl-10"
-                            />
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            Time gap between consecutive bookings
-                        </p>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Advance Booking Window</Label>
-                        <div className="relative">
-                            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-muted-foreground">
-                                <KeenIcon name="archive" className="text-sm" />
-                            </div>
-                            <FormSelect
-                                label=""
-                                options={advanceBookingOptions}
-                                value={settings?.advanceBooking || '30'}
-                                onChange={(value) =>
-                                    onSettingsChange('advanceBooking', value)
-                                }
-                                placeholder="Select booking window"
-                                className="[&_[data-slot=select-trigger]]:pl-10"
-                            />
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            How far ahead customers can book
-                        </p>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                        <Label htmlFor="minNotice">
-                            Minimum Notice Period (hours)
-                        </Label>
-                        <div className="relative">
-                            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-muted-foreground">
-                                <KeenIcon
-                                    name="electronic-clock"
-                                    className="text-sm"
-                                />
-                            </div>
-                            <Input
-                                id="minNotice"
-                                type="number"
-                                value={settings?.minNotice ?? ''}
-                                onChange={(e) =>
-                                    onSettingsChange(
-                                        'minNotice',
-                                        e.target.value,
-                                    )
-                                }
-                                min="0"
-                                placeholder="e.g. 4"
-                                className="pl-10"
-                            />
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            Minimum time before appointment
-                        </p>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="maxDaily">
-                            Maximum Daily Appointments
-                        </Label>
-                        <div className="relative">
-                            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-muted-foreground">
-                                <KeenIcon name="status" className="text-sm" />
-                            </div>
-                            <Input
-                                id="maxDaily"
-                                type="number"
-                                value={settings?.maxDaily ?? ''}
-                                onChange={(e) =>
-                                    onSettingsChange('maxDaily', e.target.value)
-                                }
-                                min="1"
-                                placeholder="e.g. 8"
-                                className="pl-10"
-                            />
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            Limit bookings per day
-                        </p>
-                    </div>
-                </div>
-
-                {/* Booking Frequency Limits */}
-                <div className="space-y-4 border-t border-dashed border-border pt-4">
-                    <h4 className="flex items-center gap-2 text-sm font-medium text-foreground">
-                        <KeenIcon
-                            name="filter-square"
-                            className="text-sm text-primary"
-                        />
-                        <span>Booking Frequency Limits</span>
-                    </h4>
-                    <p className="-mt-3 text-xs text-muted-foreground">
-                        Restrict how often the same client can book you.
-                    </p>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <div className="space-y-2">
-                            <Label htmlFor="max_bookings_per_week">
-                                Max Bookings per Week (per user)
-                            </Label>
-                            <div className="relative">
-                                <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-muted-foreground">
-                                    <KeenIcon
-                                        name="archive-tick"
-                                        className="text-sm"
-                                    />
-                                </div>
-                                <Input
-                                    id="max_bookings_per_week"
-                                    type="number"
-                                    value={
-                                        settings?.max_bookings_per_week ?? ''
-                                    }
-                                    onChange={(e) =>
-                                        onSettingsChange(
-                                            'max_bookings_per_week',
-                                            e.target.value,
-                                        )
-                                    }
-                                    min="1"
-                                    placeholder="e.g. 2"
-                                    className="pl-10"
-                                />
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                Validation: per client, per week
-                            </p>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="max_bookings_per_month">
-                                Max Bookings per Month (per user)
-                            </Label>
-                            <div className="relative">
-                                <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3 text-muted-foreground">
-                                    <KeenIcon
-                                        name="archive"
-                                        className="text-sm"
-                                    />
-                                </div>
-                                <Input
-                                    id="max_bookings_per_month"
-                                    type="number"
-                                    value={
-                                        settings?.max_bookings_per_month ?? ''
-                                    }
-                                    onChange={(e) =>
-                                        onSettingsChange(
-                                            'max_bookings_per_month',
-                                            e.target.value,
-                                        )
-                                    }
-                                    min="1"
-                                    placeholder="e.g. 6"
-                                    className="pl-10"
-                                />
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                Validation: per client, per month
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Payment Settings */}
-                <div className="space-y-4 border-t border-dashed border-border pt-4">
-                    <h4 className="flex items-center gap-2 text-sm font-medium text-foreground">
-                        <KeenIcon
-                            name="receipt-square"
-                            className="text-sm text-primary"
-                        />
-                        <span>Payment Settings</span>
-                    </h4>
-                    <p className="-mt-3 text-xs text-muted-foreground">
-                        Configure payment policies for your appointments.
-                    </p>
-                    <div className="space-y-4">
-                        <RadioGroup
-                            className="w-full sm:grid-cols-2"
-                            defaultValue={
-                                settings?.billing_model || 'commission'
-                            }
-                            onValueChange={(value) =>
-                                onSettingsChange('billing_model', value)
-                            }
-                        >
-                            <FieldLabel htmlFor="pro-commission">
-                                <Field orientation="horizontal">
-                                    <FieldContent>
-                                        <FieldTitle>Commission base</FieldTitle>
-                                        <FieldDescription>
-                                            Commission keeps the default 10%
-                                            platform deduction on completed
-                                            bookings.
-                                        </FieldDescription>
-                                    </FieldContent>
-                                    <RadioGroupItem
-                                        value="pro"
-                                        id="pro-commission"
-                                    />
-                                </Field>
-                            </FieldLabel>
-                            <FieldLabel htmlFor="subscription-plan">
-                                <Field orientation="horizontal">
-                                    <FieldContent>
-                                        <FieldTitle>
-                                            Subscription base
-                                        </FieldTitle>
-                                        <FieldDescription>
-                                            Subscription keeps the provider
-                                            payout at the full booking amount.
-                                        </FieldDescription>
-                                    </FieldContent>
-                                    <RadioGroupItem
-                                        value="subscription"
-                                        id="subscription-plan"
-                                    />
-                                </Field>
-                            </FieldLabel>
-                        </RadioGroup>
-                        <div className="flex items-start gap-3">
-                            <Checkbox
-                                id="accept_online_payment"
-                                checked={
-                                    settings?.accept_online_payment ?? true
-                                }
-                                onCheckedChange={(checked) =>
-                                    onSettingsChange(
-                                        'accept_online_payment',
-                                        checked,
-                                    )
-                                }
-                            />
-                            <div className="flex-1 space-y-1">
-                                <Label
-                                    htmlFor="accept_online_payment"
-                                    className="cursor-pointer"
-                                >
-                                    Accept online payment before booking
-                                </Label>
-                                <p className="text-xs text-muted-foreground">
-                                    Clients can pay through Proxideck before the
-                                    booking goes through.
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                            <Checkbox
-                                id="accept_offline_booking"
-                                checked={
-                                    settings?.accept_offline_booking ?? false
-                                }
-                                onCheckedChange={(checked) =>
-                                    onSettingsChange(
-                                        'accept_offline_booking',
-                                        checked,
-                                    )
-                                }
-                            />
-                            <div className="flex-1 space-y-1">
-                                <Label
-                                    htmlFor="accept_offline_booking"
-                                    className="cursor-pointer"
-                                >
-                                    Allow unpaid booking requests
-                                </Label>
-                                <p className="text-xs text-muted-foreground">
-                                    Clients can request an appointment first and
-                                    pay you later. These requests always stay
-                                    pending for review.
-                                </p>
-                            </div>
-                        </div>
-                        {/* <div className="space-y-2">
-                            <Label>Provider billing model</Label>
-                            <FormSelect
-                                label=""
-                                options={[
-                                    {
-                                        value: 'commission',
-                                        label: 'Pay 10% per booking',
-                                    },
-                                    {
-                                        value: 'subscription',
-                                        label: 'Use subscription instead',
-                                    },
-                                ]}
-                                value={settings?.billing_model || 'commission'}
-                                onChange={(value) =>
-                                    onSettingsChange('billing_model', value)
-                                }
-                                placeholder="Choose billing model"
-                            />
-                        </div> */}
-                    </div>
-                </div>
-
-                {/* Preferences */}
-                <div className="space-y-4 border-t border-dashed border-border pt-4">
-                    <h4 className="flex items-center gap-2 text-sm font-medium text-foreground">
-                        <KeenIcon
-                            name="slider"
-                            className="text-sm text-primary"
-                        />
-                        <span>Booking Preferences</span>
-                    </h4>
-                    <div className="space-y-4">
-                        <div className="flex items-start gap-3">
-                            <Checkbox
-                                id="allowSameDay"
-                                checked={settings?.allowSameDay ?? false}
-                                onCheckedChange={(checked) =>
-                                    onSettingsChange('allowSameDay', checked)
-                                }
-                            />
-                            <div className="flex-1 space-y-1">
-                                <Label
-                                    htmlFor="allowSameDay"
-                                    className="cursor-pointer"
-                                >
-                                    Allow same-day bookings
-                                </Label>
-                                <p className="text-xs text-muted-foreground">
-                                    Customers can book appointments for today
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                            <Checkbox
-                                id="autoConfirm"
-                                checked={settings?.autoConfirm ?? false}
-                                onCheckedChange={(checked) =>
-                                    onSettingsChange('autoConfirm', checked)
-                                }
-                            />
-                            <div className="flex-1 space-y-1">
-                                <Label
-                                    htmlFor="autoConfirm"
-                                    className="cursor-pointer"
-                                >
-                                    Auto-confirm bookings
-                                </Label>
-                                <p className="text-xs text-muted-foreground">
-                                    Automatically confirm without manual
-                                    approval
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                            <Checkbox
-                                id="allowOffHoursRequests"
-                                checked={
-                                    settings?.allowOffHoursRequests ?? false
-                                }
-                                onCheckedChange={(checked) =>
-                                    onSettingsChange(
-                                        'allowOffHoursRequests',
-                                        checked,
-                                    )
-                                }
-                            />
-                            <div className="flex-1 space-y-1">
-                                <Label
-                                    htmlFor="allowOffHoursRequests"
-                                    className="cursor-pointer"
-                                >
-                                    Allow off-hours requests
-                                </Label>
-                                <p className="text-xs text-muted-foreground">
-                                    Clients can request times outside your work
-                                    hours. These requests will always be
-                                    pending, even if auto-confirm is enabled.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="space-y-4 border-t border-dashed border-border pt-4">
-                    <h4 className="flex items-center gap-2 text-sm font-medium text-foreground">
-                        <KeenIcon
-                            name="geolocation-home"
-                            className="text-sm text-primary"
-                        />
-                        <span>Service delivery</span>
-                    </h4>
-                    <p className="-mt-3 text-xs text-muted-foreground">
-                        Tell clients whether they visit you, you go to them, or
-                        both. This controls booking address requirements.
-                    </p>
-                    <RadioGroup
-                        value={
-                            settings?.service_delivery_mode ??
-                            (settings?.offers_home_service
-                                ? 'provider_visits_client'
-                                : 'client_visits_provider')
+        <div className="flex flex-col gap-4">
+            <Group title="Timing">
+                <Rule
+                    title="Buffer time between appointments"
+                    description="Time to reset before the next client."
+                    htmlFor="bufferTime"
+                >
+                    <AppSelect
+                        id="bufferTime"
+                        value={settings?.bufferTime || '0'}
+                        onChange={(value) =>
+                            onSettingsChange('bufferTime', value)
                         }
-                        onValueChange={(value) => {
-                            onSettingsChange('service_delivery_mode', value);
-                            onSettingsChange(
-                                'offers_home_service',
-                                value === 'provider_visits_client' ||
-                                    value === 'both',
-                            );
-                        }}
-                        className="space-y-3"
+                        options={[...bufferOptions]}
+                        size="sm"
+                        className="w-[180px]"
+                        triggerClassName="min-h-11 rounded-[10px] font-semibold"
+                    />
+                </Rule>
+                <Rule
+                    title="How far ahead clients can book"
+                    description="Clients can’t book further out than this."
+                    htmlFor="advanceBooking"
+                >
+                    <AppSelect
+                        id="advanceBooking"
+                        value={settings?.advanceBooking || '30'}
+                        onChange={(value) =>
+                            onSettingsChange('advanceBooking', value)
+                        }
+                        options={[...advanceBookingOptions]}
+                        size="sm"
+                        className="w-[180px]"
+                        triggerClassName="min-h-11 rounded-[10px] font-semibold"
+                    />
+                </Rule>
+                <Rule
+                    title="Minimum notice"
+                    description="How soon before a slot clients can still book it."
+                    htmlFor="minNotice"
+                >
+                    <NumberInput
+                        id="minNotice"
+                        value={settings?.minNotice}
+                        suffix="hours"
+                        placeholder="0"
+                        onChange={(value) =>
+                            onSettingsChange('minNotice', value)
+                        }
+                    />
+                </Rule>
+                <Rule
+                    title="Allow same-day bookings"
+                    description="Clients can book for later today."
+                >
+                    <Toggle
+                        checked={settings?.allowSameDay ?? false}
+                        label="Allow same-day bookings"
+                        onChange={(value) =>
+                            onSettingsChange('allowSameDay', value)
+                        }
+                    />
+                </Rule>
+                <Rule
+                    title="Accept requests outside hours"
+                    description="Clients can ask for a time outside your business hours. You approve each one."
+                >
+                    <Toggle
+                        checked={settings?.allowOffHoursRequests ?? false}
+                        label="Accept requests outside hours"
+                        onChange={(value) =>
+                            onSettingsChange('allowOffHoursRequests', value)
+                        }
+                    />
+                </Rule>
+            </Group>
+
+            <Group title="Limits">
+                <Rule
+                    title="Max bookings per day"
+                    description="Across all clients. Leave empty for no limit."
+                    htmlFor="maxDaily"
+                >
+                    <NumberInput
+                        id="maxDaily"
+                        value={settings?.maxDaily}
+                        suffix="per day"
+                        onChange={(value) =>
+                            onSettingsChange('maxDaily', value)
+                        }
+                    />
+                </Rule>
+                <Rule
+                    title="Max bookings per client, per week"
+                    description="Stops one client filling your week."
+                    htmlFor="max_bookings_per_week"
+                >
+                    <NumberInput
+                        id="max_bookings_per_week"
+                        value={settings?.max_bookings_per_week}
+                        suffix="per week"
+                        onChange={(value) =>
+                            onSettingsChange('max_bookings_per_week', value)
+                        }
+                    />
+                </Rule>
+                <Rule
+                    title="Max bookings per client, per month"
+                    htmlFor="max_bookings_per_month"
+                >
+                    <NumberInput
+                        id="max_bookings_per_month"
+                        value={settings?.max_bookings_per_month}
+                        suffix="per month"
+                        onChange={(value) =>
+                            onSettingsChange('max_bookings_per_month', value)
+                        }
+                    />
+                </Rule>
+            </Group>
+
+            <Group title="Confirmation & payment">
+                <Rule
+                    title="Auto-confirm bookings"
+                    description="New bookings are confirmed instantly. Turn off to review each one."
+                >
+                    <Toggle
+                        checked={settings?.autoConfirm ?? false}
+                        label="Auto-confirm bookings"
+                        onChange={(value) =>
+                            onSettingsChange('autoConfirm', value)
+                        }
+                    />
+                </Rule>
+                <Rule
+                    title="Accept online payment"
+                    description="Clients pay when booking. Money is held until the service is done."
+                >
+                    <Toggle
+                        checked={settings?.accept_online_payment ?? true}
+                        label="Accept online payment"
+                        onChange={(value) =>
+                            onSettingsChange('accept_online_payment', value)
+                        }
+                    />
+                </Rule>
+                <Rule
+                    title="Allow pay on site"
+                    description="Clients can book now and pay you in person."
+                >
+                    <Toggle
+                        checked={settings?.accept_offline_booking ?? false}
+                        label="Allow pay on site"
+                        onChange={(value) =>
+                            onSettingsChange('accept_offline_booking', value)
+                        }
+                    />
+                </Rule>
+                <Rule
+                    title="How Proxideck charges you"
+                    description="Pay 10% per booking, or a flat subscription from the Billing page."
+                >
+                    <div
+                        role="radiogroup"
+                        aria-label="Billing model"
+                        className="flex gap-1 rounded-xl bg-muted p-1"
                     >
                         {[
-                            {
-                                value: 'client_visits_provider',
-                                title: 'Clients visit my location',
-                                description:
-                                    'Salon, barbershop, or studio — clients come to your address.',
-                            },
-                            {
-                                value: 'provider_visits_client',
-                                title: 'I go to the client',
-                                description:
-                                    'Mobile stylists, handymen, cleaners — clients must add their service address.',
-                            },
-                            {
-                                value: 'both',
-                                title: 'Both options',
-                                description:
-                                    'Clients choose to visit you or receive service at their address.',
-                            },
+                            { value: 'commission', label: '10% per booking' },
+                            { value: 'subscription', label: 'Subscription' },
                         ].map((option) => (
-                            <label
+                            <button
                                 key={option.value}
-                                htmlFor={`delivery-${option.value}`}
-                                className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/30"
+                                type="button"
+                                role="radio"
+                                aria-checked={billingModel === option.value}
+                                onClick={() =>
+                                    onSettingsChange(
+                                        'billing_model',
+                                        option.value,
+                                    )
+                                }
+                                className={cn(
+                                    'h-[38px] rounded-[9px] px-3 text-[13px] font-bold',
+                                    billingModel === option.value
+                                        ? 'bg-card text-foreground shadow-sm'
+                                        : 'text-muted-foreground',
+                                )}
                             >
-                                <RadioGroupItem
-                                    value={option.value}
-                                    id={`delivery-${option.value}`}
-                                    className="mt-0.5"
-                                />
-                                <div className="space-y-1">
-                                    <p className="text-sm font-medium text-foreground">
-                                        {option.title}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {option.description}
-                                    </p>
-                                </div>
-                            </label>
+                                {option.label}
+                            </button>
                         ))}
-                    </RadioGroup>
+                    </div>
+                </Rule>
+            </Group>
+
+            <Group title="Where you work">
+                <div
+                    role="radiogroup"
+                    aria-label="Where clients receive the service"
+                    className="grid grid-cols-1 gap-2.5 p-[22px] sm:grid-cols-3"
+                >
+                    {deliveryOptions.map((option) => {
+                        const isSelected = deliveryMode === option.value;
+
+                        return (
+                            <button
+                                key={option.value}
+                                type="button"
+                                role="radio"
+                                aria-checked={isSelected}
+                                onClick={() => {
+                                    onSettingsChange(
+                                        'service_delivery_mode',
+                                        option.value,
+                                    );
+                                    onSettingsChange(
+                                        'offers_home_service',
+                                        option.value ===
+                                            'provider_visits_client' ||
+                                            option.value === 'both',
+                                    );
+                                }}
+                                className={cn(
+                                    'flex flex-col items-start gap-1 rounded-2xl border p-4 text-left transition-colors',
+                                    isSelected
+                                        ? 'border-2 border-[#0E3B2E] bg-[#E6F4EC] dark:border-[#C8F169] dark:bg-[#0E3B2E]'
+                                        : 'border-[#0E3B2E]/12 hover:bg-muted dark:border-white/15',
+                                )}
+                            >
+                                <span className="flex items-center gap-2 text-sm font-bold text-foreground">
+                                    <KeenIcon
+                                        name={
+                                            isSelected
+                                                ? 'check-circle'
+                                                : 'geolocation'
+                                        }
+                                        className={cn(
+                                            'text-base',
+                                            isSelected &&
+                                                'text-[#0E3B2E] dark:text-[#C8F169]',
+                                        )}
+                                    />
+                                    {option.title}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                    {option.description}
+                                </span>
+                            </button>
+                        );
+                    })}
                 </div>
-            </div>
+            </Group>
         </div>
     );
 };

@@ -10,6 +10,10 @@ Route::middleware('guest')->prefix('/auth/google')->group(function () {
     Route::get('/callback', [\App\Http\Controllers\GoogleAuthController::class, 'callback'])->name('auth.google.callback');
 });
 
+Route::post('/kiro/chat', \App\Http\Controllers\KiroChatController::class)
+    ->middleware('throttle:20,1')
+    ->name('kiro.chat');
+
 Route::middleware(['provider.setup'])->group(function () {
     Route::get('/', [\App\Http\Controllers\Guest\GuestController::class, 'welcome'])->name('home');
     Route::get('/find-on-map', [\App\Http\Controllers\Guest\GuestController::class, 'findOnMap'])->name('find-on-map');
@@ -108,13 +112,11 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
             Route::post('/billing/subscribe', [\App\Http\Controllers\Provider\Billing\SubscriptionBillingController::class, 'subscribe'])->name('billing.subscribe');
             Route::post('/billing/cancel', [\App\Http\Controllers\Provider\Billing\SubscriptionBillingController::class, 'cancel'])->name('billing.cancel');
             Route::get('/settings', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'settings'])->name('settings');
-            Route::get('/settings/location', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'settingsLocation'])->name('settings.location');
             Route::get('/settings/advanced', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'settingsAdvanced'])->name('settings.advanced');
-            Route::get('/settings/appearance', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'settingsAppearance'])->name('settings.appearance');
+            Route::redirect('/settings/location', '/business/settings')->name('settings.location');
+            Route::redirect('/settings/appearance', '/business/settings')->name('settings.appearance');
             Route::post('/settings', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateGeneralSettings'])->name('settings.update');
-            Route::post('/settings/location', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateLocationSettings'])->name('settings.location.update');
             Route::post('/settings/advanced', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateAdvancedSettings'])->name('settings.advanced.update');
-            Route::post('/settings/appearance', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateAppearanceSettings'])->name('settings.appearance.update');
 
             // Integration (Widget)
             Route::get('/integration', [\App\Http\Controllers\Provider\Integration\IntegrationController::class, 'index'])->name('integration.index');

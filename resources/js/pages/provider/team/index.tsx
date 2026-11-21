@@ -1,3 +1,4 @@
+import KeenIcon from '@/components/keen-icon';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -8,10 +9,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import KeenIcon from '@/components/keen-icon';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -21,20 +19,17 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import AppLayout from '@/layouts/app-layout';
 import business from '@/routes/business';
 import team from '@/routes/business/team';
 import { BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
-import { Calendar, Copy, Edit2, Mail, Plus, Search, Trash2 } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { useRef, useState } from 'react';
 
 interface TeamMember {
     id: string;
@@ -67,9 +62,9 @@ interface Props {
     stats: Stats;
     providerInvitationLink: string;
     filters: {
-        search?: string,
-        role?: string
-    }
+        search?: string;
+        role?: string;
+    };
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -92,33 +87,28 @@ export default function TeamIndex({
     const [deletingMember, setDeletingMember] = useState<TeamMember | null>(
         null,
     );
-    const [roleUpdateForm, setRoleUpdateForm] = useState<{
-        id: string;
-        role: string;
-    } | null>(null);
     const [inviteOptionsOpen, setInviteOptionsOpen] = useState(false);
     const [copiedInviteLink, setCopiedInviteLink] = useState(false);
     const [search, setSearch] = useState(filters?.search || '');
     const [role, setRole] = useState(filters?.role || '');
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const { put, delete: deleteMethod, processing } = useForm();
+    const { delete: deleteMethod, processing } = useForm();
 
     const handleRoleUpdate = (member: TeamMember, newRole: string) => {
-        put(business.team.update({ id: member.id }).url, {
-            data: { role: newRole },
-            preserveScroll: true,
-            onSuccess: () => {
-                setRoleUpdateForm(null);
-            },
-        });
+        router.put(
+            business.team.update({ id: member.id }).url,
+            { role: newRole },
+            { preserveScroll: true },
+        );
     };
 
     const handleToggleActive = (member: TeamMember) => {
-        put(business.team.update({ id: member.id }).url, {
-            data: { is_active: !member.is_active },
-            preserveScroll: true,
-        });
+        router.put(
+            business.team.update({ id: member.id }).url,
+            { is_active: !member.is_active },
+            { preserveScroll: true },
+        );
     };
 
     const handleDelete = (member: TeamMember) => {
@@ -162,378 +152,437 @@ export default function TeamIndex({
             await navigator.clipboard.writeText(providerInvitationLink);
             setCopiedInviteLink(true);
             window.setTimeout(() => setCopiedInviteLink(false), 2000);
-        } catch (_error) {
+        } catch {
             setCopiedInviteLink(false);
         }
     };
 
+    const card =
+        'rounded-[20px] border border-[#0E3B2E]/10 bg-card shadow-[0_1px_2px_rgba(19,32,27,0.04)] dark:border-white/10';
+    const initials = (name: string) =>
+        name
+            .split(' ')
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((word) => word[0])
+            .join('')
+            .toUpperCase();
+
+    const statusOf = (member: TeamMember) =>
+        !member.accepted_at
+            ? {
+                  label: 'Invited',
+                  className:
+                      'bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300',
+              }
+            : member.is_active
+              ? {
+                    label: 'Active',
+                    className:
+                        'bg-[#E6F4EC] text-[#1F6B43] dark:bg-[#0E3B2E] dark:text-[#C8F169]',
+                }
+              : {
+                    label: 'Deactivated',
+                    className: 'bg-muted text-muted-foreground',
+                };
+
+    const statCards = [
+        { icon: 'people', label: 'Team size', value: stats.total },
+        { icon: 'user-tick', label: 'Active', value: stats.active },
+        { icon: 'shield-tick', label: 'Admins', value: stats.admins },
+        { icon: 'user', label: 'Staff', value: stats.staffs },
+    ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Team Members" />
-            <div className="space-y-6 p-4 font-heading">
-                <section className="overflow-hidden rounded-3xl border border-border/70 bg-background">
-                    <div className="relative">
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.06),_transparent_24%),radial-gradient(circle_at_left,_rgba(16,185,129,0.06),_transparent_24%)]" />
-                        <div className="relative space-y-5 px-6 py-6 lg:px-8 lg:py-8">
-                            <div className="flex flex-wrap items-center gap-3">
-                                <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-foreground/70">
-                                    <KeenIcon name="people" className="text-sm text-sky-600 dark:text-sky-300" />
-                                    Team workspace
-                                </span>
-                                <span className="inline-flex rounded-full border border-border/70 bg-background px-3 py-1 text-xs font-medium text-muted-foreground">
-                                    {stats.total} members in your workspace
-                                </span>
-                            </div>
 
-                            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                                <div className="max-w-2xl space-y-2">
-                                    <h1 className="text-3xl font-semibold tracking-tight text-foreground lg:text-4xl">
-                                        Team Members
-                                    </h1>
-                                    <p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
-                                        Manage who helps run the business, adjust access levels, and keep invitations moving without leaving this page.
-                                    </p>
-                                </div>
-                                <Button onClick={() => setInviteOptionsOpen(true)} className="rounded-full px-5">
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Add Team Member
-                                </Button>
-                            </div>
+            <div className="flex flex-col gap-[22px] p-4 md:p-6">
+                <header className="flex flex-wrap items-end gap-3">
+                    <div className="flex flex-[1_1_300px] flex-col gap-1">
+                        <span className="text-[13px] text-muted-foreground">
+                            Business
+                        </span>
+                        <h1 className="font-[Sora] text-[28px] font-bold tracking-[-0.02em] text-foreground">
+                            Team members
+                        </h1>
+                        <span className="text-sm text-muted-foreground">
+                            Invite people to take bookings under your business.
+                        </span>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setInviteOptionsOpen(true)}
+                        className="flex h-11 items-center gap-2 rounded-xl bg-[#0E3B2E] px-[18px] text-sm font-semibold text-white hover:bg-[#0E3B2E]/90 dark:bg-[#C8F169] dark:text-[#0E3B2E]"
+                    >
+                        <KeenIcon name="plus" className="text-lg" />
+                        Invite member
+                    </button>
+                </header>
 
-                            <div className="grid gap-3 sm:grid-cols-3">
-                                <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
-                                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                                        <KeenIcon name="people" className="text-sm text-sky-600 dark:text-sky-300" />
-                                        Team size
-                                    </div>
-                                    <p className="mt-3 text-3xl font-semibold text-foreground">{stats.total}</p>
-                                    <p className="mt-1 text-sm text-muted-foreground">
-                                        {stats.active ?? 0} active, {stats.deactivated ?? 0} inactive
-                                    </p>
-                                </div>
-                                <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
-                                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                                        <KeenIcon name="verify" className="text-sm text-emerald-600 dark:text-emerald-300" />
-                                        Admin coverage
-                                    </div>
-                                    <p className="mt-3 text-3xl font-semibold text-foreground">{stats.admins ?? 0}</p>
-                                    <p className="mt-1 text-sm text-muted-foreground">
-                                        full access members
-                                    </p>
-                                </div>
-                                <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
-                                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                                        <KeenIcon name="profile-user" className="text-sm text-violet-600 dark:text-violet-300" />
-                                        Staff capacity
-                                    </div>
-                                    <p className="mt-3 text-3xl font-semibold text-foreground">{stats.staffs ?? 0}</p>
-                                    <p className="mt-1 text-sm text-muted-foreground">
-                                        support members with limited access
-                                    </p>
-                                </div>
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
+                    {statCards.map((stat) => (
+                        <div
+                            key={stat.label}
+                            className={`${card} flex items-center gap-3.5 p-[18px]`}
+                        >
+                            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#E6F4EC] text-[#0E3B2E] dark:bg-[#0E3B2E] dark:text-[#C8F169]">
+                                <KeenIcon
+                                    name={stat.icon}
+                                    className="text-[22px]"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-0.5">
+                                <span className="text-[13px] text-muted-foreground">
+                                    {stat.label}
+                                </span>
+                                <span className="font-[Sora] text-[22px] font-bold text-foreground">
+                                    {stat.value}
+                                </span>
                             </div>
                         </div>
+                    ))}
+                </div>
+
+                {/* Invite link banner */}
+                <section className="relative flex flex-wrap items-center gap-3.5 overflow-hidden rounded-[20px] bg-[#0E3B2E] px-5 py-[18px] text-white">
+                    <img
+                        src="/brand/banners/proxideck-banner-general-dark.svg"
+                        alt=""
+                        className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-60"
+                    />
+                    <div className="relative flex size-11 items-center justify-center rounded-xl bg-[#C8F169] text-[#0E3B2E]">
+                        <KeenIcon name="fasten" className="text-[22px]" />
+                    </div>
+                    <div className="relative flex flex-[1_1_240px] flex-col gap-0.5">
+                        <span className="font-[Sora] text-base font-semibold">
+                            Invite with a link
+                        </span>
+                        <span className="text-[13px] text-white/80">
+                            Anyone with this link can join your team as staff.
+                        </span>
+                    </div>
+                    <div className="relative flex min-w-0 flex-[0_1_420px] items-center gap-2 rounded-xl bg-white py-1.5 pr-1.5 pl-3.5">
+                        <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-[#13201B]">
+                            {providerInvitationLink.replace(/^https?:\/\//, '')}
+                        </span>
+                        <button
+                            type="button"
+                            onClick={handleCopyInviteLink}
+                            className="flex h-9 items-center gap-1.5 rounded-[9px] bg-[#0E3B2E] px-3 text-[13px] font-bold text-white"
+                        >
+                            <KeenIcon name="copy" className="text-sm" />
+                            {copiedInviteLink ? 'Copied' : 'Copy'}
+                        </button>
                     </div>
                 </section>
 
-                <Dialog
-                    open={inviteOptionsOpen}
-                    onOpenChange={setInviteOptionsOpen}
-                >
-                    <DialogContent className="sm:max-w-lg">
-                        <DialogHeader>
-                            <DialogTitle>Add Team Member</DialogTitle>
-                            <DialogDescription>
-                                Choose how you want to invite the next member of
-                                your team.
-                            </DialogDescription>
-                        </DialogHeader>
-
-                        <div className="space-y-4">
-                            <div className="rounded-lg border p-4">
-                                <div className="mb-2 flex items-center gap-2">
-                                    <Copy className="h-4 w-4" />
-                                    <h3 className="font-semibold">
-                                        Invite by link
-                                    </h3>
-                                </div>
-                                <p className="mb-3 text-sm text-muted-foreground">
-                                    Copy a secure invite link and send it to any
-                                    staff member. They will register or log in
-                                    and be added as staff automatically.
-                                </p>
-                                <div className="rounded border bg-muted/30 p-3 text-xs break-all">
-                                    {providerInvitationLink}
-                                </div>
-                            </div>
-
-                            <div className="rounded-lg border p-4">
-                                <div className="mb-2 flex items-center gap-2">
-                                    <Mail className="h-4 w-4" />
-                                    <h3 className="font-semibold">
-                                        Manual invite
-                                    </h3>
-                                </div>
-                                <p className="text-sm text-muted-foreground">
-                                    Enter the person's details yourself and send
-                                    a direct invitation from the existing manual
-                                    flow.
-                                </p>
-                            </div>
-                        </div>
-
-                        <DialogFooter className="gap-2 sm:justify-between">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={handleCopyInviteLink}
-                            >
-                                <Copy className="mr-2 h-4 w-4" />
-                                {copiedInviteLink ? 'Copied' : 'Copy Invite Link'}
-                            </Button>
-                            <Button
-                                type="button"
-                                onClick={() => {
-                                    setInviteOptionsOpen(false);
-                                    router.visit(business.team.create().url);
-                                }}
-                            >
-                                <Mail className="mr-2 h-4 w-4" />
-                                Manual Invite
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-
-                <Card className="overflow-hidden rounded-3xl border border-border/70">
-                    <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
-                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                            <div>
-                                <CardTitle className="flex items-center gap-2">
-                                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/70 bg-background text-sky-600 dark:text-sky-300">
-                                        <KeenIcon name="people" className="text-base" />
-                                    </span>
-                                    Team Directory
-                                </CardTitle>
-                                <CardDescription className="mt-2">
-                                    Search team members, filter by role, and manage access without opening a separate page.
-                                </CardDescription>
-                            </div>
-
-                            <div className="flex w-full flex-col gap-3 md:w-auto md:flex-row">
-                                <div className="relative w-full md:w-80">
-                                    <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                    <Input
-                                    placeholder="Search team member..."
-                                    className="rounded-full pl-9"
-                                    value={search}
-                                    onChange={(e) => handleSearch(e.target.value)}
-                                />
-                                </div>
-                                <div className="w-full md:w-48">
-                                    <Select
-                                        value={role || 'all'}
-                                        onValueChange={handleRoleChange}
-                                    >
-                                        <SelectTrigger className="w-full">
-                                            <SelectValue placeholder="Filter by role" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">
-                                                All roles
-                                            </SelectItem>
-                                            <SelectItem value="admin">
-                                                Admin
-                                            </SelectItem>
-                                            <SelectItem value="staff">
-                                                Staff
-                                            </SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                        </div>
-                    </CardHeader>
-
-                    <CardContent className="pt-5">
-                        {teamMembers.length === 0 ? (
-                            <div className="rounded-2xl border border-border/70 py-14 text-center text-muted-foreground">
-                                <KeenIcon name="people" className="mx-auto mb-4 text-4xl opacity-50" />
-                                <p>No team members yet.</p>
-                                <Button
-                                    variant="outline"
-                                    className="mt-4 rounded-full"
+                {/* Members */}
+                <section className={`${card} overflow-hidden`}>
+                    <div className="flex flex-wrap items-center gap-3 px-[18px] py-3.5">
+                        <div
+                            role="tablist"
+                            aria-label="Filter by role"
+                            className="flex gap-1 rounded-xl bg-muted p-1"
+                        >
+                            {[
+                                { value: '', label: 'All' },
+                                { value: 'admin', label: 'Admins' },
+                                { value: 'staff', label: 'Staff' },
+                            ].map((option) => (
+                                <button
+                                    key={option.label}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={role === option.value}
                                     onClick={() =>
-                                        router.visit(business.team.create().url)
+                                        handleRoleChange(option.value || 'all')
+                                    }
+                                    className={
+                                        role === option.value
+                                            ? 'h-[38px] rounded-[9px] bg-[#0E3B2E] px-3.5 text-[13px] font-bold text-white dark:bg-[#C8F169] dark:text-[#0E3B2E]'
+                                            : 'h-[38px] rounded-[9px] px-3.5 text-[13px] font-bold text-muted-foreground hover:text-foreground'
                                     }
                                 >
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Add Your First Team Member
-                                </Button>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {teamMembers.map((member) => (
-                                    <div
+                                    {option.label}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="flex-1" />
+                        <label className="flex h-10 flex-[0_1_260px] items-center gap-2.5 rounded-[10px] bg-muted px-3 text-muted-foreground">
+                            <KeenIcon name="magnifier" className="text-base" />
+                            <input
+                                type="search"
+                                aria-label="Search team"
+                                placeholder="Search by name or email…"
+                                value={search}
+                                onChange={(e) => handleSearch(e.target.value)}
+                                className="w-full border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                            />
+                        </label>
+                    </div>
+
+                    <div className="hidden gap-4 border-t border-[#0E3B2E]/[0.07] bg-muted/40 px-[22px] py-2.5 text-xs font-bold tracking-[0.06em] text-muted-foreground uppercase md:flex dark:border-white/10">
+                        <span className="flex-[1_1_240px]">Member</span>
+                        <span className="w-[90px]">Role</span>
+                        <span className="w-[110px]">Status</span>
+                        <span className="w-[110px]">Bookings</span>
+                        <span className="w-[130px]">Joined</span>
+                        <span className="w-10" />
+                    </div>
+
+                    {teamMembers.length === 0 ? (
+                        <div className="flex flex-col items-center gap-2 border-t border-[#0E3B2E]/[0.07] py-14 text-center dark:border-white/10">
+                            <KeenIcon
+                                name="people"
+                                className="text-3xl text-[#A9C7B8]"
+                            />
+                            <span className="text-sm font-semibold text-foreground">
+                                No team members yet
+                            </span>
+                            <span className="text-[13px] text-muted-foreground">
+                                Share your invite link to add your first
+                                teammate.
+                            </span>
+                        </div>
+                    ) : (
+                        <ul>
+                            {teamMembers.map((member) => {
+                                const status = statusOf(member);
+
+                                return (
+                                    <li
                                         key={member.id}
-                                        className="rounded-2xl border border-border/70 bg-gradient-to-br from-background to-muted/20 p-5 transition-colors hover:bg-muted/20"
+                                        className="flex flex-wrap items-center gap-4 border-t border-[#0E3B2E]/[0.07] px-[22px] py-3.5 dark:border-white/10"
                                     >
-                                        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                                            <div className="min-w-0 flex-1">
-                                                <div className="flex items-start gap-4">
-                                                    <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-border/70 bg-muted/20 text-primary">
-                                                        <KeenIcon
-                                                            name={member.role === 'admin' ? 'verify' : 'profile-user'}
-                                                            className="text-lg"
-                                                        />
-                                                    </div>
-                                                    <div className="min-w-0 space-y-2">
-                                                        <div className="flex flex-wrap items-center gap-2">
-                                                            <h3 className="max-w-[220px] truncate text-base font-semibold capitalize sm:max-w-[320px]">
-                                                                {member.user.name}
-                                                            </h3>
-                                                            {!member.accepted_at ? (
-                                                                <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-900 dark:text-slate-300">
-                                                                    Invitation pending
-                                                                </span>
-                                                            ) : member.is_active ? (
-                                                                <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">
-                                                                    Active
-                                                                </span>
-                                                            ) : (
-                                                                <span className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
-                                                                    Inactive
-                                                                </span>
-                                                            )}
-                                                        </div>
-
-                                                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                                            <Mail className="h-3.5 w-3.5" />
-                                                            <span className="truncate">{member.user.email}</span>
-                                                        </div>
-
-                                                        <div className="flex flex-wrap items-center gap-2 pt-1">
-                                                            {roleUpdateForm?.id === member.id ? (
-                                                                <Select
-                                                                    value={roleUpdateForm.role}
-                                                                    onValueChange={(value) => {
-                                                                        handleRoleUpdate(member, value);
-                                                                    }}
-                                                                    onOpenChange={(open) => {
-                                                                        if (!open && roleUpdateForm.id === member.id) {
-                                                                            setRoleUpdateForm(null);
-                                                                        }
-                                                                    }}
-                                                                >
-                                                                    <SelectTrigger className="w-36 rounded-full">
-                                                                        <SelectValue />
-                                                                    </SelectTrigger>
-                                                                    <SelectContent>
-                                                                        <SelectItem value="admin">
-                                                                            Admin
-                                                                        </SelectItem>
-                                                                        <SelectItem value="staff">
-                                                                            Staff
-                                                                        </SelectItem>
-                                                                    </SelectContent>
-                                                                </Select>
-                                                            ) : (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() =>
-                                                                        setRoleUpdateForm({
-                                                                            id: member.id,
-                                                                            role: member.role,
-                                                                        })
-                                                                    }
-                                                                    className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1.5 text-sm font-medium text-foreground/80"
-                                                                >
-                                                                    <KeenIcon
-                                                                        name={member.role === 'admin' ? 'verify' : 'profile-user'}
-                                                                        className="text-sm text-muted-foreground"
-                                                                    />
-                                                                    {member.role}
-                                                                    <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
-                                                                </button>
-                                                            )}
-
-                                                            <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1.5 text-sm font-medium text-foreground/80">
-                                                                <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                                                                {member.appointments_count} appointments
-                                                            </span>
-
-                                                            <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1.5 text-sm font-medium text-foreground/80">
-                                                                <KeenIcon name="electronic-clock" className="text-sm text-muted-foreground" />
-                                                                {member.accepted_at
-                                                                    ? `Joined ${new Date(member.accepted_at).toLocaleDateString()}`
-                                                                    : member.invited_at
-                                                                      ? `Invited ${new Date(member.invited_at).toLocaleDateString()}`
-                                                                      : 'Pending'}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                        <div className="flex min-w-0 flex-[1_1_240px] items-center gap-3">
+                                            <div
+                                                className={
+                                                    member.role === 'admin'
+                                                        ? 'flex size-[42px] shrink-0 items-center justify-center rounded-full bg-[#0E3B2E] text-sm font-bold text-[#C8F169]'
+                                                        : 'flex size-[42px] shrink-0 items-center justify-center rounded-full bg-[#E6F4EC] text-sm font-bold text-[#0E3B2E] dark:bg-[#0E3B2E] dark:text-[#C8F169]'
+                                                }
+                                            >
+                                                {initials(member.user.name)}
                                             </div>
-
-                                            <div className="flex flex-wrap items-center justify-end gap-2 xl:ml-4">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => handleToggleActive(member)}
-                                                    className="rounded-full"
-                                                >
-                                                    {member.is_active ? 'Deactivate' : 'Activate'}
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => setDeletingMember(member)}
-                                                    className="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
+                                            <div className="flex min-w-0 flex-col gap-0.5">
+                                                <span className="truncate text-[15px] font-bold text-foreground">
+                                                    {member.user.name}
+                                                </span>
+                                                <span className="truncate text-[13px] text-muted-foreground">
+                                                    {member.user.email}
+                                                </span>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* Delete Confirmation Dialog */}
-                <AlertDialog
-                    open={!!deletingMember}
-                    onOpenChange={(open) => !open && setDeletingMember(null)}
-                >
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>
-                                Remove Team Member?
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Are you sure you want to remove{' '}
-                                {deletingMember?.user.name} from your team? This
-                                will reassign their appointments to you. This
-                                action cannot be undone.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                                onClick={() =>
-                                    deletingMember &&
-                                    handleDelete(deletingMember)
-                                }
-                                className="bg-destructive hover:bg-destructive/90"
-                            >
-                                {processing ? 'Removing...' : 'Remove'}
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                                        <div className="w-[90px]">
+                                            <span
+                                                className={
+                                                    member.role === 'admin'
+                                                        ? 'rounded-full bg-[#0E3B2E] px-2.5 py-1 text-xs font-bold text-[#C8F169]'
+                                                        : 'rounded-full bg-muted px-2.5 py-1 text-xs font-bold text-muted-foreground'
+                                                }
+                                            >
+                                                {member.role === 'admin'
+                                                    ? 'Admin'
+                                                    : 'Staff'}
+                                            </span>
+                                        </div>
+                                        <div className="w-[110px]">
+                                            <span
+                                                className={`rounded-full px-2.5 py-1 text-xs font-bold ${status.className}`}
+                                            >
+                                                {status.label}
+                                            </span>
+                                        </div>
+                                        <span className="w-[110px] text-[13px] text-muted-foreground">
+                                            <b className="text-foreground">
+                                                {member.appointments_count}
+                                            </b>{' '}
+                                            bookings
+                                        </span>
+                                        <span className="w-[130px] text-[13px] text-muted-foreground">
+                                            {member.accepted_at
+                                                ? new Date(
+                                                      member.accepted_at,
+                                                  ).toLocaleDateString(
+                                                      'en-GB',
+                                                      {
+                                                          month: 'short',
+                                                          year: 'numeric',
+                                                      },
+                                                  )
+                                                : member.invited_at
+                                                  ? `Invited ${new Date(member.invited_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
+                                                  : '—'}
+                                        </span>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <button
+                                                    type="button"
+                                                    aria-label={`Actions for ${member.user.name}`}
+                                                    disabled={processing}
+                                                    className="flex size-10 items-center justify-center rounded-[10px] border border-[#0E3B2E]/12 text-muted-foreground hover:bg-muted dark:border-white/15"
+                                                >
+                                                    <KeenIcon
+                                                        name="dots-horizontal"
+                                                        className="text-lg"
+                                                    />
+                                                </button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem
+                                                    onClick={() =>
+                                                        handleRoleUpdate(
+                                                            member,
+                                                            member.role ===
+                                                                'admin'
+                                                                ? 'staff'
+                                                                : 'admin',
+                                                        )
+                                                    }
+                                                >
+                                                    <KeenIcon
+                                                        name="shield-tick"
+                                                        className="mr-2 text-sm"
+                                                    />
+                                                    {member.role === 'admin'
+                                                        ? 'Make staff'
+                                                        : 'Make admin'}
+                                                </DropdownMenuItem>
+                                                {member.accepted_at && (
+                                                    <DropdownMenuItem
+                                                        onClick={() =>
+                                                            handleToggleActive(
+                                                                member,
+                                                            )
+                                                        }
+                                                    >
+                                                        <KeenIcon
+                                                            name={
+                                                                member.is_active
+                                                                    ? 'cross-circle'
+                                                                    : 'check-circle'
+                                                            }
+                                                            className="mr-2 text-sm"
+                                                        />
+                                                        {member.is_active
+                                                            ? 'Deactivate'
+                                                            : 'Activate'}
+                                                    </DropdownMenuItem>
+                                                )}
+                                                <DropdownMenuItem
+                                                    onClick={() =>
+                                                        setDeletingMember(
+                                                            member,
+                                                        )
+                                                    }
+                                                    className="text-destructive"
+                                                >
+                                                    <KeenIcon
+                                                        name="trash"
+                                                        className="mr-2 text-sm"
+                                                    />
+                                                    Remove from team
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    )}
+                </section>
             </div>
+
+            {/* Invite options */}
+            <Dialog
+                open={inviteOptionsOpen}
+                onOpenChange={setInviteOptionsOpen}
+            >
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="font-[Sora]">
+                            Invite a team member
+                        </DialogTitle>
+                        <DialogDescription>
+                            Share a link, or send an invite to their email.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-2 rounded-2xl border border-[#0E3B2E]/10 p-4 dark:border-white/10">
+                            <span className="flex items-center gap-2 font-semibold text-foreground">
+                                <KeenIcon name="fasten" className="text-base" />
+                                Invite by link
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                                They’ll sign up or log in and join as staff
+                                automatically.
+                            </span>
+                            <span className="rounded-xl bg-muted p-3 text-xs break-all text-foreground">
+                                {providerInvitationLink}
+                            </span>
+                        </div>
+                        <div className="flex flex-col gap-2 rounded-2xl border border-[#0E3B2E]/10 p-4 dark:border-white/10">
+                            <span className="flex items-center gap-2 font-semibold text-foreground">
+                                <KeenIcon name="sms" className="text-base" />
+                                Invite by email
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                                Enter their details and we’ll send them an
+                                invitation.
+                            </span>
+                        </div>
+                    </div>
+                    <DialogFooter className="gap-2 sm:justify-between">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleCopyInviteLink}
+                        >
+                            <KeenIcon name="copy" className="mr-2 text-sm" />
+                            {copiedInviteLink ? 'Copied' : 'Copy invite link'}
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={() => {
+                                setInviteOptionsOpen(false);
+                                router.visit(business.team.create().url);
+                            }}
+                        >
+                            <KeenIcon name="sms" className="mr-2 text-sm" />
+                            Invite by email
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Remove confirmation */}
+            <AlertDialog
+                open={!!deletingMember}
+                onOpenChange={(open) => !open && setDeletingMember(null)}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Remove team member?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {deletingMember?.user.name} will be removed from
+                            your team and their appointments reassigned to you.
+                            This can’t be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() =>
+                                deletingMember && handleDelete(deletingMember)
+                            }
+                            className="bg-destructive hover:bg-destructive/90"
+                        >
+                            {processing ? 'Removing…' : 'Remove'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </AppLayout>
     );
 }

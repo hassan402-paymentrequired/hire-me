@@ -2,12 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\Appointment;
-use App\Models\BusinessProfile;
-use App\Models\Service;
-use App\Models\User;
-
-use App\Models\WorkHour;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -21,6 +15,7 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
             AdminSeeder::class,
             ProviderSeeder::class,
+            ProviderDashboardSeeder::class,
             SubscriptionPlanSeeder::class,
         ]);
     }

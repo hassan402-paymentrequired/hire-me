@@ -1,25 +1,7 @@
 import KeenIcon from '@/components/keen-icon';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import { CustomAlertDialog } from '@/components/ui/custom-alert-dialog';
 import { FormSelect } from '@/components/ui/form-select';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import walletRoutes from '@/routes/wallet';
 import { BreadcrumbItem } from '@/types';
@@ -48,7 +30,7 @@ interface Withdrawal {
     description: string;
     created_at: string;
     reference?: string;
-    metadata?: any;
+    metadata?: Record<string, unknown>;
 }
 
 interface Bank {
@@ -61,8 +43,8 @@ interface Props {
     bankAccount: BankAccount | null;
     withdrawals: {
         data: Withdrawal[];
-        links: any;
-        meta: any;
+        links: { url: string | null; label: string; active: boolean }[];
+        meta?: { from?: number; to?: number; total?: number };
     };
     banks: Bank[];
     paymentProvider: string;
@@ -158,513 +140,444 @@ export default function Withdraw({
         });
     };
 
-    const getStatusBadge = (status: string) => {
-        const variants: Record<
-            string,
-            'default' | 'secondary' | 'destructive' | 'outline'
-        > = {
-            completed: 'default',
-            pending: 'secondary',
-            failed: 'destructive',
-        };
-
-        return (
-            <Badge variant={variants[status] || 'outline'}>
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-            </Badge>
-        );
-    };
-
     const bankOptions = banks.map((bank) => ({
         value: bank.code,
         label: bank.name,
     }));
 
-    const walletStats = [
-        {
-            title: 'Available balance',
-            value: `₦${wallet.available_balance.toLocaleString()}`,
-            note: 'Ready to withdraw now',
-            icon: 'receipt-square',
-        },
-        {
-            title: 'Total balance',
-            value: `₦${totalBalance.toLocaleString()}`,
-            note: 'Available plus pending earnings',
-            icon: 'status',
-        },
-        {
-            title: 'Pending earnings',
-            value: `₦${(wallet.pending_earnings ?? 0).toLocaleString()}`,
-            note: 'Held until appointments complete',
-            icon: 'electronic-clock',
-        },
+    const naira = (value: number) =>
+        `₦${Math.round(value || 0).toLocaleString()}`;
+
+    const statusStyle: Record<string, string> = {
+        completed:
+            'bg-[#E6F4EC] text-[#1F6B43] dark:bg-[#0E3B2E] dark:text-[#C8F169]',
+        success:
+            'bg-[#E6F4EC] text-[#1F6B43] dark:bg-[#0E3B2E] dark:text-[#C8F169]',
+        pending:
+            'bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300',
+        failed: 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300',
+    };
+
+    const setQuickAmount = (fraction: number) => {
+        const amount =
+            Math.floor((wallet.available_balance * fraction) / 100) * 100;
+        setWithdrawalData('amount', String(amount));
+    };
+
+    const amountValue = parseFloat(withdrawalData.amount || '0');
+    const canWithdraw =
+        !processingWithdrawal &&
+        amountValue >= 100 &&
+        amountValue <= wallet.available_balance;
+
+    const inputClass =
+        'h-12 w-full rounded-xl border border-[#0E3B2E]/15 bg-card px-3.5 text-sm text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-[#C8F169]/60 dark:border-white/15';
+
+    const balanceTiles = [
+        { label: 'Held for bookings', value: wallet.escrow_balance ?? 0 },
+        { label: 'Pending earnings', value: wallet.pending_earnings ?? 0 },
+        { label: 'Total balance', value: totalBalance },
     ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Withdraw Funds" />
-            <div className="flex flex-col gap-6 p-4">
-                <CustomAlertDialog
-                    open={withdrawConfirmOpen}
-                    onOpenChange={setWithdrawConfirmOpen}
-                    icon={
-                        <KeenIcon
-                            name="receipt-square"
-                            className="text-4xl text-emerald-600"
+            <Head title="Wallet" />
+
+            <CustomAlertDialog
+                open={withdrawConfirmOpen}
+                onOpenChange={setWithdrawConfirmOpen}
+                icon={
+                    <KeenIcon
+                        name="receipt-square"
+                        className="text-4xl text-[#0E3B2E] dark:text-[#C8F169]"
+                    />
+                }
+                title="Confirm withdrawal"
+                description={`You are about to withdraw ${naira(Number(withdrawalData.amount || 0))} to ${bankAccount?.bank_name || 'your bank account'}.`}
+                acceptLabel="Confirm withdrawal"
+                rejectLabel="Cancel"
+                onAccept={submitWithdrawal}
+            />
+
+            <div className="flex flex-col gap-[22px] p-4 md:p-6">
+                <header className="flex flex-col gap-1">
+                    <span className="text-[13px] text-muted-foreground">
+                        Business
+                    </span>
+                    <h1 className="font-[Sora] text-[28px] font-bold tracking-[-0.02em] text-foreground">
+                        Wallet
+                    </h1>
+                    <span className="text-sm text-muted-foreground">
+                        Your earnings, money held for upcoming bookings, and
+                        payouts to your bank.
+                    </span>
+                </header>
+
+                <div className="flex flex-wrap items-stretch gap-6">
+                    {/* Balance hero */}
+                    <section className="relative flex min-w-0 flex-[999_1_460px] flex-col gap-[22px] overflow-hidden rounded-3xl bg-[#0E3B2E] p-7 text-white">
+                        <img
+                            src="/brand/banners/proxideck-banner-general-dark.svg"
+                            alt=""
+                            className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-85"
                         />
-                    }
-                    title="Confirm withdrawal"
-                    description={`You are about to withdraw ₦${Number(withdrawalData.amount || 0).toLocaleString()} to ${bankAccount?.bank_name || 'your bank account'}. Please confirm this request before we send it to Paystack.`}
-                    acceptLabel="Confirm withdrawal"
-                    rejectLabel="Cancel"
-                    onAccept={submitWithdrawal}
-                />
-
-                <section className="overflow-hidden rounded-3xl border border-border/70 bg-background">
-                    <div className="relative">
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.06),_transparent_24%),radial-gradient(circle_at_left,_rgba(16,185,129,0.06),_transparent_24%)]" />
-                        <div className="relative space-y-5 px-6 py-6 lg:px-8 lg:py-8">
-                            <div className="flex flex-wrap items-center gap-3">
-                                <Badge className="border-border bg-muted px-3 py-1 text-[11px] font-medium tracking-[0.18em] text-foreground/70 uppercase hover:bg-muted">
-                                    Wallet workspace
-                                </Badge>
-                                <Badge
-                                    variant="secondary"
-                                    className="rounded-full px-3 py-1"
-                                >
-                                    {hasBankAccount
-                                        ? 'Bank account connected'
-                                        : 'Bank setup needed'}
-                                </Badge>
-                            </div>
-
-                            <div className="max-w-2xl space-y-2">
-                                <h1 className="text-3xl font-semibold tracking-tight text-foreground lg:text-4xl">
-                                    Withdraw funds
-                                </h1>
-                                <p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
-                                    Move your available earnings to a connected
-                                    bank account, keep track of pending
-                                    releases, and review every withdrawal
-                                    request from one place.
-                                </p>
-                            </div>
-
-                            <div className="grid gap-3 sm:grid-cols-3">
-                                {walletStats.map((stat) => (
-                                    <div
-                                        key={stat.title}
-                                        className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4"
-                                    >
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="space-y-1">
-                                                <p className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">
-                                                    {stat.title}
-                                                </p>
-                                                <p className="mt-3 text-3xl font-semibold text-foreground">
-                                                    {stat.value}
-                                                </p>
-                                            </div>
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-background text-foreground">
-                                                <KeenIcon
-                                                    name={stat.icon}
-                                                    className="text-base"
-                                                />
-                                            </div>
-                                        </div>
-                                        <p className="mt-1 text-sm text-muted-foreground">
-                                            {stat.note}
-                                        </p>
-                                    </div>
-                                ))}
-                            </div>
+                        <div className="relative flex flex-col gap-1.5">
+                            <span className="text-[13px] font-bold text-[#C8F169]">
+                                Available to withdraw
+                            </span>
+                            <span className="font-[Sora] text-[44px] leading-none font-bold tracking-[-0.02em]">
+                                {naira(wallet.available_balance)}
+                            </span>
                         </div>
-                    </div>
-                </section>
+                        <div className="relative grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            {balanceTiles.map((tile) => (
+                                <div
+                                    key={tile.label}
+                                    className="flex flex-col gap-1 rounded-2xl border border-white/12 bg-white/[0.08] p-3.5 backdrop-blur-sm"
+                                >
+                                    <span className="text-xs text-white/75">
+                                        {tile.label}
+                                    </span>
+                                    <span className="font-[Sora] text-lg font-bold">
+                                        {naira(tile.value)}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
 
-                {paymentProvider === 'payengine' && (
-                    <Card className="rounded-3xl border border-border/70 shadow-none">
-                        <CardHeader>
-                            <CardTitle>PayEngine wallet account</CardTitle>
-                            <CardDescription>
-                                {payengineWallet.is_configured
-                                    ? 'Your virtual account is ready to receive bank transfers.'
-                                    : 'Set up identity verification to receive your PayEngine virtual account.'}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            {payengineWallet.is_configured && (
-                                <p className="text-xl font-semibold">
-                                    {payengineWallet.account_number}
+                    {/* Withdraw / PayEngine */}
+                    <section className="flex max-w-[400px] flex-[1_1_320px] flex-col gap-3.5 rounded-[20px] border border-[#0E3B2E]/10 bg-card p-[22px] shadow-[0_1px_2px_rgba(19,32,27,0.04)] dark:border-white/10">
+                        {paymentProvider === 'payengine' ? (
+                            <>
+                                <h2 className="font-[Sora] text-lg font-semibold text-foreground">
+                                    Wallet account
+                                </h2>
+                                <p className="text-sm leading-normal text-muted-foreground">
+                                    {payengineWallet.is_configured
+                                        ? 'Your virtual account is ready to receive bank transfers.'
+                                        : 'Set up identity verification to receive your virtual account.'}
                                 </p>
-                            )}
-                            <Button asChild>
-                                <Link href={walletRoutes.payengine.setup.url()}>
+                                {payengineWallet.is_configured && (
+                                    <span className="font-[Sora] text-2xl font-bold text-[#0E3B2E] dark:text-[#C8F169]">
+                                        {payengineWallet.account_number}
+                                    </span>
+                                )}
+                                <Link
+                                    href={walletRoutes.payengine.setup.url()}
+                                    className="mt-auto flex h-12 items-center justify-center rounded-xl bg-[#0E3B2E] text-sm font-bold text-white hover:bg-[#0E3B2E]/90 dark:bg-[#C8F169] dark:text-[#0E3B2E]"
+                                >
                                     {payengineWallet.is_configured
                                         ? 'View account'
                                         : 'Set up account'}
                                 </Link>
-                            </Button>
-                        </CardContent>
-                    </Card>
-                )}
-
-                <div className="grid gap-6 md:grid-cols-2">
-                    {/* Withdrawal Form */}
-                    {paymentProvider !== 'payengine' && (
-                        <Card className="overflow-hidden rounded-3xl border border-border/70 shadow-none">
-                            <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
-                                <CardTitle className="flex items-center gap-2">
-                                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/70 bg-background text-emerald-600 dark:text-emerald-300">
-                                        <KeenIcon
-                                            name="receipt-square"
-                                            className="text-base"
-                                        />
-                                    </span>
-                                    Withdraw Funds
-                                </CardTitle>
-                                <CardDescription>
-                                    Transfer money to your bank account
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
+                            </>
+                        ) : showAddBank || !hasBankAccount ? (
+                            <form
+                                onSubmit={handleAddOrUpdateBank}
+                                className="flex flex-col gap-3.5"
+                            >
+                                <h2 className="font-[Sora] text-lg font-semibold text-foreground">
+                                    {hasBankAccount
+                                        ? 'Update bank account'
+                                        : 'Add a bank account'}
+                                </h2>
                                 {!hasBankAccount && !showAddBank && (
-                                    <div className="space-y-4">
-                                        <p className="text-sm text-muted-foreground">
-                                            You need to add a bank account first
-                                            to withdraw funds.
-                                        </p>
-                                        <Button
-                                            type="button"
-                                            onClick={() => setShowAddBank(true)}
-                                            className="w-full"
-                                        >
-                                            <KeenIcon
-                                                name="book-square"
-                                                className="mr-2 text-sm"
-                                            />
-                                            Add Bank Account
-                                        </Button>
-                                    </div>
+                                    <p className="text-sm text-muted-foreground">
+                                        Add where your money should go before
+                                        you withdraw.
+                                    </p>
                                 )}
-
-                                {showAddBank && (
-                                    <form
-                                        onSubmit={handleAddOrUpdateBank}
-                                        className="space-y-4"
-                                    >
-                                        <div>
-                                            <Label htmlFor="bank_code">
-                                                Bank
-                                            </Label>
-                                            <FormSelect
-                                                value={bankData.bank_code}
-                                                onChange={(value) =>
-                                                    setBankData(
-                                                        'bank_code',
-                                                        value,
-                                                    )
-                                                }
-                                                options={bankOptions}
-                                                placeholder="Select bank"
-                                            />
-                                            {bankErrors.bank_code && (
-                                                <p className="mt-1 text-sm text-destructive">
-                                                    {bankErrors.bank_code}
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        <div>
-                                            <Label htmlFor="account_number">
-                                                Account Number
-                                            </Label>
-                                            <Input
-                                                id="account_number"
-                                                type="text"
-                                                maxLength={10}
-                                                value={bankData.account_number}
-                                                onChange={(e) =>
-                                                    setBankData(
-                                                        'account_number',
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                placeholder="Enter 10-digit account number"
-                                            />
-                                            {bankErrors.account_number && (
-                                                <p className="mt-1 text-sm text-destructive">
-                                                    {bankErrors.account_number}
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        <div>
-                                            <Label htmlFor="account_name">
-                                                Account Name
-                                            </Label>
-                                            <Input
-                                                id="account_name"
-                                                type="text"
-                                                value={bankData.account_name}
-                                                onChange={(e) =>
-                                                    setBankData(
-                                                        'account_name',
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                placeholder="Enter account name"
-                                            />
-                                            {bankErrors.account_name && (
-                                                <p className="mt-1 text-sm text-destructive">
-                                                    {bankErrors.account_name}
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        <div className="flex gap-2">
-                                            <Button
-                                                type="submit"
-                                                disabled={processingBank}
-                                                className="flex-1"
-                                            >
-                                                {processingBank && (
-                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                )}
-                                                {hasBankAccount
-                                                    ? 'Update Bank Account'
-                                                    : 'Add Bank Account'}
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                onClick={() => {
-                                                    setShowAddBank(false);
-                                                    setBankData({
-                                                        account_number: '',
-                                                        bank_code: '',
-                                                        account_name: '',
-                                                        bank_name: '',
-                                                    });
-                                                }}
-                                            >
-                                                Cancel
-                                            </Button>
-                                        </div>
-                                    </form>
-                                )}
-
-                                {hasBankAccount && !showAddBank && (
-                                    <form
-                                        onSubmit={handleWithdraw}
-                                        className="space-y-4"
-                                    >
-                                        <div>
-                                            <Label htmlFor="amount">
-                                                Amount (₦)
-                                            </Label>
-                                            <Input
-                                                id="amount"
-                                                type="number"
-                                                min="100"
-                                                step="100"
-                                                max={wallet.available_balance}
-                                                value={withdrawalData.amount}
-                                                onChange={(e) =>
-                                                    setWithdrawalData(
-                                                        'amount',
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                placeholder="Enter amount (minimum ₦100)"
-                                                required
-                                            />
-                                            {withdrawalErrors.amount && (
-                                                <p className="mt-1 text-sm text-destructive">
-                                                    {withdrawalErrors.amount}
-                                                </p>
-                                            )}
-                                            <p className="mt-1 text-xs text-muted-foreground">
-                                                Maximum: ₦
-                                                {wallet.available_balance.toLocaleString()}
-                                            </p>
-                                        </div>
-
-                                        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:bg-blue-950/20">
-                                            <p className="mb-1 text-sm font-medium">
-                                                Bank Account
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {bankAccount?.bank_name} -{' '}
-                                                {bankAccount?.account_name}
-                                                {bankAccount?.account_number_masked && (
-                                                    <span className="ml-1">
-                                                        (
-                                                        {
-                                                            bankAccount.account_number_masked
-                                                        }
-                                                        )
-                                                    </span>
-                                                )}
-                                            </p>
-                                        </div>
-
-                                        <Button
-                                            type="submit"
-                                            disabled={
-                                                processingWithdrawal ||
-                                                !withdrawalData.amount ||
-                                                parseFloat(
-                                                    withdrawalData.amount,
-                                                ) < 100 ||
-                                                parseFloat(
-                                                    withdrawalData.amount,
-                                                ) > wallet.available_balance
-                                            }
-                                            className="w-full"
-                                        >
-                                            {processingWithdrawal ? (
-                                                <>
-                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                    Processing...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <KeenIcon
-                                                        name="receipt-square"
-                                                        className="mr-2 text-sm"
-                                                    />
-                                                    Withdraw Funds
-                                                </>
-                                            )}
-                                        </Button>
-
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={() => setShowAddBank(true)}
-                                            className="w-full"
-                                        >
-                                            Update Bank Account
-                                        </Button>
-                                    </form>
-                                )}
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    {/* Withdrawal History */}
-                    <Card className="overflow-hidden rounded-3xl border border-border/70 shadow-none">
-                        <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
-                            <CardTitle className="flex items-center gap-2">
-                                <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/70 bg-background text-sky-600 dark:text-sky-300">
-                                    <KeenIcon
-                                        name="electronic-clock"
-                                        className="text-base"
+                                <div className="flex flex-col gap-2">
+                                    <Label htmlFor="bank_code">Bank</Label>
+                                    <FormSelect
+                                        value={bankData.bank_code}
+                                        onChange={(value) =>
+                                            setBankData('bank_code', value)
+                                        }
+                                        options={bankOptions}
+                                        placeholder="Select bank"
+                                        error={bankErrors.bank_code}
                                     />
-                                </span>
-                                Withdrawal History
-                            </CardTitle>
-                            <CardDescription>
-                                View your past withdrawal requests
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-5">
-                            {withdrawals.data.length === 0 ? (
-                                <div className="py-12 text-center">
-                                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-3xl border border-border/70 bg-muted/30 text-muted-foreground">
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <Label htmlFor="account_number">
+                                        Account number
+                                    </Label>
+                                    <input
+                                        id="account_number"
+                                        inputMode="numeric"
+                                        maxLength={10}
+                                        value={bankData.account_number}
+                                        onChange={(e) =>
+                                            setBankData(
+                                                'account_number',
+                                                e.target.value,
+                                            )
+                                        }
+                                        placeholder="10-digit account number"
+                                        className={inputClass}
+                                    />
+                                    {bankErrors.account_number && (
+                                        <p className="text-sm text-destructive">
+                                            {bankErrors.account_number}
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <Label htmlFor="account_name">
+                                        Account name
+                                    </Label>
+                                    <input
+                                        id="account_name"
+                                        value={bankData.account_name}
+                                        onChange={(e) =>
+                                            setBankData(
+                                                'account_name',
+                                                e.target.value,
+                                            )
+                                        }
+                                        placeholder="Name on the account"
+                                        className={inputClass}
+                                    />
+                                    {bankErrors.account_name && (
+                                        <p className="text-sm text-destructive">
+                                            {bankErrors.account_name}
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="flex gap-2.5">
+                                    {hasBankAccount && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowAddBank(false);
+                                                setBankData({
+                                                    account_number: '',
+                                                    bank_code: '',
+                                                    account_name: '',
+                                                    bank_name: '',
+                                                });
+                                            }}
+                                            className="h-12 flex-1 rounded-xl border border-[#0E3B2E]/15 text-sm font-bold text-foreground hover:bg-muted dark:border-white/15"
+                                        >
+                                            Cancel
+                                        </button>
+                                    )}
+                                    <button
+                                        type="submit"
+                                        disabled={processingBank}
+                                        className="flex h-12 flex-[2] items-center justify-center gap-2 rounded-xl bg-[#0E3B2E] text-sm font-bold text-white hover:bg-[#0E3B2E]/90 disabled:opacity-70 dark:bg-[#C8F169] dark:text-[#0E3B2E]"
+                                    >
+                                        {processingBank && (
+                                            <Loader2 className="size-4 animate-spin" />
+                                        )}
+                                        {hasBankAccount
+                                            ? 'Save bank account'
+                                            : 'Add bank account'}
+                                    </button>
+                                </div>
+                            </form>
+                        ) : (
+                            <form
+                                onSubmit={handleWithdraw}
+                                className="flex flex-col gap-3.5"
+                            >
+                                <h2 className="font-[Sora] text-lg font-semibold text-foreground">
+                                    Withdraw
+                                </h2>
+                                <div className="flex flex-col gap-2">
+                                    <Label htmlFor="amount">Amount</Label>
+                                    <div className="flex h-[52px] items-center overflow-hidden rounded-xl border border-[#0E3B2E]/15 focus-within:ring-[3px] focus-within:ring-[#C8F169]/60 dark:border-white/15">
+                                        <span className="flex h-full items-center bg-muted px-3.5 font-bold text-[#0E3B2E] dark:text-[#C8F169]">
+                                            ₦
+                                        </span>
+                                        <input
+                                            id="amount"
+                                            type="number"
+                                            min="100"
+                                            step="100"
+                                            max={wallet.available_balance}
+                                            value={withdrawalData.amount}
+                                            onChange={(e) =>
+                                                setWithdrawalData(
+                                                    'amount',
+                                                    e.target.value,
+                                                )
+                                            }
+                                            placeholder="Minimum ₦100"
+                                            required
+                                            className="h-full min-w-0 flex-1 bg-transparent px-3 font-[Sora] text-lg font-bold text-foreground outline-none"
+                                        />
+                                    </div>
+                                    {withdrawalErrors.amount && (
+                                        <p className="text-sm text-destructive">
+                                            {withdrawalErrors.amount}
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="flex gap-2">
+                                    {[
+                                        { label: '25%', fraction: 0.25 },
+                                        { label: '50%', fraction: 0.5 },
+                                        { label: 'Max', fraction: 1 },
+                                    ].map((option) => (
+                                        <button
+                                            key={option.label}
+                                            type="button"
+                                            onClick={() =>
+                                                setQuickAmount(option.fraction)
+                                            }
+                                            className="h-[34px] rounded-full border border-[#0E3B2E]/15 px-3 text-xs font-bold text-foreground hover:bg-muted dark:border-white/15"
+                                        >
+                                            {option.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="flex items-center gap-3 rounded-[14px] bg-muted/60 px-3.5 py-3">
+                                    <div className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-[#0E3B2E] text-[#C8F169]">
                                         <KeenIcon
-                                            name="receipt-square"
+                                            name="cheque"
+                                            className="text-xl"
+                                        />
+                                    </div>
+                                    <div className="flex min-w-0 flex-1 flex-col">
+                                        <span className="truncate text-sm font-bold text-foreground">
+                                            {bankAccount?.bank_name}{' '}
+                                            {bankAccount?.account_number_masked}
+                                        </span>
+                                        <span className="truncate text-xs text-muted-foreground">
+                                            {bankAccount?.account_name}
+                                        </span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowAddBank(true)}
+                                        className="text-[13px] font-bold text-[#0E3B2E] dark:text-[#C8F169]"
+                                    >
+                                        Change
+                                    </button>
+                                </div>
+                                <button
+                                    type="submit"
+                                    disabled={!canWithdraw}
+                                    className="flex h-12 items-center justify-center gap-2 rounded-xl bg-[#0E3B2E] text-sm font-bold text-white hover:bg-[#0E3B2E]/90 disabled:opacity-60 dark:bg-[#C8F169] dark:text-[#0E3B2E]"
+                                >
+                                    {processingWithdrawal && (
+                                        <Loader2 className="size-4 animate-spin" />
+                                    )}
+                                    {amountValue >= 100
+                                        ? `Withdraw ${naira(amountValue)}`
+                                        : 'Withdraw'}
+                                </button>
+                                <span className="text-center text-xs text-muted-foreground">
+                                    Maximum {naira(wallet.available_balance)}.
+                                </span>
+                            </form>
+                        )}
+                    </section>
+                </div>
+
+                {/* History */}
+                <section className="overflow-hidden rounded-[20px] border border-[#0E3B2E]/10 bg-card shadow-[0_1px_2px_rgba(19,32,27,0.04)] dark:border-white/10">
+                    <div className="px-[22px] py-[18px]">
+                        <h2 className="font-[Sora] text-lg font-semibold text-foreground">
+                            Withdrawal history
+                        </h2>
+                    </div>
+                    {withdrawals.data.length === 0 ? (
+                        <div className="flex flex-col items-center gap-2 border-t border-[#0E3B2E]/[0.07] py-12 text-center dark:border-white/10">
+                            <KeenIcon
+                                name="receipt-square"
+                                className="text-3xl text-[#A9C7B8]"
+                            />
+                            <span className="text-sm font-semibold text-foreground">
+                                No withdrawals yet
+                            </span>
+                            <span className="text-[13px] text-muted-foreground">
+                                Your payouts will show up here.
+                            </span>
+                        </div>
+                    ) : (
+                        <ul>
+                            {withdrawals.data.map((withdrawal) => (
+                                <li
+                                    key={withdrawal.id}
+                                    className="flex flex-wrap items-center gap-4 border-t border-[#0E3B2E]/[0.07] px-[22px] py-3.5 dark:border-white/10"
+                                >
+                                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-[#0E3B2E] dark:text-[#C8F169]">
+                                        <KeenIcon
+                                            name="arrow-up"
                                             className="text-lg"
                                         />
                                     </div>
-                                    <p className="text-muted-foreground">
-                                        No withdrawals yet
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="overflow-x-auto rounded-2xl border border-border/70">
-                                    <Table>
-                                        <TableHeader className="bg-muted/20">
-                                            <TableRow>
-                                                <TableHead>Date</TableHead>
-                                                <TableHead>Amount</TableHead>
-                                                <TableHead>Status</TableHead>
-                                                <TableHead>Reference</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {withdrawals.data.map(
-                                                (withdrawal) => (
-                                                    <TableRow
-                                                        key={withdrawal.id}
-                                                    >
-                                                        <TableCell className="text-sm">
-                                                            {
-                                                                withdrawal.created_at
-                                                            }
-                                                        </TableCell>
-                                                        <TableCell className="font-medium">
-                                                            ₦
-                                                            {withdrawal.amount.toLocaleString()}
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            {getStatusBadge(
-                                                                withdrawal.status,
-                                                            )}
-                                                        </TableCell>
-                                                        <TableCell className="font-mono text-xs text-muted-foreground">
-                                                            {withdrawal.reference ||
-                                                                'N/A'}
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ),
-                                            )}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            )}
-
-                            {/* Pagination */}
-                            {withdrawals.links &&
-                                withdrawals.links.length > 3 && (
-                                    <div className="mt-4 flex items-center justify-between">
-                                        <div className="text-sm text-muted-foreground">
-                                            Showing {withdrawals.meta.from} to{' '}
-                                            {withdrawals.meta.to} of{' '}
-                                            {withdrawals.meta.total} withdrawals
-                                        </div>
-                                        <div className="flex gap-2">
-                                            {withdrawals.links.map(
-                                                (link: any, index: number) => (
-                                                    <Button
-                                                        key={index}
-                                                        variant={
-                                                            link.active
-                                                                ? 'default'
-                                                                : 'outline'
-                                                        }
-                                                        size="sm"
-                                                        disabled={!link.url}
-                                                        onClick={() =>
-                                                            link.url &&
-                                                            router.visit(
-                                                                link.url,
-                                                            )
-                                                        }
-                                                        dangerouslySetInnerHTML={{
-                                                            __html: link.label,
-                                                        }}
-                                                    />
-                                                ),
-                                            )}
-                                        </div>
+                                    <div className="flex min-w-0 flex-[1_1_200px] flex-col gap-0.5">
+                                        <span className="text-sm font-bold text-foreground">
+                                            {withdrawal.description ||
+                                                'Withdrawal to bank'}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                            {withdrawal.created_at}
+                                            {withdrawal.reference &&
+                                                ` · ${withdrawal.reference}`}
+                                        </span>
                                     </div>
+                                    <span className="font-[Sora] text-[15px] font-bold text-foreground">
+                                        {naira(withdrawal.amount)}
+                                    </span>
+                                    <span
+                                        className={`rounded-full px-2.5 py-1 text-xs font-bold whitespace-nowrap ${statusStyle[withdrawal.status] ?? 'bg-muted text-muted-foreground'}`}
+                                    >
+                                        {withdrawal.status
+                                            .charAt(0)
+                                            .toUpperCase() +
+                                            withdrawal.status.slice(1)}
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+
+                    {withdrawals.links && withdrawals.links.length > 3 && (
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#0E3B2E]/[0.07] px-[22px] py-4 dark:border-white/10">
+                            <span className="text-[13px] text-muted-foreground">
+                                Showing {withdrawals.meta?.from} to{' '}
+                                {withdrawals.meta?.to} of{' '}
+                                {withdrawals.meta?.total}
+                            </span>
+                            <div className="flex gap-2">
+                                {withdrawals.links.map(
+                                    (
+                                        link: {
+                                            url: string | null;
+                                            label: string;
+                                            active: boolean;
+                                        },
+                                        index: number,
+                                    ) => (
+                                        <button
+                                            key={index}
+                                            type="button"
+                                            disabled={!link.url}
+                                            onClick={() =>
+                                                link.url &&
+                                                router.visit(link.url)
+                                            }
+                                            className={`h-10 min-w-10 rounded-[10px] px-3 text-sm font-bold disabled:opacity-40 ${
+                                                link.active
+                                                    ? 'bg-[#0E3B2E] text-white dark:bg-[#C8F169] dark:text-[#0E3B2E]'
+                                                    : 'border border-[#0E3B2E]/12 bg-card text-foreground hover:bg-muted dark:border-white/15'
+                                            }`}
+                                            dangerouslySetInnerHTML={{
+                                                __html: link.label,
+                                            }}
+                                        />
+                                    ),
                                 )}
-                        </CardContent>
-                    </Card>
-                </div>
+                            </div>
+                        </div>
+                    )}
+                </section>
             </div>
         </AppLayout>
     );

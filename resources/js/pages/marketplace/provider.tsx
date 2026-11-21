@@ -1,20 +1,27 @@
+import KiroChat from '@/components/kiro/kiro-chat';
 import { ReviewSection } from '@/components/reviews/review-section';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import VerifiedProviderBadge from '@/components/verified-provider-badge';
 import GuestLayout from '@/layouts/guest-layout';
-import { getBookingCtaLabel, getDeliveryModeBadge, normalizeDeliveryMode } from '@/lib/service-delivery-mode';
+import { getProviderDefaultBanner } from '@/lib/provider-banner';
+import {
+    getBookingCtaLabel,
+    getDeliveryModeBadge,
+    normalizeDeliveryMode,
+} from '@/lib/service-delivery-mode';
 import BusinessCard from '@/pages/guest/components/business-card';
 import ReviewDrawal from '@/pages/marketplace/components/review-drawal';
 import ServiceModal from '@/pages/marketplace/components/service-modal';
 import favourite from '@/routes/favourite';
 import {
     ChatBubbleBottomCenterTextIcon,
-    ClockIcon,
     FireIcon,
 } from '@heroicons/react/24/solid';
 import { Link, router } from '@inertiajs/react';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import {
+    BadgeCheck,
     Calendar,
     ChevronLeft,
     ChevronRight,
@@ -27,7 +34,6 @@ import {
     X,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import * as DialogPrimitive from '@radix-ui/react-dialog';
 
 interface Service {
     id: string;
@@ -42,10 +48,12 @@ interface Service {
 interface Provider {
     id: string;
     name: string;
+    avatar?: string | null;
     businessId: string;
     businessName: string;
     slug: string;
     description: string;
+    category?: string | null;
     images: Array<{ url: string; isLogo: boolean }>;
     rating: number;
     reviews_count: number;
@@ -267,11 +275,19 @@ export default function ProviderProfile({
         };
     }, [selectedService]);
 
-    const logo =
-        provider.images?.find((image) => image.isLogo) || provider.images?.[0];
-    const otherImages =
-        provider.images?.filter((image) => image !== logo) || [];
-    const allImages = logo ? [logo, ...otherImages] : otherImages;
+    const logo = provider.images?.find((image) => image.isLogo);
+    const bannerImages =
+        provider.images?.filter((image) => !image.isLogo) || [];
+    const heroImages = bannerImages.length
+        ? bannerImages
+        : [
+              {
+                  url: getProviderDefaultBanner(provider.category, provider.id),
+                  isLogo: false,
+              },
+          ];
+    const allImages = logo ? [...heroImages, logo] : heroImages;
+    const hasPhotos = bannerImages.length > 0;
     const heroInitials = (provider.businessName || provider.name || 'P')
         .split(' ')
         .filter(Boolean)
@@ -412,7 +428,13 @@ export default function ProviderProfile({
 
     return (
         <GuestLayout>
-            <div className="relative h-[50vh] w-full overflow-hidden sm:h-[58vh] md:h-[66vh]">
+            <div
+                className={`relative w-full overflow-hidden ${
+                    hasPhotos
+                        ? 'h-[38vh] max-h-[520px] min-h-[220px] sm:h-[46vh] md:h-[52vh]'
+                        : 'h-28 sm:h-36 md:h-44'
+                }`}
+            >
                 {allImages.length > 0 ? (
                     <>
                         <div className="relative h-full w-full">
@@ -422,7 +444,6 @@ export default function ProviderProfile({
                                 className="h-full w-full object-cover transition-transform duration-700"
                                 loading="eager"
                             />
-                            
                         </div>
 
                         {allImages.length > 1 && (
@@ -446,7 +467,7 @@ export default function ProviderProfile({
                             {canEdit && (
                                 <button
                                     onClick={handleFavourite}
-                                    className="flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-white/15 text-white backdrop-blur transition hover:bg-white/25 sm:h-10 sm:w-10"
+                                    className="flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-black/30 text-white backdrop-blur transition hover:bg-black/45 sm:h-10 sm:w-10"
                                     aria-label={
                                         isFavorite
                                             ? 'Remove from favorites'
@@ -464,21 +485,12 @@ export default function ProviderProfile({
                             )}
                             <button
                                 onClick={handleShare}
-                                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-white/15 text-white backdrop-blur transition hover:bg-white/25 sm:h-10 sm:w-10"
+                                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-black/30 text-white backdrop-blur transition hover:bg-black/45 sm:h-10 sm:w-10"
                                 aria-label="Share provider profile"
                             >
                                 <Share2 className="h-4 w-4 sm:h-5 sm:w-5" />
                             </button>
                         </div>
-
-                        {provider.isVerified && (
-                            <div className="absolute top-4 left-4 z-10">
-                                <VerifiedProviderBadge
-                                    size="lg"
-                                    tone="onDark"
-                                />
-                            </div>
-                        )}
 
                         {/* <div className="absolute right-0 bottom-0 left-0 p-4 sm:p-6 md:p-8">
                             <div className="mx-auto max-w-7xl">
@@ -630,7 +642,7 @@ export default function ProviderProfile({
                 </div>
             </div>
 
-            <div className="mx-auto w-full  px-4 py-2 sm:px-6 ">
+            <div className="mx-auto w-full px-4 py-2 sm:px-6">
                 {!canBookProvider && (
                     <div className="mb-6 border border-amber-200 bg-amber-50 px-4 py-4 text-amber-900">
                         <p className="font-semibold">Booking unavailable</p>
@@ -641,77 +653,99 @@ export default function ProviderProfile({
                 )}
 
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                    <div>
-                        <h1 className="flex flex-wrap items-center gap-2 text-2xl leading-tight font-black sm:text-3xl md:text-4xl">
-                            {provider.businessName}
-                            <Badge
-                                variant="secondary"
-                                className="text-[10px] font-semibold tracking-wide uppercase"
-                            >
-                                {deliveryMode === 'provider_visits_client' ? (
-                                    <Navigation className="mr-1 inline size-3" />
-                                ) : (
-                                    <MapPin className="mr-1 inline size-3" />
+                    <div className="flex min-w-0 items-start gap-3 sm:gap-5">
+                        <Avatar className="relative z-10 -mt-12 size-20 shrink-0 self-start border-4 border-background bg-emerald-50 shadow-md sm:-mt-16 sm:size-28 dark:bg-emerald-950">
+                            <AvatarImage
+                                src={logo?.url ?? provider.avatar ?? undefined}
+                                alt={provider.businessName}
+                                className="object-cover"
+                            />
+                            <AvatarFallback className="bg-emerald-50 text-2xl font-bold text-emerald-950 sm:text-3xl dark:bg-emerald-950 dark:text-emerald-100">
+                                {heroInitials}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 pt-2 sm:pt-3">
+                            <h1 className="flex flex-wrap items-center gap-2 text-2xl leading-tight font-black sm:text-3xl md:text-4xl">
+                                {provider.businessName}
+                                {provider.isVerified && (
+                                    <BadgeCheck
+                                        aria-label="Verified artisan"
+                                        className="size-6 shrink-0 fill-emerald-900 text-lime-300 sm:size-7"
+                                    />
                                 )}
-                                {deliveryBadge}
-                            </Badge>
-                        </h1>
-                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                            {provider.reviews_count > 0 ? (
-                                <div className="flex items-center gap-1">
-                                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                                    <span className="font-semibold text-foreground">
-                                        {(provider.rating ?? 0).toFixed(1)}
-                                    </span>
-                                    <span>({provider.reviews_count})</span>
-                                </div>
-                            ) : (
-                                <div className="flex items-center gap-1 text-muted-foreground">
-                                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                                    <span>No reviews yet</span>
-                                </div>
-                            )}
-                       
-                            {showProviderAddress && provider.address && (
-                                <>
-                                    <span>·</span>
+                                <Badge
+                                    variant="secondary"
+                                    className="text-[10px] font-semibold tracking-wide uppercase"
+                                >
+                                    {deliveryMode ===
+                                    'provider_visits_client' ? (
+                                        <Navigation className="mr-1 inline size-3" />
+                                    ) : (
+                                        <MapPin className="mr-1 inline size-3" />
+                                    )}
+                                    {deliveryBadge}
+                                </Badge>
+                            </h1>
+                            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                                {provider.reviews_count > 0 ? (
                                     <div className="flex items-center gap-1">
-                                        <MapPin className="h-3.5 w-3.5" />
-                                        Visit us: {provider.address}
+                                        <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                                        <span className="font-semibold text-foreground">
+                                            {(provider.rating ?? 0).toFixed(1)}
+                                        </span>
+                                        <span>({provider.reviews_count})</span>
                                     </div>
-                                </>
-                            )}
-                            {deliveryMode === 'provider_visits_client' && (
-                                <>
-                                    <span>·</span>
-                                    <span>
-                                        Add your service address when booking
-                                    </span>
-                                </>
-                            )}
-                            {distance !== null && (
-                                <>
-                                    <span>·</span>
-                                    <div className="flex items-center gap-1">
-                                        <Navigation className="h-3.5 w-3.5" />
-                                        {distance.toFixed(1)} km away
+                                ) : (
+                                    <div className="flex items-center gap-1 text-muted-foreground">
+                                        <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                                        <span>No reviews yet</span>
                                     </div>
-                                </>
-                            )}
-                            {todayHours !== undefined && (
-                                <>
-                                    <span>·</span>
-                                    <span
-                                        className={
-                                            isOpenNow
-                                                ? 'font-medium text-green-600'
-                                                : 'font-medium text-red-500'
-                                        }
-                                    >
-                                        {isOpenNow ? '● Open now' : '● Closed'}
-                                    </span>
-                                </>
-                            )}
+                                )}
+
+                                {showProviderAddress && provider.address && (
+                                    <>
+                                        <span>·</span>
+                                        <div className="flex items-center gap-1">
+                                            <MapPin className="h-3.5 w-3.5" />
+                                            {provider.address}
+                                        </div>
+                                    </>
+                                )}
+                                {deliveryMode === 'provider_visits_client' && (
+                                    <>
+                                        <span>·</span>
+                                        <span>
+                                            Add your service address when
+                                            booking
+                                        </span>
+                                    </>
+                                )}
+                                {distance !== null && (
+                                    <>
+                                        <span>·</span>
+                                        <div className="flex items-center gap-1">
+                                            <Navigation className="h-3.5 w-3.5" />
+                                            {distance.toFixed(1)} km away
+                                        </div>
+                                    </>
+                                )}
+                                {todayHours !== undefined && (
+                                    <>
+                                        <span>·</span>
+                                        <span
+                                            className={
+                                                isOpenNow
+                                                    ? 'font-medium text-green-600'
+                                                    : 'font-medium text-red-500'
+                                            }
+                                        >
+                                            {isOpenNow
+                                                ? '● Open now'
+                                                : '● Closed'}
+                                        </span>
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -720,7 +754,7 @@ export default function ProviderProfile({
                         <Link href={`/provider/${provider.slug}/gallery`}>
                             <Button variant="outline" className="h-11">
                                 <ImageIcon className="mr-2 h-4 w-4" />
-                                View Gallery  
+                                View Gallery
                             </Button>
                         </Link>
                         {canBookProvider ? (
@@ -745,7 +779,6 @@ export default function ProviderProfile({
 
                 <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-12">
                     <div className="space-y-10 lg:col-span-2">
-                    
                         <section>
                             <div className="my-6 flex items-center gap-3">
                                 <div className="h-1 w-8 rounded bg-primary sm:w-12" />
@@ -772,8 +805,12 @@ export default function ProviderProfile({
                                                         group.category,
                                                     )
                                                 }
-                                                variant={activeServiceCategory ===
-                                                    group.category ? 'default' : 'outline'}
+                                                variant={
+                                                    activeServiceCategory ===
+                                                    group.category
+                                                        ? 'default'
+                                                        : 'outline'
+                                                }
                                             >
                                                 {group.category}
                                                 <span className="ml-2 text-xs opacity-80">
@@ -785,17 +822,18 @@ export default function ProviderProfile({
 
                                     {activeServiceGroup && (
                                         <div>
-                                            <div className="gap-2 flex flex-col">
+                                            <div className="flex flex-col gap-2">
                                                 {activeServiceGroup.items.map(
                                                     (service) => (
                                                         <button
                                                             key={service.id}
+                                                            type="button"
                                                             onClick={() =>
                                                                 setSelectedService(
                                                                     service,
                                                                 )
                                                             }
-                                                            className="flex cursor-pointer px-3 bg-gray-100 rounded w-full items-start justify-between gap-4 py-4 text-left transition-colors hover:bg-muted/20"
+                                                            className="group flex w-full cursor-pointer items-center justify-between gap-4 rounded-xl border border-border/70 bg-background px-4 py-4 text-left transition hover:border-primary/40 hover:bg-muted/30 sm:px-5"
                                                         >
                                                             <div className="min-w-0 flex-1">
                                                                 <h4 className="text-base font-semibold capitalize">
@@ -810,23 +848,32 @@ export default function ProviderProfile({
                                                                         }
                                                                     </p>
                                                                 )}
-                                                                <div className="mt-2 text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
-                                                                    {
-                                                                        service.duration_minutes
-                                                                    }{' '}
-                                                                    mins
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="shrink-0 text-right">
-                                                                <p className="text-base font-semibold text-primary">
-                                                                    ₦
-                                                                    {Number(
-                                                                        service.price ||
-                                                                            0,
-                                                                    ).toLocaleString()}
+                                                                <p className="mt-2 flex items-center gap-2 text-sm">
+                                                                    <span className="font-semibold text-foreground">
+                                                                        ₦
+                                                                        {Number(
+                                                                            service.price ||
+                                                                                0,
+                                                                        ).toLocaleString()}
+                                                                    </span>
+                                                                    <span className="text-muted-foreground">
+                                                                        ·
+                                                                    </span>
+                                                                    <span className="text-muted-foreground">
+                                                                        {
+                                                                            service.duration_minutes
+                                                                        }{' '}
+                                                                        mins
+                                                                    </span>
                                                                 </p>
                                                             </div>
+
+                                                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-3 py-1.5 text-sm font-medium transition group-hover:border-primary group-hover:bg-primary group-hover:text-primary-foreground">
+                                                                {canBookProvider
+                                                                    ? 'Book'
+                                                                    : 'View'}
+                                                                <ChevronRight className="h-4 w-4" />
+                                                            </span>
                                                         </button>
                                                     ),
                                                 )}
@@ -845,7 +892,13 @@ export default function ProviderProfile({
                                 </h2>
                             </div>
 
-                            <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+                            <div
+                                className={`grid gap-6 ${
+                                    provider.latitude && provider.longitude
+                                        ? 'lg:grid-cols-[0.9fr_1.1fr]'
+                                        : ''
+                                }`}
+                            >
                                 <div>
                                     {provider.description ? (
                                         <p className="text-sm leading-7 text-muted-foreground sm:text-base">
@@ -876,8 +929,8 @@ export default function ProviderProfile({
                                     </div>
                                 </div>
 
-                                <div className="overflow-hidden border border-border/70">
-                                    {provider.latitude && provider.longitude ? (
+                                {provider.latitude && provider.longitude && (
+                                    <div className="overflow-hidden rounded-xl border border-border/70">
                                         <iframe
                                             title={`${provider.businessName} map`}
                                             src={`https://www.google.com/maps?q=${provider.latitude},${provider.longitude}&z=15&output=embed`}
@@ -885,12 +938,8 @@ export default function ProviderProfile({
                                             loading="lazy"
                                             referrerPolicy="no-referrer-when-downgrade"
                                         />
-                                    ) : (
-                                        <div className="flex h-[280px] items-center justify-center bg-muted/30 text-sm text-muted-foreground">
-                                            Map location unavailable.
-                                        </div>
-                                    )}
-                                </div>
+                                    </div>
+                                )}
                             </div>
                         </section>
 
@@ -943,8 +992,7 @@ export default function ProviderProfile({
                                                 {idx === 2 &&
                                                     galleryTotal > 3 && (
                                                         <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-base font-semibold text-white transition group-hover:bg-black/50 sm:text-lg">
-                                                            +
-                                                            {galleryTotal - 3}{' '}
+                                                            +{galleryTotal - 3}{' '}
                                                             more
                                                         </div>
                                                     )}
@@ -954,7 +1002,7 @@ export default function ProviderProfile({
                             </section>
                         )}
 
-                        <section className="pb-20 md:pb-0">
+                        <section className="border-t border-border/70 pt-8 pb-20 md:pb-0">
                             <div className="mb-6 flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className="h-1 w-8 rounded bg-primary sm:w-12" />
@@ -967,12 +1015,11 @@ export default function ProviderProfile({
                                 )}
                             </div>
                             {reviews.length === 0 ? (
-                                <div className="border-2 border-dashed bg-muted/30 p-10 text-center">
-                                    <ChatBubbleBottomCenterTextIcon className="mx-auto mb-4 h-10 w-10 opacity-30" />
-                                    <p className="text-sm text-muted-foreground">
-                                        No reviews yet. Be the first to review!
-                                    </p>
-                                </div>
+                                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <ChatBubbleBottomCenterTextIcon className="h-5 w-5 opacity-40" />
+                                    No reviews yet. Book a service and be the
+                                    first to leave one.
+                                </p>
                             ) : (
                                 <ReviewSection
                                     reviews={reviews.slice(0, 5)}
@@ -981,7 +1028,6 @@ export default function ProviderProfile({
                                         provider.pending_appointment_id
                                     }
                                 />
-                                
                             )}
                         </section>
                     </div>
@@ -1042,13 +1088,15 @@ export default function ProviderProfile({
                             </div>
 
                             {canBookProvider && (
-                                    <Link prefetch href={`/provider/${provider.slug}/book`}>
-                                        <Button className="h-11 px-6 w-full mt-2">
-                                            <Calendar className="mr-2 h-4 w-4" />
-                                            {bookingCtaLabel}
-                                        </Button>
-                                    </Link>
-                                
+                                <Link
+                                    prefetch
+                                    href={`/provider/${provider.slug}/book`}
+                                >
+                                    <Button className="mt-2 h-11 w-full px-6">
+                                        <Calendar className="mr-2 h-4 w-4" />
+                                        {bookingCtaLabel}
+                                    </Button>
+                                </Link>
                             )}
                         </div>
                     </aside>
@@ -1056,7 +1104,7 @@ export default function ProviderProfile({
             </div>
 
             {nearbyProviders?.length > 0 && (
-                <div className="mx-auto w-full max-w-7xl px-4 pb-24 sm:px-6 md:pb-16">
+                <div className="mx-auto w-full px-4 pb-24 sm:px-6 md:pb-16">
                     <section className="space-y-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -1093,11 +1141,13 @@ export default function ProviderProfile({
                             {nearbyProviders.map((nearbyProvider) => (
                                 <div
                                     key={nearbyProvider.id}
-                                    className="max-w-[260px] min-w-[260px] snap-start"
+                                    className="w-[85%] shrink-0 snap-start sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-3rem)/3)]"
                                 >
                                     <BusinessCard
                                         provider={nearbyProvider}
-                                        favoriteBusinessIds={favoriteBusinessIds}
+                                        favoriteBusinessIds={
+                                            favoriteBusinessIds
+                                        }
                                     />
                                 </div>
                             ))}
@@ -1124,10 +1174,10 @@ export default function ProviderProfile({
                 }}
             >
                 <DialogPrimitive.Portal>
-                    <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/90 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0" />
+                    <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/90 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0" />
                     <DialogPrimitive.Content
                         aria-describedby={undefined}
-                        className="fixed inset-0 z-50 flex flex-col items-center justify-center outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0"
+                        className="fixed inset-0 z-50 flex flex-col items-center justify-center outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0"
                     >
                         <DialogPrimitive.Title className="sr-only">
                             {provider.businessName} gallery
@@ -1197,6 +1247,14 @@ export default function ProviderProfile({
                     </DialogPrimitive.Content>
                 </DialogPrimitive.Portal>
             </DialogPrimitive.Root>
+            <KiroChat
+                business={{
+                    slug: provider.slug,
+                    businessName: provider.businessName,
+                    canBook: canBookProvider,
+                }}
+                launcherClassName="bottom-24 sm:bottom-24 md:bottom-6"
+            />
         </GuestLayout>
     );
 }

@@ -144,14 +144,14 @@
     --chart-4: oklch(0.828 0.189 84.429);
     --chart-5: oklch(0.769 0.188 70.08);
     --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.87 0 0);
+    --sidebar: #0e3b2e;
+    --sidebar-foreground: #e3efe8;
+    --sidebar-primary: #c8f169;
+    --sidebar-primary-foreground: #0e3b2e;
+    --sidebar-accent: rgba(200, 241, 105, 0.14);
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: rgba(255, 255, 255, 0.08);
+    --sidebar-ring: #c8f169;
 
      --color-white-smoke-50: #f2f4f1;
     --color-white-smoke-100: #e6e9e2;
@@ -191,14 +191,14 @@
     --chart-3: oklch(0.769 0.188 70.08);
     --chart-4: oklch(0.627 0.265 303.9);
     --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.985 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(0.269 0 0);
-    --sidebar-ring: oklch(0.439 0 0);
+    --sidebar: #0a2a21;
+    --sidebar-foreground: #e3efe8;
+    --sidebar-primary: #c8f169;
+    --sidebar-primary-foreground: #0e3b2e;
+    --sidebar-accent: rgba(200, 241, 105, 0.14);
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: rgba(255, 255, 255, 0.08);
+    --sidebar-ring: #c8f169;
 }
 
 @layer base {
@@ -459,4 +459,10 @@
   .default-animation {
     width: 90%;
   }
+}
+
+/* Brand: active sidebar item icon in lime */
+[data-sidebar='menu-button'][data-active='true'] > svg,
+[data-sidebar='menu-button'][data-active='true'] > i {
+    color: #c8f169;
 }

@@ -1,15 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { AppSelect } from '@/components/ui/app-select';
 import { Button } from '@/components/ui/button';
 import { Calendar as DateCalendar } from '@/components/ui/calendar';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { CustomAlertDialog } from '@/components/ui/custom-alert-dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
 import GuestLayout from '@/layouts/guest-layout';
 import { cn, formatDate, formatTime } from '@/lib/utils';
 import { Head, router, usePage } from '@inertiajs/react';
@@ -17,7 +12,6 @@ import axios from 'axios';
 import { format } from 'date-fns';
 import {
     AlertCircle,
-    Calendar,
     Check,
     CheckCircle2,
     Clock,
@@ -25,10 +19,6 @@ import {
     Wallet,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import appointments from '@/routes/appointments';
 
 interface Service {
     id: string;
@@ -107,9 +97,15 @@ export default function EditAppointment() {
         settings,
     } = props;
 
-    const [selectedDate, setSelectedDate] = useState<Date>(new Date(appointment.start_time));
-    const [selectedSlot, setSelectedSlot] = useState<string>(appointment.start_time);
-    const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(appointment.service_ids || []);
+    const [selectedDate, setSelectedDate] = useState<Date>(
+        new Date(appointment.start_time),
+    );
+    const [selectedSlot, setSelectedSlot] = useState<string>(
+        appointment.start_time,
+    );
+    const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(
+        appointment.service_ids || [],
+    );
     const [selectedTeamMemberId, setSelectedTeamMemberId] = useState<string>(
         appointment.team_member_id || '',
     );
@@ -117,8 +113,10 @@ export default function EditAppointment() {
     const [notes, setNotes] = useState<string>(appointment.notes || '');
     const [loading, setLoading] = useState(false);
     const [apiMessage, setApiMessage] = useState<string | null>(null);
-    const [insufficientBalanceDialogOpen, setInsufficientBalanceDialogOpen] = useState(false);
-    const [paymentConfirmDialogOpen, setPaymentConfirmDialogOpen] = useState(false);
+    const [insufficientBalanceDialogOpen, setInsufficientBalanceDialogOpen] =
+        useState(false);
+    const [paymentConfirmDialogOpen, setPaymentConfirmDialogOpen] =
+        useState(false);
     const [pendingShortfall, setPendingShortfall] = useState<number>(0);
 
     const providerSettings: ProviderSettings = settings || {
@@ -269,8 +267,8 @@ export default function EditAppointment() {
                     priceDifference > 0
                         ? `Your new total will be ₦${newTotalPrice.toLocaleString()}, which is ₦${priceDifference.toLocaleString()} more than the original amount. This difference will be held securely in escrow. Continue?`
                         : priceDifference < 0
-                        ? `Your new total will be ₦${newTotalPrice.toLocaleString()}, which is ₦${Math.abs(priceDifference).toLocaleString()} less than the original amount. The difference will be refunded to your wallet. Continue?`
-                        : `Your total amount remains ₦${newTotalPrice.toLocaleString()}. We will update the appointment details and keep your payment held in escrow. Continue?`
+                          ? `Your new total will be ₦${newTotalPrice.toLocaleString()}, which is ₦${Math.abs(priceDifference).toLocaleString()} less than the original amount. The difference will be refunded to your wallet. Continue?`
+                          : `Your total amount remains ₦${newTotalPrice.toLocaleString()}. We will update the appointment details and keep your payment held in escrow. Continue?`
                 }
                 acceptLabel="Save Changes"
                 rejectLabel="Cancel"
@@ -309,7 +307,7 @@ export default function EditAppointment() {
                             {/* Calendar & Slots Card */}
                             <div className="overflow-hidden rounded border bg-card">
                                 <div className="grid grid-cols-1 sm:h-[360px] md:grid-cols-2">
-                                    <div className="flex justify-center border-b p-3 md:border-b-0 md:border-r">
+                                    <div className="flex justify-center border-b p-3 md:border-r md:border-b-0">
                                         <DateCalendar
                                             mode="single"
                                             selected={selectedDate}
@@ -326,7 +324,8 @@ export default function EditAppointment() {
                                                 selected.setHours(0, 0, 0, 0);
 
                                                 // Can't select past dates
-                                                if (selected < today) return true;
+                                                if (selected < today)
+                                                    return true;
 
                                                 // Check same-day booking
                                                 if (
@@ -344,10 +343,12 @@ export default function EditAppointment() {
                                                     ) || 30;
                                                 const maxDate = new Date(today);
                                                 maxDate.setDate(
-                                                    maxDate.getDate() + advanceDays,
+                                                    maxDate.getDate() +
+                                                        advanceDays,
                                                 );
 
-                                                if (selected > maxDate) return true;
+                                                if (selected > maxDate)
+                                                    return true;
 
                                                 return false;
                                             }}
@@ -376,18 +377,24 @@ export default function EditAppointment() {
                                                         'No availability for this date'}
                                                 </p>
                                                 <p className="text-xs">
-                                                    Try selecting fewer services or
-                                                    picking another date.
+                                                    Try selecting fewer services
+                                                    or picking another date.
                                                 </p>
                                             </div>
                                         ) : (
                                             <ScrollArea className="h-96 pr-4">
                                                 <div className="space-y-8">
                                                     {(
-                                                        ['morning', 'afternoon', 'evening'] as const
+                                                        [
+                                                            'morning',
+                                                            'afternoon',
+                                                            'evening',
+                                                        ] as const
                                                     ).map((cat) => {
                                                         const slots =
-                                                            categorizedSlots[cat];
+                                                            categorizedSlots[
+                                                                cat
+                                                            ];
                                                         if (slots.length === 0)
                                                             return null;
                                                         return (
@@ -395,12 +402,14 @@ export default function EditAppointment() {
                                                                 key={cat}
                                                                 className="space-y-4"
                                                             >
-                                                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
+                                                                <h4 className="text-[10px] font-black tracking-[0.2em] text-muted-foreground/60 uppercase">
                                                                     {cat}
                                                                 </h4>
                                                                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                                                                     {slots.map(
-                                                                        (slot) => (
+                                                                        (
+                                                                            slot,
+                                                                        ) => (
                                                                             <Button
                                                                                 key={
                                                                                     slot.datetime
@@ -454,7 +463,9 @@ export default function EditAppointment() {
                                             onClick={() => toggleService(s.id)}
                                             className={cn(
                                                 'flex cursor-pointer items-start gap-2 rounded border p-2',
-                                                selectedServiceIds.includes(s.id)
+                                                selectedServiceIds.includes(
+                                                    s.id,
+                                                )
                                                     ? 'border-primary bg-primary/5'
                                                     : 'border-border bg-card hover:border-primary/20',
                                             )}
@@ -490,7 +501,7 @@ export default function EditAppointment() {
                                                             s.price,
                                                         ).toLocaleString()}
                                                     </span>
-                                                    <span className="flex items-center gap-1 whitespace-nowrap rounded-full bg-muted px-2 py-1 text-[9px] font-black uppercase text-muted-foreground sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-[10px]">
+                                                    <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-[9px] font-black whitespace-nowrap text-muted-foreground uppercase sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-[10px]">
                                                         <Clock className="size-3" />
                                                         {s.duration} mins
                                                     </span>
@@ -526,32 +537,30 @@ export default function EditAppointment() {
                                             member.
                                         </p>
                                     </div>
-                                    <Select
-                                        value={selectedTeamMemberId || 'provider'}
-                                        onValueChange={(value) => {
+                                    <AppSelect
+                                        value={
+                                            selectedTeamMemberId || 'provider'
+                                        }
+                                        onChange={(value) => {
                                             setSelectedTeamMemberId(
-                                                value === 'provider' ? '' : value,
+                                                value === 'provider'
+                                                    ? ''
+                                                    : value,
                                             );
                                             setSelectedSlot('');
                                         }}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Choose a team member (optional)" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="provider">
-                                                Provider
-                                            </SelectItem>
-                                            {teamMembers.map((member) => (
-                                                <SelectItem
-                                                    key={member.id}
-                                                    value={member.id}
-                                                >
-                                                    {member.name} ({member.role})
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                        placeholder="Choose a team member (optional)"
+                                        options={[
+                                            {
+                                                value: 'provider',
+                                                label: 'Provider',
+                                            },
+                                            ...teamMembers.map((member) => ({
+                                                value: member.id,
+                                                label: `${member.name} (${member.role})`,
+                                            })),
+                                        ]}
+                                    />
                                 </div>
                             )}
                         </div>
@@ -573,10 +582,10 @@ export default function EditAppointment() {
                                                 className="flex items-center justify-between"
                                             >
                                                 <div className="flex flex-col items-start">
-                                                    <span className="line-clamp-2 text-sm capitalize text-muted-foreground/60">
+                                                    <span className="line-clamp-2 text-sm text-muted-foreground/60 capitalize">
                                                         {s.name}
                                                     </span>
-                                                    <p className="mt-1 text-xs font-bold uppercase tracking-widest text-muted-foreground/80">
+                                                    <p className="mt-1 text-xs font-bold tracking-widest text-muted-foreground/80 uppercase">
                                                         {s.duration} mins
                                                     </p>
                                                 </div>
@@ -594,7 +603,7 @@ export default function EditAppointment() {
 
                                     <div className="space-y-3">
                                         <div className="flex items-center justify-between">
-                                            <span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                            <span className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
                                                 <CheckCircle2 className="size-4 text-primary" />
                                                 Professional
                                             </span>
@@ -603,7 +612,7 @@ export default function EditAppointment() {
                                             </span>
                                         </div>
                                         <div className="flex items-center justify-between">
-                                            <span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                            <span className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
                                                 <CheckCircle2 className="size-4 text-primary" />
                                                 Date
                                             </span>
@@ -615,14 +624,16 @@ export default function EditAppointment() {
                                             </span>
                                         </div>
                                         <div className="flex items-center justify-between">
-                                            <span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                            <span className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
                                                 <CheckCircle2 className="size-4 text-primary" />
                                                 Time
                                             </span>
                                             <span className="text-sm font-black">
                                                 {selectedSlot
                                                     ? format(
-                                                          new Date(selectedSlot),
+                                                          new Date(
+                                                              selectedSlot,
+                                                          ),
                                                           'h:mm a',
                                                       )
                                                     : '--:--'}

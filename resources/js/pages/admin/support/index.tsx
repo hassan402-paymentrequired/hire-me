@@ -1,4 +1,5 @@
 import { Pagination } from '@/components/pagination';
+import { AppSelect } from '@/components/ui/app-select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -136,22 +137,24 @@ export default function AdminSupportIndex({ requests, filters }: Props) {
 
                             <div className="space-y-2">
                                 <Label htmlFor="status">Status</Label>
-                                <select
+                                <AppSelect
                                     id="status"
-                                    title="Support status"
+                                    ariaLabel="Support status"
                                     value={filterForm.data.status}
-                                    onChange={(e) =>
-                                        filterForm.setData(
-                                            'status',
-                                            e.target.value,
-                                        )
+                                    onChange={(value) =>
+                                        filterForm.setData('status', value)
                                     }
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                >
-                                    <option value="all">All requests</option>
-                                    <option value="open">Open</option>
-                                    <option value="resolved">Resolved</option>
-                                </select>
+                                    size="sm"
+                                    searchable={false}
+                                    options={[
+                                        { value: 'all', label: 'All requests' },
+                                        { value: 'open', label: 'Open' },
+                                        {
+                                            value: 'resolved',
+                                            label: 'Resolved',
+                                        },
+                                    ]}
+                                />
                             </div>
                         </div>
 

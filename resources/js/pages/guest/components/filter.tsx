@@ -1,15 +1,8 @@
+import { AppSelect } from '@/components/ui/app-select';
 import { Input } from '@/components/ui/input';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { router } from '@inertiajs/react';
 import { MapPin, Search } from 'lucide-react';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface Category {
     name: string;
@@ -60,7 +53,7 @@ export const HeaderFilter = ({
                 { ...filters, search: value },
                 { preserveState: true, replace: true, preserveScroll: true },
             );
-        }, 500); 
+        }, 500);
     };
 
     const handleCategoryChange = (category: string) => {
@@ -116,44 +109,43 @@ export const HeaderFilter = ({
 
                 {/* Right: Filters & Sort */}
                 <div className="flex items-center space-x-2 overflow-x-auto pb-2 md:pb-0">
-                    <Select onValueChange={handleRatingChange}>
-                        <SelectTrigger className="h-9 w-[130px] rounded-full border-none bg-muted/50">
-                            <SelectValue placeholder="Rating" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Any Rating</SelectItem>
-                            <SelectItem value="4">4+ Stars</SelectItem>
-                            <SelectItem value="3">3+ Stars</SelectItem>
-                            <SelectItem value="2">2+ Stars</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <AppSelect
+                        onChange={handleRatingChange}
+                        placeholder="Rating"
+                        ariaLabel="Rating"
+                        size="sm"
+                        searchable={false}
+                        className="w-[140px] shrink-0"
+                        triggerClassName="h-9 min-h-9 rounded-full border-none bg-muted/50"
+                        options={[
+                            { value: 'all', label: 'Any Rating' },
+                            { value: '4', label: '4+ Stars' },
+                            { value: '3', label: '3+ Stars' },
+                            { value: '2', label: '2+ Stars' },
+                        ]}
+                    />
 
-                    <Select onValueChange={handleSortChange}>
-                        <SelectTrigger className="h-9 w-[160px] rounded-full border-none bg-muted/50">
-                            <SelectValue placeholder="Sort by" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectGroup>
-                                <SelectItem value="recommended">
-                                    Recommended
-                                </SelectItem>
-                                <SelectItem value="price_asc">
-                                    Price: Low to High
-                                </SelectItem>
-                                <SelectItem value="price_desc">
-                                    Price: High to Low
-                                </SelectItem>
-                                <SelectItem value="rating_desc">
-                                    Top Rated
-                                </SelectItem>
-                                {hasLocation && (
-                                    <SelectItem value="distance_asc">
-                                        Distance
-                                    </SelectItem>
-                                )}
-                            </SelectGroup>
-                        </SelectContent>
-                    </Select>
+                    <AppSelect
+                        onChange={handleSortChange}
+                        placeholder="Sort by"
+                        ariaLabel="Sort by"
+                        size="sm"
+                        searchable={false}
+                        className="w-[180px] shrink-0"
+                        triggerClassName="h-9 min-h-9 rounded-full border-none bg-muted/50"
+                        options={[
+                            { value: 'recommended', label: 'Recommended' },
+                            { value: 'price_asc', label: 'Price: Low to High' },
+                            {
+                                value: 'price_desc',
+                                label: 'Price: High to Low',
+                            },
+                            { value: 'rating_desc', label: 'Top Rated' },
+                            ...(hasLocation
+                                ? [{ value: 'distance_asc', label: 'Distance' }]
+                                : []),
+                        ]}
+                    />
                 </div>
             </div>
 

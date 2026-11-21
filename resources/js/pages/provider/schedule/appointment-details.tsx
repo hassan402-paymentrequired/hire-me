@@ -1,8 +1,6 @@
 import KeenIcon from '@/components/keen-icon';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+import { AppSelect } from '@/components/ui/app-select';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CustomAlertDialog } from '@/components/ui/custom-alert-dialog';
 import {
     Dialog,
@@ -15,10 +13,10 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
-import { formatStatus, getStatusVariant } from '@/lib/utils';
+import { formatStatus } from '@/lib/utils';
 import business from '@/routes/business';
 import { BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Loader2 } from 'lucide-react';
 import React from 'react';
 
@@ -61,6 +59,28 @@ interface AppointmentDetails {
         email: string;
         role: 'admin' | 'staff';
     } | null;
+}
+
+function InfoTile({
+    icon,
+    label,
+    value,
+}: {
+    icon: string;
+    label: string;
+    value: string;
+}) {
+    return (
+        <div className="flex flex-col gap-1 rounded-[14px] bg-muted/60 p-3.5">
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <KeenIcon name={icon} className="text-sm" />
+                {label}
+            </span>
+            <span className="text-[15px] font-bold text-foreground">
+                {value}
+            </span>
+        </div>
+    );
 }
 
 export default function AppointmentDetailsPage({
@@ -109,16 +129,6 @@ export default function AppointmentDetailsPage({
         appointment.provider_payout_amount !== null
             ? Number(appointment.provider_payout_amount)
             : null;
-    const paymentStateTone =
-        appointment.payment_method === 'offline'
-            ? 'bg-amber-50 text-amber-700 border-amber-200'
-            : appointment.escrow_status === 'released'
-              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-              : appointment.escrow_status === 'held'
-                ? 'bg-sky-50 text-sky-700 border-sky-200'
-                : appointment.escrow_status === 'refunded'
-                  ? 'bg-slate-100 text-slate-700 border-slate-200'
-                  : 'bg-muted text-muted-foreground border-border';
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: business.dashboard().url },
@@ -222,577 +232,498 @@ export default function AppointmentDetailsPage({
         );
     };
 
+    const statusPill: Record<string, string> = {
+        pending:
+            'bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300',
+        confirmed:
+            'bg-[#E6F4EC] text-[#1F6B43] dark:bg-[#0E3B2E] dark:text-[#C8F169]',
+        pending_completion: 'bg-[#0E3B2E] text-[#C8F169]',
+        completed: 'bg-muted text-muted-foreground',
+        cancelled:
+            'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300',
+    };
+
+    const card =
+        'rounded-[20px] border border-[#0E3B2E]/10 bg-card shadow-[0_1px_2px_rgba(19,32,27,0.04)] dark:border-white/10';
+    const initials = appointment.client_name
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((word) => word[0])
+        .join('')
+        .toUpperCase();
+    const isOffline = appointment.payment_method === 'offline';
+    const isConfirmedOrLater = [
+        'confirmed',
+        'pending_completion',
+        'completed',
+    ].includes(appointment.status);
+    const isServiceDone = ['pending_completion', 'completed'].includes(
+        appointment.status,
+    );
+
+    type StepState = 'done' | 'now' | 'todo';
+    const timeline: { title: string; detail: string; state: StepState }[] =
+        appointment.status === 'cancelled'
+            ? [
+                  {
+                      title: 'Booked',
+                      detail: appointment.created_at,
+                      state: 'done',
+                  },
+                  {
+                      title: `Cancelled${appointment.cancelled_by ? ` by ${appointment.cancelled_by}` : ''}`,
+                      detail:
+                          appointment.cancellation_reason || 'No reason given',
+                      state: 'now',
+                  },
+              ]
+            : [
+                  {
+                      title: isOffline ? 'Booked' : 'Booked & paid',
+                      detail: appointment.created_at,
+                      state: 'done',
+                  },
+                  {
+                      title:
+                          appointment.status === 'pending'
+                              ? 'Waiting for you to confirm'
+                              : 'Confirmed',
+                      detail:
+                          appointment.status === 'pending'
+                              ? 'Now'
+                              : 'You accepted the booking',
+                      state: appointment.status === 'pending' ? 'now' : 'done',
+                  },
+                  {
+                      title: 'Service day',
+                      detail: appointment.start_time,
+                      state: isServiceDone
+                          ? 'done'
+                          : isConfirmedOrLater
+                            ? 'now'
+                            : 'todo',
+                  },
+                  {
+                      title: 'Marked complete',
+                      detail:
+                          appointment.status === 'pending_completion'
+                              ? 'Waiting for the client to confirm'
+                              : 'You and the client confirm',
+                      state:
+                          appointment.status === 'completed'
+                              ? 'done'
+                              : appointment.status === 'pending_completion'
+                                ? 'now'
+                                : 'todo',
+                  },
+                  {
+                      title: isOffline ? 'Paid on site' : 'Payout released',
+                      detail:
+                          isPaymentReleased && appointment.payment_released_at
+                              ? appointment.payment_released_at
+                              : 'To your wallet',
+                      state: isPaymentReleased ? 'done' : 'todo',
+                  },
+              ];
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Appointment - ${appointment.client_name}`} />
 
-            <div className="space-y-6 p-4">
-                <section className="overflow-hidden rounded-3xl border border-border/70 bg-background">
-                    <div className="relative">
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.06),_transparent_24%),radial-gradient(circle_at_left,_rgba(16,185,129,0.06),_transparent_24%)]" />
-                        <div className="relative space-y-5 px-6 py-6 lg:px-8 lg:py-8">
-                            <div className="flex flex-wrap items-center gap-3">
-                                <Badge className="border-border bg-muted px-3 py-1 text-[11px] font-medium tracking-[0.18em] text-foreground/70 uppercase hover:bg-muted">
-                                    Appointment details
-                                </Badge>
-                                <Badge
-                                    variant={getStatusVariant(
-                                        appointment.status,
-                                    )}
-                                >
-                                    {formatStatus(appointment.status)}
-                                </Badge>
-                                <span
-                                    className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${paymentStateTone}`}
-                                >
-                                    {paymentStateLabel}
+            <div className="flex flex-col gap-[22px] p-4 md:p-6">
+                <Link
+                    href="/schedule/appointments"
+                    className="flex w-fit items-center gap-1.5 text-[13px] font-bold text-[#0E3B2E] dark:text-[#C8F169]"
+                    prefetch
+                >
+                    <KeenIcon name="arrow-left" className="text-sm" />
+                    Appointments
+                </Link>
+
+                <header className="flex flex-wrap items-end gap-3">
+                    <div className="flex flex-[1_1_300px] flex-col gap-1">
+                        <span className="text-[13px] text-muted-foreground">
+                            Booking #
+                            {String(appointment.id).slice(0, 8).toUpperCase()}
+                        </span>
+                        <h1 className="font-[Sora] text-[28px] font-bold tracking-[-0.02em] text-foreground capitalize">
+                            {appointment.services[0]?.name ?? 'Appointment'}
+                            {appointment.services.length > 1 &&
+                                ` +${appointment.services.length - 1}`}
+                        </h1>
+                        <span className="text-sm text-muted-foreground">
+                            Booked on {appointment.created_at}
+                        </span>
+                    </div>
+                    <span
+                        className={`rounded-full px-3 py-1.5 text-xs font-bold ${statusPill[appointment.status] ?? 'bg-muted text-muted-foreground'}`}
+                    >
+                        {formatStatus(appointment.status)}
+                    </span>
+                </header>
+
+                <div className="flex flex-wrap items-start gap-6">
+                    <div className="flex min-w-0 flex-[999_1_520px] flex-col gap-5">
+                        {/* Client */}
+                        <section
+                            className={`${card} flex flex-wrap items-center gap-4 p-[22px]`}
+                        >
+                            <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-[#E6F4EC] font-[Sora] text-lg font-bold text-[#0E3B2E] dark:bg-[#0E3B2E] dark:text-[#C8F169]">
+                                {initials}
+                            </div>
+                            <div className="flex min-w-0 flex-[1_1_200px] flex-col gap-0.5">
+                                <span className="truncate font-[Sora] text-lg font-semibold text-foreground">
+                                    {appointment.client_name}
+                                </span>
+                                <span className="truncate text-[13px] text-muted-foreground">
+                                    {[
+                                        appointment.email,
+                                        appointment.location_phone,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(' · ')}
                                 </span>
                             </div>
+                            {appointment.email && (
+                                <a
+                                    href={`mailto:${appointment.email}`}
+                                    aria-label="Email client"
+                                    className="flex size-11 items-center justify-center rounded-xl border border-[#0E3B2E]/12 text-[#0E3B2E] hover:bg-muted dark:border-white/15 dark:text-[#C8F169]"
+                                >
+                                    <KeenIcon name="sms" className="text-xl" />
+                                </a>
+                            )}
+                            {appointment.location_phone && (
+                                <a
+                                    href={`tel:${appointment.location_phone}`}
+                                    aria-label="Call client"
+                                    className="flex size-11 items-center justify-center rounded-xl border border-[#0E3B2E]/12 text-[#0E3B2E] hover:bg-muted dark:border-white/15 dark:text-[#C8F169]"
+                                >
+                                    <KeenIcon
+                                        name="phone"
+                                        className="text-xl"
+                                    />
+                                </a>
+                            )}
+                        </section>
 
-                            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                                <div className="flex min-w-0 items-center gap-4">
-                                    <Avatar className="h-16 w-16 rounded-2xl border border-border/70">
-                                        <AvatarFallback className="rounded-2xl text-base font-semibold">
-                                            {appointment.client_name
-                                                .split(' ')
-                                                .map((n) => n[0])
-                                                .join('')
-                                                .toUpperCase()}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div className="min-w-0">
-                                        <h1 className="truncate text-3xl font-semibold tracking-tight text-foreground">
-                                            {appointment.client_name}
-                                        </h1>
-                                        {appointment.email && (
-                                            <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                                                <KeenIcon
-                                                    name="text-circle"
-                                                    className="text-sm"
-                                                />
-                                                <a
-                                                    href={`mailto:${appointment.email}`}
-                                                    className="truncate hover:text-primary"
-                                                >
-                                                    {appointment.email}
-                                                </a>
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="grid gap-3 sm:grid-cols-3 lg:min-w-[420px]">
-                                    <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
-                                        <div className="flex items-center gap-2 text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">
-                                            <KeenIcon
-                                                name="electronic-clock"
-                                                className="text-sm text-sky-600 dark:text-sky-300"
-                                            />
-                                            Schedule
-                                        </div>
-                                        <p className="mt-3 text-sm font-semibold text-foreground">
-                                            {appointment.start_time}
-                                        </p>
-                                    </div>
-                                    <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
-                                        <div className="flex items-center gap-2 text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">
-                                            <KeenIcon
-                                                name="receipt-square"
-                                                className="text-sm text-emerald-600 dark:text-emerald-300"
-                                            />
-                                            Amount
-                                        </div>
-                                        <p className="mt-3 text-lg font-semibold text-foreground">
-                                            {appointment.price}
-                                        </p>
-                                    </div>
-                                    <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
-                                        <div className="flex items-center gap-2 text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">
-                                            <KeenIcon
-                                                name="people"
-                                                className="text-sm text-violet-600 dark:text-violet-300"
-                                            />
-                                            Services
-                                        </div>
-                                        <p className="mt-3 text-lg font-semibold text-foreground">
-                                            {appointment.services.length}
-                                        </p>
-                                        <p className="mt-1 text-xs text-muted-foreground">
-                                            booked for this appointment
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <div className="grid gap-6 md:grid-cols-3">
-                    {/* Main Details */}
-                    <Card className="overflow-hidden rounded-3xl border border-border/70 shadow-none md:col-span-2">
-                        <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
-                            <CardTitle className="text-lg font-bold">
-                                Appointment Information
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-8 pt-6">
-                            {/* Time, Date and Duration */}
-                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                                <div className="space-y-1">
-                                    <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
-                                        Date & Time
-                                    </p>
-                                    <div className="flex items-center gap-3">
-                                        <KeenIcon
-                                            name="electronic-clock"
-                                            className="text-base text-primary"
-                                        />
-                                        <span className="text-lg font-bold">
-                                            {appointment.start_time}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="space-y-1">
-                                    <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
-                                        Ends
-                                    </p>
-                                    <div className="flex items-center gap-3">
-                                        <KeenIcon
-                                            name="electronic-clock"
-                                            className="text-base text-primary"
-                                        />
-                                        <span className="text-lg font-bold">
-                                            {appointment.end_time}
-                                        </span>
-                                    </div>
-                                </div>
+                        {/* When & where */}
+                        <section
+                            className={`${card} flex flex-col gap-3.5 p-[22px]`}
+                        >
+                            <h2 className="font-[Sora] text-lg font-semibold text-foreground">
+                                When &amp; where
+                            </h2>
+                            <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-2.5">
+                                <InfoTile
+                                    icon="calendar"
+                                    label="Starts"
+                                    value={appointment.start_time}
+                                />
+                                <InfoTile
+                                    icon="time"
+                                    label="Ends"
+                                    value={appointment.end_time}
+                                />
                                 {totalDuration > 0 && (
-                                    <div className="space-y-1">
-                                        <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
-                                            Duration
-                                        </p>
-                                        <div className="flex items-center gap-3">
-                                            <KeenIcon
-                                                name="electronic-clock"
-                                                className="text-base text-primary"
-                                            />
-                                            <span className="text-lg font-bold">
-                                                {totalDuration} minutes
-                                            </span>
-                                        </div>
-                                    </div>
+                                    <InfoTile
+                                        icon="electronic-clock"
+                                        label="Duration"
+                                        value={`${totalDuration} minutes`}
+                                    />
                                 )}
-                                {appointment.team_member && (
-                                    <div className="space-y-1">
-                                        <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
-                                            Assigned Team Member
-                                        </p>
-                                        <div className="flex items-center gap-3">
-                                            <KeenIcon
-                                                name="people"
-                                                className="text-base text-primary"
-                                            />
-                                            <div>
-                                                <span className="text-lg font-bold">
-                                                    {
-                                                        appointment.team_member
-                                                            .name
-                                                    }
-                                                </span>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {
-                                                        appointment.team_member
-                                                            .role
-                                                    }
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
+                                <InfoTile
+                                    icon="people"
+                                    label="Staff"
+                                    value={
+                                        appointment.team_member?.name ?? 'You'
+                                    }
+                                />
                             </div>
-
-                            {(appointment.escrow_status ||
-                                appointment.payment_method === 'offline' ||
-                                feePercent !== null ||
-                                feeAmount !== null ||
-                                payoutAmount !== null) && (
-                                <div className="rounded-lg border bg-muted/20 p-4">
-                                    <div className="flex items-center justify-between gap-3">
-                                        <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
-                                            Payment & Payout
-                                        </p>
-                                        <span
-                                            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${paymentStateTone}`}
-                                        >
-                                            {paymentStateLabel}
+                            {(appointment.service_location ||
+                                appointment.location) && (
+                                <div className="flex gap-3 rounded-[14px] border border-[#0E3B2E]/10 p-3.5 dark:border-white/10">
+                                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#E6F4EC] text-[#0E3B2E] dark:bg-[#0E3B2E] dark:text-[#C8F169]">
+                                        <KeenIcon
+                                            name="geolocation"
+                                            className="text-xl"
+                                        />
+                                    </div>
+                                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                                        <span className="text-xs font-bold tracking-[0.06em] text-[#2F7D4F] uppercase dark:text-[#C8F169]">
+                                            {appointment.service_location_label ||
+                                                'Location'}
                                         </span>
-                                    </div>
-
-                                    <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                                        <div>
-                                            <p className="text-xs text-muted-foreground">
-                                                Gross
-                                            </p>
-                                            <p className="text-sm font-bold">
-                                                {appointment.price}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-muted-foreground">
-                                                Platform fee
-                                                {feePercent !== null
-                                                    ? ` (${feePercent}%)`
-                                                    : ''}
-                                            </p>
-                                            <p className="text-sm font-bold">
-                                                {feeAmount !== null
-                                                    ? `₦${feeAmount.toLocaleString()}`
-                                                    : '—'}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-muted-foreground">
-                                                Net payout
-                                            </p>
-                                            <p className="text-sm font-bold">
-                                                {payoutAmount !== null
-                                                    ? `₦${payoutAmount.toLocaleString()}`
-                                                    : '—'}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-4 space-y-1 text-xs text-muted-foreground">
-                                        {appointment.payment_method ===
-                                        'offline' ? (
-                                            <p>
-                                                This appointment was booked
-                                                without upfront payment. You can
-                                                confirm it only when you are
-                                                ready to take the booking.
-                                            </p>
-                                        ) : appointment.escrow_amount !=
-                                          null ? (
-                                            <p>
-                                                Amount in escrow: ₦
-                                                {Number(
-                                                    appointment.escrow_amount,
-                                                ).toLocaleString()}
-                                            </p>
-                                        ) : null}
-                                        {appointment.payment_method !==
-                                            'offline' &&
-                                            appointment.payment_released_at && (
-                                                <p>
-                                                    Released at:{' '}
-                                                    {
-                                                        appointment.payment_released_at
-                                                    }
-                                                </p>
-                                            )}
-                                        {appointment.payment_method !==
-                                            'offline' &&
-                                            isEscrowHeld && (
-                                                <p>
-                                                    Funds are currently held in
-                                                    escrow and will be released
-                                                    when the client completes
-                                                    the appointment, or
-                                                    automatically 15 minutes
-                                                    after the end time if the
-                                                    client does not respond.
-                                                </p>
-                                            )}
-                                        {appointment.payment_method !==
-                                            'offline' &&
-                                            isPaymentReleased && (
-                                                <p>
-                                                    Payment has already been
-                                                    released to your wallet.
-                                                </p>
-                                            )}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Location */}
-                            {(appointment.location ||
-                                appointment.service_location ||
-                                appointment.location_phone) && (
-                                <div className="space-y-3">
-                                    <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
-                                        Location & Contact
-                                    </p>
-                                    <div className="flex flex-col gap-2 rounded-xl border border-muted bg-muted/30 p-4">
-                                        {appointment.service_location && (
-                                            <div className="flex items-start gap-3">
-                                                <KeenIcon
-                                                    name="geolocation"
-                                                    className="mt-0.5 shrink-0 text-sm text-primary"
-                                                />
-                                                <div>
-                                                    <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">
-                                                        {appointment.service_location_label ||
-                                                            'Service address'}
-                                                    </p>
-                                                    <span className="text-sm font-medium text-foreground">
-                                                        {
-                                                            appointment.service_location
-                                                        }
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        )}
-                                        {!appointment.service_location &&
-                                            appointment.location && (
-                                                <div className="flex items-start gap-3">
-                                                    <KeenIcon
-                                                        name="geolocation"
-                                                        className="mt-0.5 shrink-0 text-sm text-primary"
-                                                    />
-                                                    <span className="text-sm font-medium">
-                                                        {appointment.location}
-                                                    </span>
-                                                </div>
-                                            )}
+                                        <span className="text-sm font-bold text-foreground">
+                                            {appointment.service_location ||
+                                                appointment.location}
+                                        </span>
                                         {appointment.location_phone && (
-                                            <a
-                                                href={`tel:${appointment.location_phone}`}
-                                                className="flex items-center gap-3 text-sm font-medium text-primary hover:underline"
-                                            >
-                                                <KeenIcon
-                                                    name="phone"
-                                                    className="shrink-0 text-sm"
-                                                />
+                                            <span className="text-xs text-muted-foreground">
+                                                Contact:{' '}
                                                 {appointment.location_phone}
-                                            </a>
+                                            </span>
                                         )}
                                     </div>
+                                    <a
+                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(appointment.service_location || appointment.location || '')}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="self-center text-[13px] font-bold whitespace-nowrap text-[#0E3B2E] dark:text-[#C8F169]"
+                                    >
+                                        Directions →
+                                    </a>
                                 </div>
                             )}
+                        </section>
 
-                            {/* Services List */}
-                            <div className="space-y-4">
-                                <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
-                                    Booked Services
-                                </p>
-                                <div className="space-y-3">
-                                    {appointment.services.map((service) => (
-                                        <div
-                                            key={service.id}
-                                            className="flex items-center justify-between rounded border-2 border-muted bg-muted/30 p-4 transition-colors hover:border-primary/20"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div className="rounded-lg bg-primary/10 p-2 text-primary">
-                                                    <KeenIcon
-                                                        name="book-square"
-                                                        className="text-sm"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <span className="block font-bold capitalize">
-                                                        {service.name}
-                                                    </span>
-                                                    {service.duration_minutes && (
-                                                        <span className="text-xs text-muted-foreground">
-                                                            {
-                                                                service.duration_minutes
-                                                            }{' '}
-                                                            mins
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <span className="text-lg font-black">
-                                                {service.price}
-                                            </span>
-                                        </div>
-                                    ))}
-                                    <div className="flex items-center justify-between px-4 pt-2">
-                                        <span className="font-bold text-muted-foreground">
-                                            Total Price
-                                        </span>
-                                        <span className="text-2xl font-black text-primary">
-                                            {appointment.price}
-                                        </span>
-                                    </div>
+                        {/* Services & payment */}
+                        <section
+                            className={`${card} flex flex-col gap-3 p-[22px]`}
+                        >
+                            <h2 className="font-[Sora] text-lg font-semibold text-foreground">
+                                Services &amp; payment
+                            </h2>
+                            {appointment.services.map((service) => (
+                                <div
+                                    key={service.id}
+                                    className="flex justify-between gap-3 text-sm"
+                                >
+                                    <span className="text-muted-foreground capitalize">
+                                        {service.name}
+                                        {service.duration_minutes
+                                            ? ` · ${service.duration_minutes} min`
+                                            : ''}
+                                    </span>
+                                    <span className="font-semibold text-foreground">
+                                        {service.price}
+                                    </span>
                                 </div>
+                            ))}
+                            <div className="h-px bg-[#0E3B2E]/[0.08] dark:bg-white/10" />
+                            <div className="flex justify-between text-sm font-bold text-foreground">
+                                <span>
+                                    {isOffline
+                                        ? 'Total (pay on site)'
+                                        : 'Total paid by client'}
+                                </span>
+                                <span>{appointment.price}</span>
                             </div>
+                            {feeAmount !== null && (
+                                <div className="flex justify-between text-sm text-muted-foreground">
+                                    <span>
+                                        Platform fee
+                                        {feePercent !== null
+                                            ? ` (${feePercent}%)`
+                                            : ''}
+                                    </span>
+                                    <span>– ₦{feeAmount.toLocaleString()}</span>
+                                </div>
+                            )}
+                            {payoutAmount !== null && (
+                                <div className="flex items-baseline justify-between rounded-[14px] bg-[#0E3B2E] p-3.5 text-white">
+                                    <span className="text-sm font-bold">
+                                        Your payout
+                                    </span>
+                                    <span className="font-[Sora] text-[22px] font-bold text-[#C8F169]">
+                                        ₦{payoutAmount.toLocaleString()}
+                                    </span>
+                                </div>
+                            )}
+                            <div className="flex items-start gap-2.5 text-[13px] leading-normal text-muted-foreground">
+                                <KeenIcon
+                                    name="shield-tick"
+                                    className="mt-0.5 text-lg text-[#1F6B43] dark:text-[#C8F169]"
+                                />
+                                <span>
+                                    {isOffline
+                                        ? 'Booked without upfront payment. The client pays you on site.'
+                                        : isPaymentReleased
+                                          ? `Payment released to your wallet${appointment.payment_released_at ? ` on ${appointment.payment_released_at}` : ''}.`
+                                          : isEscrowHeld
+                                            ? 'Paid online and held safely. It’s released when the client confirms, or automatically 15 minutes after the end time.'
+                                            : `Payment status: ${paymentStateLabel}.`}
+                                </span>
+                            </div>
+                        </section>
 
-                            {/* Notes */}
-                            <div className="space-y-3">
-                                <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
-                                    Client Notes
-                                </p>
-                                <div className="rounded-xl border-2 border-dashed border-muted bg-muted/50 p-4 text-sm leading-relaxed text-muted-foreground italic">
+                        {/* Note */}
+                        <section className={`${card} flex gap-3 p-[22px]`}>
+                            <KeenIcon
+                                name="note-2"
+                                className="text-xl text-muted-foreground"
+                            />
+                            <div className="flex flex-col gap-1">
+                                <span className="text-[13px] font-bold text-muted-foreground">
+                                    Client note
+                                </span>
+                                <span className="text-[15px] leading-relaxed text-foreground">
                                     {appointment.notes ||
-                                        'No additional notes provided for this booking.'}
-                                </div>
+                                        'No note from the client.'}
+                                </span>
                             </div>
+                        </section>
+                    </div>
 
-                            {/* Cancellation Details */}
-                            {appointment.status === 'cancelled' &&
-                                (appointment.cancelled_by ||
-                                    appointment.cancellation_reason) && (
-                                    <div className="space-y-3">
-                                        <p className="text-xs font-bold tracking-widest text-destructive uppercase">
-                                            Cancellation Details
-                                        </p>
-                                        <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4">
-                                            {appointment.cancelled_by && (
-                                                <p className="text-sm font-medium">
-                                                    Cancelled by:{' '}
-                                                    <span className="capitalize">
-                                                        {
-                                                            appointment.cancelled_by
-                                                        }
-                                                    </span>
-                                                </p>
-                                            )}
-                                            {appointment.cancellation_reason && (
-                                                <p className="mt-1 text-sm text-muted-foreground">
-                                                    {
-                                                        appointment.cancellation_reason
-                                                    }
-                                                </p>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-                        </CardContent>
-                    </Card>
-
-                    {/* Actions and Sidebar */}
-                    <div className="space-y-6">
+                    {/* Side column */}
+                    <div className="flex max-w-[380px] flex-[1_1_320px] flex-col gap-4">
                         {hasAnyAction && (
-                            <Card className="overflow-hidden rounded-3xl border border-border/70 shadow-none">
-                                <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
-                                    <CardTitle className="text-sm font-bold tracking-widest uppercase">
-                                        Actions
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-3 pt-6">
-                                    {showConfirmAction && (
-                                        <Button
-                                            className="w-full"
+                            <section
+                                className={`${card} flex flex-col gap-2.5 p-5`}
+                            >
+                                <span className="font-[Sora] text-base font-semibold text-foreground">
+                                    Next step
+                                </span>
+                                {showConfirmAction && (
+                                    <>
+                                        <span className="text-[13px] leading-normal text-muted-foreground">
+                                            Accept the booking so the client
+                                            knows you’re coming.
+                                        </span>
+                                        <button
+                                            type="button"
                                             onClick={handleConfirm}
                                             disabled={isProcessing}
+                                            className="flex h-12 items-center justify-center gap-2 rounded-xl bg-[#0E3B2E] text-[15px] font-bold text-white hover:bg-[#0E3B2E]/90 disabled:opacity-70 dark:bg-[#C8F169] dark:text-[#0E3B2E]"
                                         >
                                             {isProcessing ? (
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                <Loader2 className="size-4 animate-spin" />
                                             ) : (
                                                 <KeenIcon
-                                                    name="verify"
-                                                    className="mr-2 text-sm"
+                                                    name="check-circle"
+                                                    className="text-lg"
                                                 />
                                             )}
-                                            Accept Booking
-                                        </Button>
-                                    )}
-                                    {showWaitingForClientState && (
-                                        <div className="flex gap-2 rounded-md border border-muted bg-muted/40 p-3 text-xs text-muted-foreground">
+                                            Accept booking
+                                        </button>
+                                    </>
+                                )}
+                                {showWaitingForClientState && (
+                                    <div className="flex gap-2.5 rounded-[14px] bg-muted/60 p-3.5 text-[13px] leading-normal text-muted-foreground">
+                                        <KeenIcon
+                                            name="information-2"
+                                            className="mt-0.5 text-lg text-[#0E3B2E] dark:text-[#C8F169]"
+                                        />
+                                        <span>
+                                            <b className="text-foreground">
+                                                Waiting for the client.
+                                            </b>{' '}
+                                            Payment is released when they
+                                            confirm, or automatically 15 minutes
+                                            after the end time.
+                                        </span>
+                                    </div>
+                                )}
+                                {showCompleteAction && (
+                                    <button
+                                        type="button"
+                                        onClick={handleComplete}
+                                        disabled={isProcessing}
+                                        className="flex h-12 items-center justify-center gap-2 rounded-xl bg-[#0E3B2E] text-[15px] font-bold text-white hover:bg-[#0E3B2E]/90 disabled:opacity-70 dark:bg-[#C8F169] dark:text-[#0E3B2E]"
+                                    >
+                                        {isProcessing ? (
+                                            <Loader2 className="size-4 animate-spin" />
+                                        ) : (
                                             <KeenIcon
-                                                name="information"
-                                                className="mt-0.5 shrink-0 text-sm text-amber-500"
+                                                name="check-circle"
+                                                className="text-lg"
                                             />
-                                            <div>
-                                                <p className="font-medium text-foreground">
-                                                    Waiting for client
-                                                    confirmation
-                                                </p>
-                                                <p>
-                                                    Once the client marks this
-                                                    appointment as completed,
-                                                    payment will be released. If
-                                                    they don&apos;t respond,
-                                                    funds are automatically
-                                                    released 15 minutes after
-                                                    the appointment end time.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    )}
-                                    {showCompleteAction && (
-                                        <Button
-                                            className="w-full bg-green-600 hover:bg-green-700"
-                                            onClick={handleComplete}
-                                            disabled={isProcessing}
-                                        >
-                                            {isProcessing ? (
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            ) : (
+                                        )}
+                                        Mark as completed
+                                    </button>
+                                )}
+                                {(appointment.email || showCancelAction) && (
+                                    <div className="grid grid-cols-2 gap-2.5">
+                                        {appointment.email ? (
+                                            <a
+                                                href={`mailto:${appointment.email}`}
+                                                className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-[#0E3B2E]/15 text-sm font-bold text-foreground hover:bg-muted dark:border-white/15"
+                                            >
                                                 <KeenIcon
-                                                    name="verify"
-                                                    className="mr-2 text-sm"
+                                                    name="sms"
+                                                    className="text-base"
                                                 />
-                                            )}
-                                            Mark as Completed
-                                        </Button>
-                                    )}
-                                    {showCancelAction && (
-                                        <Button
-                                            variant="destructive"
-                                            className="w-full"
-                                            onClick={handleCancel}
-                                            disabled={
-                                                isProcessing || !canCancel
-                                            }
-                                        >
-                                            <KeenIcon
-                                                name="trash-square"
-                                                className="mr-2 text-sm"
-                                            />
-                                            {appointment.status === 'pending'
-                                                ? 'Reject Booking'
-                                                : 'Cancel Appointment'}
-                                        </Button>
-                                    )}
-
-                                    {showReportAction && (
-                                        <Button
-                                            variant="ghost"
-                                            className="w-full justify-start text-muted-foreground hover:text-foreground"
-                                            onClick={() =>
-                                                setReportDialogOpen(true)
-                                            }
-                                            disabled={isProcessing}
-                                        >
-                                            <KeenIcon
-                                                name="information"
-                                                className="mr-2 text-sm"
-                                            />
-                                            Report Client
-                                        </Button>
-                                    )}
-                                </CardContent>
-                            </Card>
+                                                Message
+                                            </a>
+                                        ) : (
+                                            <span />
+                                        )}
+                                        {showCancelAction && (
+                                            <button
+                                                type="button"
+                                                onClick={handleCancel}
+                                                disabled={
+                                                    isProcessing || !canCancel
+                                                }
+                                                className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-red-200 text-sm font-bold text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/30"
+                                            >
+                                                <KeenIcon
+                                                    name="cross-circle"
+                                                    className="text-base"
+                                                />
+                                                {appointment.status ===
+                                                'pending'
+                                                    ? 'Decline'
+                                                    : 'Cancel'}
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                                {showReportAction && (
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setReportDialogOpen(true)
+                                        }
+                                        disabled={isProcessing}
+                                        className="self-center pt-1 text-xs font-bold text-muted-foreground hover:text-foreground"
+                                    >
+                                        Report this client
+                                    </button>
+                                )}
+                            </section>
                         )}
 
-                        <Card className="overflow-hidden rounded-3xl border border-border/70 shadow-none">
-                            <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
-                                <CardTitle className="text-sm font-bold tracking-widest uppercase">
-                                    Booking Metadata
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-3 pt-6 text-sm">
-                                <div>
-                                    <p className="text-[11px] font-medium tracking-[0.18em] text-muted-foreground uppercase">
-                                        Reference
-                                    </p>
-                                    <p className="mt-1 font-mono text-foreground">
-                                        {appointment.id}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-[11px] font-medium tracking-[0.18em] text-muted-foreground uppercase">
-                                        Received
-                                    </p>
-                                    <p className="mt-1 text-foreground">
-                                        {appointment.created_at}
-                                    </p>
-                                </div>
-                            </CardContent>
-                        </Card>
+                        <section className={`${card} flex flex-col gap-3 p-5`}>
+                            <span className="font-[Sora] text-base font-semibold text-foreground">
+                                Booking timeline
+                            </span>
+                            <ol>
+                                {timeline.map((step, index) => (
+                                    <li key={step.title} className="flex gap-3">
+                                        <div className="flex flex-col items-center">
+                                            <span
+                                                className={
+                                                    step.state === 'done'
+                                                        ? 'size-3.5 rounded-full bg-[#0E3B2E] dark:bg-[#C8F169]'
+                                                        : step.state === 'now'
+                                                          ? 'size-3.5 rounded-full bg-[#C8F169] ring-4 ring-[#C8F169]/30'
+                                                          : 'size-3.5 rounded-full border-2 border-[#A9C7B8] bg-card'
+                                                }
+                                            />
+                                            {index < timeline.length - 1 && (
+                                                <span className="min-h-[26px] w-0.5 flex-1 bg-[#E1E8E4] dark:bg-white/10" />
+                                            )}
+                                        </div>
+                                        <div className="flex flex-col gap-0.5 pb-3.5">
+                                            <span
+                                                className={
+                                                    step.state === 'todo'
+                                                        ? 'text-sm font-bold text-muted-foreground'
+                                                        : 'text-sm font-bold text-foreground'
+                                                }
+                                            >
+                                                {step.title}
+                                            </span>
+                                            <span className="text-xs text-muted-foreground">
+                                                {step.detail}
+                                            </span>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ol>
+                        </section>
                     </div>
                 </div>
             </div>
@@ -854,36 +785,41 @@ export default function AppointmentDetailsPage({
                         <div className="grid gap-4 py-4">
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="report-reason">Reason *</Label>
-                                <select
+                                <AppSelect
                                     id="report-reason"
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
                                     value={reportReason}
-                                    onChange={(e) =>
-                                        setReportReason(e.target.value)
-                                    }
+                                    onChange={setReportReason}
+                                    placeholder="Select a reason"
                                     required
-                                >
-                                    <option value="">Select a reason</option>
-                                    <option value="no-show">
-                                        Client did not show up
-                                    </option>
-                                    <option value="abusive-behavior">
-                                        Abusive or disrespectful behavior
-                                    </option>
-                                    <option value="false-claim">
-                                        False claim or dispute
-                                    </option>
-                                    <option value="payment-dispute">
-                                        Payment or refund dispute
-                                    </option>
-                                    <option value="unprofessional">
-                                        Unprofessional conduct
-                                    </option>
-                                    <option value="safety-concern">
-                                        Safety concern
-                                    </option>
-                                    <option value="other">Other</option>
-                                </select>
+                                    searchable={false}
+                                    options={[
+                                        {
+                                            value: 'no-show',
+                                            label: 'Client did not show up',
+                                        },
+                                        {
+                                            value: 'abusive-behavior',
+                                            label: 'Abusive or disrespectful behavior',
+                                        },
+                                        {
+                                            value: 'false-claim',
+                                            label: 'False claim or dispute',
+                                        },
+                                        {
+                                            value: 'payment-dispute',
+                                            label: 'Payment or refund dispute',
+                                        },
+                                        {
+                                            value: 'unprofessional',
+                                            label: 'Unprofessional conduct',
+                                        },
+                                        {
+                                            value: 'safety-concern',
+                                            label: 'Safety concern',
+                                        },
+                                        { value: 'other', label: 'Other' },
+                                    ]}
+                                />
                             </div>
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="report-description">

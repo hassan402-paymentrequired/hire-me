@@ -1,3 +1,4 @@
+import { AppSelect } from '@/components/ui/app-select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -139,27 +140,15 @@ export default function Contact({ title, prefill }: Props) {
                                         <Label htmlFor="category">
                                             Category
                                         </Label>
-                                        <select
+                                        <AppSelect
                                             id="category"
-                                            title="cat"
                                             value={form.data.category}
-                                            onChange={(e) =>
-                                                form.setData(
-                                                    'category',
-                                                    e.target.value,
-                                                )
+                                            onChange={(value) =>
+                                                form.setData('category', value)
                                             }
-                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                        >
-                                            {categories.map((category) => (
-                                                <option
-                                                    key={category.value}
-                                                    value={category.value}
-                                                >
-                                                    {category.label}
-                                                </option>
-                                            ))}
-                                        </select>
+                                            searchable={false}
+                                            options={categories}
+                                        />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="subject">Subject</Label>

@@ -1,34 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import AdminLayout from '@/layouts/admin-layout';
-import { Head,  useForm } from '@inertiajs/react';
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import { BreadcrumbItem } from '@/types';
-import {
-    Star,
-    Trash2,
-    Calendar,
-} from 'lucide-react';
 import { Pagination } from '@/components/pagination';
 import {
     AlertDialog,
@@ -40,6 +10,21 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { AppSelect } from '@/components/ui/app-select';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import AdminLayout from '@/layouts/admin-layout';
+import { BreadcrumbItem } from '@/types';
+import { Head, useForm } from '@inertiajs/react';
+import { Calendar, Star, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface Review {
@@ -80,7 +65,13 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function ModerationReviews({ reviews, filters }: Props) {
     const [deletingReview, setDeletingReview] = useState<Review | null>(null);
 
-    const { data, setData, get, delete: deleteMethod, processing } = useForm({
+    const {
+        data,
+        setData,
+        get,
+        delete: deleteMethod,
+        processing,
+    } = useForm({
         rating: filters.rating || '',
         flagged: filters.flagged || '',
     });
@@ -134,51 +125,52 @@ export default function ModerationReviews({ reviews, filters }: Props) {
                                 <label className="text-sm font-medium">
                                     Rating
                                 </label>
-                                <Select
+                                <AppSelect
                                     value={data.rating}
-                                    onValueChange={(value) =>
+                                    onChange={(value) =>
                                         setData('rating', value)
                                     }
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="All ratings" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All ratings</SelectItem>
-                                        <SelectItem value="5">5 Stars</SelectItem>
-                                        <SelectItem value="4">4 Stars</SelectItem>
-                                        <SelectItem value="3">3 Stars</SelectItem>
-                                        <SelectItem value="2">2 Stars</SelectItem>
-                                        <SelectItem value="1">1 Star</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                    placeholder="All ratings"
+                                    size="sm"
+                                    searchable={false}
+                                    options={[
+                                        { value: 'all', label: 'All ratings' },
+                                        { value: '5', label: '5 Stars' },
+                                        { value: '4', label: '4 Stars' },
+                                        { value: '3', label: '3 Stars' },
+                                        { value: '2', label: '2 Stars' },
+                                        { value: '1', label: '1 Star' },
+                                    ]}
+                                />
                             </div>
 
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">
                                     Flagged
                                 </label>
-                                <Select
+                                <AppSelect
                                     value={data.flagged}
-                                    onValueChange={(value) =>
+                                    onChange={(value) =>
                                         setData('flagged', value)
                                     }
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="All reviews" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All reviews</SelectItem>
-                                        <SelectItem value="1">
-                                            Low ratings (≤2 stars)
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                    placeholder="All reviews"
+                                    size="sm"
+                                    searchable={false}
+                                    options={[
+                                        { value: 'all', label: 'All reviews' },
+                                        {
+                                            value: '1',
+                                            label: 'Low ratings (≤2 stars)',
+                                        },
+                                    ]}
+                                />
                             </div>
                         </div>
 
                         <div className="mt-4">
-                            <Button onClick={handleFilter}>Apply Filters</Button>
+                            <Button onClick={handleFilter}>
+                                Apply Filters
+                            </Button>
                         </div>
                     </CardContent>
                 </Card>
@@ -244,7 +236,7 @@ export default function ModerationReviews({ reviews, filters }: Props) {
                                                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
                                                         <Calendar className="h-3 w-3" />
                                                         {new Date(
-                                                            review.created_at
+                                                            review.created_at,
                                                         ).toLocaleDateString()}
                                                     </div>
                                                 </TableCell>
@@ -254,7 +246,7 @@ export default function ModerationReviews({ reviews, filters }: Props) {
                                                         size="sm"
                                                         onClick={() =>
                                                             setDeletingReview(
-                                                                review
+                                                                review,
                                                             )
                                                         }
                                                     >
@@ -285,8 +277,8 @@ export default function ModerationReviews({ reviews, filters }: Props) {
                         <AlertDialogHeader>
                             <AlertDialogTitle>Delete Review</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Are you sure you want to delete this review? This
-                                action cannot be undone.
+                                Are you sure you want to delete this review?
+                                This action cannot be undone.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

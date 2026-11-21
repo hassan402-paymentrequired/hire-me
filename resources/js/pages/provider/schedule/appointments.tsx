@@ -1,22 +1,30 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { AppointmentActions } from '@/components/appointments/appointment-actions';
 import KeenIcon from '@/components/keen-icon';
 import { Pagination } from '@/components/pagination';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { useDebouncedAppointmentSearch } from '@/hooks/use-debounce-appointment-search';
 import AppLayout from '@/layouts/app-layout';
+import { cn } from '@/lib/utils';
+import business from '@/routes/business';
+import schedule from '@/routes/schedule';
 import { Appointment, type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/react';
-import { Calendar, Filter, Search, Users } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import {
+    format,
+    isPast,
+    isToday,
+    isTomorrow,
+    isYesterday,
+    parseISO,
+} from 'date-fns';
+import { useMemo, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -33,367 +41,825 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-import business from '@/routes/business';
-import { router } from '@inertiajs/react';
-import { useState } from 'react';
-import { useDebouncedAppointmentSearch } from '@/hooks/use-debounce-appointment-search';
-import { formatPrice, formatTime, formatDate, formatStatus, getStatusVariant } from '@/lib/utils';
-
+interface PaginationLink {
+    url: string | null;
+    label: string;
+    active: boolean;
+}
 
 interface AppointmentListProps {
     appointments: {
         data: Appointment[];
-        links: any[];
+        links: PaginationLink[];
+        from?: number | null;
+        to?: number | null;
+        total?: number;
     };
     filters: {
         search?: string;
         status?: string;
     };
+    statusCounts?: Record<StatusTab, number>;
 }
 
+type StatusTab = 'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled';
+
+const statusTabs: { value: StatusTab; label: string }[] = [
+    { value: 'all', label: 'All' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'confirmed', label: 'Confirmed' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'cancelled', label: 'Cancelled' },
+];
+
+const statusStyles: Record<string, string> = {
+    pending:
+        'bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300',
+    confirmed:
+        'bg-[#E6F4EC] text-[#1F6B43] dark:bg-[#0E3B2E] dark:text-[#C8F169]',
+    completed: 'bg-muted text-muted-foreground',
+    pending_completion: 'bg-[#0E3B2E] text-[#C8F169]',
+    cancelled: 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300',
+};
+
+const naira = (value: number | string) =>
+    `₦${Math.round(Number(value) || 0).toLocaleString()}`;
+
+const formatStatus = (status: string) =>
+    status.replace(/_/g, ' ').replace(/^\w/, (letter) => letter.toUpperCase());
+
+const initials = (name: string) =>
+    name
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((word) => word[0])
+        .join('')
+        .toUpperCase();
+
+const dayHeading = (date: Date) => {
+    if (isToday(date)) {
+        return `Today · ${format(date, 'EEE d MMM')}`;
+    }
+
+    if (isTomorrow(date)) {
+        return `Tomorrow · ${format(date, 'EEE d MMM')}`;
+    }
+
+    if (isYesterday(date)) {
+        return `Yesterday · ${format(date, 'EEE d MMM')}`;
+    }
+
+    return format(date, 'EEE d MMM yyyy');
+};
+
+const paymentState = (appointment: Appointment) => {
+    if (appointment.payment_method === 'offline') {
+        return {
+            label: 'Pay on site',
+            className: 'bg-muted text-muted-foreground',
+        };
+    }
+
+    switch (appointment.escrow_status) {
+        case 'released':
+            return {
+                label: 'Paid out',
+                className: 'bg-[#0E3B2E] text-[#C8F169]',
+            };
+        case 'held':
+            return {
+                label: 'Paid',
+                className:
+                    'bg-[#E6F4EC] text-[#1F6B43] dark:bg-[#0E3B2E] dark:text-[#C8F169]',
+            };
+        case 'refunded':
+            return {
+                label: 'Refunded',
+                className: 'bg-muted text-muted-foreground',
+            };
+        case 'forfeited':
+            return {
+                label: 'Forfeited',
+                className:
+                    'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300',
+            };
+        default:
+            return {
+                label: 'Unpaid',
+                className:
+                    'bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300',
+            };
+    }
+};
+
+const clientName = (appointment: Appointment) =>
+    appointment.client?.name || appointment.client_name || 'Guest client';
+
+const canCancel = (appointment: Appointment) =>
+    !['cancelled', 'completed'].includes(appointment.status) &&
+    !isPast(parseISO(appointment.start_time));
+
+const cardClass =
+    'rounded-[20px] border border-[#0E3B2E]/10 bg-card shadow-[0_1px_2px_rgba(19,32,27,0.04)] dark:border-white/10';
+
+function Pill({
+    className,
+    children,
+}: {
+    className: string;
+    children: React.ReactNode;
+}) {
+    return (
+        <span
+            className={cn(
+                'rounded-full px-2.5 py-1 text-xs font-bold whitespace-nowrap',
+                className,
+            )}
+        >
+            {children}
+        </span>
+    );
+}
 
 export default function Appointments({
     appointments,
     filters,
+    statusCounts,
 }: AppointmentListProps) {
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
-    const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
+    const [statusFilter, setStatusFilter] = useState<StatusTab>(
+        (filters.status as StatusTab) || 'all',
+    );
+    const [selectedId, setSelectedId] = useState<string | undefined>(
+        appointments.data[0]?.id,
+    );
+    const [declineTarget, setDeclineTarget] = useState<Appointment | null>(
+        null,
+    );
+    const [declineReason, setDeclineReason] = useState('');
     const searchAppointments = useDebouncedAppointmentSearch(statusFilter);
 
+    const selected =
+        appointments.data.find(
+            (appointment) => appointment.id === selectedId,
+        ) ?? appointments.data[0];
 
-    const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchTerm(e.target.value);
-        searchAppointments(e.target.value);
+    const groupedByDay = useMemo(() => {
+        const groups: { key: string; date: Date; items: Appointment[] }[] = [];
+
+        appointments.data.forEach((appointment) => {
+            const date = parseISO(appointment.start_time);
+            const key = format(date, 'yyyy-MM-dd');
+            const group = groups.find((existing) => existing.key === key);
+
+            if (group) {
+                group.items.push(appointment);
+            } else {
+                groups.push({ key, date, items: [appointment] });
+            }
+        });
+
+        return groups;
+    }, [appointments.data]);
+
+    const handleSearch = (value: string) => {
+        setSearchTerm(value);
+        searchAppointments(value);
     };
 
-    const handleStatusChange = (value: string) => {
+    const handleStatusChange = (value: StatusTab) => {
         setStatusFilter(value);
         router.get(
             '/schedule/appointments',
-            { search: searchTerm, status: value !== 'all' ? value : undefined },
+            {
+                search: searchTerm || undefined,
+                status: value !== 'all' ? value : undefined,
+            },
             { preserveState: true, replace: true },
         );
     };
 
-    const pendingCount = appointments.data.filter((apt) => apt.status === 'pending').length;
-    const confirmedCount = appointments.data.filter((apt) => apt.status === 'confirmed').length;
-    const getServiceSummary = (apt: Appointment) => {
-        const primary = apt.services[0];
-        const extras = Math.max(0, apt.services.length - 1);
-
-        if (!primary) {
-            return {
-                title: 'No linked service',
-                subtitle: 'No service attached to this appointment',
-            };
-        }
-
-        return {
-            title: primary.name,
-            subtitle:
-                extras > 0
-                    ? `+${extras} more service${extras > 1 ? 's' : ''}`
-                    : 'Single-service booking',
-        };
+    const confirmAppointment = (appointment: Appointment) => {
+        router.post(
+            `/provider/appointments/${appointment.id}/confirm`,
+            { return_back: true },
+            { preserveScroll: true },
+        );
     };
-    const getPaymentState = (apt: Appointment) => {
-        if ((apt as any).payment_method === 'offline') {
-            return {
-                label: 'Unpaid',
-                className: 'bg-amber-50 text-amber-700 border-amber-200',
-            };
+
+    const submitDecline = () => {
+        if (!declineTarget || !declineReason.trim()) {
+            return;
         }
 
-        if (apt.escrow_status === 'released') {
-            return {
-                label: 'Paid out',
-                className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-            };
-        }
-
-        if (apt.escrow_status === 'held') {
-            return {
-                label: 'Paid',
-                className: 'bg-sky-50 text-sky-700 border-sky-200',
-            };
-        }
-
-        if (apt.escrow_status === 'refunded') {
-            return {
-                label: 'Refunded',
-                className: 'bg-slate-100 text-slate-700 border-slate-200',
-            };
-        }
-
-        if (apt.escrow_status === 'forfeited') {
-            return {
-                label: 'Forfeited',
-                className: 'bg-rose-50 text-rose-700 border-rose-200',
-            };
-        }
-
-        return {
-            label: 'Unpaid',
-            className: 'bg-amber-50 text-amber-700 border-amber-200',
-        };
+        router.post(
+            `/provider/appointments/${declineTarget.id}/cancel`,
+            { reason: declineReason },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setDeclineTarget(null);
+                    setDeclineReason('');
+                },
+            },
+        );
     };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Appointments" />
-            <div className="flex flex-col gap-6 p-4">
-                <section className="overflow-hidden rounded-3xl border border-border/70 bg-background">
-                    <div className="relative">
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.06),_transparent_24%),radial-gradient(circle_at_left,_rgba(16,185,129,0.06),_transparent_24%)]" />
-                        <div className="relative space-y-5 px-6 py-6 lg:px-8 lg:py-8">
-                            <div className="flex flex-wrap items-center gap-3">
-                                <Badge className="border-border bg-muted px-3 py-1 text-[11px] font-medium tracking-[0.18em] uppercase text-foreground/70 hover:bg-muted">
-                                    Schedule workspace
-                                </Badge>
-                                <Badge variant="secondary" className="rounded-full px-3 py-1">
-                                    {appointments.data.length} visible bookings
-                                </Badge>
-                            </div>
 
-                            <div className="max-w-2xl space-y-2">
-                                <h1 className="text-3xl font-semibold tracking-tight text-foreground lg:text-4xl">
-                                    Appointments
-                                </h1>
-                                <p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
-                                    Keep your booking pipeline organized, respond to pending requests quickly, and open any appointment when you need the full timeline.
-                                </p>
-                            </div>
-
-                            <div className="grid gap-3 sm:grid-cols-3">
-                                <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
-                                    <div className="flex items-center gap-2 text-xs font-medium tracking-[0.2em] uppercase text-muted-foreground">
-                                        <KeenIcon name="electronic-clock" className="text-sm text-sky-600 dark:text-sky-300" />
-                                        Total in view
-                                    </div>
-                                    <p className="mt-3 text-3xl font-semibold text-foreground">
-                                        {appointments.data.length}
-                                    </p>
-                                    <p className="mt-1 text-sm text-muted-foreground">
-                                        bookings on this page
-                                    </p>
-                                </div>
-                                <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
-                                    <div className="flex items-center gap-2 text-xs font-medium tracking-[0.2em] uppercase text-muted-foreground">
-                                        <KeenIcon name="status" className="text-sm text-amber-600 dark:text-amber-300" />
-                                        Pending review
-                                    </div>
-                                    <p className="mt-3 text-3xl font-semibold text-foreground">
-                                        {pendingCount}
-                                    </p>
-                                    <p className="mt-1 text-sm text-muted-foreground">
-                                        waiting for your decision
-                                    </p>
-                                </div>
-                                <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
-                                    <div className="flex items-center gap-2 text-xs font-medium tracking-[0.2em] uppercase text-muted-foreground">
-                                        <KeenIcon name="verify" className="text-sm text-emerald-600 dark:text-emerald-300" />
-                                        Confirmed
-                                    </div>
-                                    <p className="mt-3 text-3xl font-semibold text-foreground">
-                                        {confirmedCount}
-                                    </p>
-                                    <p className="mt-1 text-sm text-muted-foreground">
-                                        already locked in
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+            <div className="flex flex-col gap-[22px] p-4 md:p-6">
+                {/* Header */}
+                <header className="flex flex-wrap items-end gap-4">
+                    <div className="flex flex-[1_1_300px] flex-col gap-1">
+                        <span className="text-[13px] text-muted-foreground">
+                            Schedule
+                        </span>
+                        <h1 className="font-[Sora] text-[28px] font-bold tracking-[-0.02em] text-foreground">
+                            Appointments
+                        </h1>
+                        <span className="text-sm text-muted-foreground">
+                            Confirm requests, track payments and keep your day
+                            on time.
+                        </span>
                     </div>
-                </section>
+                    <Link
+                        href={schedule.calender.index()}
+                        className="flex h-11 items-center gap-2 rounded-xl border border-[#0E3B2E]/15 bg-card px-4 text-sm font-semibold text-foreground transition-colors hover:bg-muted dark:border-white/15"
+                        prefetch
+                    >
+                        <KeenIcon name="calendar-tick" className="text-lg" />
+                        Calendar view
+                    </Link>
+                </header>
 
-                <Card className="overflow-hidden rounded-3xl border border-border/70">
-                    <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
-                        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                            <div>
-                                <CardTitle className="flex items-center gap-2">
-                                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/70 bg-background text-sky-600 dark:text-sky-300">
-                                        <Calendar className="h-4 w-4" />
-                                    </span>
-                                    All Bookings
-                                </CardTitle>
-                                <CardDescription className="mt-2">
-                                    Search by client, narrow by status, and open any booking to manage it fully.
-                                </CardDescription>
-                            </div>
-                            <div className="flex flex-1 items-center gap-2 xl:max-w-md">
-                                <div className="relative flex-1">
-                                    <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        placeholder="Search clients..."
-                                        className="pl-9"
-                                        value={searchTerm}
-                                        onChange={handleSearch}
-                                    />
-                                </div>
-                                <div className="w-[140px]">
-                                    <Select
-                                        value={statusFilter}
-                                        onValueChange={handleStatusChange}
-                                    >
-                                            <SelectTrigger>
-                                                <div className="flex items-center gap-2">
-                                                    <Filter className="h-4 w-4" />
-                                                    <SelectValue placeholder="Status" />
-                                                </div>
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">
-                                                All Status
-                                            </SelectItem>
-                                            <SelectItem value="confirmed">
-                                                Confirmed
-                                            </SelectItem>
-                                            <SelectItem value="pending">
-                                                Pending
-                                            </SelectItem>
-                                            <SelectItem value="cancelled">
-                                                Cancelled
-                                            </SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="pt-5">
-                        {appointments.data.length > 0 ? (
-                            <div className="grid gap-4 xl:grid-cols-2">
-                                {appointments.data.map((apt) => {
-                                    const paymentState = getPaymentState(apt);
-                                    const serviceSummary = getServiceSummary(apt);
+                {/* Filters */}
+                <div
+                    className={cn(
+                        cardClass,
+                        'flex flex-wrap items-center gap-3 rounded-2xl p-1.5',
+                    )}
+                >
+                    <div
+                        role="tablist"
+                        aria-label="Filter by status"
+                        className="flex flex-auto flex-wrap gap-1"
+                    >
+                        {statusTabs.map((tab) => {
+                            const isActive = statusFilter === tab.value;
+                            const count = statusCounts?.[tab.value];
 
-                                    return (
-                                    <div
-                                        key={apt.id}
-                                        className="flex h-full flex-col rounded-2xl border border-border/70 bg-background p-5 transition-colors hover:bg-muted/10"
-                                    >
-                                        <div className="flex h-full flex-col gap-4">
-                                            <div className="flex items-start justify-between gap-4">
-                                                <div className="flex min-w-0 items-center gap-3">
-                                                    <Avatar className="h-11 w-11 border border-border/70">
-                                                        <AvatarImage
-                                                            src={apt.client.avatar}
-                                                            alt={apt.client.name}
-                                                        />
-                                                        <AvatarFallback>
-                                                            {apt.client.name.charAt(0)}
-                                                        </AvatarFallback>
-                                                    </Avatar>
-                                                    <div className="min-w-0">
-                                                        <p className="truncate font-semibold text-foreground">
-                                                            {apt.client.name}
-                                                        </p>
-                                                        <p className="truncate text-xs text-muted-foreground">
-                                                            {apt.client.email}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <Badge
-                                                    variant={getStatusVariant(apt.status)}
-                                                    className="shrink-0 rounded-full px-3 py-1"
-                                                >
-                                                    {formatStatus(apt.status)}
-                                                </Badge>
-                                            </div>
+                            return (
+                                <button
+                                    key={tab.value}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={isActive}
+                                    onClick={() =>
+                                        handleStatusChange(tab.value)
+                                    }
+                                    className={cn(
+                                        'flex h-10 items-center gap-2 rounded-[10px] px-3.5 text-sm font-bold transition-colors',
+                                        isActive
+                                            ? 'bg-[#0E3B2E] text-white dark:bg-[#C8F169] dark:text-[#0E3B2E]'
+                                            : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                                    )}
+                                >
+                                    {tab.label}
+                                    {count !== undefined && (
+                                        <span
+                                            className={cn(
+                                                'rounded-full px-[7px] py-px text-[11px]',
+                                                isActive ||
+                                                    (tab.value === 'pending' &&
+                                                        count > 0)
+                                                    ? 'bg-[#C8F169] text-[#0E3B2E] dark:bg-[#0E3B2E] dark:text-[#C8F169]'
+                                                    : 'bg-muted text-muted-foreground',
+                                            )}
+                                        >
+                                            {count}
+                                        </span>
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <label className="flex h-10 flex-[0_1_260px] items-center gap-2.5 rounded-[10px] bg-muted px-3 text-muted-foreground">
+                        <KeenIcon name="magnifier" className="text-base" />
+                        <input
+                            type="search"
+                            aria-label="Search clients"
+                            placeholder="Search clients…"
+                            value={searchTerm}
+                            onChange={(event) =>
+                                handleSearch(event.target.value)
+                            }
+                            className="w-full border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                        />
+                    </label>
+                </div>
 
-                                            <div className="grid gap-3 sm:grid-cols-2">
-                                                <div className="rounded-2xl border border-border/70 bg-muted/20 p-3">
-                                                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                                                        Services
-                                                    </p>
-                                                    <div className="mt-2 min-h-12">
-                                                        <p className="line-clamp-1 text-sm font-semibold capitalize leading-6 text-foreground">
-                                                            {serviceSummary.title}
-                                                        </p>
-                                                        <p className="mt-1 text-xs text-muted-foreground">
-                                                            {serviceSummary.subtitle}
-                                                        </p>
-                                                    </div>
-                                                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                                                        {apt.team_member && (
-                                                            <span className="inline-flex w-fit items-center gap-1 rounded-full border border-border/70 bg-background px-2 py-1 text-[10px] font-bold uppercase text-foreground/80">
-                                                                <Users className="h-3 w-3" />
-                                                                {apt.team_member.user.name}
-                                                            </span>
-                                                        )}
-                                                        <span className="rounded-full border border-border/70 bg-background px-2 py-1 text-[10px] font-bold uppercase text-muted-foreground">
-                                                            {apt.services.length} service{apt.services.length > 1 ? 's' : ''}
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="rounded-2xl border border-border/70 bg-muted/20 p-3">
-                                                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                                                        Schedule
-                                                    </p>
-                                                    <p className="mt-2 min-h-6 font-semibold text-foreground">
-                                                        {formatDate(apt.start_time)}
-                                                    </p>
-                                                    <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-full border border-border/70 bg-background px-2.5 py-1 text-xs text-muted-foreground">
-                                                        <KeenIcon name="electronic-clock" className="text-xs" />
-                                                        {formatTime(apt.start_time)}
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            <div className="rounded-2xl border border-border/70 bg-background p-3">
-                                                <div className="flex items-center justify-between gap-3">
-                                                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                                                        Client note
-                                                    </p>
-                                                    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${paymentState.className}`}>
-                                                        {paymentState.label}
-                                                    </span>
-                                                </div>
-                                                <div className="mt-2 min-h-12">
-                                                    <p className="line-clamp-2 text-sm leading-6 text-foreground/85">
-                                                        {apt.notes?.trim() || 'No note from client for this booking.'}
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-auto flex flex-col gap-3 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                                                <div>
-                                                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                                                        Amount
-                                                    </p>
-                                                    <p className="mt-1 text-lg font-semibold text-foreground">
-                                                        {formatPrice(apt.price)}
-                                                    </p>
-                                                </div>
-                                                <div className="sm:text-right">
-                                                    <AppointmentActions appointment={apt} />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    );
-                                })}
+                <div className="flex flex-wrap items-start gap-6">
+                    {/* List */}
+                    <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-[22px]">
+                        {groupedByDay.length === 0 ? (
+                            <div
+                                className={cn(
+                                    cardClass,
+                                    'flex flex-col items-center gap-2 border-dashed py-14 text-center',
+                                )}
+                            >
+                                <KeenIcon
+                                    name="electronic-clock"
+                                    className="text-3xl text-[#A9C7B8]"
+                                />
+                                <p className="font-semibold text-foreground">
+                                    No appointments found
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    Try a different search term or status
+                                    filter.
+                                </p>
                             </div>
                         ) : (
-                            <div className="rounded-2xl border border-dashed border-border/70 py-14 text-center">
-                                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
-                                    <KeenIcon name="electronic-clock" className="text-base" />
-                                </div>
-                                <p className="font-medium text-foreground">No appointments found</p>
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                    Try a different search term or status filter.
-                                </p>
-                            </div>
+                            groupedByDay.map((group) => (
+                                <section
+                                    key={group.key}
+                                    className="flex flex-col gap-2.5"
+                                >
+                                    <div className="flex items-center gap-2.5 px-1">
+                                        <h2 className="font-[Sora] text-[15px] font-semibold text-foreground">
+                                            {dayHeading(group.date)}
+                                        </h2>
+                                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold text-muted-foreground">
+                                            {group.items.length}
+                                        </span>
+                                        <span
+                                            className="h-px flex-1 bg-[#0E3B2E]/10 dark:bg-white/10"
+                                            aria-hidden="true"
+                                        />
+                                    </div>
+
+                                    {group.items.map((appointment) => {
+                                        const isPending =
+                                            appointment.status === 'pending';
+                                        const isSelected =
+                                            selected?.id === appointment.id;
+                                        const payment =
+                                            paymentState(appointment);
+                                        const name = clientName(appointment);
+                                        const start = parseISO(
+                                            appointment.start_time,
+                                        );
+                                        const end = appointment.end_time
+                                            ? parseISO(appointment.end_time)
+                                            : null;
+
+                                        return (
+                                            <div
+                                                key={appointment.id}
+                                                onClick={() =>
+                                                    setSelectedId(
+                                                        appointment.id,
+                                                    )
+                                                }
+                                                className={cn(
+                                                    'flex cursor-pointer flex-wrap items-center gap-4 rounded-2xl border px-4 py-3.5 transition-shadow md:flex-nowrap',
+                                                    isPending
+                                                        ? 'bg-[#FBFEF3] dark:bg-[#C8F169]/[0.04]'
+                                                        : 'bg-card',
+                                                    isSelected
+                                                        ? 'border-2 border-[#0E3B2E] shadow-[0_8px_24px_rgba(14,59,46,0.08)] dark:border-[#C8F169]'
+                                                        : 'border-[#0E3B2E]/[0.08] dark:border-white/10',
+                                                )}
+                                            >
+                                                <div className="flex w-16 shrink-0 flex-col">
+                                                    <span className="font-[Sora] text-base font-bold text-foreground">
+                                                        {format(start, 'hh:mm')}
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {end
+                                                            ? `to ${format(end, 'hh:mm a')}`
+                                                            : format(
+                                                                  start,
+                                                                  'a',
+                                                              )}
+                                                    </span>
+                                                </div>
+                                                <span
+                                                    className={cn(
+                                                        'w-[3px] self-stretch rounded-full',
+                                                        isPending
+                                                            ? 'bg-[#C8F169]'
+                                                            : 'bg-[#A9C7B8]',
+                                                    )}
+                                                    aria-hidden="true"
+                                                />
+                                                <div className="flex size-[42px] shrink-0 items-center justify-center rounded-full bg-[#E6F4EC] text-[13px] font-bold text-[#0E3B2E] dark:bg-[#0E3B2E] dark:text-[#C8F169]">
+                                                    {initials(name)}
+                                                </div>
+                                                <div className="flex min-w-0 flex-[1_1_180px] flex-col gap-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setSelectedId(
+                                                                appointment.id,
+                                                            )
+                                                        }
+                                                        className="truncate text-left text-[15px] font-bold text-foreground"
+                                                    >
+                                                        {name}
+                                                    </button>
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <span className="truncate text-[13px] text-muted-foreground capitalize">
+                                                            {appointment
+                                                                .services[0]
+                                                                ?.name ??
+                                                                'No linked service'}
+                                                            {appointment
+                                                                .services
+                                                                .length > 1 &&
+                                                                ` +${appointment.services.length - 1}`}
+                                                        </span>
+                                                        {appointment.team_member && (
+                                                            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-bold text-muted-foreground">
+                                                                <KeenIcon
+                                                                    name="user"
+                                                                    className="text-[11px]"
+                                                                />
+                                                                {
+                                                                    appointment
+                                                                        .team_member
+                                                                        .user
+                                                                        .name
+                                                                }
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="flex shrink-0 flex-col items-end gap-1">
+                                                    <span className="font-[Sora] text-[15px] font-bold text-foreground">
+                                                        {naira(
+                                                            appointment.price,
+                                                        )}
+                                                    </span>
+                                                    <Pill
+                                                        className={
+                                                            payment.className
+                                                        }
+                                                    >
+                                                        {payment.label}
+                                                    </Pill>
+                                                </div>
+                                                <div className="flex w-[104px] shrink-0 justify-center">
+                                                    <Pill
+                                                        className={
+                                                            statusStyles[
+                                                                appointment
+                                                                    .status
+                                                            ] ??
+                                                            'bg-muted text-muted-foreground'
+                                                        }
+                                                    >
+                                                        {formatStatus(
+                                                            appointment.status,
+                                                        )}
+                                                    </Pill>
+                                                </div>
+                                                {isPending ? (
+                                                    <div
+                                                        className="flex gap-2"
+                                                        onClick={(event) =>
+                                                            event.stopPropagation()
+                                                        }
+                                                    >
+                                                        {canCancel(
+                                                            appointment,
+                                                        ) && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    setDeclineTarget(
+                                                                        appointment,
+                                                                    )
+                                                                }
+                                                                className="h-10 rounded-[10px] border border-[#0E3B2E]/15 bg-card px-3.5 text-[13px] font-bold text-foreground hover:bg-muted dark:border-white/15"
+                                                            >
+                                                                Decline
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                confirmAppointment(
+                                                                    appointment,
+                                                                )
+                                                            }
+                                                            className="flex h-10 items-center gap-1.5 rounded-[10px] bg-[#0E3B2E] px-3.5 text-[13px] font-bold text-white hover:bg-[#0E3B2E]/90 dark:bg-[#C8F169] dark:text-[#0E3B2E]"
+                                                        >
+                                                            <KeenIcon
+                                                                name="check"
+                                                                className="text-sm"
+                                                            />
+                                                            Confirm
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <Link
+                                                        href={`/provider/appointments/${appointment.id}`}
+                                                        aria-label={`Open booking for ${name}`}
+                                                        onClick={(event) =>
+                                                            event.stopPropagation()
+                                                        }
+                                                        className="flex size-10 shrink-0 items-center justify-center rounded-[10px] border border-[#0E3B2E]/12 bg-card text-muted-foreground hover:bg-muted dark:border-white/15"
+                                                        prefetch
+                                                    >
+                                                        <KeenIcon
+                                                            name="arrow-right"
+                                                            className="text-base"
+                                                        />
+                                                    </Link>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </section>
+                            ))
                         )}
-                        {appointments.links?.length > 1 && (
-                            <div className="mt-6 flex justify-center">
+
+                        {appointments.links?.length > 3 && (
+                            <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+                                {appointments.total !== undefined && (
+                                    <span className="text-[13px] text-muted-foreground">
+                                        Showing {appointments.from ?? 0}–
+                                        {appointments.to ?? 0} of{' '}
+                                        {appointments.total}
+                                    </span>
+                                )}
                                 <Pagination links={appointments.links} />
                             </div>
                         )}
-                    </CardContent>
-                </Card>
+                    </div>
+
+                    {/* Details panel */}
+                    {selected && (
+                        <aside
+                            className={cn(
+                                cardClass,
+                                'sticky top-4 hidden max-w-[420px] flex-[1_1_360px] flex-col overflow-hidden xl:flex',
+                            )}
+                        >
+                            <div className="flex items-center justify-between border-b border-[#0E3B2E]/[0.08] px-[22px] py-5 dark:border-white/10">
+                                <span className="font-[Sora] text-[17px] font-semibold text-foreground">
+                                    Booking details
+                                </span>
+                                <Pill
+                                    className={
+                                        statusStyles[selected.status] ??
+                                        'bg-muted text-muted-foreground'
+                                    }
+                                >
+                                    {formatStatus(selected.status)}
+                                </Pill>
+                            </div>
+
+                            <div className="flex flex-col gap-5 px-[22px] py-5">
+                                <div className="flex items-center gap-3.5">
+                                    <div className="flex size-[52px] shrink-0 items-center justify-center rounded-full bg-[#E6F4EC] font-[Sora] text-[17px] font-bold text-[#0E3B2E] dark:bg-[#0E3B2E] dark:text-[#C8F169]">
+                                        {initials(clientName(selected))}
+                                    </div>
+                                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                                        <span className="truncate text-base font-bold text-foreground">
+                                            {clientName(selected)}
+                                        </span>
+                                        <span className="truncate text-[13px] text-muted-foreground">
+                                            {selected.client?.email ||
+                                                selected.client_email}
+                                        </span>
+                                    </div>
+                                    {(selected.client?.email ||
+                                        selected.client_email) && (
+                                        <a
+                                            href={`mailto:${selected.client?.email || selected.client_email}`}
+                                            aria-label="Email client"
+                                            className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-[#0E3B2E]/12 text-[#0E3B2E] hover:bg-muted dark:border-white/15 dark:text-[#C8F169]"
+                                        >
+                                            <KeenIcon
+                                                name="sms"
+                                                className="text-xl"
+                                            />
+                                        </a>
+                                    )}
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2.5">
+                                    {[
+                                        {
+                                            icon: 'calendar',
+                                            label: 'Date',
+                                            value: format(
+                                                parseISO(selected.start_time),
+                                                'EEE, d MMM',
+                                            ),
+                                        },
+                                        {
+                                            icon: 'time',
+                                            label: 'Time',
+                                            value: `${format(parseISO(selected.start_time), 'h:mm a')}${selected.end_time ? ` – ${format(parseISO(selected.end_time), 'h:mm a')}` : ''}`,
+                                        },
+                                        {
+                                            icon: 'people',
+                                            label: 'Staff',
+                                            value:
+                                                selected.team_member?.user
+                                                    .name ?? 'You',
+                                        },
+                                        {
+                                            icon: 'credit-cart',
+                                            label: 'Payment',
+                                            value: `${selected.payment_method === 'offline' ? 'On site' : 'Online'} · ${paymentState(selected).label.toLowerCase()}`,
+                                        },
+                                    ].map((detail) => (
+                                        <div
+                                            key={detail.label}
+                                            className="flex flex-col gap-1 rounded-[14px] bg-muted/60 px-3.5 py-3"
+                                        >
+                                            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                                <KeenIcon
+                                                    name={detail.icon}
+                                                    className="text-sm"
+                                                />
+                                                {detail.label}
+                                            </span>
+                                            <span className="text-sm font-bold text-foreground">
+                                                {detail.value}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="flex flex-col gap-2.5">
+                                    <span className="text-xs font-bold tracking-[0.08em] text-muted-foreground uppercase">
+                                        Services
+                                    </span>
+                                    {selected.services.length === 0 && (
+                                        <span className="text-sm text-muted-foreground">
+                                            No linked service
+                                        </span>
+                                    )}
+                                    {selected.services.map((service, index) => (
+                                        <div
+                                            key={`${service.name}-${index}`}
+                                            className="flex justify-between gap-3 text-sm"
+                                        >
+                                            <span className="text-foreground capitalize">
+                                                {service.name}
+                                            </span>
+                                            {service.price !== undefined && (
+                                                <span className="font-bold text-foreground">
+                                                    {naira(service.price)}
+                                                </span>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <div className="h-px bg-[#0E3B2E]/[0.08] dark:bg-white/10" />
+                                    <div className="flex items-baseline justify-between">
+                                        <span className="text-sm font-bold text-foreground">
+                                            Total
+                                        </span>
+                                        <span className="font-[Sora] text-xl font-bold text-[#0E3B2E] dark:text-[#C8F169]">
+                                            {naira(selected.price)}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-2.5 rounded-[14px] border border-dashed border-[#0E3B2E]/20 p-3.5 dark:border-white/15">
+                                    <KeenIcon
+                                        name="note-2"
+                                        className="text-lg text-muted-foreground"
+                                    />
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-xs font-bold text-muted-foreground">
+                                            Client note
+                                        </span>
+                                        <span className="text-sm leading-normal text-foreground">
+                                            {selected.notes?.trim() ||
+                                                'No note from the client.'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-auto flex flex-col gap-2.5 border-t border-[#0E3B2E]/[0.08] px-[22px] pt-4 pb-[22px] dark:border-white/10">
+                                {selected.status === 'pending' && (
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            confirmAppointment(selected)
+                                        }
+                                        className="flex h-12 items-center justify-center gap-2 rounded-xl bg-[#0E3B2E] text-[15px] font-bold text-white hover:bg-[#0E3B2E]/90 dark:bg-[#C8F169] dark:text-[#0E3B2E]"
+                                    >
+                                        <KeenIcon
+                                            name="check-circle"
+                                            className="text-lg"
+                                        />
+                                        Confirm booking
+                                    </button>
+                                )}
+                                <div className="grid grid-cols-2 gap-2.5">
+                                    <Link
+                                        href={`/provider/appointments/${selected.id}`}
+                                        className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-[#0E3B2E]/15 text-sm font-bold text-foreground hover:bg-muted dark:border-white/15"
+                                        prefetch
+                                    >
+                                        <KeenIcon
+                                            name="calendar-edit"
+                                            className="text-base"
+                                        />
+                                        Full details
+                                    </Link>
+                                    {canCancel(selected) ? (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setDeclineTarget(selected)
+                                            }
+                                            className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-red-200 text-sm font-bold text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/30"
+                                        >
+                                            <KeenIcon
+                                                name="cross-circle"
+                                                className="text-base"
+                                            />
+                                            {selected.status === 'pending'
+                                                ? 'Decline'
+                                                : 'Cancel'}
+                                        </button>
+                                    ) : (
+                                        <span />
+                                    )}
+                                </div>
+                            </div>
+                        </aside>
+                    )}
+                </div>
             </div>
+
+            {/* Decline / cancel dialog */}
+            <Dialog
+                open={declineTarget !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setDeclineTarget(null);
+                        setDeclineReason('');
+                    }
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {declineTarget?.status === 'pending'
+                                ? 'Decline booking'
+                                : 'Cancel booking'}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Tell the client why. This reason will be shared with
+                            them.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <label className="flex flex-col gap-2 text-sm font-medium">
+                        Reason
+                        <textarea
+                            value={declineReason}
+                            onChange={(event) =>
+                                setDeclineReason(event.target.value)
+                            }
+                            rows={4}
+                            maxLength={500}
+                            placeholder="Explain why…"
+                            className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                        />
+                    </label>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setDeclineTarget(null)}
+                        >
+                            Back
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={submitDecline}
+                            disabled={!declineReason.trim()}
+                        >
+                            {declineTarget?.status === 'pending'
+                                ? 'Decline booking'
+                                : 'Cancel booking'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 }

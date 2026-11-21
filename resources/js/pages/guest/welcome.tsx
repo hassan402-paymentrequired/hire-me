@@ -1,3 +1,4 @@
+import KiroChat from '@/components/kiro/kiro-chat';
 import { EmptyCard } from '@/components/ui/empty-card';
 import AppLayout from '@/layouts/guest-layout';
 import BusinessCard from '@/pages/guest/components/business-card';
@@ -159,6 +160,7 @@ export default function Welcome({
                         </div>
                     </div>
                 </div>
+                <KiroChat />
             </AppLayout>
         </>
     );

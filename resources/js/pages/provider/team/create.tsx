@@ -1,20 +1,14 @@
+import { AppSelect } from '@/components/ui/app-select';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import business from '@/routes/business';
 import { BreadcrumbItem } from '@/types';
 import { InboxArrowDownIcon } from '@heroicons/react/24/solid';
 import { Head, router, useForm } from '@inertiajs/react';
-import { Mail, Shield, User } from 'lucide-react';
+import { Mail, User } from 'lucide-react';
 import { useState } from 'react';
 import InviteModal from './components/invite-modal';
 
@@ -70,9 +64,7 @@ export default function TeamCreate() {
             <InviteModal
                 showDialog={inviteModalOpen}
                 setShowDialog={setInviteModalOpen}
-                dialogIcon={
-                    <InboxArrowDownIcon className="size-12" />
-                }
+                dialogIcon={<InboxArrowDownIcon className="size-12" />}
                 title="Invite team member"
                 description="The user you are trying to add already exists on the platform. Do you want to send them a team invitation instead?"
                 acceptLabel="Send invite"
@@ -160,49 +152,33 @@ export default function TeamCreate() {
                                     Role{' '}
                                     <span className="text-destructive">*</span>
                                 </Label>
-                                <Select
+                                <AppSelect
+                                    id="role"
                                     value={data.role}
-                                    onValueChange={(value) =>
+                                    onChange={(value) =>
                                         setData(
                                             'role',
                                             value as 'admin' | 'staff',
                                         )
                                     }
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="admin">
-                                            <div className="flex items-center gap-2">
-                                                <Shield className="h-4 w-4" />
-                                                <div>
-                                                    <div className="font-medium">
-                                                        Admin
-                                                    </div>
-                                                    <div className="text-xs text-muted-foreground">
-                                                        Full access to manage
-                                                        business
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </SelectItem>
-                                        <SelectItem value="staff">
-                                            <div className="flex items-center gap-2">
-                                                <User className="h-4 w-4" />
-                                                <div>
-                                                    <div className="font-medium">
-                                                        Staff
-                                                    </div>
-                                                    <div className="text-xs text-muted-foreground">
-                                                        Can manage appointments
-                                                        and services
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                    searchable={false}
+                                    options={[
+                                        {
+                                            value: 'admin',
+                                            label: 'Admin',
+                                            description:
+                                                'Full access to manage business',
+                                            icon: 'shield-tick',
+                                        },
+                                        {
+                                            value: 'staff',
+                                            label: 'Staff',
+                                            description:
+                                                'Can manage appointments and services',
+                                            icon: 'user',
+                                        },
+                                    ]}
+                                />
                                 {errors.role && (
                                     <p className="text-sm text-destructive">
                                         {errors.role}
