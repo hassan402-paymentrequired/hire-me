@@ -1,6 +1,6 @@
 {
     "name": "Proxideck",
-    "short_name": "proxideck",
+    "short_name": "Proxideck",
     "description": "Proxideck is a digital storefront and trust platform that helps local service providers get seen by the world. We bridge the gap between skilled professionals and customers by offering verified business profiles, seamless online appointment booking, and a secure way to build a global reputation.",
     "icons": [
         {
@@ -14,7 +14,7 @@
             "type": "image/png"
         }
     ],
-    "theme_color": "#3b82f6",
+    "theme_color": "#0E3B2E",
     "background_color": "#ffffff",
     "display": "standalone",
     "start_url": "/",

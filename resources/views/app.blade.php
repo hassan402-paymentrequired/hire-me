@@ -33,12 +33,12 @@
         <meta name="twitter:creator" content="{{ '@' . ltrim((string) config('app.twitter_handle'), '@') }}">
 
         {{-- Additional SEO --}}
-        <meta name="theme-color" content="#3b82f6">
+        <meta name="theme-color" content="#0E3B2E">
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <meta name="apple-mobile-web-app-title" content="{{ config('app.name') }}">
         <meta name="application-name" content="{{ config('app.name') }}">
-        <meta name="msapplication-TileColor" content="#3b82f6">
+        <meta name="msapplication-TileColor" content="#0E3B2E">
         <meta name="msapplication-config" content="/browserconfig.xml">
 
         {{-- Inline script to detect system dark mode preference and apply it immediately --}}
@@ -76,7 +76,7 @@
         <link rel="icon" type="image/png" sizes="32x32" href="/logo/favicon-32x32.png">
         <link rel="icon" type="image/png" sizes="16x16" href="/logo/favicon-16x16.png">
         <link rel="manifest" href="/logo/site.webmanifest">
-        <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#3b82f6">
+        <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#0E3B2E">
 
         {{-- Preconnect for performance --}}
         <link rel="preconnect" href="https://fonts.bunny.net">

@@ -38,7 +38,10 @@ class WalletController extends Controller
             ->paginate(10);
 
         // Get banks list for withdrawal
-        $banksResponse = $this->paystack->getBanks();
+        $paymentProvider = config('services.payengine.provider');
+        $banksResponse = $paymentProvider === 'payengine'
+            ? ['success' => true, 'data' => []]
+            : $this->paystack->getBanks();
         $banks = $banksResponse['success'] ? $banksResponse['data'] : [];
 
         // Get user's saved bank account (one per user)
@@ -82,12 +85,20 @@ class WalletController extends Controller
                 'account_name' => $bankAccount->account_name,
                 'account_number_masked' => substr($bankAccount->account_number, -4),
             ] : null,
-            'paystackPublicKey' => $this->paystack->getPublicKey(),
+            'paystackPublicKey' => $paymentProvider === 'payengine' ? '' : $this->paystack->getPublicKey(),
+            'paymentProvider' => $paymentProvider,
+            'payengineWallet' => [
+                'is_configured' => (bool) $wallet->payengine_wallet_id,
+                'account_number' => $wallet->payengine_account_number,
+                'status' => $wallet->payengine_status,
+            ],
         ]);
     }
 
     public function initializeTopUp(Request $request)
     {
+        abort_unless(config('services.payengine.provider') !== 'payengine', 404);
+
         $request->validate([
             'amount' => 'required|numeric|min:100|max:1000000',
         ]);
@@ -97,7 +108,7 @@ class WalletController extends Controller
         $wallet = Wallet::firstOrCreate(['user_id' => $user->id]);
 
         try {
-            $reference = 'WLT_' . now()->timestamp . '_' . $user->id;
+            $reference = 'WLT_'.now()->timestamp.'_'.$user->id;
 
             // Create pending transaction
             $transaction = WalletTransaction::create([
@@ -108,7 +119,7 @@ class WalletController extends Controller
                 'balance_before' => $wallet->balance,
                 'balance_after' => $wallet->balance,
                 'status' => 'pending',
-                'description' => "Wallet top-up",
+                'description' => 'Wallet top-up',
                 'reference' => $reference,
                 'metadata' => [
                     'email' => $user->email,
@@ -129,21 +140,23 @@ class WalletController extends Controller
                 ],
             ]);
 
-            if (!$paystackResponse['success']) {
+            if (! $paystackResponse['success']) {
                 $transaction->update(['status' => 'failed']);
+
                 return back()->with('error-toast', $paystackResponse['message'] ?? 'Failed to initialize payment');
             }
-
 
             return Inertia::location($paystackResponse['data']['authorization_url']);
 
         } catch (\Exception $e) {
-            return back()->with('error-toast', 'Failed to initialize payment: ' . $e->getMessage());
+            return back()->with('error-toast', 'Failed to initialize payment: '.$e->getMessage());
         }
     }
 
     public function verifyTopUp(Request $request)
     {
+        abort_unless(config('services.payengine.provider') !== 'payengine', 404);
+
         $request->validate([
             'reference' => 'required|string',
         ]);
@@ -164,7 +177,7 @@ class WalletController extends Controller
                 $wallet->deposit(
                     $verification['amount'],
                     $request->reference,
-                    "Wallet top-up via Paystack",
+                    'Wallet top-up via Paystack',
                     ['paystack_reference' => $request->reference]
                 );
 
@@ -182,6 +195,7 @@ class WalletController extends Controller
             }
 
             $transaction->update(['status' => 'failed']);
+
             return response()->json([
                 'success' => false,
                 'message' => $verification['message'] ?? 'Payment verification failed',
@@ -189,13 +203,15 @@ class WalletController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to verify payment: ' . $e->getMessage(),
+                'message' => 'Failed to verify payment: '.$e->getMessage(),
             ], 500);
         }
     }
 
     public function createRecipient(Request $request)
     {
+        abort_unless(config('services.payengine.provider') !== 'payengine', 404);
+
         $request->validate([
             'account_number' => 'required|string|size:10',
             'bank_code' => 'required|string',
@@ -214,7 +230,7 @@ class WalletController extends Controller
                 'currency' => 'NGN',
             ]);
 
-            if (!$response['success']) {
+            if (! $response['success']) {
                 return back()->with('error-toast', $response['message'] ?? 'Failed to create recipient');
             }
 
@@ -234,12 +250,14 @@ class WalletController extends Controller
 
             return redirect()->route('wallet.index')->with('success-toast', 'Bank account saved successfully');
         } catch (\Exception $e) {
-            return back()->with('error-toast', 'Failed to add bank account: ' . $e->getMessage());
+            return back()->with('error-toast', 'Failed to add bank account: '.$e->getMessage());
         }
     }
 
     public function withdraw(Request $request)
     {
+        abort_unless(config('services.payengine.provider') !== 'payengine', 404);
+
         $request->validate([
             'amount' => 'required|numeric|min:100|max:10000000',
             'recipient_code' => 'required|string',
@@ -264,7 +282,7 @@ class WalletController extends Controller
             $wallet->save();
 
             // Create withdrawal transaction
-            $reference = 'WDR_' . now()->timestamp . '_' . $user->id;
+            $reference = 'WDR_'.now()->timestamp.'_'.$user->id;
             $transaction = WalletTransaction::create([
                 'wallet_id' => $wallet->id,
                 'user_id' => $user->id,
@@ -290,13 +308,14 @@ class WalletController extends Controller
                 'reference' => $reference,
             ]);
 
-            if (!$transferResponse['success']) {
+            if (! $transferResponse['success']) {
                 // Refund the amount
                 $wallet->balance += $request->amount;
                 $wallet->save();
                 $transaction->update(['status' => 'failed']);
 
                 DB::commit();
+
                 return back()->with('error-toast', $transferResponse['message'] ?? 'Failed to initiate withdrawal');
             }
 
@@ -312,7 +331,8 @@ class WalletController extends Controller
             return back()->with('success-toast', 'Withdrawal initiated successfully. It will be processed shortly.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error-toast', 'Failed to process withdrawal: ' . $e->getMessage());
+
+            return back()->with('error-toast', 'Failed to process withdrawal: '.$e->getMessage());
         }
     }
 }

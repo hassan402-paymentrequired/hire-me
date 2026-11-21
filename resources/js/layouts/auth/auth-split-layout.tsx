@@ -1,6 +1,7 @@
+import BrandMark from '@/components/brand-mark';
 import { home } from '@/routes';
 import { Link } from '@inertiajs/react';
-import { Calendar, ShieldCheck, Sparkles, TrendingUp } from 'lucide-react';
+import { MapPin, Star } from 'lucide-react';
 import { type PropsWithChildren } from 'react';
 
 interface AuthLayoutProps {
@@ -15,131 +16,125 @@ export default function AuthSplitLayout({
 }: PropsWithChildren<AuthLayoutProps>) {
     return (
         <div className="flex min-h-screen overflow-hidden bg-background">
-            {/* Left Side - Hero / Brand */}
-            <div className="relative hidden w-[420px] shrink-0 flex-col overflow-hidden border-r lg:flex">
-                <div className="absolute inset-0 bg-[radial-gradient(1000px_circle_at_-10%_-10%,rgba(255,255,255,0.14),transparent_55%),radial-gradient(900px_circle_at_110%_20%,rgba(255,255,255,0.10),transparent_50%),linear-gradient(180deg,#0B1220_0%,#071018_100%)]" />
-                <div className="absolute inset-0 [background-image:linear-gradient(rgba(255,255,255,.25)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.25)_1px,transparent_1px)] [background-size:24px_24px] [background-position:0_0] opacity-[0.08]" />
-
-                <div className="relative z-10 flex h-full flex-col p-8">
-                    <div className="flex items-center justify-between">
-                        <Link
-                            href={home()}
-                            className="group flex items-center gap-3"
-                            prefetch
-                        >
-                            <span className="font-['Sekuya'] text-lg font-semibold tracking-widest text-white">
-                                proxideck
-                            </span>
-                        </Link>
-
-                        <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold tracking-wide text-white/80">
-                            Access
-                        </div>
-                    </div>
-
-                    <div className="mt-10">
-                        <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/80 backdrop-blur-sm">
-                            <Sparkles className="h-4 w-4 text-white/80" />
-                            <span>Built for service professionals</span>
-                        </div>
-
-                        <h2 className="mt-6 text-2xl leading-tight font-bold text-white uppercase">
-                            Bookings that feel
-                            <br />
-                            <span className="text-white/85">
-                                simple and fast
-                            </span>
-                        </h2>
-
-                        <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/70">
-                            Run your schedule, services, staff, and client
-                            bookings from one place.
-                        </p>
-
-                        <div className="mt-7 space-y-4">
-                            {[
-                                {
-                                    icon: Calendar,
-                                    title: '24/7 Online Booking',
-                                    description:
-                                        'Clients book anytime, you stay in control.',
-                                },
-                                {
-                                    icon: TrendingUp,
-                                    title: 'Clear Business Insights',
-                                    description:
-                                        'Know what’s working and what to improve.',
-                                },
-                                {
-                                    icon: ShieldCheck,
-                                    title: 'Reliable Confirmations',
-                                    description:
-                                        'Reduce no-shows with smart reminders.',
-                                },
-                            ].map((feature, index) => (
-                                <div
-                                    key={index}
-                                    className="group flex items-start gap-4 rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm transition-colors hover:bg-white/[0.08]"
-                                >
-                                    <div className="rounded-lg bg-white/10 p-2 transition-colors group-hover:bg-white/15">
-                                        <feature.icon className="h-5 w-5 text-white/90" />
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <div className="text-sm font-semibold text-white">
-                                            {feature.title}
-                                        </div>
-                                        <div className="mt-1 text-xs leading-relaxed text-white/65">
-                                            {feature.description}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="mt-auto pt-8">
-                        <div className="mt-4 flex items-center justify-between text-xs text-white/55">
-                            <span>© {new Date().getFullYear()} proxideck</span>
-                            <span>Support: hello@proxideck.com</span>
-                        </div>
-                    </div>
+            {/* Left Side - Form */}
+            <div className="flex min-h-screen flex-1 flex-col overflow-y-auto">
+                <div className="flex items-center justify-between p-5 md:px-10 md:pt-8">
+                    <Link
+                        href={home()}
+                        className="flex items-center gap-2.5"
+                        prefetch
+                    >
+                        <BrandMark className="size-8 dark:hidden" />
+                        <BrandMark
+                            className="hidden size-8 dark:block"
+                            onDark
+                        />
+                        <span className="font-['Sora'] text-xl font-bold tracking-[-0.03em] text-[#0E3B2E] dark:text-white">
+                            proxideck
+                        </span>
+                    </Link>
                 </div>
-            </div>
 
-            {/* Right Side - Form */}
-            <div className="flex min-h-screen flex-1 items-center justify-center overflow-hidden">
-                <main className="flex min-h-screen w-full items-center justify-center overflow-y-auto">
-                    <div className="relative mx-auto w-full max-w-5xl p-5 md:p-8 lg:p-10">
-                        {/* Mobile Brand */}
-                        <div className="mb-6 flex items-center justify-between lg:hidden">
-                            <Link
-                                href={home()}
-                                className="font-['Sekuya'] text-base font-semibold tracking-widest"
-                                prefetch
-                            >
-                                proxideck
-                            </Link>
-                        </div>
-
-                        {/* Title and Description */}
-                        <div className="mb-6 flex flex-col items-start gap-1.5 text-left sm:items-center sm:text-center">
-                            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                <main className="flex flex-1 items-center justify-center px-5 py-10 md:px-10">
+                    <div className="w-full max-w-[420px]">
+                        <div className="mb-8 flex flex-col gap-2">
+                            <h1 className="font-['Sora'] text-3xl font-bold tracking-tight">
                                 {title}
                             </h1>
                             {description && (
-                                <p className="max-w-sm text-sm leading-relaxed text-balance text-muted-foreground">
+                                <p className="text-sm leading-relaxed text-balance text-muted-foreground">
                                     {description}
                                 </p>
                             )}
                         </div>
 
-                        {/* Form Content (plain background; no card wrapper) */}
-                        <div className="mx-auto h-full w-full max-w-[420px] place-content-center">
-                            {children}
-                        </div>
+                        {children}
                     </div>
                 </main>
+
+                <div className="flex items-center justify-between gap-4 p-5 text-xs text-muted-foreground md:px-10 md:pb-8">
+                    <span>© {new Date().getFullYear()} Proxideck</span>
+                    <span>hello@proxideck.com</span>
+                </div>
             </div>
+
+            {/* Right Side - Brand illustration */}
+            <aside className="relative hidden w-[46%] max-w-[720px] shrink-0 flex-col justify-between overflow-hidden bg-[#0E3B2E] p-10 lg:flex">
+                <img
+                    src="/brand/banners/proxideck-auth-panel-dark.svg"
+                    alt=""
+                    className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+                />
+
+                <div className="relative flex justify-end">
+                    <span className="rounded-full border border-[#C8F169]/35 bg-[#0E3B2E]/70 px-3.5 py-1.5 text-xs font-semibold text-[#C8F169] backdrop-blur-sm">
+                        Built for service professionals
+                    </span>
+                </div>
+
+                {/* Floating cards */}
+                <div
+                    className="relative flex flex-col items-center"
+                    aria-hidden="true"
+                >
+                    <div className="flex w-[340px] -rotate-3 items-center gap-3.5 rounded-[20px] bg-white p-[18px] shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
+                        <div className="flex size-12 shrink-0 items-center justify-center rounded-[14px] bg-[#0E3B2E]">
+                            <BrandMark className="size-[30px]" onDark />
+                        </div>
+                        <div className="flex flex-1 flex-col">
+                            <span className="font-['Sora'] text-[15px] font-semibold text-[#13201B]">
+                                Booking confirmed
+                            </span>
+                            <span className="text-[13px] text-[#4A5A52]">
+                                Tue, 14:30 · Haircut
+                            </span>
+                        </div>
+                        <svg viewBox="0 0 24 24" className="size-[22px]">
+                            <circle cx="12" cy="12" r="11" fill="#C8F169" />
+                            <path
+                                d="M7.5 12.5l3 3 6-6.5"
+                                stroke="#0E3B2E"
+                                strokeWidth="2.4"
+                                fill="none"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            />
+                        </svg>
+                    </div>
+
+                    <div className="-mt-2.5 ml-[180px] flex w-[250px] rotate-[4deg] flex-col gap-1 rounded-[18px] bg-[#C8F169] px-4 py-3.5 shadow-[0_24px_60px_rgba(0,0,0,0.3)]">
+                        <div className="flex gap-1">
+                            {Array.from({ length: 5 }).map((_, index) => (
+                                <Star
+                                    key={index}
+                                    className="size-4 fill-[#E8A317] text-[#E8A317]"
+                                />
+                            ))}
+                        </div>
+                        <span className="text-[13px] font-semibold text-[#0E3B2E]">
+                            “Booked in under a minute.”
+                        </span>
+                    </div>
+
+                    <div className="-mt-1.5 mr-[160px] flex w-[220px] -rotate-2 items-center gap-2.5 rounded-2xl bg-white/95 px-3.5 py-3 shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
+                        <MapPin className="size-5 text-[#0E3B2E]" />
+                        <span className="text-[13px] font-semibold text-[#13201B]">
+                            Pros near you
+                        </span>
+                    </div>
+                </div>
+
+                <div className="relative flex max-w-[460px] flex-col gap-3">
+                    <h2 className="font-['Sora'] text-4xl leading-[1.15] font-bold tracking-[-0.02em] text-white">
+                        Bookings that feel{' '}
+                        <span className="text-[#C8F169]">simple and fast.</span>
+                    </h2>
+                    <p className="text-[15px] leading-relaxed text-white/80">
+                        Run your schedule, services, staff, and client bookings
+                        from one place.
+                    </p>
+                </div>
+            </aside>
         </div>
     );
 }

@@ -1,17 +1,31 @@
 import KeenIcon from '@/components/keen-icon';
-import { CustomAlertDialog } from '@/components/ui/custom-alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import { CustomAlertDialog } from '@/components/ui/custom-alert-dialog';
+import { FormSelect } from '@/components/ui/form-select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
-import { Head, router, useForm } from '@inertiajs/react';
+import walletRoutes from '@/routes/wallet';
+import { BreadcrumbItem } from '@/types';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { FormSelect } from '@/components/ui/form-select';
-import { BreadcrumbItem } from '@/types';
 
 interface WalletData {
     balance: number;
@@ -51,6 +65,11 @@ interface Props {
         meta: any;
     };
     banks: Bank[];
+    paymentProvider: string;
+    payengineWallet: {
+        is_configured: boolean;
+        account_number: string | null;
+    };
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -58,20 +77,41 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Withdrawals', href: '/provider/withdrawals' },
 ];
 
-export default function Withdraw({ wallet, bankAccount = null, withdrawals, banks }: Props) {
+export default function Withdraw({
+    wallet,
+    bankAccount = null,
+    withdrawals,
+    banks,
+    paymentProvider,
+    payengineWallet,
+}: Props) {
     const [showAddBank, setShowAddBank] = useState(false);
     const [withdrawConfirmOpen, setWithdrawConfirmOpen] = useState(false);
     const hasBankAccount = !!bankAccount;
     const totalBalance = wallet.balance + wallet.pending_earnings;
 
-    const { data: withdrawalData, setData: setWithdrawalData, post: postWithdrawal, transform: transformWithdrawal, processing: processingWithdrawal, errors: withdrawalErrors } = useForm({
+    const {
+        data: withdrawalData,
+        setData: setWithdrawalData,
+        post: postWithdrawal,
+        transform: transformWithdrawal,
+        processing: processingWithdrawal,
+        errors: withdrawalErrors,
+    } = useForm({
         amount: '',
         recipient_code: bankAccount?.recipient_code ?? '',
         account_name: bankAccount?.account_name ?? '',
         bank_name: bankAccount?.bank_name ?? '',
     });
 
-    const { data: bankData, setData: setBankData, post: postBank, transform: transformBank, processing: processingBank, errors: bankErrors } = useForm({
+    const {
+        data: bankData,
+        setData: setBankData,
+        post: postBank,
+        transform: transformBank,
+        processing: processingBank,
+        errors: bankErrors,
+    } = useForm({
         account_number: '',
         bank_code: '',
         account_name: '',
@@ -80,13 +120,19 @@ export default function Withdraw({ wallet, bankAccount = null, withdrawals, bank
 
     const handleAddOrUpdateBank = (e: React.FormEvent) => {
         e.preventDefault();
-        const bankName = banks.find((b) => b.code === bankData.bank_code)?.name ?? '';
+        const bankName =
+            banks.find((b) => b.code === bankData.bank_code)?.name ?? '';
         if (!bankName) return;
         transformBank((data) => ({ ...data, bank_name: bankName }));
         postBank('/wallet/withdraw/recipient', {
             onSuccess: () => {
                 setShowAddBank(false);
-                setBankData({ account_number: '', bank_code: '', account_name: '', bank_name: '' });
+                setBankData({
+                    account_number: '',
+                    bank_code: '',
+                    account_name: '',
+                    bank_name: '',
+                });
             },
         });
     };
@@ -113,7 +159,10 @@ export default function Withdraw({ wallet, bankAccount = null, withdrawals, bank
     };
 
     const getStatusBadge = (status: string) => {
-        const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+        const variants: Record<
+            string,
+            'default' | 'secondary' | 'destructive' | 'outline'
+        > = {
             completed: 'default',
             pending: 'secondary',
             failed: 'destructive',
@@ -126,7 +175,7 @@ export default function Withdraw({ wallet, bankAccount = null, withdrawals, bank
         );
     };
 
-    const bankOptions = banks.map(bank => ({
+    const bankOptions = banks.map((bank) => ({
         value: bank.code,
         label: bank.name,
     }));
@@ -159,7 +208,12 @@ export default function Withdraw({ wallet, bankAccount = null, withdrawals, bank
                 <CustomAlertDialog
                     open={withdrawConfirmOpen}
                     onOpenChange={setWithdrawConfirmOpen}
-                    icon={<KeenIcon name="receipt-square" className="text-4xl text-emerald-600" />}
+                    icon={
+                        <KeenIcon
+                            name="receipt-square"
+                            className="text-4xl text-emerald-600"
+                        />
+                    }
                     title="Confirm withdrawal"
                     description={`You are about to withdraw ₦${Number(withdrawalData.amount || 0).toLocaleString()} to ${bankAccount?.bank_name || 'your bank account'}. Please confirm this request before we send it to Paystack.`}
                     acceptLabel="Confirm withdrawal"
@@ -172,11 +226,16 @@ export default function Withdraw({ wallet, bankAccount = null, withdrawals, bank
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.06),_transparent_24%),radial-gradient(circle_at_left,_rgba(16,185,129,0.06),_transparent_24%)]" />
                         <div className="relative space-y-5 px-6 py-6 lg:px-8 lg:py-8">
                             <div className="flex flex-wrap items-center gap-3">
-                                <Badge className="border-border bg-muted px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-foreground/70 hover:bg-muted">
+                                <Badge className="border-border bg-muted px-3 py-1 text-[11px] font-medium tracking-[0.18em] text-foreground/70 uppercase hover:bg-muted">
                                     Wallet workspace
                                 </Badge>
-                                <Badge variant="secondary" className="rounded-full px-3 py-1">
-                                    {hasBankAccount ? 'Bank account connected' : 'Bank setup needed'}
+                                <Badge
+                                    variant="secondary"
+                                    className="rounded-full px-3 py-1"
+                                >
+                                    {hasBankAccount
+                                        ? 'Bank account connected'
+                                        : 'Bank setup needed'}
                                 </Badge>
                             </div>
 
@@ -185,16 +244,22 @@ export default function Withdraw({ wallet, bankAccount = null, withdrawals, bank
                                     Withdraw funds
                                 </h1>
                                 <p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
-                                    Move your available earnings to a connected bank account, keep track of pending releases, and review every withdrawal request from one place.
+                                    Move your available earnings to a connected
+                                    bank account, keep track of pending
+                                    releases, and review every withdrawal
+                                    request from one place.
                                 </p>
                             </div>
 
                             <div className="grid gap-3 sm:grid-cols-3">
                                 {walletStats.map((stat) => (
-                                    <div key={stat.title} className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
+                                    <div
+                                        key={stat.title}
+                                        className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4"
+                                    >
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="space-y-1">
-                                                <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                                                <p className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">
                                                     {stat.title}
                                                 </p>
                                                 <p className="mt-3 text-3xl font-semibold text-foreground">
@@ -202,7 +267,10 @@ export default function Withdraw({ wallet, bankAccount = null, withdrawals, bank
                                                 </p>
                                             </div>
                                             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-background text-foreground">
-                                                <KeenIcon name={stat.icon} className="text-base" />
+                                                <KeenIcon
+                                                    name={stat.icon}
+                                                    className="text-base"
+                                                />
                                             </div>
                                         </div>
                                         <p className="mt-1 text-sm text-muted-foreground">
@@ -215,189 +283,286 @@ export default function Withdraw({ wallet, bankAccount = null, withdrawals, bank
                     </div>
                 </section>
 
-                <div className="grid gap-6 md:grid-cols-2">
-                    {/* Withdrawal Form */}
-                    <Card className="overflow-hidden rounded-3xl border border-border/70 shadow-none">
-                        <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
-                            <CardTitle className="flex items-center gap-2">
-                                <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/70 bg-background text-emerald-600 dark:text-emerald-300">
-                                    <KeenIcon name="receipt-square" className="text-base" />
-                                </span>
-                                Withdraw Funds
-                            </CardTitle>
+                {paymentProvider === 'payengine' && (
+                    <Card className="rounded-3xl border border-border/70 shadow-none">
+                        <CardHeader>
+                            <CardTitle>PayEngine wallet account</CardTitle>
                             <CardDescription>
-                                Transfer money to your bank account
+                                {payengineWallet.is_configured
+                                    ? 'Your virtual account is ready to receive bank transfers.'
+                                    : 'Set up identity verification to receive your PayEngine virtual account.'}
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            {!hasBankAccount && !showAddBank && (
-                                <div className="space-y-4">
-                                    <p className="text-sm text-muted-foreground">
-                                        You need to add a bank account first to withdraw funds.
-                                    </p>
-                                    <Button
-                                        type="button"
-                                        onClick={() => setShowAddBank(true)}
-                                        className="w-full"
-                                    >
-                                        <KeenIcon name="book-square" className="mr-2 text-sm" />
-                                        Add Bank Account
-                                    </Button>
-                                </div>
+                        <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            {payengineWallet.is_configured && (
+                                <p className="text-xl font-semibold">
+                                    {payengineWallet.account_number}
+                                </p>
                             )}
+                            <Button asChild>
+                                <Link href={walletRoutes.payengine.setup.url()}>
+                                    {payengineWallet.is_configured
+                                        ? 'View account'
+                                        : 'Set up account'}
+                                </Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
+                )}
 
-                            {showAddBank && (
-                                <form onSubmit={handleAddOrUpdateBank} className="space-y-4">
-                                    <div>
-                                        <Label htmlFor="bank_code">Bank</Label>
-                                        <FormSelect
-                                            value={bankData.bank_code}
-                                            onChange={(value) => setBankData('bank_code', value)}
-                                            options={bankOptions}
-                                            placeholder="Select bank"
+                <div className="grid gap-6 md:grid-cols-2">
+                    {/* Withdrawal Form */}
+                    {paymentProvider !== 'payengine' && (
+                        <Card className="overflow-hidden rounded-3xl border border-border/70 shadow-none">
+                            <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
+                                <CardTitle className="flex items-center gap-2">
+                                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/70 bg-background text-emerald-600 dark:text-emerald-300">
+                                        <KeenIcon
+                                            name="receipt-square"
+                                            className="text-base"
                                         />
-                                        {bankErrors.bank_code && (
-                                            <p className="text-sm text-destructive mt-1">
-                                                {bankErrors.bank_code}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <Label htmlFor="account_number">Account Number</Label>
-                                        <Input
-                                            id="account_number"
-                                            type="text"
-                                            maxLength={10}
-                                            value={bankData.account_number}
-                                            onChange={(e) => setBankData('account_number', e.target.value)}
-                                            placeholder="Enter 10-digit account number"
-                                        />
-                                        {bankErrors.account_number && (
-                                            <p className="text-sm text-destructive mt-1">
-                                                {bankErrors.account_number}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <Label htmlFor="account_name">Account Name</Label>
-                                        <Input
-                                            id="account_name"
-                                            type="text"
-                                            value={bankData.account_name}
-                                            onChange={(e) => setBankData('account_name', e.target.value)}
-                                            placeholder="Enter account name"
-                                        />
-                                        {bankErrors.account_name && (
-                                            <p className="text-sm text-destructive mt-1">
-                                                {bankErrors.account_name}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    <div className="flex gap-2">
-                                    <Button
-                                        type="submit"
-                                        disabled={processingBank}
-                                        className="flex-1"
-                                    >
-                                            {processingBank && (
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            )}
-                                            {hasBankAccount ? 'Update Bank Account' : 'Add Bank Account'}
+                                    </span>
+                                    Withdraw Funds
+                                </CardTitle>
+                                <CardDescription>
+                                    Transfer money to your bank account
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {!hasBankAccount && !showAddBank && (
+                                    <div className="space-y-4">
+                                        <p className="text-sm text-muted-foreground">
+                                            You need to add a bank account first
+                                            to withdraw funds.
+                                        </p>
+                                        <Button
+                                            type="button"
+                                            onClick={() => setShowAddBank(true)}
+                                            className="w-full"
+                                        >
+                                            <KeenIcon
+                                                name="book-square"
+                                                className="mr-2 text-sm"
+                                            />
+                                            Add Bank Account
                                         </Button>
+                                    </div>
+                                )}
+
+                                {showAddBank && (
+                                    <form
+                                        onSubmit={handleAddOrUpdateBank}
+                                        className="space-y-4"
+                                    >
+                                        <div>
+                                            <Label htmlFor="bank_code">
+                                                Bank
+                                            </Label>
+                                            <FormSelect
+                                                value={bankData.bank_code}
+                                                onChange={(value) =>
+                                                    setBankData(
+                                                        'bank_code',
+                                                        value,
+                                                    )
+                                                }
+                                                options={bankOptions}
+                                                placeholder="Select bank"
+                                            />
+                                            {bankErrors.bank_code && (
+                                                <p className="mt-1 text-sm text-destructive">
+                                                    {bankErrors.bank_code}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <Label htmlFor="account_number">
+                                                Account Number
+                                            </Label>
+                                            <Input
+                                                id="account_number"
+                                                type="text"
+                                                maxLength={10}
+                                                value={bankData.account_number}
+                                                onChange={(e) =>
+                                                    setBankData(
+                                                        'account_number',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                placeholder="Enter 10-digit account number"
+                                            />
+                                            {bankErrors.account_number && (
+                                                <p className="mt-1 text-sm text-destructive">
+                                                    {bankErrors.account_number}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <Label htmlFor="account_name">
+                                                Account Name
+                                            </Label>
+                                            <Input
+                                                id="account_name"
+                                                type="text"
+                                                value={bankData.account_name}
+                                                onChange={(e) =>
+                                                    setBankData(
+                                                        'account_name',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                placeholder="Enter account name"
+                                            />
+                                            {bankErrors.account_name && (
+                                                <p className="mt-1 text-sm text-destructive">
+                                                    {bankErrors.account_name}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="flex gap-2">
+                                            <Button
+                                                type="submit"
+                                                disabled={processingBank}
+                                                className="flex-1"
+                                            >
+                                                {processingBank && (
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                )}
+                                                {hasBankAccount
+                                                    ? 'Update Bank Account'
+                                                    : 'Add Bank Account'}
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() => {
+                                                    setShowAddBank(false);
+                                                    setBankData({
+                                                        account_number: '',
+                                                        bank_code: '',
+                                                        account_name: '',
+                                                        bank_name: '',
+                                                    });
+                                                }}
+                                            >
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    </form>
+                                )}
+
+                                {hasBankAccount && !showAddBank && (
+                                    <form
+                                        onSubmit={handleWithdraw}
+                                        className="space-y-4"
+                                    >
+                                        <div>
+                                            <Label htmlFor="amount">
+                                                Amount (₦)
+                                            </Label>
+                                            <Input
+                                                id="amount"
+                                                type="number"
+                                                min="100"
+                                                step="100"
+                                                max={wallet.available_balance}
+                                                value={withdrawalData.amount}
+                                                onChange={(e) =>
+                                                    setWithdrawalData(
+                                                        'amount',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                placeholder="Enter amount (minimum ₦100)"
+                                                required
+                                            />
+                                            {withdrawalErrors.amount && (
+                                                <p className="mt-1 text-sm text-destructive">
+                                                    {withdrawalErrors.amount}
+                                                </p>
+                                            )}
+                                            <p className="mt-1 text-xs text-muted-foreground">
+                                                Maximum: ₦
+                                                {wallet.available_balance.toLocaleString()}
+                                            </p>
+                                        </div>
+
+                                        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:bg-blue-950/20">
+                                            <p className="mb-1 text-sm font-medium">
+                                                Bank Account
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {bankAccount?.bank_name} -{' '}
+                                                {bankAccount?.account_name}
+                                                {bankAccount?.account_number_masked && (
+                                                    <span className="ml-1">
+                                                        (
+                                                        {
+                                                            bankAccount.account_number_masked
+                                                        }
+                                                        )
+                                                    </span>
+                                                )}
+                                            </p>
+                                        </div>
+
+                                        <Button
+                                            type="submit"
+                                            disabled={
+                                                processingWithdrawal ||
+                                                !withdrawalData.amount ||
+                                                parseFloat(
+                                                    withdrawalData.amount,
+                                                ) < 100 ||
+                                                parseFloat(
+                                                    withdrawalData.amount,
+                                                ) > wallet.available_balance
+                                            }
+                                            className="w-full"
+                                        >
+                                            {processingWithdrawal ? (
+                                                <>
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    Processing...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <KeenIcon
+                                                        name="receipt-square"
+                                                        className="mr-2 text-sm"
+                                                    />
+                                                    Withdraw Funds
+                                                </>
+                                            )}
+                                        </Button>
+
                                         <Button
                                             type="button"
                                             variant="outline"
-                                            onClick={() => {
-                                                setShowAddBank(false);
-                                                setBankData({
-                                                    account_number: '',
-                                                    bank_code: '',
-                                                    account_name: '',
-                                                    bank_name: '',
-                                                });
-                                            }}
+                                            onClick={() => setShowAddBank(true)}
+                                            className="w-full"
                                         >
-                                            Cancel
+                                            Update Bank Account
                                         </Button>
-                                    </div>
-                                </form>
-                            )}
-
-                            {hasBankAccount && !showAddBank && (
-                                <form onSubmit={handleWithdraw} className="space-y-4">
-                                    <div>
-                                        <Label htmlFor="amount">Amount (₦)</Label>
-                                        <Input
-                                            id="amount"
-                                            type="number"
-                                            min="100"
-                                            step="100"
-                                            max={wallet.available_balance}
-                                            value={withdrawalData.amount}
-                                            onChange={(e) => setWithdrawalData('amount', e.target.value)}
-                                            placeholder="Enter amount (minimum ₦100)"
-                                            required
-                                        />
-                                        {withdrawalErrors.amount && (
-                                            <p className="text-sm text-destructive mt-1">
-                                                {withdrawalErrors.amount}
-                                            </p>
-                                        )}
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                            Maximum: ₦{wallet.available_balance.toLocaleString()}
-                                        </p>
-                                    </div>
-
-                                    <div className="rounded-lg bg-blue-50 dark:bg-blue-950/20 p-4 border border-blue-200">
-                                        <p className="text-sm font-medium mb-1">Bank Account</p>
-                                        <p className="text-sm text-muted-foreground">
-                                            {bankAccount?.bank_name} - {bankAccount?.account_name}
-                                            {bankAccount?.account_number_masked && (
-                                                <span className="ml-1">({bankAccount.account_number_masked})</span>
-                                            )}
-                                        </p>
-                                    </div>
-
-                                    <Button
-                                        type="submit"
-                                        disabled={processingWithdrawal || !withdrawalData.amount || parseFloat(withdrawalData.amount) < 100 || parseFloat(withdrawalData.amount) > wallet.available_balance}
-                                        className="w-full"
-                                    >
-                                        {processingWithdrawal ? (
-                                            <>
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                Processing...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <KeenIcon name="receipt-square" className="mr-2 text-sm" />
-                                                Withdraw Funds
-                                            </>
-                                        )}
-                                    </Button>
-
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() => setShowAddBank(true)}
-                                        className="w-full"
-                                    >
-                                        Update Bank Account
-                                    </Button>
-                                </form>
-                            )}
-                        </CardContent>
-                    </Card>
+                                    </form>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
 
                     {/* Withdrawal History */}
                     <Card className="overflow-hidden rounded-3xl border border-border/70 shadow-none">
                         <CardHeader className="border-b border-border/60 bg-muted/20 pb-5">
                             <CardTitle className="flex items-center gap-2">
                                 <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/70 bg-background text-sky-600 dark:text-sky-300">
-                                    <KeenIcon name="electronic-clock" className="text-base" />
+                                    <KeenIcon
+                                        name="electronic-clock"
+                                        className="text-base"
+                                    />
                                 </span>
                                 Withdrawal History
                             </CardTitle>
@@ -409,9 +574,14 @@ export default function Withdraw({ wallet, bankAccount = null, withdrawals, bank
                             {withdrawals.data.length === 0 ? (
                                 <div className="py-12 text-center">
                                     <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-3xl border border-border/70 bg-muted/30 text-muted-foreground">
-                                        <KeenIcon name="receipt-square" className="text-lg" />
+                                        <KeenIcon
+                                            name="receipt-square"
+                                            className="text-lg"
+                                        />
                                     </div>
-                                    <p className="text-muted-foreground">No withdrawals yet</p>
+                                    <p className="text-muted-foreground">
+                                        No withdrawals yet
+                                    </p>
                                 </div>
                             ) : (
                                 <div className="overflow-x-auto rounded-2xl border border-border/70">
@@ -425,47 +595,73 @@ export default function Withdraw({ wallet, bankAccount = null, withdrawals, bank
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {withdrawals.data.map((withdrawal) => (
-                                                <TableRow key={withdrawal.id}>
-                                                    <TableCell className="text-sm">
-                                                        {withdrawal.created_at}
-                                                    </TableCell>
-                                                    <TableCell className="font-medium">
-                                                        ₦{withdrawal.amount.toLocaleString()}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {getStatusBadge(withdrawal.status)}
-                                                    </TableCell>
-                                                    <TableCell className="text-xs text-muted-foreground font-mono">
-                                                        {withdrawal.reference || 'N/A'}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
+                                            {withdrawals.data.map(
+                                                (withdrawal) => (
+                                                    <TableRow
+                                                        key={withdrawal.id}
+                                                    >
+                                                        <TableCell className="text-sm">
+                                                            {
+                                                                withdrawal.created_at
+                                                            }
+                                                        </TableCell>
+                                                        <TableCell className="font-medium">
+                                                            ₦
+                                                            {withdrawal.amount.toLocaleString()}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {getStatusBadge(
+                                                                withdrawal.status,
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell className="font-mono text-xs text-muted-foreground">
+                                                            {withdrawal.reference ||
+                                                                'N/A'}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ),
+                                            )}
                                         </TableBody>
                                     </Table>
                                 </div>
                             )}
 
                             {/* Pagination */}
-                            {withdrawals.links && withdrawals.links.length > 3 && (
-                                <div className="mt-4 flex items-center justify-between">
-                                    <div className="text-sm text-muted-foreground">
-                                        Showing {withdrawals.meta.from} to {withdrawals.meta.to} of {withdrawals.meta.total} withdrawals
+                            {withdrawals.links &&
+                                withdrawals.links.length > 3 && (
+                                    <div className="mt-4 flex items-center justify-between">
+                                        <div className="text-sm text-muted-foreground">
+                                            Showing {withdrawals.meta.from} to{' '}
+                                            {withdrawals.meta.to} of{' '}
+                                            {withdrawals.meta.total} withdrawals
+                                        </div>
+                                        <div className="flex gap-2">
+                                            {withdrawals.links.map(
+                                                (link: any, index: number) => (
+                                                    <Button
+                                                        key={index}
+                                                        variant={
+                                                            link.active
+                                                                ? 'default'
+                                                                : 'outline'
+                                                        }
+                                                        size="sm"
+                                                        disabled={!link.url}
+                                                        onClick={() =>
+                                                            link.url &&
+                                                            router.visit(
+                                                                link.url,
+                                                            )
+                                                        }
+                                                        dangerouslySetInnerHTML={{
+                                                            __html: link.label,
+                                                        }}
+                                                    />
+                                                ),
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="flex gap-2">
-                                        {withdrawals.links.map((link: any, index: number) => (
-                                            <Button
-                                                key={index}
-                                                variant={link.active ? 'default' : 'outline'}
-                                                size="sm"
-                                                disabled={!link.url}
-                                                onClick={() => link.url && router.visit(link.url)}
-                                                dangerouslySetInnerHTML={{ __html: link.label }}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                                )}
                         </CardContent>
                     </Card>
                 </div>

@@ -1,6 +1,6 @@
 {
-    "name": "proxideck",
-    "short_name": "proxideck",
+    "name": "Proxideck",
+    "short_name": "Proxideck",
     "description": "Find Services Providers Near You",
     "icons": [
         {
@@ -14,7 +14,7 @@
             "type": "image/png"
         }
     ],
-    "theme_color": "#3b82f6",
+    "theme_color": "#0E3B2E",
     "background_color": "#ffffff",
     "display": "standalone",
     "start_url": "/",

@@ -1,181 +1,291 @@
-import { Avatar, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Blobatar } from '@blobatar/react';
-import { Link } from '@inertiajs/react';
-import { MapPin, Star } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { login } from '@/routes';
+import favourite from '@/routes/favourite';
+import { show as providerShow } from '@/routes/provider';
+import type { SharedData } from '@/types';
+import { Link, router, usePage } from '@inertiajs/react';
+import { BadgeCheck, Heart, MapPin, Star } from 'lucide-react';
 import { useState } from 'react';
 
 interface ProviderProps {
-    id: string;
+    id: string | number;
     name: string;
     address: string;
     businessName: string;
     slug: string;
+    businessId?: string;
     logo?: string | null;
     avatar?: string | null;
+    banners?: string[];
     distance?: number | null;
+    city?: string | null;
+    isAvailableToday?: boolean;
     servicesCount: number;
     rating: number;
     reviewsCount: number;
     minPrice: number | string;
-    description?: string;
     services?: string[];
-    category?: string;
+    category?: string | null;
     isVerified?: boolean;
 }
 
-const BusinessCard = ({ provider }: { provider: ProviderProps }) => {
-    const [imageError, setImageError] = useState(false);
-    const [imageLoaded, setImageLoaded] = useState(false);
+const bannerThemes = [
+    {
+        keywords: [
+            'beauty',
+            'salon',
+            'hair',
+            'barber',
+            'barbing',
+            'makeup',
+            'nail',
+            'spa',
+            'massage',
+        ],
+        name: 'beauty',
+    },
+    {
+        keywords: ['education', 'tutor', 'lesson', 'training'],
+        name: 'education',
+    },
+    {
+        keywords: ['event', 'photography', 'photo', 'video'],
+        name: 'events-photography',
+    },
+    {
+        keywords: ['fitness', 'wellness', 'yoga', 'trainer', 'gym'],
+        name: 'fitness-wellness',
+    },
+    {
+        keywords: [
+            'home',
+            'plumbing',
+            'electrical',
+            'cleaning',
+            'repair',
+            'carpentry',
+        ],
+        name: 'home-services',
+    },
+];
 
-    const showImage = provider.logo && !imageError;
+const getStableIndex = (value: string | number, length: number): number => {
+    const hash = Array.from(String(value)).reduce(
+        (total, character) => (total * 31 + character.charCodeAt(0)) >>> 0,
+        0,
+    );
 
-    const getInitials = (name: string) => {
-        return name
-            .split(' ')
-            .slice(0, 2)
-            .map((word) => word[0])
-            .join('')
-            .toUpperCase();
+    return hash % length;
+};
+
+const getDefaultBanner = (provider: ProviderProps): string => {
+    const category = provider.category?.toLowerCase() ?? '';
+    const theme = bannerThemes.find(({ keywords }) =>
+        keywords.some((keyword) => category.includes(keyword)),
+    );
+    const variant = getStableIndex(provider.id, 2) === 0 ? 'light' : 'dark';
+    const bannerName = theme?.name ?? 'general';
+
+    return `/brand/banners/proxideck-banner-${bannerName}-${variant}.jpg`;
+};
+
+const getInitials = (name: string): string =>
+    name
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part.charAt(0))
+        .join('')
+        .toUpperCase();
+
+const BusinessCard = ({
+    provider,
+    favoriteBusinessIds,
+}: {
+    provider: ProviderProps;
+    favoriteBusinessIds?: string[];
+}) => {
+    const { auth } = usePage<SharedData>().props;
+    const defaultBanner = getDefaultBanner(provider);
+    const uploadedBanners = provider.banners ?? [];
+    const bannerIndex = getStableIndex(
+        provider.id,
+        Math.max(uploadedBanners.length, 1),
+    );
+    const [bannerSource, setBannerSource] = useState(
+        uploadedBanners[bannerIndex] ?? defaultBanner,
+    );
+    const [isFavorite, setIsFavorite] = useState(
+        favoriteBusinessIds?.includes(provider.businessId ?? '') ?? false,
+    );
+
+    const toggleFavorite = () => {
+        if (!provider.businessId) {
+            return;
+        }
+
+        if (!auth?.user) {
+            router.visit(login.url());
+
+            return;
+        }
+
+        const nextFavoriteState = !isFavorite;
+        setIsFavorite(nextFavoriteState);
+
+        router.post(
+            favourite.update.url(),
+            { id: provider.businessId },
+            {
+                preserveScroll: true,
+                onError: () => setIsFavorite(!nextFavoriteState),
+            },
+        );
     };
 
-    const initials = getInitials(provider.businessName || provider.name);
-
     return (
-        <Link
-            href={`/provider/${provider.slug}`}
-            className="group flex flex-col space-y-3 font-heading transition-all hover:scale-[1.02] active:scale-[0.98]"
-            prefetch
-        >
-            {/* Card Image/Placeholder */}
-            <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-sm bg-gradient-to-br from-primary/20 to-primary/5">
-                {showImage ? (
-                    <>
-                        {!imageLoaded && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
-                                <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                            </div>
-                        )}
-                        <img
-                            src={provider.logo || undefined}
+        <article className="group flex h-full flex-col overflow-hidden rounded-lg border border-border/70 bg-card text-card-foreground transition duration-200 hover:shadow-lg">
+            <div className="relative h-40 shrink-0 overflow-hidden bg-muted sm:h-44">
+                <Link
+                    href={providerShow(provider.slug)}
+                    className="absolute inset-0"
+                    prefetch
+                    aria-label={`View ${provider.businessName}`}
+                >
+                    <img
+                        src={bannerSource}
+                        alt={`${provider.businessName} banner`}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                        onError={() => {
+                            if (bannerSource !== defaultBanner) {
+                                setBannerSource(defaultBanner);
+                            }
+                        }}
+                        loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-black/10" />
+                    {provider.category && (
+                        <span className="absolute top-4 left-4 max-w-[65%] truncate rounded-full bg-white/95 px-3.5 py-1.5 text-xs font-semibold text-emerald-950 shadow-sm backdrop-blur-sm">
+                            {provider.category}
+                        </span>
+                    )}
+                    {provider.isAvailableToday && (
+                        <span className="absolute right-4 bottom-4 rounded-full bg-lime-300 px-3.5 py-1.5 text-xs font-bold text-emerald-950 shadow-sm sm:text-sm">
+                            Available today
+                        </span>
+                    )}
+                </Link>
+                <button
+                    type="button"
+                    onClick={toggleFavorite}
+                    aria-label={
+                        isFavorite
+                            ? `Remove ${provider.businessName} from favorites`
+                            : `Add ${provider.businessName} to favorites`
+                    }
+                    aria-pressed={isFavorite}
+                    disabled={!provider.businessId}
+                    className="absolute top-4 right-4 z-10 flex size-11 items-center justify-center rounded-full bg-white text-foreground shadow-sm transition hover:scale-105 hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <Heart
+                        className={`size-5 transition-colors ${
+                            isFavorite
+                                ? 'fill-rose-500 text-rose-500'
+                                : 'text-emerald-950'
+                        }`}
+                    />
+                </button>
+            </div>
+
+            <Link
+                href={providerShow(provider.slug)}
+                className="flex flex-1 flex-col px-5 pb-5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                prefetch
+            >
+                <div className="-mt-9 mb-3 flex items-end justify-between">
+                    <Avatar className="size-[72px] border-4 border-card bg-emerald-50 shadow-sm dark:bg-emerald-950">
+                        <AvatarImage
+                            src={provider.logo ?? provider.avatar ?? undefined}
                             alt={provider.businessName}
-                            className={`h-full w-full object-cover transition-all duration-500 group-hover:scale-110 ${
-                                imageLoaded ? 'opacity-100' : 'opacity-0'
-                            }`}
-                            onError={() => {
-                                setImageError(true);
-                                setImageLoaded(false);
-                            }}
-                            onLoad={() => setImageLoaded(true)}
-                            loading="lazy"
                         />
-                    </>
-                ) : (
-                    <div className="p-6 text-center">
-                        <h3 className="mb-2 line-clamp-2 text-2xl font-bold text-foreground">
+                        <AvatarFallback className="bg-emerald-50 text-lg font-bold text-emerald-950 dark:bg-emerald-950 dark:text-emerald-100">
+                            {getInitials(
+                                provider.businessName || provider.name,
+                            )}
+                        </AvatarFallback>
+                    </Avatar>
+                </div>
+
+                <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                        <h3 className="line-clamp-1 text-lg leading-tight font-bold text-foreground capitalize">
                             {provider.businessName}
                         </h3>
-                        <div className="flex items-center justify-center gap-2">
-                            <p className="text-sm text-muted-foreground">
-                                {provider.servicesCount}{' '}
-                                {provider.servicesCount === 1
-                                    ? 'service'
-                                    : 'services'}
-                            </p>
-                        </div>
-                    </div>
-                )}
-
-                {/* Hover Overlay with gradient */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-
-                {/* Category Badge - Top Left */}
-                {provider.category && (
-                    <div className="absolute top-2 left-2">
-                        <Badge className="border-none bg-primary/90 text-xs font-semibold text-primary-foreground shadow-lg backdrop-blur-sm">
-                            {provider.category}
-                        </Badge>
-                    </div>
-                )}
-
-                {/* Distance Badge - Top Right */}
-                <div className="absolute top-2 right-2 flex flex-col items-end gap-1.5">
-                    {provider.distance !== null &&
-                        provider.distance !== undefined && (
-                            <Badge className="flex items-center gap-1 border-none bg-background/90 text-xs font-medium text-foreground shadow-lg backdrop-blur-sm hover:bg-background/95">
-                                <MapPin className="h-3 w-3 text-primary" />
-                                {provider.distance.toFixed(1)}km
-                            </Badge>
-                        )}
-                </div>
-
-                {/* Price Tag - Bottom Left */}
-                <div className="absolute bottom-2 left-2">
-                    <Badge className="border-none bg-background/95 text-sm font-semibold text-foreground shadow-lg backdrop-blur-sm hover:bg-background">
-                        From ₦{Number(provider.minPrice).toLocaleString()}
-                    </Badge>
-                </div>
-            </div>
-
-            {/* Card Info */}
-            <div>
-                {/* Business Name + Avatar + Verified Badge */}
-                <div className="flex items-start gap-2">
-                    {/* Avatar */}
-                    {provider.avatar ? (
-                        <Avatar className="mt-0.5 h-10 w-10 shrink-0 border-2 border-border">
-                            <AvatarImage
-                                src={provider.avatar}
-                                alt={provider.name}
+                        {provider.isVerified && (
+                            <BadgeCheck
+                                aria-label="Verified artisan"
+                                className="size-[18px] shrink-0 fill-emerald-900 text-lime-300"
                             />
-                        </Avatar>
-                    ) : (
-                        <Blobatar name={provider.name} animate="hover" className='size-10 bg-gray-200 rounded-full'/>
-                    )}
-
-                    {/* Business Info */}
-                    <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1">
-                            <h3 className="line-clamp-1 text-base font-bold text-foreground capitalize">
-                                {provider.businessName}
-                            </h3>
-                            {provider.isVerified && (
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    strokeWidth={1.5}
-                                    stroke="currentColor"
-                                    className="size-4"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z"
-                                    />
-                                </svg>
-                            )}
-                        </div>
-                        <span className="line-clamp-1 text-xs text-muted-foreground">
-                            {provider.address}
-                        </span>
+                        )}
                     </div>
-
-                    {/* Rating */}
-                    <div className="flex shrink-0 items-center gap-1 text-sm font-semibold">
-                        <Star className="size-3 fill-yellow-400 text-yellow-400" />
-                        <span>
-                            {provider.rating
+                    <div className="mt-2 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
+                        <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
+                            <Star className="size-4 fill-amber-400 text-amber-400" />
+                            {provider.reviewsCount
                                 ? provider.rating.toFixed(1)
-                                : 'No review'}
+                                : 'New'}
                         </span>
-                        <span className="text-xs font-normal text-muted-foreground">
-                            ({provider.reviewsCount || 0})
-                        </span>
+                        <span>({provider.reviewsCount || 0})</span>
+                        <span aria-hidden="true">·</span>
+                        <MapPin className="size-3.5 text-emerald-800 dark:text-emerald-300" />
+                        {provider.distance !== null &&
+                        provider.distance !== undefined
+                            ? `${provider.distance.toFixed(1)} km`
+                            : null}
+                        {provider.distance !== null &&
+                            provider.distance !== undefined &&
+                            (provider.city || provider.address) && (
+                                <span aria-hidden="true">·</span>
+                            )}
+                        {provider.city || provider.address ? (
+                            <span className="line-clamp-1">
+                                {provider.city || provider.address}
+                            </span>
+                        ) : null}
                     </div>
                 </div>
-            </div>
-        </Link>
+
+                <div className="mt-4 flex min-h-8 flex-wrap gap-2">
+                    {(provider.services ?? []).slice(0, 3).map((service) => (
+                        <span
+                            key={service}
+                            className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-950 dark:bg-emerald-950 dark:text-emerald-100"
+                        >
+                            {service}
+                        </span>
+                    ))}
+                    {provider.servicesCount > 3 && (
+                        <span className="rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                            +{provider.servicesCount - 3}
+                        </span>
+                    )}
+                </div>
+
+                <div className="mt-4 flex items-end justify-between gap-3 border-t border-border/70 pt-4">
+                    <div>
+                        <p className="text-xs text-muted-foreground">
+                            Starting from
+                        </p>
+                        <p className="text-2xl leading-tight font-bold text-emerald-950 dark:text-emerald-100">
+                            ₦{Number(provider.minPrice).toLocaleString()}
+                        </p>
+                    </div>
+                    <span className="inline-flex min-h-11 items-center justify-center rounded-xl bg-emerald-950 px-5 text-sm font-semibold text-white transition-colors group-hover:bg-emerald-800 dark:bg-emerald-700 dark:group-hover:bg-emerald-600">
+                        Book now
+                    </span>
+                </div>
+            </Link>
+        </article>
     );
 };
 

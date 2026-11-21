@@ -1,0 +1,26 @@
+{
+  "color": {
+    "evergreen": "#0E3B2E",
+    "lime": "#C8F169",
+    "mint": "#E6F4EC",
+    "paper": "#F5F7F2",
+    "ink": "#13201B",
+    "sage": "#A9C7B8",
+    "sage-dark": "#4F7A66",
+    "muted": "#4A5A52"
+  },
+  "font": {
+    "heading": "Sora",
+    "body": "DM Sans"
+  },
+  "weight": {
+    "heading": "600-700",
+    "body": "400-600"
+  },
+  "radius": {
+    "sm": "8px",
+    "md": "12px",
+    "lg": "20px",
+    "xl": "24px"
+  }
+}

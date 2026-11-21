@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\FindOnMapProviderResource;
 use App\Http\Resources\ProviderResource;
 use App\Models\Category;
+use App\Models\FavouriteBusiness;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -31,7 +32,7 @@ class GuestController extends Controller
             $lng = (float) $activeAddress->longitude;
         }
 
-        $search = $request->search ;
+        $search = $request->search;
         $category = $request->category !== 'For You' ? $request->category : null;
         $minRating = $request->min_rating ? (float) $request->min_rating : null;
         $sort = $request->input('sort', 'recommended');
@@ -54,6 +55,7 @@ class GuestController extends Controller
             'min_rating' => $minRating,
             'sort' => $sort,
             'page' => $page,
+            'availability_day' => now()->format('Y-m-d'),
         ]);
 
         $providers = Cache::tags([CacheKey::PROVIDERS->value, CacheKey::MARKETPLACE->value])->remember(
@@ -70,8 +72,14 @@ class GuestController extends Controller
 
         return Inertia::render('guest/welcome', [
             'canRegister' => Features::enabled(Features::registration()),
-            'providers' => Inertia::scroll(fn() => $providers),
+            'providers' => Inertia::scroll(fn () => $providers),
             'categories' => $categories,
+            'favoriteBusinessIds' => $user
+                ? FavouriteBusiness::query()
+                    ->where('user_id', $user->id)
+                    ->pluck('business_profile_id')
+                    ->all()
+                : [],
             'filters' => [
                 'search' => $search,
                 'category' => $request->category,
@@ -97,7 +105,7 @@ class GuestController extends Controller
 
         $params = array_filter($params, fn ($v) => $v !== null);
 
-        return CacheKey::PROVIDER_MARKETPLACE->value . md5(json_encode($params));
+        return CacheKey::PROVIDER_MARKETPLACE->value.md5(json_encode($params));
     }
 
     /**
@@ -118,8 +126,9 @@ class GuestController extends Controller
                 'users.id',
                 'users.name',
                 'users.email',
+                'users.avatar',
                 'users.is_verified',
-                'users.created_at'
+                'users.created_at',
             ])
             // ->where('users.is_verified', true)
             ->whereHas('businessProfile')
@@ -133,6 +142,7 @@ class GuestController extends Controller
                 'business_profiles.city',
                 'business_profiles.state',
                 'business_profiles.category',
+                'business_profiles.id as business_profile_id',
                 'business_profiles.latitude',
                 'business_profiles.longitude',
             ])
@@ -147,6 +157,13 @@ class GuestController extends Controller
                     ->selectRaw('MIN(price)')
                     ->whereColumn('provider_id', 'users.id')
                     ->where('status', 'active'),
+                'is_available_today' => DB::table('work_hours')
+                    ->selectRaw('COUNT(*)')
+                    ->whereColumn('provider_id', 'users.id')
+                    ->where('day_of_week', now()->format('l'))
+                    ->where('is_closed', false)
+                    ->whereNotNull('start_time')
+                    ->whereNotNull('end_time'),
             ]);
 
         if ($lat && $lng) {
@@ -226,7 +243,6 @@ class GuestController extends Controller
         // Transform to resource collection
         return ProviderResource::collection($providers);
     }
-  
 
     public function findOnMap(Request $request)
     {

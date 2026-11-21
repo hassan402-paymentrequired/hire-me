@@ -84,6 +84,7 @@ export interface User {
 
 export interface Provider {
     id: string;
+    businessId: string;
     name: string;
     businessName: string;
     slug: string;
@@ -92,10 +93,16 @@ export interface Provider {
     services: string[];
     distance?: number | null;
     logo?: string | null;
+    avatar?: string | null;
+    banners?: string[];
+    category?: string | null;
+    isVerified?: boolean;
     rating: number;
     reviewsCount: number;
     minPrice: number | string;
     address: string;
+    city?: string | null;
+    isAvailableToday?: boolean;
     [key: string]: unknown;
 }
 
@@ -172,6 +179,7 @@ export interface WelcomeProps {
         current_page: number;
     };
     categories: { name: string; slug: string }[];
+    favoriteBusinessIds: string[];
     filters: {
         search?: string;
         category?: string;

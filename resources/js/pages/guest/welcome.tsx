@@ -12,6 +12,7 @@ export default function Welcome({
     providers,
     categories,
     filters,
+    favoriteBusinessIds,
 }: WelcomeProps) {
 
     const requestLocation = () => {
@@ -138,11 +139,14 @@ export default function Welcome({
                                                 )
                                             }
                                         >
-                                            <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
                                                 {providers?.data?.map(
                                                     (provider) => (
                                                         <BusinessCard
                                                             provider={provider}
+                                                            favoriteBusinessIds={
+                                                                favoriteBusinessIds
+                                                            }
                                                             key={provider.id}
                                                         />
                                                     ),

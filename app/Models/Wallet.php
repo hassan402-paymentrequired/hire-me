@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use App\Support\ProviderSettings;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUlids;
 
 class Wallet extends Model
 {
@@ -15,6 +15,10 @@ class Wallet extends Model
         'user_id',
         'balance',
         'escrow_balance',
+        'payengine_customer_id',
+        'payengine_wallet_id',
+        'payengine_account_number',
+        'payengine_status',
     ];
 
     protected $casts = [
@@ -51,9 +55,9 @@ class Wallet extends Model
     /**
      * Hold amount in escrow
      */
-    public function holdEscrow(float $amount, Appointment $appointment, string $description = null): WalletTransaction
+    public function holdEscrow(float $amount, Appointment $appointment, ?string $description = null): WalletTransaction
     {
-        if (!$this->hasSufficientBalance($amount)) {
+        if (! $this->hasSufficientBalance($amount)) {
             throw new \Exception('Insufficient balance');
         }
 
@@ -76,7 +80,7 @@ class Wallet extends Model
     /**
      * Release escrow to provider
      */
-    public function releaseEscrow(float $amount, Appointment $appointment, string $description = null): WalletTransaction
+    public function releaseEscrow(float $amount, Appointment $appointment, ?string $description = null): WalletTransaction
     {
         if ($this->escrow_balance < $amount) {
             throw new \Exception('Insufficient escrow balance');
@@ -145,7 +149,7 @@ class Wallet extends Model
     /**
      * Refund escrow back to client
      */
-    public function refundEscrow(float $amount, Appointment $appointment, string $description = null): WalletTransaction
+    public function refundEscrow(float $amount, Appointment $appointment, ?string $description = null): WalletTransaction
     {
         if ($this->escrow_balance < $amount) {
             throw new \Exception('Insufficient escrow balance');
@@ -172,7 +176,7 @@ class Wallet extends Model
     /**
      * Forfeit escrow (late cancellation/no-show penalty)
      */
-    public function forfeitEscrow(float $amount, Appointment $appointment, string $description = null): WalletTransaction
+    public function forfeitEscrow(float $amount, Appointment $appointment, ?string $description = null): WalletTransaction
     {
         if ($this->escrow_balance < $amount) {
             throw new \Exception('Insufficient escrow balance');
@@ -220,7 +224,7 @@ class Wallet extends Model
     /**
      * Add deposit to wallet
      */
-    public function deposit(float $amount, string $reference = null, string $description = null, array $metadata = []): WalletTransaction
+    public function deposit(float $amount, ?string $reference = null, ?string $description = null, array $metadata = []): WalletTransaction
     {
         $this->balance += $amount;
         $this->save();
@@ -233,7 +237,7 @@ class Wallet extends Model
             'balance_before' => $this->balance - $amount,
             'balance_after' => $this->balance,
             'status' => 'completed',
-            'description' => $description ?? "Wallet deposit",
+            'description' => $description ?? 'Wallet deposit',
             'reference' => $reference,
             'metadata' => $metadata,
         ]);
@@ -242,9 +246,9 @@ class Wallet extends Model
     /**
      * Hold payment - charge client but hold in escrow until both parties approve completion
      */
-    public function holdPayment(float $amount, Appointment $appointment, string $description = null): WalletTransaction
+    public function holdPayment(float $amount, Appointment $appointment, ?string $description = null): WalletTransaction
     {
-        if (!$this->hasSufficientBalance($amount)) {
+        if (! $this->hasSufficientBalance($amount)) {
             throw new \Exception('Insufficient balance');
         }
 
@@ -270,7 +274,7 @@ class Wallet extends Model
     /**
      * Release held payment to provider after dual approval
      */
-    public function releaseHeldPayment(float $amount, Appointment $appointment, string $description = null): WalletTransaction
+    public function releaseHeldPayment(float $amount, Appointment $appointment, ?string $description = null): WalletTransaction
     {
         if ($this->escrow_balance < $amount) {
             throw new \Exception('Insufficient escrow balance');
@@ -359,7 +363,7 @@ class Wallet extends Model
      * Refund upfront payment to client (for cancellations)
      * This method should be called on the client's wallet
      */
-    public function refundUpfrontPayment(float $amount, Appointment $appointment, string $description = null): WalletTransaction
+    public function refundUpfrontPayment(float $amount, Appointment $appointment, ?string $description = null): WalletTransaction
     {
         // Deduct from provider's wallet (they already received the payment)
         $providerWallet = Wallet::firstOrCreate(['user_id' => $appointment->provider_id]);
@@ -405,7 +409,7 @@ class Wallet extends Model
      * Process partial refund (for late cancellation penalties)
      * This method should be called on the client's wallet
      */
-    public function processCancellationPenalty(float $totalAmount, float $penaltyPercent, Appointment $appointment, string $description = null): array
+    public function processCancellationPenalty(float $totalAmount, float $penaltyPercent, Appointment $appointment, ?string $description = null): array
     {
         $penaltyAmount = ($totalAmount * $penaltyPercent) / 100;
         $refundAmount = $totalAmount - $penaltyAmount;

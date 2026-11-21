@@ -10,16 +10,15 @@ Route::middleware('guest')->prefix('/auth/google')->group(function () {
     Route::get('/callback', [\App\Http\Controllers\GoogleAuthController::class, 'callback'])->name('auth.google.callback');
 });
 
-
 Route::middleware(['provider.setup'])->group(function () {
     Route::get('/', [\App\Http\Controllers\Guest\GuestController::class, 'welcome'])->name('home');
     Route::get('/find-on-map', [\App\Http\Controllers\Guest\GuestController::class, 'findOnMap'])->name('find-on-map');
     Route::get('/provider/{slug}', [\App\Http\Controllers\Client\MarketplaceController::class, 'show'])->name('provider.show');
     Route::get('/provider/{slug}/gallery', [\App\Http\Controllers\Client\MarketplaceController::class, 'gallery'])->name('provider.gallery');
-    
+
     // Widget embed page (public, no auth required)
     Route::get('/widget/{slug}', [\App\Http\Controllers\Widget\WidgetEmbedController::class, 'embed'])->name('widget.embed');
-    
+
     // Widget payment callback (opens in new window, not iframe)
     Route::get('/widget/{slug}/payment/callback/{reference}', [\App\Http\Controllers\Widget\WidgetPaymentCallbackController::class, 'callback'])->name('widget.payment.callback');
 
@@ -116,7 +115,7 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
             Route::post('/settings/location', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateLocationSettings'])->name('settings.location.update');
             Route::post('/settings/advanced', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateAdvancedSettings'])->name('settings.advanced.update');
             Route::post('/settings/appearance', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateAppearanceSettings'])->name('settings.appearance.update');
-            
+
             // Integration (Widget)
             Route::get('/integration', [\App\Http\Controllers\Provider\Integration\IntegrationController::class, 'index'])->name('integration.index');
             Route::post('/widget/settings', [\App\Http\Controllers\Provider\Widget\WidgetSettingsController::class, 'update'])->name('widget.settings.update');
@@ -184,6 +183,8 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
         Route::get('/', [\App\Http\Controllers\Client\WalletController::class, 'index'])->name('index');
         Route::post('/top-up/initialize', [\App\Http\Controllers\Client\WalletController::class, 'initializeTopUp'])->name('top-up.initialize');
         Route::post('/top-up/verify', [\App\Http\Controllers\Client\WalletController::class, 'verifyTopUp'])->name('top-up.verify');
+        Route::get('/payengine/setup', [\App\Http\Controllers\Client\PayEngineWalletController::class, 'edit'])->name('payengine.setup');
+        Route::post('/payengine/setup', [\App\Http\Controllers\Client\PayEngineWalletController::class, 'store'])->middleware('throttle:5,1')->name('payengine.setup.store');
         // Client withdrawal routes - use different paths to avoid collision with provider routes
         Route::post('/client/withdraw/recipient', [\App\Http\Controllers\Client\WalletController::class, 'createRecipient'])->name('client.withdraw.recipient');
         Route::post('/client/withdraw', [\App\Http\Controllers\Client\WalletController::class, 'withdraw'])->name('client.withdraw');
@@ -237,6 +238,7 @@ Route::prefix('api/widget')->name('api.widget.')->group(function () {
 // Paystack Webhook (no auth required)
 Route::post('/paystack/webhook', [\App\Http\Controllers\PaystackWebhookController::class, 'handleWebhook'])->name('paystack.webhook');
 Route::get('/paystack/callback', [\App\Http\Controllers\PaystackWebhookController::class, 'handleCallback'])->name('paystack.callback');
+Route::post('/payengine/webhook/{token}', [\App\Http\Controllers\PayEngineWebhookController::class, 'handle'])->name('payengine.webhook');
 Route::get('/notification/{token}', [\App\Http\Controllers\PaystackWebhookController::class, 'handleCallback'])->name('unsubscribe');
 
-require __DIR__ . '/settings.php';
+require __DIR__.'/settings.php';

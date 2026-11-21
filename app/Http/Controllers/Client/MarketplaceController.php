@@ -4,22 +4,22 @@ namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProviderGalleryItemResource;
-use App\Models\FavouriteBusiness;
-use App\Models\User;
-use App\Models\BusinessProfile;
 use App\Models\Appointment;
+use App\Models\BusinessProfile;
 use App\Models\ClientAddress;
-use App\Models\TeamMember;
-use App\Models\Wallet;
+use App\Models\FavouriteBusiness;
 use App\Models\ProviderGalleryImage;
 use App\Models\ProviderGalleryItem;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Inertia\Inertia;
-use Carbon\Carbon;
+use App\Models\TeamMember;
+use App\Models\User;
+use App\Models\Wallet;
 use App\Support\ProviderSettings;
 use App\Support\ServiceDeliveryMode;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
 
 class MarketplaceController extends Controller
 {
@@ -56,7 +56,7 @@ class MarketplaceController extends Controller
                 'businessProfile',
                 'services' => function ($query) {
                     $query->where('status', 'active');
-                }
+                },
             ])
             ->get()
             ->map(function ($provider) {
@@ -71,7 +71,7 @@ class MarketplaceController extends Controller
                     'latitude' => $provider->businessProfile->latitude,
                     'longitude' => $provider->businessProfile->longitude,
                     'servicesCount' => $provider->services->count(),
-                    'services' => $provider->services->take(3)->map(fn($s) => $s->name),
+                    'services' => $provider->services->take(3)->map(fn ($s) => $s->name),
                 ];
             });
 
@@ -83,38 +83,37 @@ class MarketplaceController extends Controller
     public function show(string $slug)
     {
         $businessProfile = BusinessProfile::where('slug', $slug)->firstOrFail();
-        
+
         $provider = $businessProfile->user()
             ->with([
                 'services' => function ($query) {
                     $query->where('status', 'active')->with('serviceCategory');
-                }
+                },
             ])
             ->firstOrFail();
 
-       
         $dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         $workHoursData = \App\Models\WorkHour::where('provider_id', $provider->id)
             ->get()
             ->groupBy('day_of_week');
-        
+
         $workHours = collect($dayNames)->mapWithKeys(function ($dayName) use ($workHoursData) {
             // Access by day name string, not numeric index
             $hours = $workHoursData->get($dayName, collect());
             $openHours = $hours->where('is_closed', false);
-            
+
             if ($openHours->isEmpty()) {
                 return [$dayName => ['isOpen' => false]];
             }
-            
+
             return [
                 $dayName => [
                     'isOpen' => true,
-                    'hours' => $openHours->map(fn($h) => [
+                    'hours' => $openHours->map(fn ($h) => [
                         'start' => Carbon::parse($h->start_time)->format('g:i A'),
                         'end' => Carbon::parse($h->end_time)->format('g:i A'),
-                    ])->values()->toArray()
-                ]
+                    ])->values()->toArray(),
+                ],
             ];
         });
 
@@ -139,9 +138,8 @@ class MarketplaceController extends Controller
             $isFavourite = FavouriteBusiness::query()->where('user_id', auth()->id())->where('business_profile_id', $businessProfile->id)->exists();
         }
 
-
         // Calculate years in business from business profile creation date
-        $yearsInBusiness = $businessProfile->created_at 
+        $yearsInBusiness = $businessProfile->created_at
             ? round($businessProfile->created_at->diffInYears(now()), 1)
             : 0;
 
@@ -151,12 +149,12 @@ class MarketplaceController extends Controller
             ->where('is_active', true)
             ->whereNotNull('accepted_at')
             ->count();
-        
+
         // Calculate total service hours
         $totalServiceHours = $provider->services->sum('duration_minutes') / 60;
 
         $nearbyProviders = collect();
-        if (!empty($businessProfile->category)) {
+        if (! empty($businessProfile->category)) {
             $targetLat = $businessProfile->latitude ? (float) $businessProfile->latitude : null;
             $targetLng = $businessProfile->longitude ? (float) $businessProfile->longitude : null;
 
@@ -172,9 +170,11 @@ class MarketplaceController extends Controller
                 ->join('business_profiles', 'users.id', '=', 'business_profiles.user_id')
                 ->where('business_profiles.category', $businessProfile->category)
                 ->addSelect([
+                    'business_profiles.id as business_profile_id',
                     'business_profiles.business_name',
                     'business_profiles.slug',
                     'business_profiles.address',
+                    'business_profiles.city',
                     'business_profiles.category',
                 ])
                 ->addSelect([
@@ -199,6 +199,13 @@ class MarketplaceController extends Controller
                         ->orderByDesc('is_logo')
                         ->orderBy('id')
                         ->limit(1),
+                    'is_available_today' => DB::table('work_hours')
+                        ->selectRaw('COUNT(*)')
+                        ->whereColumn('provider_id', 'users.id')
+                        ->where('day_of_week', now()->format('l'))
+                        ->where('is_closed', false)
+                        ->whereNotNull('start_time')
+                        ->whereNotNull('end_time'),
                 ]);
 
             if ($targetLat && $targetLng) {
@@ -224,16 +231,19 @@ class MarketplaceController extends Controller
                 ->get()
                 ->map(function ($row) {
                     $logoUrl = null;
-                    if (!empty($row->image_path)) {
+                    if (! empty($row->image_path)) {
                         $logoUrl = \App\Services\FileUploadService::url($row->image_path, 'public');
                     }
 
                     return [
                         'id' => (string) $row->id,
+                        'businessId' => (string) $row->business_profile_id,
                         'name' => (string) $row->name,
                         'businessName' => (string) $row->business_name,
                         'slug' => (string) $row->slug,
                         'address' => (string) $row->address,
+                        'city' => (string) ($row->city ?? ''),
+                        'isAvailableToday' => (int) ($row->is_available_today ?? 0) > 0,
                         'logo' => $logoUrl,
                         'distance' => property_exists($row, 'distance') ? (float) $row->distance : null,
                         'servicesCount' => (int) ($row->services_count ?? 0),
@@ -247,10 +257,10 @@ class MarketplaceController extends Controller
                 ->values();
         }
 
-        $images = $businessProfile->images->map(fn($img) => [
-                    'url' => \App\Services\FileUploadService::url($img->image_path, 'public'),
-                    'isLogo' => $img->is_logo
-                ]);
+        $images = $businessProfile->images->map(fn ($img) => [
+            'url' => \App\Services\FileUploadService::url($img->image_path, 'public'),
+            'isLogo' => $img->is_logo,
+        ]);
 
         // Pull the latest images from the provider's actual gallery (ProviderGalleryItem/Image),
         // not the business hero images. Only need a small teaser + total count for "+N more".
@@ -267,12 +277,11 @@ class MarketplaceController extends Controller
             ->map(fn (ProviderGalleryImage $image) => [
                 'id' => (string) $image->id,
                 'url' => \App\Services\FileUploadService::url($image->image_path, 'public')
-                    ?? '/storage/' . ltrim((string) $image->image_path, '/'),
+                    ?? '/storage/'.ltrim((string) $image->image_path, '/'),
             ])
             ->values();
 
         $galleryTotal = (clone $galleryImageQuery)->count();
-
 
         return Inertia::render('marketplace/provider', [
             'provider' => [
@@ -314,7 +323,7 @@ class MarketplaceController extends Controller
                 'service_category_name' => $service->serviceCategory?->name,
             ])->values(),
             'workHours' => $workHours,
-            'reviews' => $reviews->map(fn($r) => [
+            'reviews' => $reviews->map(fn ($r) => [
                 'id' => $r->id,
                 'client_name' => $r->client->name ?? 'Anonymous',
                 'rating' => $r->rating,
@@ -323,6 +332,12 @@ class MarketplaceController extends Controller
             ]),
             'canEdit' => Auth::check(),
             'isFavourite' => $isFavourite,
+            'favoriteBusinessIds' => auth()->check()
+                ? FavouriteBusiness::query()
+                    ->where('user_id', auth()->id())
+                    ->pluck('business_profile_id')
+                    ->all()
+                : [],
             'nearbyProviders' => $nearbyProviders,
             'galleryPreview' => $galleryPreview,
             'galleryTotal' => $galleryTotal,
@@ -332,16 +347,15 @@ class MarketplaceController extends Controller
     public function booking($slug)
     {
         $businessProfile = BusinessProfile::where('slug', $slug)->firstOrFail();
-        
+
         $provider = $businessProfile->user()
             ->with([
                 'services' => function ($query) {
                     $query->where('status', 'active')
                         ->with('serviceCategory:id,name');
-                }
+                },
             ])
             ->firstOrFail();
-
 
         $walletBalance = null;
         if (auth()->check()) {
@@ -391,7 +405,6 @@ class MarketplaceController extends Controller
         $bookableTeamMembers = $teamMembers
             ->where('user_id', '!=', $provider->id)
             ->values();
-
 
         $bookingEligibility = $this->bookingEligibilityForProvider($provider);
 

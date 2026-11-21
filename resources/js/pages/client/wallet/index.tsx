@@ -20,7 +20,8 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/guest-layout';
-import { Head, router, useForm } from '@inertiajs/react';
+import walletRoutes from '@/routes/wallet';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowDown, ArrowDownUp, Building2, Loader2, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -81,6 +82,12 @@ interface Props {
     banks?: Bank[];
     bankAccount?: BankAccount | null;
     paystackPublicKey: string;
+    paymentProvider: string;
+    payengineWallet: {
+        is_configured: boolean;
+        account_number: string | null;
+        status: string | null;
+    };
 }
 
 export default function WalletIndex({
@@ -89,6 +96,8 @@ export default function WalletIndex({
     withdrawals,
     banks = [],
     bankAccount = null,
+    paymentProvider,
+    payengineWallet,
 }: Props) {
     const [topUpAmount, setTopUpAmount] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
@@ -293,276 +302,330 @@ export default function WalletIndex({
                     </Card>
                 </div>
 
-                {/* Top-up Section */}
-                <Card className="mb-8">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Plus className="h-5 w-5" />
-                            Top Up Wallet
-                        </CardTitle>
-                        <CardDescription>
-                            Add funds to your wallet to book appointments
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleTopUp} className="space-y-4">
-                            <div className="flex gap-4">
-                                <div className="flex-1">
-                                    <Label htmlFor="amount">Amount (₦)</Label>
-                                    <Input
-                                        id="amount"
-                                        type="number"
-                                        min="100"
-                                        step="100"
-                                        value={topUpAmount}
-                                        onChange={(e) =>
-                                            setTopUpAmount(e.target.value)
-                                        }
-                                        placeholder="Enter amount (minimum ₦100)"
-                                        required
-                                    />
-                                </div>
-                                <div className="flex items-end">
-                                    <Button
-                                        type="submit"
-                                        disabled={
-                                            isProcessing ||
-                                            !topUpAmount ||
-                                            parseFloat(topUpAmount) < 100
-                                        }
-                                    >
-                                        {isProcessing ? (
-                                            <>
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                Processing...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Plus className="mr-2 h-4 w-4" />
-                                                Top Up
-                                            </>
-                                        )}
-                                    </Button>
-                                </div>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                Minimum top-up amount is ₦100. You'll be
-                                redirected to Paystack to complete the payment.
-                            </p>
-                        </form>
-                    </CardContent>
-                </Card>
-
-                {/* Withdrawal Section */}
-                {wallet.available_balance > 0 && (
+                {paymentProvider === 'payengine' ? (
                     <Card className="mb-8">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
-                                <ArrowDown className="h-5 w-5" />
-                                Withdraw Funds
+                                <Plus className="h-5 w-5" />
+                                Add money by bank transfer
                             </CardTitle>
                             <CardDescription>
-                                Transfer money from your wallet to your bank
-                                account
+                                {payengineWallet.is_configured
+                                    ? 'Transfer to your dedicated PayEngine account. Your Proxideck balance updates after the transfer settles.'
+                                    : 'Set up a dedicated PayEngine account before adding money to your wallet.'}
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {!hasBankAccount && !showAddBank && (
-                                <div className="py-4 text-center">
-                                    <p className="mb-4 text-sm text-muted-foreground">
-                                        Add a bank account to withdraw funds
-                                    </p>
-                                    <Button
-                                        type="button"
-                                        onClick={() => setShowAddBank(true)}
-                                        className="w-full"
-                                    >
-                                        <Building2 className="mr-2 h-4 w-4" />
-                                        Add Bank Account
+                            {payengineWallet.is_configured ? (
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">
+                                            Account number
+                                        </p>
+                                        <p className="text-2xl font-semibold">
+                                            {payengineWallet.account_number}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            PayEngine virtual account
+                                        </p>
+                                    </div>
+                                    <Button asChild variant="outline">
+                                        <Link
+                                            href={walletRoutes.payengine.setup.url()}
+                                        >
+                                            View account
+                                        </Link>
                                     </Button>
                                 </div>
+                            ) : (
+                                <Button asChild>
+                                    <Link
+                                        href={walletRoutes.payengine.setup.url()}
+                                    >
+                                        Set up virtual account
+                                    </Link>
+                                </Button>
                             )}
-
-                            {showAddBank && (
-                                <form
-                                    onSubmit={handleAddOrUpdateBank}
-                                    className="space-y-4"
-                                >
-                                    <SearchableSelect
-                                        label="Bank"
-                                        value={bankData.bank_code}
-                                        onChange={(value) =>
-                                            setBankData('bank_code', value)
-                                        }
-                                        options={bankOptions}
-                                        placeholder="Select bank"
-                                        searchPlaceholder="Search banks..."
-                                        error={bankErrors.bank_code}
-                                    />
-
-                                    <div>
-                                        <Label htmlFor="account_number">
-                                            Account Number
-                                        </Label>
-                                        <Input
-                                            id="account_number"
-                                            type="text"
-                                            maxLength={10}
-                                            value={bankData.account_number}
-                                            onChange={(e) =>
-                                                setBankData(
-                                                    'account_number',
-                                                    e.target.value,
-                                                )
-                                            }
-                                            placeholder="Enter 10-digit account number"
-                                        />
-                                        {bankErrors.account_number && (
-                                            <p className="mt-1 text-sm text-destructive">
-                                                {bankErrors.account_number}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <Label htmlFor="account_name">
-                                            Account Name
-                                        </Label>
-                                        <Input
-                                            id="account_name"
-                                            type="text"
-                                            value={bankData.account_name}
-                                            onChange={(e) =>
-                                                setBankData(
-                                                    'account_name',
-                                                    e.target.value,
-                                                )
-                                            }
-                                            placeholder="Enter account name"
-                                        />
-                                        {bankErrors.account_name && (
-                                            <p className="mt-1 text-sm text-destructive">
-                                                {bankErrors.account_name}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    <div className="flex gap-2">
-                                        <Button
-                                            type="submit"
-                                            disabled={processingBank}
-                                            className="flex-1"
-                                        >
-                                            {processingBank && (
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            )}
-                                            {hasBankAccount
-                                                ? 'Update Bank Account'
-                                                : 'Add Bank Account'}
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={() => {
-                                                setShowAddBank(false);
-                                                setBankData({
-                                                    account_number: '',
-                                                    bank_code: '',
-                                                    account_name: '',
-                                                });
-                                            }}
-                                        >
-                                            Cancel
-                                        </Button>
-                                    </div>
-                                </form>
-                            )}
-
-                            {hasBankAccount && !showAddBank && (
-                                <form
-                                    onSubmit={handleWithdraw}
-                                    className="space-y-4"
-                                >
-                                    <div>
-                                        <Label htmlFor="withdraw_amount">
+                        </CardContent>
+                    </Card>
+                ) : (
+                    /* Top-up Section */
+                    <Card className="mb-8">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Plus className="h-5 w-5" />
+                                Top Up Wallet
+                            </CardTitle>
+                            <CardDescription>
+                                Add funds to your wallet to book appointments
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <form onSubmit={handleTopUp} className="space-y-4">
+                                <div className="flex gap-4">
+                                    <div className="flex-1">
+                                        <Label htmlFor="amount">
                                             Amount (₦)
                                         </Label>
                                         <Input
-                                            id="withdraw_amount"
+                                            id="amount"
                                             type="number"
                                             min="100"
                                             step="100"
-                                            max={wallet.available_balance}
-                                            value={withdrawalData.amount}
+                                            value={topUpAmount}
                                             onChange={(e) =>
-                                                setWithdrawalData(
-                                                    'amount',
-                                                    e.target.value,
-                                                )
+                                                setTopUpAmount(e.target.value)
                                             }
                                             placeholder="Enter amount (minimum ₦100)"
                                             required
                                         />
-                                        {withdrawalErrors.amount && (
-                                            <p className="mt-1 text-sm text-destructive">
-                                                {withdrawalErrors.amount}
-                                            </p>
-                                        )}
-                                        <p className="mt-1 text-xs text-muted-foreground">
-                                            Maximum: ₦
-                                            {wallet.available_balance.toLocaleString()}
-                                        </p>
                                     </div>
-
-                                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/20">
-                                        <p className="mb-1 text-sm font-medium">
-                                            Bank Account
-                                        </p>
-                                        <p className="text-sm text-muted-foreground">
-                                            {bankAccount
-                                                ? `${bankAccount.bank_name} - ${bankAccount.account_name} (****${bankAccount.account_number_masked})`
-                                                : `${withdrawalData.bank_name} - ${withdrawalData.account_name}`}
-                                        </p>
+                                    <div className="flex items-end">
+                                        <Button
+                                            type="submit"
+                                            disabled={
+                                                isProcessing ||
+                                                !topUpAmount ||
+                                                parseFloat(topUpAmount) < 100
+                                            }
+                                        >
+                                            {isProcessing ? (
+                                                <>
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    Processing...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Plus className="mr-2 h-4 w-4" />
+                                                    Top Up
+                                                </>
+                                            )}
+                                        </Button>
                                     </div>
-
-                                    <Button
-                                        type="submit"
-                                        disabled={
-                                            processingWithdrawal ||
-                                            !withdrawalData.amount ||
-                                            parseFloat(withdrawalData.amount) <
-                                                100 ||
-                                            parseFloat(withdrawalData.amount) >
-                                                wallet.available_balance
-                                        }
-                                        className="w-full"
-                                    >
-                                        {processingWithdrawal ? (
-                                            <>
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                Processing...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <ArrowDown className="mr-2 h-4 w-4" />
-                                                Withdraw Funds
-                                            </>
-                                        )}
-                                    </Button>
-
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() => setShowAddBank(true)}
-                                        className="w-full"
-                                    >
-                                        Update Bank Account
-                                    </Button>
-                                </form>
-                            )}
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Minimum top-up amount is ₦100. You'll be
+                                    redirected to Paystack to complete the
+                                    payment.
+                                </p>
+                            </form>
                         </CardContent>
                     </Card>
                 )}
+
+                {/* Withdrawal Section */}
+                {paymentProvider !== 'payengine' &&
+                    wallet.available_balance > 0 && (
+                        <Card className="mb-8">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <ArrowDown className="h-5 w-5" />
+                                    Withdraw Funds
+                                </CardTitle>
+                                <CardDescription>
+                                    Transfer money from your wallet to your bank
+                                    account
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {!hasBankAccount && !showAddBank && (
+                                    <div className="py-4 text-center">
+                                        <p className="mb-4 text-sm text-muted-foreground">
+                                            Add a bank account to withdraw funds
+                                        </p>
+                                        <Button
+                                            type="button"
+                                            onClick={() => setShowAddBank(true)}
+                                            className="w-full"
+                                        >
+                                            <Building2 className="mr-2 h-4 w-4" />
+                                            Add Bank Account
+                                        </Button>
+                                    </div>
+                                )}
+
+                                {showAddBank && (
+                                    <form
+                                        onSubmit={handleAddOrUpdateBank}
+                                        className="space-y-4"
+                                    >
+                                        <SearchableSelect
+                                            label="Bank"
+                                            value={bankData.bank_code}
+                                            onChange={(value) =>
+                                                setBankData('bank_code', value)
+                                            }
+                                            options={bankOptions}
+                                            placeholder="Select bank"
+                                            searchPlaceholder="Search banks..."
+                                            error={bankErrors.bank_code}
+                                        />
+
+                                        <div>
+                                            <Label htmlFor="account_number">
+                                                Account Number
+                                            </Label>
+                                            <Input
+                                                id="account_number"
+                                                type="text"
+                                                maxLength={10}
+                                                value={bankData.account_number}
+                                                onChange={(e) =>
+                                                    setBankData(
+                                                        'account_number',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                placeholder="Enter 10-digit account number"
+                                            />
+                                            {bankErrors.account_number && (
+                                                <p className="mt-1 text-sm text-destructive">
+                                                    {bankErrors.account_number}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <Label htmlFor="account_name">
+                                                Account Name
+                                            </Label>
+                                            <Input
+                                                id="account_name"
+                                                type="text"
+                                                value={bankData.account_name}
+                                                onChange={(e) =>
+                                                    setBankData(
+                                                        'account_name',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                placeholder="Enter account name"
+                                            />
+                                            {bankErrors.account_name && (
+                                                <p className="mt-1 text-sm text-destructive">
+                                                    {bankErrors.account_name}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="flex gap-2">
+                                            <Button
+                                                type="submit"
+                                                disabled={processingBank}
+                                                className="flex-1"
+                                            >
+                                                {processingBank && (
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                )}
+                                                {hasBankAccount
+                                                    ? 'Update Bank Account'
+                                                    : 'Add Bank Account'}
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() => {
+                                                    setShowAddBank(false);
+                                                    setBankData({
+                                                        account_number: '',
+                                                        bank_code: '',
+                                                        account_name: '',
+                                                    });
+                                                }}
+                                            >
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    </form>
+                                )}
+
+                                {hasBankAccount && !showAddBank && (
+                                    <form
+                                        onSubmit={handleWithdraw}
+                                        className="space-y-4"
+                                    >
+                                        <div>
+                                            <Label htmlFor="withdraw_amount">
+                                                Amount (₦)
+                                            </Label>
+                                            <Input
+                                                id="withdraw_amount"
+                                                type="number"
+                                                min="100"
+                                                step="100"
+                                                max={wallet.available_balance}
+                                                value={withdrawalData.amount}
+                                                onChange={(e) =>
+                                                    setWithdrawalData(
+                                                        'amount',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                placeholder="Enter amount (minimum ₦100)"
+                                                required
+                                            />
+                                            {withdrawalErrors.amount && (
+                                                <p className="mt-1 text-sm text-destructive">
+                                                    {withdrawalErrors.amount}
+                                                </p>
+                                            )}
+                                            <p className="mt-1 text-xs text-muted-foreground">
+                                                Maximum: ₦
+                                                {wallet.available_balance.toLocaleString()}
+                                            </p>
+                                        </div>
+
+                                        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/20">
+                                            <p className="mb-1 text-sm font-medium">
+                                                Bank Account
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {bankAccount
+                                                    ? `${bankAccount.bank_name} - ${bankAccount.account_name} (****${bankAccount.account_number_masked})`
+                                                    : `${withdrawalData.bank_name} - ${withdrawalData.account_name}`}
+                                            </p>
+                                        </div>
+
+                                        <Button
+                                            type="submit"
+                                            disabled={
+                                                processingWithdrawal ||
+                                                !withdrawalData.amount ||
+                                                parseFloat(
+                                                    withdrawalData.amount,
+                                                ) < 100 ||
+                                                parseFloat(
+                                                    withdrawalData.amount,
+                                                ) > wallet.available_balance
+                                            }
+                                            className="w-full"
+                                        >
+                                            {processingWithdrawal ? (
+                                                <>
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    Processing...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <ArrowDown className="mr-2 h-4 w-4" />
+                                                    Withdraw Funds
+                                                </>
+                                            )}
+                                        </Button>
+
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => setShowAddBank(true)}
+                                            className="w-full"
+                                        >
+                                            Update Bank Account
+                                        </Button>
+                                    </form>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
 
                 {/* Withdrawal History */}
                 {withdrawals && withdrawals.data.length > 0 && (

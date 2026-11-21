@@ -94,10 +94,14 @@ interface Props {
     reviews: Review[];
     canEdit: boolean;
     isFavourite: boolean;
+    favoriteBusinessIds: string[];
     nearbyProviders: Array<{
         id: string;
+        businessId: string;
         name: string;
         address: string;
+        city?: string | null;
+        isAvailableToday?: boolean;
         businessName: string;
         slug: string;
         logo?: string | null;
@@ -183,6 +187,7 @@ export default function ProviderProfile({
     reviews,
     canEdit,
     isFavourite,
+    favoriteBusinessIds,
     nearbyProviders,
     galleryPreview = [],
     galleryTotal = 0,
@@ -1090,7 +1095,10 @@ export default function ProviderProfile({
                                     key={nearbyProvider.id}
                                     className="max-w-[260px] min-w-[260px] snap-start"
                                 >
-                                    <BusinessCard provider={nearbyProvider} />
+                                    <BusinessCard
+                                        provider={nearbyProvider}
+                                        favoriteBusinessIds={favoriteBusinessIds}
+                                    />
                                 </div>
                             ))}
                         </div>

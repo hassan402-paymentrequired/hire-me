@@ -39,7 +39,26 @@ return [
         'secret_key' => env('PAYSTACK_SECRET_KEY'),
         'public_key' => env('PAYSTACK_PUBLIC_KEY'),
     ],
-    
+
+    'payengine' => [
+        'provider' => env('PAYMENT_PROVIDER', 'paystack'),
+        'base_url' => env('PAYENGINE_BASE_URL', 'https://sandbox.bankingcomponent.com/payengine/v1'),
+        'api_key' => env('PAYENGINE_API_KEY'),
+        'bearer_token' => env('PAYENGINE_BEARER_TOKEN'),
+        'webhook_token' => env('PAYENGINE_WEBHOOK_TOKEN'),
+    ],
+
+    // NVIDIA hosted models (build.nvidia.com), OpenAI-style API. Powers the Kiro assistant.
+    // NVIDIA_MODELS is a comma-separated list, tried in order; a failing model is skipped for a while.
+    'nvidia' => [
+        'key' => env('NVIDIA_API_KEY'),
+        'base_url' => env('NVIDIA_BASE_URL', 'https://integrate.api.nvidia.com/v1'),
+        'models' => env('NVIDIA_MODELS', 'meta/llama-3.3-70b-instruct,meta/llama-4-maverick-17b-128e-instruct,nvidia/nemotron-3-ultra-550b-a55b'),
+        'timeout' => (int) env('NVIDIA_TIMEOUT', 30),
+        // reasoning models think before they answer; this is added to every reply's token limit
+        'thinking_tokens' => (int) env('NVIDIA_THINKING_TOKENS', 0),
+    ],
+
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),

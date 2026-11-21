@@ -2,13 +2,16 @@
 
 namespace App\Services;
 
+use App\Contracts\PaymentGateway;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class PaystackService
+class PaystackService implements PaymentGateway
 {
     private string $secretKey;
+
     private string $publicKey;
+
     private string $baseUrl = 'https://api.paystack.co';
 
     public function __construct()
@@ -23,7 +26,7 @@ class PaystackService
     public function initializeTransaction(array $data): array
     {
         $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $this->secretKey,
+            'Authorization' => 'Bearer '.$this->secretKey,
             'Content-Type' => 'application/json',
         ])->post("{$this->baseUrl}/transaction/initialize", [
             'email' => $data['email'],
@@ -57,12 +60,13 @@ class PaystackService
     public function verifyTransaction(string $reference): array
     {
         $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $this->secretKey,
+            'Authorization' => 'Bearer '.$this->secretKey,
             'Content-Type' => 'application/json',
         ])->get("{$this->baseUrl}/transaction/verify/{$reference}");
 
         if ($response->successful()) {
             $data = $response->json()['data'];
+
             return [
                 'success' => true,
                 'status' => $data['status'],
@@ -86,7 +90,7 @@ class PaystackService
     public function createTransferRecipient(array $data): array
     {
         $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $this->secretKey,
+            'Authorization' => 'Bearer '.$this->secretKey,
             'Content-Type' => 'application/json',
         ])->post("{$this->baseUrl}/transferrecipient", [
             'type' => $data['type'], // 'nuban' for bank account
@@ -120,7 +124,7 @@ class PaystackService
     public function initiateTransfer(array $data): array
     {
         $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $this->secretKey,
+            'Authorization' => 'Bearer '.$this->secretKey,
             'Content-Type' => 'application/json',
         ])->post("{$this->baseUrl}/transfer", [
             'source' => 'balance',
@@ -155,12 +159,13 @@ class PaystackService
     public function verifyTransfer(string $reference): array
     {
         $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $this->secretKey,
+            'Authorization' => 'Bearer '.$this->secretKey,
             'Content-Type' => 'application/json',
         ])->get("{$this->baseUrl}/transfer/{$reference}");
 
         if ($response->successful()) {
             $data = $response->json()['data'];
+
             return [
                 'success' => true,
                 'status' => $data['status'],
@@ -183,7 +188,7 @@ class PaystackService
     {
         try {
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->secretKey,
+                'Authorization' => 'Bearer '.$this->secretKey,
                 'Content-Type' => 'application/json',
             ])->get("{$this->baseUrl}/bank");
 
@@ -217,5 +222,21 @@ class PaystackService
     public function getPublicKey(): string
     {
         return $this->publicKey;
+    }
+
+    public function initializeCheckout(array $data): array
+    {
+        return $this->initializeTransaction([
+            'email' => $data['email'],
+            'amount' => (int) $data['amount'],
+            'reference' => $data['reference'],
+            'callback_url' => $data['callback_url'] ?? null,
+            'metadata' => $data['metadata'] ?? [],
+        ]);
+    }
+
+    public function verifyPayment(string $reference): array
+    {
+        return $this->verifyTransaction($reference);
     }
 }

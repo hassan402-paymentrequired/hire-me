@@ -1,0 +1,12 @@
+:root {
+  --brand-evergreen: #0E3B2E;
+  --brand-lime: #C8F169;
+  --brand-mint: #E6F4EC;
+  --brand-paper: #F5F7F2;
+  --brand-ink: #13201B;
+  --brand-sage: #A9C7B8;
+  --brand-sage-dark: #4F7A66;
+  --brand-muted: #4A5A52;
+  --brand-font-heading: 'Sora', ui-sans-serif, system-ui, sans-serif;
+  --brand-font-body: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+}

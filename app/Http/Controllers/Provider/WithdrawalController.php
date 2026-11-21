@@ -40,7 +40,10 @@ class WithdrawalController extends Controller
             ->paginate(20);
 
         // Get banks list
-        $banksResponse = $this->paystack->getBanks();
+        $paymentProvider = config('services.payengine.provider');
+        $banksResponse = $paymentProvider === 'payengine'
+            ? ['success' => true, 'data' => []]
+            : $this->paystack->getBanks();
         $banks = $banksResponse['success'] ? $banksResponse['data'] : [];
 
         return Inertia::render('provider/wallet/withdraw', [
@@ -54,7 +57,7 @@ class WithdrawalController extends Controller
                 'recipient_code' => $bankAccount->recipient_code,
                 'bank_name' => $bankAccount->bank_name,
                 'account_name' => $bankAccount->account_name,
-                'account_number_masked' => strlen($bankAccount->account_number) >= 4 ? '****' . substr($bankAccount->account_number, -4) : null,
+                'account_number_masked' => strlen($bankAccount->account_number) >= 4 ? '****'.substr($bankAccount->account_number, -4) : null,
             ] : null,
             'withdrawals' => $withdrawals->through(function ($transaction) {
                 return [
@@ -68,11 +71,18 @@ class WithdrawalController extends Controller
                 ];
             }),
             'banks' => $banks,
+            'paymentProvider' => $paymentProvider,
+            'payengineWallet' => [
+                'is_configured' => (bool) $wallet->payengine_wallet_id,
+                'account_number' => $wallet->payengine_account_number,
+            ],
         ]);
     }
 
     public function createRecipient(Request $request)
     {
+        abort_unless(config('services.payengine.provider') !== 'payengine', 404);
+
         $request->validate([
             'account_number' => 'required|string|size:10',
             'bank_code' => 'required|string',
@@ -91,7 +101,7 @@ class WithdrawalController extends Controller
                 'currency' => 'NGN',
             ]);
 
-            if (!$response['success']) {
+            if (! $response['success']) {
                 return back()->with('error-toast', $response['message'] ?? 'Failed to create recipient');
             }
 
@@ -111,12 +121,14 @@ class WithdrawalController extends Controller
             return redirect()->route('wallet.withdraw.index')
                 ->with('success-toast', 'Bank account saved successfully');
         } catch (\Exception $e) {
-            return back()->with('error-toast', 'Failed to add bank account: ' . $e->getMessage());
+            return back()->with('error-toast', 'Failed to add bank account: '.$e->getMessage());
         }
     }
 
     public function withdraw(Request $request)
     {
+        abort_unless(config('services.payengine.provider') !== 'payengine', 404);
+
         $request->validate([
             'amount' => 'required|numeric|min:100|max:10000000',
             'recipient_code' => 'required|string',
@@ -141,7 +153,7 @@ class WithdrawalController extends Controller
             $wallet->save();
 
             // Create withdrawal transaction
-            $reference = 'WDR_' . now()->timestamp . '_' . $user->id;
+            $reference = 'WDR_'.now()->timestamp.'_'.$user->id;
             $transaction = WalletTransaction::create([
                 'wallet_id' => $wallet->id,
                 'user_id' => $user->id,
@@ -167,13 +179,14 @@ class WithdrawalController extends Controller
                 'reference' => $reference,
             ]);
 
-            if (!$transferResponse['success']) {
+            if (! $transferResponse['success']) {
                 // Refund the amount
                 $wallet->balance += $request->amount;
                 $wallet->save();
                 $transaction->update(['status' => 'failed']);
 
                 DB::commit();
+
                 return back()->with('error-toast', $transferResponse['message'] ?? 'Failed to initiate withdrawal');
             }
 
@@ -214,7 +227,8 @@ class WithdrawalController extends Controller
             return back()->with('success-toast', 'Withdrawal initiated successfully. It will be processed shortly.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error-toast', 'Failed to process withdrawal: ' . $e->getMessage());
+
+            return back()->with('error-toast', 'Failed to process withdrawal: '.$e->getMessage());
         }
     }
 }
