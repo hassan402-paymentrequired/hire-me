@@ -4,6 +4,8 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
+<meta name="facebook-domain-verification" content="lfivs2z1oo1u305074zhga1qm76arj" />
+
         {{-- SEO Meta Tags --}}
         <meta name="description" content="{{ $metaDescription ?? 'Simple, powerful booking management for service professionals. Manage appointments, reduce no-shows, and grow your business with our all-in-one scheduling platform.' }}">
         <meta name="keywords" content="{{ $metaKeywords ?? 'booking software, appointment scheduling, salon booking, barbershop appointments, Nigeria booking system, online scheduling, service booking, Verified Professionals, Trusted Services, Business Directory, Sales Tracker, Nearby Services, Service Marketplace' }}">

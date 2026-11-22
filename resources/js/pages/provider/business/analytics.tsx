@@ -110,7 +110,6 @@ export default function Analytics({
         parseFloat(String(value).replace('%', '')) || 0;
     const totalServiceRevenue =
         topServices.reduce((sum, service) => sum + service.revenue, 0) || 1;
-    const maxPeak = Math.max(...peakHours.map((hour) => hour.bookings), 1);
     const busiest = peakHours.reduce<PeakHour | null>(
         (top, hour) => (!top || hour.bookings > top.bookings ? hour : top),
         null,
