@@ -4,10 +4,8 @@ import TwoFactorSetupModal from '@/components/two-factor-setup-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useTwoFactorAuth } from '@/hooks/use-two-factor-auth';
-import ClientLayout from '@/layouts/client-layout';
 import ClientSettingsLayout from '@/layouts/client-settings/layout';
-import { disable, enable, show } from '@/routes/two-factor';
-import { type BreadcrumbItem } from '@/types';
+import { disable, enable } from '@/routes/two-factor';
 import { Form, Head } from '@inertiajs/react';
 import { ShieldBan, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
@@ -17,12 +15,6 @@ interface TwoFactorProps {
     twoFactorEnabled?: boolean;
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Two-Factor Authentication',
-        href: show.url(),
-    },
-];
 
 export default function TwoFactor({
     requiresConfirmation = false,
@@ -41,7 +33,7 @@ export default function TwoFactor({
     const [showSetupModal, setShowSetupModal] = useState<boolean>(false);
 
     return (
-        <ClientLayout breadcrumbs={breadcrumbs}>
+        <>
             <Head title="Two-Factor Authentication" />
             <ClientSettingsLayout>
                 <div className="space-y-6">
@@ -132,6 +124,6 @@ export default function TwoFactor({
                     />
                 </div>
             </ClientSettingsLayout>
-        </ClientLayout>
+        </>
     );
 }

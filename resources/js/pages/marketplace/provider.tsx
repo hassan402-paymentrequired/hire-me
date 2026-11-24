@@ -1,39 +1,37 @@
 import KiroChat from '@/components/kiro/kiro-chat';
 import { ReviewSection } from '@/components/reviews/review-section';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import GuestLayout from '@/layouts/guest-layout';
 import { getProviderDefaultBanner } from '@/lib/provider-banner';
 import {
-    getBookingCtaLabel,
-    getDeliveryModeBadge,
+    allowsHomeService,
     normalizeDeliveryMode,
 } from '@/lib/service-delivery-mode';
-import BusinessCard from '@/pages/guest/components/business-card';
+import { cn } from '@/lib/utils';
 import ReviewDrawal from '@/pages/marketplace/components/review-drawal';
-import ServiceModal from '@/pages/marketplace/components/service-modal';
+import { findOnMap, login } from '@/routes';
 import favourite from '@/routes/favourite';
-import {
-    ChatBubbleBottomCenterTextIcon,
-    FireIcon,
-} from '@heroicons/react/24/solid';
-import { Link, router } from '@inertiajs/react';
+import { booking } from '@/routes/marketplace';
+import { gallery, show as providerShow } from '@/routes/provider';
+import type { SharedData } from '@/types';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import {
+    ArrowRight,
     BadgeCheck,
-    Calendar,
+    Check,
     ChevronLeft,
     ChevronRight,
+    Clock,
     Heart,
-    ImageIcon,
     MapPin,
-    Navigation,
+    MessageCircle,
+    Phone,
     Share2,
     Star,
     X,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 interface Service {
     id: string;
@@ -61,6 +59,8 @@ interface Provider {
     latitude: number | null;
     longitude: number | null;
     address: string;
+    city?: string | null;
+    phone?: string | null;
     pending_appointment_id: string | null;
     years_in_business?: number;
     team_members_count?: number;
@@ -95,6 +95,26 @@ interface GalleryPreviewImage {
     url: string;
 }
 
+interface NearbyProvider {
+    id: string;
+    businessId: string;
+    name: string;
+    address: string;
+    city?: string | null;
+    isAvailableToday?: boolean;
+    businessName: string;
+    slug: string;
+    logo?: string | null;
+    avatar?: string | null;
+    distance?: number | null;
+    servicesCount: number;
+    rating: number;
+    reviewsCount: number;
+    minPrice: number | string;
+    category?: string;
+    isVerified?: boolean;
+}
+
 interface Props {
     provider: Provider;
     services: Service[];
@@ -103,28 +123,28 @@ interface Props {
     canEdit: boolean;
     isFavourite: boolean;
     favoriteBusinessIds: string[];
-    nearbyProviders: Array<{
-        id: string;
-        businessId: string;
-        name: string;
-        address: string;
-        city?: string | null;
-        isAvailableToday?: boolean;
-        businessName: string;
-        slug: string;
-        logo?: string | null;
-        avatar?: string | null;
-        distance?: number | null;
-        servicesCount: number;
-        rating: number;
-        reviewsCount: number;
-        minPrice: number | string;
-        category?: string;
-        isVerified?: boolean;
-    }>;
+    nearbyProviders: NearbyProvider[];
     galleryPreview?: GalleryPreviewImage[];
     galleryTotal?: number;
 }
+
+const WEEKDAYS = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+];
+
+const surfaceClass = 'rounded-3xl border border-line bg-white';
+
+const forestButtonClass =
+    'inline-flex h-14 items-center justify-center gap-2 rounded-full bg-forest px-6 text-[17px] font-bold text-white transition hover:bg-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-forest/40';
+
+const outlineButtonClass =
+    'inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#DDE3DE] bg-white px-4.5 text-sm font-semibold text-ink transition hover:bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest focus-visible:ring-offset-2';
 
 function calculateDistance(
     lat1: number,
@@ -132,7 +152,7 @@ function calculateDistance(
     lat2: number,
     lon2: number,
 ) {
-    const R = 6371;
+    const earthRadiusKm = 6371;
     const dLat = deg2rad(lat2 - lat1);
     const dLon = deg2rad(lon2 - lon1);
     const a =
@@ -142,7 +162,8 @@ function calculateDistance(
             Math.sin(dLon / 2) *
             Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+
+    return earthRadiusKm * c;
 }
 
 function deg2rad(deg: number) {
@@ -152,20 +173,31 @@ function deg2rad(deg: number) {
 function parseTimeToMinutes(timeStr: string): number {
     const str = timeStr.trim();
     const match12h = str.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/i);
+
     if (match12h) {
         let hours = parseInt(match12h[1], 10);
         const minutes = parseInt(match12h[2] || '0', 10);
         const period = match12h[3].toUpperCase();
-        if (period === 'PM' && hours !== 12) hours += 12;
-        if (period === 'AM' && hours === 12) hours = 0;
+
+        if (period === 'PM' && hours !== 12) {
+            hours += 12;
+        }
+
+        if (period === 'AM' && hours === 12) {
+            hours = 0;
+        }
+
         return hours * 60 + minutes;
     }
+
     const match24h = str.match(/^(\d{1,2})(?::(\d{2}))?$/);
+
     if (match24h) {
-        const hours = parseInt(match24h[1], 10);
-        const minutes = parseInt(match24h[2] || '0', 10);
-        return hours * 60 + minutes;
+        return (
+            parseInt(match24h[1], 10) * 60 + parseInt(match24h[2] || '0', 10)
+        );
     }
+
     return 0;
 }
 
@@ -174,9 +206,11 @@ function isWithinHours(
     hoursRanges: Array<{ start: string; end: string }>,
 ): boolean {
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
     for (const range of hoursRanges) {
         const startMinutes = parseTimeToMinutes(range.start);
         const endMinutes = parseTimeToMinutes(range.end);
+
         if (startMinutes <= endMinutes) {
             if (nowMinutes >= startMinutes && nowMinutes < endMinutes) {
                 return true;
@@ -185,7 +219,321 @@ function isWithinHours(
             return true;
         }
     }
+
     return false;
+}
+
+function compactTime(value: string): string {
+    return value.replace(':00', '');
+}
+
+function formatNaira(amount: number | string): string {
+    return `₦${Number(amount || 0).toLocaleString('en-NG')}`;
+}
+
+function formatDuration(minutes: number): string {
+    if (!minutes || minutes <= 0) {
+        return '';
+    }
+
+    if (minutes < 60) {
+        return minutes === 1 ? '1 min' : `${minutes} mins`;
+    }
+
+    const hours = Math.floor(minutes / 60);
+    const remainder = minutes % 60;
+    const hourLabel = hours === 1 ? '1 hr' : `${hours} hr`;
+
+    if (remainder === 0) {
+        return hourLabel;
+    }
+
+    return `${hourLabel} ${remainder} mins`;
+}
+
+function profileBanner(
+    category: string | null | undefined,
+    id: string | number,
+): string {
+    return getProviderDefaultBanner(category, id).replace(
+        '-light.jpg',
+        '-dark.jpg',
+    );
+}
+
+function formatCategory(value: string): string {
+    return value
+        .replace(/[-_]+/g, ' ')
+        .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function initialsFrom(name: string): string {
+    const letters = name
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((word) => word[0])
+        .join('')
+        .toUpperCase();
+
+    return letters || 'P';
+}
+
+function formatAddress(address: string, city?: string | null): string {
+    if (!city) {
+        return address;
+    }
+
+    if (address.toLowerCase().includes(city.toLowerCase())) {
+        return address;
+    }
+
+    return address ? `${address}, ${city}` : city;
+}
+
+function getNextOpening(workHours: WorkHours, now: Date): string | null {
+    const order = [
+        'Sunday',
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+    ];
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+    for (let offset = 0; offset < 7; offset += 1) {
+        const dayName = order[(now.getDay() + offset) % 7];
+        const day = workHours[dayName];
+
+        if (!day?.isOpen || !day.hours?.length) {
+            continue;
+        }
+
+        const range = day.hours.find((hour) => {
+            return offset > 0 || parseTimeToMinutes(hour.end) > nowMinutes;
+        });
+
+        if (!range) {
+            continue;
+        }
+
+        const startMinutes = parseTimeToMinutes(range.start);
+        const endMinutes = parseTimeToMinutes(range.end);
+
+        if (
+            offset === 0 &&
+            nowMinutes >= startMinutes &&
+            nowMinutes < endMinutes
+        ) {
+            return 'Open now';
+        }
+
+        const dayLabel =
+            offset === 0
+                ? 'Today'
+                : offset === 1
+                  ? 'Tomorrow'
+                  : dayName.slice(0, 3);
+
+        return `${dayLabel} ${compactTime(range.start)}`;
+    }
+
+    return null;
+}
+
+function formatHours(hours?: Array<{ start: string; end: string }>): string {
+    if (!hours?.length) {
+        return 'Open';
+    }
+
+    return hours
+        .map((hour) => `${compactTime(hour.start)} – ${compactTime(hour.end)}`)
+        .join(', ');
+}
+
+function StarRow({
+    rating,
+    className,
+}: {
+    rating: number;
+    className?: string;
+}) {
+    return (
+        <span
+            className={cn('inline-flex items-center gap-0.5', className)}
+            aria-hidden
+        >
+            {Array.from({ length: 5 }, (_, index) => (
+                <Star
+                    key={index}
+                    className={cn(
+                        'size-3.5',
+                        index < Math.round(rating)
+                            ? 'fill-[#E2B203] text-[#E2B203]'
+                            : 'fill-[#E7E4D8] text-[#E7E4D8] dark:fill-muted dark:text-muted',
+                    )}
+                />
+            ))}
+        </span>
+    );
+}
+
+function NearbyCard({
+    provider,
+    favoriteBusinessIds,
+}: {
+    provider: NearbyProvider;
+    favoriteBusinessIds: string[];
+}) {
+    const { auth } = usePage<SharedData>().props;
+    const [isFavorite, setIsFavorite] = useState(
+        favoriteBusinessIds.includes(provider.businessId),
+    );
+    const banner = profileBanner(provider.category, provider.id);
+    const place = [provider.city, provider.address].find((value) => value);
+    const distanceLabel =
+        provider.distance !== null && provider.distance !== undefined
+            ? `${provider.distance < 10 ? provider.distance.toFixed(1) : Math.round(provider.distance)} km`
+            : null;
+
+    const toggleFavorite = () => {
+        if (!provider.businessId) {
+            return;
+        }
+
+        if (!auth?.user) {
+            router.visit(login.url());
+
+            return;
+        }
+
+        const nextFavoriteState = !isFavorite;
+        setIsFavorite(nextFavoriteState);
+
+        router.post(
+            favourite.update().url,
+            { id: provider.businessId },
+            {
+                preserveScroll: true,
+                onError: () => setIsFavorite(!nextFavoriteState),
+            },
+        );
+    };
+
+    return (
+        <article
+            className={cn(surfaceClass, 'flex h-full flex-col overflow-hidden')}
+        >
+            <div className="relative h-32 bg-[#0E3B2E]">
+                <Link
+                    href={providerShow(provider.slug)}
+                    prefetch
+                    className="absolute inset-0"
+                    aria-label={`View ${provider.businessName}`}
+                >
+                    <img
+                        src={banner}
+                        alt=""
+                        className="h-full w-full object-cover"
+                    />
+                </Link>
+                {provider.category && (
+                    <span className="absolute top-3 left-3 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-[#163026]">
+                        {formatCategory(provider.category)}
+                    </span>
+                )}
+                <button
+                    type="button"
+                    onClick={toggleFavorite}
+                    aria-label={
+                        isFavorite
+                            ? `Remove ${provider.businessName} from saved`
+                            : `Save ${provider.businessName}`
+                    }
+                    aria-pressed={isFavorite}
+                    className="absolute top-3 right-3 flex size-9 items-center justify-center rounded-full bg-white text-[#163026] shadow-sm"
+                >
+                    <Heart
+                        className={cn(
+                            'size-4',
+                            isFavorite && 'fill-rose-500 text-rose-500',
+                        )}
+                    />
+                </button>
+            </div>
+
+            <div className="flex flex-1 flex-col px-4 pt-0 pb-4">
+                <Avatar className="-mt-7 size-14 border-4 border-white bg-[#0E3B2E] dark:border-card">
+                    <AvatarImage
+                        src={provider.logo ?? provider.avatar ?? undefined}
+                        alt=""
+                    />
+                    <AvatarFallback className="bg-[#0E3B2E] text-sm font-semibold text-white">
+                        {initialsFrom(provider.businessName || provider.name)}
+                    </AvatarFallback>
+                </Avatar>
+
+                <Link
+                    href={providerShow(provider.slug)}
+                    prefetch
+                    className="mt-2 min-w-0"
+                >
+                    <span className="flex items-center gap-1.5">
+                        <span className="truncate font-heading text-base font-semibold text-[#163026] dark:text-foreground">
+                            {provider.businessName}
+                        </span>
+                        {provider.isVerified && (
+                            <BadgeCheck
+                                aria-label="Verified"
+                                className="size-4 shrink-0 fill-[#0E3B2E] text-[#D7F36A]"
+                            />
+                        )}
+                    </span>
+                    <span className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-[#667068] dark:text-muted-foreground">
+                        <Star className="size-3.5 fill-[#E2B203] text-[#E2B203]" />
+                        <span className="font-medium text-[#163026] dark:text-foreground">
+                            {provider.reviewsCount
+                                ? provider.rating.toFixed(1)
+                                : 'New'}
+                        </span>
+                        <span>({provider.reviewsCount || 0})</span>
+                        {distanceLabel && (
+                            <>
+                                <span aria-hidden>·</span>
+                                <span>{distanceLabel}</span>
+                            </>
+                        )}
+                        {place && (
+                            <>
+                                <span aria-hidden>·</span>
+                                <span className="truncate">{place}</span>
+                            </>
+                        )}
+                    </span>
+                </Link>
+
+                {provider.category && (
+                    <span className="mt-3 w-fit rounded-full bg-[#F3F6F0] px-2.5 py-1 text-xs font-medium text-[#3E4A42] dark:bg-muted dark:text-foreground">
+                        {formatCategory(provider.category)}
+                    </span>
+                )}
+
+                <div className="mt-auto flex items-center justify-between gap-3 border-t border-[#EEF1EA] pt-4 dark:border-border">
+                    <p className="font-heading text-lg font-semibold text-[#163026] dark:text-foreground">
+                        {formatNaira(provider.minPrice)}
+                    </p>
+                    <Link
+                        href={booking(provider.slug)}
+                        className="inline-flex h-10 items-center rounded-xl bg-[#0E3B2E] px-4 text-sm font-semibold text-white transition hover:bg-[#0B3026]"
+                    >
+                        Book now
+                    </Link>
+                </div>
+            </div>
+        </article>
+    );
 }
 
 export default function ProviderProfile({
@@ -201,11 +549,11 @@ export default function ProviderProfile({
     galleryTotal = 0,
 }: Props) {
     const [distance, setDistance] = useState<number | null>(null);
-    const [currentSlide, setCurrentSlide] = useState(0);
     const [isFavorite, setIsFavorite] = useState(isFavourite);
-    const [selectedService, setSelectedService] = useState<Service | null>(
-        null,
+    const [selectedServiceId, setSelectedServiceId] = useState<string | null>(
+        services[0]?.id ?? null,
     );
+    const [activeServiceCategory, setActiveServiceCategory] = useState('All');
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
     const lightboxOpen = lightboxIndex !== null;
     const galleryPreviewCount = galleryPreview.length;
@@ -213,14 +561,20 @@ export default function ProviderProfile({
     const closeLightbox = useCallback(() => setLightboxIndex(null), []);
 
     const showNextLightbox = useCallback(() => {
-        if (galleryPreviewCount === 0) return;
+        if (galleryPreviewCount === 0) {
+            return;
+        }
+
         setLightboxIndex((current) =>
             current === null ? null : (current + 1) % galleryPreviewCount,
         );
     }, [galleryPreviewCount]);
 
     const showPrevLightbox = useCallback(() => {
-        if (galleryPreviewCount === 0) return;
+        if (galleryPreviewCount === 0) {
+            return;
+        }
+
         setLightboxIndex((current) =>
             current === null
                 ? null
@@ -229,51 +583,60 @@ export default function ProviderProfile({
     }, [galleryPreviewCount]);
 
     useEffect(() => {
-        if (!lightboxOpen) return;
+        if (!lightboxOpen) {
+            return;
+        }
+
         const onKey = (event: KeyboardEvent) => {
-            if (event.key === 'ArrowRight') showNextLightbox();
-            if (event.key === 'ArrowLeft') showPrevLightbox();
+            if (event.key === 'ArrowRight') {
+                showNextLightbox();
+            }
+
+            if (event.key === 'ArrowLeft') {
+                showPrevLightbox();
+            }
         };
+
         window.addEventListener('keydown', onKey);
+
         return () => window.removeEventListener('keydown', onKey);
     }, [lightboxOpen, showNextLightbox, showPrevLightbox]);
+
+    const [profileKey, setProfileKey] = useState(provider.id);
+
+    if (profileKey !== provider.id) {
+        setProfileKey(provider.id);
+        setSelectedServiceId(services[0]?.id ?? null);
+        setActiveServiceCategory('All');
+        setLightboxIndex(null);
+        setIsFavorite(isFavourite);
+    }
 
     const canBookProvider = provider.canBook ?? true;
     const bookingBlockedReason =
         provider.bookingBlockedReason ||
         'Booking is unavailable for this provider.';
     const deliveryMode = normalizeDeliveryMode(provider.serviceDeliveryMode);
-    const bookingCtaLabel =
-        provider.bookingCtaLabel ?? getBookingCtaLabel(deliveryMode);
-    const deliveryBadge =
-        provider.deliveryModeLabel ?? getDeliveryModeBadge(deliveryMode);
-    const showProviderAddress =
-        deliveryMode === 'client_visits_provider' || deliveryMode === 'both';
-    const nearbyRef = useRef<HTMLDivElement | null>(null);
+    const offersHomeService = allowsHomeService(deliveryMode);
 
     useEffect(() => {
-        if ('geolocation' in navigator) {
-            navigator.geolocation.getCurrentPosition((position) => {
-                if (provider.latitude && provider.longitude) {
-                    setDistance(
-                        calculateDistance(
-                            position.coords.latitude,
-                            position.coords.longitude,
-                            provider.latitude,
-                            provider.longitude,
-                        ),
-                    );
-                }
-            });
+        if (!('geolocation' in navigator)) {
+            return;
         }
-    }, [provider.latitude, provider.longitude]);
 
-    useEffect(() => {
-        document.body.style.overflow = selectedService ? 'hidden' : '';
-        return () => {
-            document.body.style.overflow = '';
-        };
-    }, [selectedService]);
+        navigator.geolocation.getCurrentPosition((position) => {
+            if (provider.latitude && provider.longitude) {
+                setDistance(
+                    calculateDistance(
+                        position.coords.latitude,
+                        position.coords.longitude,
+                        provider.latitude,
+                        provider.longitude,
+                    ),
+                );
+            }
+        });
+    }, [provider.latitude, provider.longitude]);
 
     const logo = provider.images?.find((image) => image.isLogo);
     const bannerImages =
@@ -282,91 +645,67 @@ export default function ProviderProfile({
         ? bannerImages
         : [
               {
-                  url: getProviderDefaultBanner(provider.category, provider.id),
+                  url: profileBanner(provider.category, provider.id),
                   isLogo: false,
               },
           ];
-    const allImages = logo ? [...heroImages, logo] : heroImages;
-    const hasPhotos = bannerImages.length > 0;
-    const heroInitials = (provider.businessName || provider.name || 'P')
-        .split(' ')
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((word) => word[0])
-        .join('')
-        .toUpperCase();
+    const heroInitials = initialsFrom(provider.businessName || provider.name);
 
-    const groupedServices = useMemo(() => {
-        const groups = new Map<string, Service[]>();
+    const serviceCategories = useMemo(() => {
+        const names = new Set<string>();
 
         services.forEach((service) => {
-            const category = service.service_category_name || 'Services';
-            const items = groups.get(category) || [];
-            items.push(service);
-            groups.set(category, items);
+            if (service.service_category_name) {
+                names.add(service.service_category_name);
+            }
         });
 
-        return Array.from(groups.entries()).map(([category, items]) => ({
-            category,
-            items,
-        }));
+        return names.size > 1 ? ['All', ...names] : [];
     }, [services]);
-    const [activeServiceCategory, setActiveServiceCategory] = useState('');
 
-    useEffect(() => {
-        if (!groupedServices.length) {
-            setActiveServiceCategory('');
-            return;
+    const visibleServices = useMemo(() => {
+        if (activeServiceCategory === 'All') {
+            return services;
         }
 
-        setActiveServiceCategory((current) =>
-            groupedServices.some((group) => group.category === current)
-                ? current
-                : groupedServices[0].category,
+        return services.filter(
+            (service) =>
+                (service.service_category_name || 'Services') ===
+                activeServiceCategory,
         );
-    }, [groupedServices]);
+    }, [activeServiceCategory, services]);
 
-    const activeServiceGroup =
-        groupedServices.find(
-            (group) => group.category === activeServiceCategory,
-        ) ||
-        groupedServices[0] ||
-        null;
+    const selectedService =
+        services.find((service) => service.id === selectedServiceId) ?? null;
 
     const orderedHours = useMemo(() => {
-        const order = [
-            'Sunday',
-            'Monday',
-            'Tuesday',
-            'Wednesday',
-            'Thursday',
-            'Friday',
-            'Saturday',
-        ];
-
-        return Object.entries(workHours).sort(
-            ([a], [b]) => order.indexOf(a) - order.indexOf(b),
+        return WEEKDAYS.map((day) => [day, workHours[day]] as const).filter(
+            (entry): entry is [string, WorkHours[string]] => Boolean(entry[1]),
         );
     }, [workHours]);
 
-    const nextSlide = () =>
-        setCurrentSlide((prev) => (prev + 1) % allImages.length);
-    const prevSlide = () =>
-        setCurrentSlide(
-            (prev) => (prev - 1 + allImages.length) % allImages.length,
-        );
-
-    useEffect(() => {
-        if (allImages.length <= 1) return;
-
-        const interval = window.setInterval(() => {
-            setCurrentSlide((prev) => (prev + 1) % allImages.length);
-        }, 4000);
-
-        return () => window.clearInterval(interval);
-    }, [allImages.length]);
+    const now = new Date();
+    const today = now.toLocaleDateString('en-US', { weekday: 'long' });
+    const todayHours = workHours[today];
+    const isOpenNow =
+        (todayHours?.isOpen ?? false) &&
+        (todayHours?.hours?.length
+            ? isWithinHours(now, todayHours.hours)
+            : true);
+    const nextOpening = getNextOpening(workHours, now);
+    const locationLabel = provider.city || provider.address;
+    const fullAddress = formatAddress(provider.address, provider.city);
+    const bookingHref = selectedService
+        ? booking(provider.slug, { query: { service: selectedService.id } })
+        : booking(provider.slug);
 
     const handleFavourite = () => {
+        if (!canEdit) {
+            router.visit(login.url());
+
+            return;
+        }
+
         const newState = !isFavorite;
         setIsFavorite(newState);
         router.post(
@@ -384,12 +723,13 @@ export default function ProviderProfile({
             try {
                 await navigator.share({
                     title: provider.businessName,
-                    text: `Check out ${provider.businessName}${provider.description ? ` - ${provider.description.substring(0, 100)}...` : ''}`,
+                    text: `Check out ${provider.businessName}${provider.description ? ` - ${provider.description.substring(0, 100)}` : ''}`,
                     url: window.location.href,
                 });
             } catch {
                 return;
             }
+
             return;
         }
 
@@ -401,7 +741,9 @@ export default function ProviderProfile({
     };
 
     const getDirections = () => {
-        if (!provider.latitude || !provider.longitude) return;
+        if (!provider.latitude || !provider.longitude) {
+            return;
+        }
 
         window.open(
             `https://www.google.com/maps/dir/?api=1&destination=${provider.latitude},${provider.longitude}`,
@@ -409,851 +751,679 @@ export default function ProviderProfile({
         );
     };
 
-    const scrollNearby = (direction: 'left' | 'right') => {
-        const el = nearbyRef.current;
-        if (!el) return;
-        const delta = direction === 'left' ? -360 : 360;
-        el.scrollBy({ left: delta, behavior: 'smooth' });
+    const openMessage = () => {
+        window.dispatchEvent(new Event('kiro:open'));
     };
-
-    const now = new Date();
-    const today = now.toLocaleDateString('en-US', { weekday: 'long' });
-    const todayHours = workHours[today];
-    const isOpenNow =
-        (todayHours?.isOpen ?? false) &&
-        (todayHours?.hours?.length
-            ? isWithinHours(now, todayHours.hours)
-            : true);
-    const miniGalleryImages = allImages.slice(0, 6);
 
     return (
         <GuestLayout>
-            <div
-                className={`relative w-full overflow-hidden ${
-                    hasPhotos
-                        ? 'h-[38vh] max-h-[520px] min-h-[220px] sm:h-[46vh] md:h-[52vh]'
-                        : 'h-28 sm:h-36 md:h-44'
-                }`}
-            >
-                {allImages.length > 0 ? (
-                    <>
-                        <div className="relative h-full w-full">
-                            <img
-                                src={allImages[currentSlide]?.url}
-                                alt={`${provider.businessName} image ${currentSlide + 1}`}
-                                className="h-full w-full object-cover transition-transform duration-700"
-                                loading="eager"
-                            />
-                        </div>
-
-                        {allImages.length > 1 && (
-                            <>
-                                <button
-                                    onClick={prevSlide}
-                                    className="absolute top-1/2 left-3 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-white/15 text-white backdrop-blur transition hover:bg-white/25 sm:left-4 sm:h-11 sm:w-11"
-                                >
-                                    <ChevronLeft className="h-5 w-5" />
-                                </button>
-                                <button
-                                    onClick={nextSlide}
-                                    className="absolute top-1/2 right-3 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-white/15 text-white backdrop-blur transition hover:bg-white/25 sm:right-4 sm:h-11 sm:w-11"
-                                >
-                                    <ChevronRight className="h-5 w-5" />
-                                </button>
-                            </>
-                        )}
-
-                        <div className="absolute top-4 right-4 flex gap-2">
-                            {canEdit && (
-                                <button
-                                    onClick={handleFavourite}
-                                    className="flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-black/30 text-white backdrop-blur transition hover:bg-black/45 sm:h-10 sm:w-10"
-                                    aria-label={
-                                        isFavorite
-                                            ? 'Remove from favorites'
-                                            : 'Add to favorites'
-                                    }
-                                >
-                                    <Heart
-                                        className={`h-4 w-4 sm:h-5 sm:w-5 ${
-                                            isFavorite
-                                                ? 'fill-red-500 text-red-500'
-                                                : ''
-                                        }`}
-                                    />
-                                </button>
-                            )}
-                            <button
-                                onClick={handleShare}
-                                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-black/30 text-white backdrop-blur transition hover:bg-black/45 sm:h-10 sm:w-10"
-                                aria-label="Share provider profile"
-                            >
-                                <Share2 className="h-4 w-4 sm:h-5 sm:w-5" />
-                            </button>
-                        </div>
-
-                        {/* <div className="absolute right-0 bottom-0 left-0 p-4 sm:p-6 md:p-8">
-                            <div className="mx-auto max-w-7xl">
-                                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                                    <div className="space-y-3">
-                                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                                            <h1 className="text-2xl leading-tight font-black text-white sm:text-3xl md:text-5xl">
-                                                {provider.businessName}
-                                            </h1>
-                                            {todayHours !== undefined && (
-                                                <Badge
-                                                    className={`border-none px-2 py-0.5 text-xs text-white ${
-                                                        isOpenNow
-                                                            ? 'bg-green-500/90'
-                                                            : 'bg-red-500/90'
-                                                    }`}
-                                                >
-                                                    {isOpenNow
-                                                        ? '● Open Now'
-                                                        : '● Closed'}
-                                                </Badge>
-                                            )}
-                                        </div>
-
-                                        <div className="flex flex-wrap items-center gap-2 text-white/95">
-                                            <div className="inline-flex items-center gap-1.5 border border-white/20 bg-white/10 px-3 py-1.5 text-sm backdrop-blur">
-                                                <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                                                <span className="font-semibold">
-                                                    {(
-                                                        provider.rating ?? 0
-                                                    ).toFixed(1)}
-                                                </span>
-                                                <span className="text-xs opacity-85">
-                                                    (
-                                                    {provider.reviews_count ||
-                                                        0}
-                                                    )
-                                                </span>
-                                            </div>
-
-                                            {distance !== null && (
-                                                <div className="inline-flex items-center gap-1.5 border border-white/20 bg-white/10 px-3 py-1.5 text-sm backdrop-blur">
-                                                    <Navigation className="h-3.5 w-3.5" />
-                                                    {distance.toFixed(1)} km
-                                                    away
-                                                </div>
-                                            )}
-
-                                            <div className="inline-flex items-center gap-1.5 border border-white/20 bg-white/10 px-3 py-1.5 text-sm backdrop-blur">
-                                                <MapPin className="h-3.5 w-3.5" />
-                                                {provider.address}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="hidden items-center gap-2 md:flex">
-                                        <Link
-                                            href={`/provider/${provider.slug}/gallery`}
-                                        >
-                                            <Button
-                                                size="lg"
-                                                variant="outline"
-                                                className="h-12 border-white/25 bg-white/10 px-5 text-base text-white hover:bg-white/15 hover:text-white"
-                                            >
-                                                <ImageIcon className="mr-2 h-4 w-4" />
-                                                View Gallery
-                                            </Button>
-                                        </Link>
-                                        {canBookProvider ? (
-                                            <Link
-                                                href={`/provider/${provider.slug}/book`}
-                                            >
-                                                <Button
-                                                    size="lg"
-                                                    className="h-12 px-6 text-base"
-                                                >
-                                                    <Calendar className="mr-2 h-4 w-4" />
-                                                    {bookingCtaLabel}
-                                                </Button>
-                                            </Link>
-                                        ) : (
-                                            <Button
-                                                size="lg"
-                                                disabled
-                                                title={bookingBlockedReason}
-                                                className="h-12 px-6 text-base"
-                                            >
-                                                <Calendar className="mr-2 h-4 w-4" />
-                                                Booking unavailable
-                                            </Button>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div> */}
-                    </>
-                ) : (
-                    <div className="relative h-full w-full overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-br from-primary/25 via-background to-muted" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
-
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="text-center text-white">
-                                <div className="mx-auto flex h-20 w-20 items-center justify-center border border-white/20 bg-white/10 text-3xl font-black tracking-tight backdrop-blur">
-                                    {heroInitials}
-                                </div>
-                                <p className="mt-3 text-sm text-white/80">
-                                    No photos yet. Still open for bookings.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            <div className="fixed right-0 bottom-0 left-0 z-50 border-t bg-background/95 p-3 backdrop-blur md:hidden">
-                <div className="grid grid-cols-2 gap-2">
-                    <Link href={`/provider/${provider.slug}/gallery`}>
-                        <Button
-                            size="lg"
-                            variant="outline"
-                            className="h-12 w-full text-base"
-                        >
-                            <ImageIcon className="mr-2 h-4 w-4" />
-                            Gallery
-                        </Button>
-                    </Link>
-                    {canBookProvider ? (
-                        <Link href={`/provider/${provider.slug}/book`}>
-                            <Button
-                                size="lg"
-                                className="h-12 w-full text-base font-bold"
-                            >
-                                <Calendar className="mr-2 h-4 w-4" />
-                                {bookingCtaLabel}
-                            </Button>
-                        </Link>
-                    ) : (
-                        <Button
-                            size="lg"
-                            disabled
-                            title={bookingBlockedReason}
-                            className="h-12 w-full text-base font-bold"
-                        >
-                            <Calendar className="mr-2 h-4 w-4" />
-                            Unavailable
-                        </Button>
+            <Head title={provider.businessName} />
+            <div className="bg-white text-ink">
+                <div
+                    className={cn(
+                        'mx-auto w-full max-w-[1240px] px-4 pt-5 sm:px-6',
+                        canBookProvider ? 'pb-28 md:pb-16' : 'pb-16',
                     )}
-                </div>
-            </div>
-
-            <div className="mx-auto w-full px-4 py-2 sm:px-6">
-                {!canBookProvider && (
-                    <div className="mb-6 border border-amber-200 bg-amber-50 px-4 py-4 text-amber-900">
-                        <p className="font-semibold">Booking unavailable</p>
-                        <p className="mt-1 text-sm leading-6">
-                            {bookingBlockedReason}
-                        </p>
-                    </div>
-                )}
-
-                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                    <div className="flex min-w-0 items-start gap-3 sm:gap-5">
-                        <Avatar className="relative z-10 -mt-12 size-20 shrink-0 self-start border-4 border-background bg-emerald-50 shadow-md sm:-mt-16 sm:size-28 dark:bg-emerald-950">
-                            <AvatarImage
-                                src={logo?.url ?? provider.avatar ?? undefined}
-                                alt={provider.businessName}
-                                className="object-cover"
-                            />
-                            <AvatarFallback className="bg-emerald-50 text-2xl font-bold text-emerald-950 sm:text-3xl dark:bg-emerald-950 dark:text-emerald-100">
-                                {heroInitials}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0 pt-2 sm:pt-3">
-                            <h1 className="flex flex-wrap items-center gap-2 text-2xl leading-tight font-black sm:text-3xl md:text-4xl">
-                                {provider.businessName}
-                                {provider.isVerified && (
-                                    <BadgeCheck
-                                        aria-label="Verified artisan"
-                                        className="size-6 shrink-0 fill-emerald-900 text-lime-300 sm:size-7"
+                >
+                    <section className="flex flex-col gap-6">
+                        <div className="flex flex-wrap items-end justify-between gap-6">
+                            <div className="flex min-w-0 items-center gap-4">
+                                <Avatar className="size-16 shrink-0 border border-line bg-forest sm:size-18">
+                                    <AvatarImage
+                                        src={logo?.url ?? provider.avatar ?? undefined}
+                                        alt=""
+                                        className="object-cover"
                                     />
-                                )}
-                                <Badge
-                                    variant="secondary"
-                                    className="text-[10px] font-semibold tracking-wide uppercase"
-                                >
-                                    {deliveryMode ===
-                                    'provider_visits_client' ? (
-                                        <Navigation className="mr-1 inline size-3" />
-                                    ) : (
-                                        <MapPin className="mr-1 inline size-3" />
-                                    )}
-                                    {deliveryBadge}
-                                </Badge>
-                            </h1>
-                            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                                {provider.reviews_count > 0 ? (
-                                    <div className="flex items-center gap-1">
-                                        <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                                        <span className="font-semibold text-foreground">
-                                            {(provider.rating ?? 0).toFixed(1)}
-                                        </span>
-                                        <span>({provider.reviews_count})</span>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-1 text-muted-foreground">
-                                        <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                                        <span>No reviews yet</span>
-                                    </div>
-                                )}
-
-                                {showProviderAddress && provider.address && (
-                                    <>
-                                        <span>·</span>
-                                        <div className="flex items-center gap-1">
-                                            <MapPin className="h-3.5 w-3.5" />
-                                            {provider.address}
-                                        </div>
-                                    </>
-                                )}
-                                {deliveryMode === 'provider_visits_client' && (
-                                    <>
-                                        <span>·</span>
-                                        <span>
-                                            Add your service address when
-                                            booking
-                                        </span>
-                                    </>
-                                )}
-                                {distance !== null && (
-                                    <>
-                                        <span>·</span>
-                                        <div className="flex items-center gap-1">
-                                            <Navigation className="h-3.5 w-3.5" />
-                                            {distance.toFixed(1)} km away
-                                        </div>
-                                    </>
-                                )}
-                                {todayHours !== undefined && (
-                                    <>
-                                        <span>·</span>
-                                        <span
-                                            className={
-                                                isOpenNow
-                                                    ? 'font-medium text-green-600'
-                                                    : 'font-medium text-red-500'
-                                            }
-                                        >
-                                            {isOpenNow
-                                                ? '● Open now'
-                                                : '● Closed'}
-                                        </span>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Desktop CTAs */}
-                    <div className="hidden shrink-0 items-center gap-2 md:flex">
-                        <Link href={`/provider/${provider.slug}/gallery`}>
-                            <Button variant="outline" className="h-11">
-                                <ImageIcon className="mr-2 h-4 w-4" />
-                                View Gallery
-                            </Button>
-                        </Link>
-                        {canBookProvider ? (
-                            <Link href={`/provider/${provider.slug}/book`}>
-                                <Button className="h-11 px-6">
-                                    <Calendar className="mr-2 h-4 w-4" />
-                                    {bookingCtaLabel}
-                                </Button>
-                            </Link>
-                        ) : (
-                            <Button
-                                disabled
-                                title={bookingBlockedReason}
-                                className="h-11 px-6"
-                            >
-                                <Calendar className="mr-2 h-4 w-4" />
-                                Booking unavailable
-                            </Button>
-                        )}
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-12">
-                    <div className="space-y-10 lg:col-span-2">
-                        <section>
-                            <div className="my-6 flex items-center gap-3">
-                                <div className="h-1 w-8 rounded bg-primary sm:w-12" />
-                                <h2 className="text-xl font-bold sm:text-2xl">
-                                    Services & Pricing
-                                </h2>
-                            </div>
-
-                            {services.length === 0 ? (
-                                <div className="border-2 border-dashed bg-muted/30 p-10 text-center">
-                                    <p className="text-sm text-muted-foreground">
-                                        No services available.
-                                    </p>
-                                </div>
-                            ) : (
-                                <div>
-                                    <div className="mb-5 flex gap-2 overflow-x-auto pb-3">
-                                        {groupedServices.map((group) => (
-                                            <Button
-                                                key={group.category}
-                                                className="rounded-full"
-                                                onClick={() =>
-                                                    setActiveServiceCategory(
-                                                        group.category,
-                                                    )
-                                                }
-                                                variant={
-                                                    activeServiceCategory ===
-                                                    group.category
-                                                        ? 'default'
-                                                        : 'outline'
-                                                }
-                                            >
-                                                {group.category}
-                                                <span className="ml-2 text-xs opacity-80">
-                                                    ({group.items.length})
-                                                </span>
-                                            </Button>
-                                        ))}
-                                    </div>
-
-                                    {activeServiceGroup && (
-                                        <div>
-                                            <div className="flex flex-col gap-2">
-                                                {activeServiceGroup.items.map(
-                                                    (service) => (
-                                                        <button
-                                                            key={service.id}
-                                                            type="button"
-                                                            onClick={() =>
-                                                                setSelectedService(
-                                                                    service,
-                                                                )
-                                                            }
-                                                            className="group flex w-full cursor-pointer items-center justify-between gap-4 rounded-xl border border-border/70 bg-background px-4 py-4 text-left transition hover:border-primary/40 hover:bg-muted/30 sm:px-5"
-                                                        >
-                                                            <div className="min-w-0 flex-1">
-                                                                <h4 className="text-base font-semibold capitalize">
-                                                                    {
-                                                                        service.name
-                                                                    }
-                                                                </h4>
-                                                                {service.description && (
-                                                                    <p className="mt-1 line-clamp-2 text-sm leading-6 text-muted-foreground">
-                                                                        {
-                                                                            service.description
-                                                                        }
-                                                                    </p>
-                                                                )}
-                                                                <p className="mt-2 flex items-center gap-2 text-sm">
-                                                                    <span className="font-semibold text-foreground">
-                                                                        ₦
-                                                                        {Number(
-                                                                            service.price ||
-                                                                                0,
-                                                                        ).toLocaleString()}
-                                                                    </span>
-                                                                    <span className="text-muted-foreground">
-                                                                        ·
-                                                                    </span>
-                                                                    <span className="text-muted-foreground">
-                                                                        {
-                                                                            service.duration_minutes
-                                                                        }{' '}
-                                                                        mins
-                                                                    </span>
-                                                                </p>
-                                                            </div>
-
-                                                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-3 py-1.5 text-sm font-medium transition group-hover:border-primary group-hover:bg-primary group-hover:text-primary-foreground">
-                                                                {canBookProvider
-                                                                    ? 'Book'
-                                                                    : 'View'}
-                                                                <ChevronRight className="h-4 w-4" />
-                                                            </span>
-                                                        </button>
-                                                    ),
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </section>
-
-                        <section className="space-y-5 border-t border-border/70 pt-8">
-                            <div className="flex items-center gap-3">
-                                <div className="h-1 w-8 rounded bg-primary sm:w-12" />
-                                <h2 className="text-xl font-bold sm:text-2xl">
-                                    About & Location
-                                </h2>
-                            </div>
-
-                            <div
-                                className={`grid gap-6 ${
-                                    provider.latitude && provider.longitude
-                                        ? 'lg:grid-cols-[0.9fr_1.1fr]'
-                                        : ''
-                                }`}
-                            >
-                                <div>
-                                    {provider.description ? (
-                                        <p className="text-sm leading-7 text-muted-foreground sm:text-base">
-                                            {provider.description}
-                                        </p>
-                                    ) : (
-                                        <p className="text-sm text-muted-foreground italic">
-                                            No description available.
-                                        </p>
-                                    )}
-
-                                    <div className="mt-5 space-y-3 border-t border-border/70 pt-4 text-sm text-muted-foreground">
-                                        <div className="flex items-start gap-3">
-                                            <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
-                                            <span>{provider.address}</span>
-                                        </div>
-                                        {provider.latitude &&
-                                            provider.longitude && (
-                                                <Button
-                                                    variant="outline"
-                                                    className="mt-2 h-11"
-                                                    onClick={getDirections}
-                                                >
-                                                    <Navigation className="mr-2 h-4 w-4" />
-                                                    Get Directions
-                                                </Button>
-                                            )}
-                                    </div>
-                                </div>
-
-                                {provider.latitude && provider.longitude && (
-                                    <div className="overflow-hidden rounded-xl border border-border/70">
-                                        <iframe
-                                            title={`${provider.businessName} map`}
-                                            src={`https://www.google.com/maps?q=${provider.latitude},${provider.longitude}&z=15&output=embed`}
-                                            className="h-[280px] w-full border-0"
-                                            loading="lazy"
-                                            referrerPolicy="no-referrer-when-downgrade"
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        </section>
-
-                        {galleryPreview.length >= 3 && (
-                            <section className="space-y-5 border-t border-border/70 pt-8">
-                                <div className="flex items-center justify-between gap-3">
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-1 w-8 rounded bg-primary sm:w-12" />
-                                        <h2 className="text-xl font-bold sm:text-2xl">
-                                            Gallery
-                                        </h2>
-                                    </div>
-                                    <Link
-                                        href={`/provider/${provider.slug}/gallery`}
-                                        className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-                                    >
-                                        <ImageIcon className="h-4 w-4" />
-                                        View all
-                                        {galleryTotal > 3 && (
-                                            <span className="opacity-80">
-                                                ({galleryTotal})
+                                    <AvatarFallback className="bg-forest text-xl font-bold text-lime">
+                                        {heroInitials}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div className="flex min-w-0 flex-col gap-2">
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <h1 className="text-3xl leading-tight font-bold tracking-tight sm:text-[44px]">
+                                            {provider.businessName}
+                                        </h1>
+                                        {provider.isVerified && (
+                                            <span className="rounded-full bg-mint px-2.5 py-1 text-[13px] font-semibold text-forest">
+                                                Verified
                                             </span>
                                         )}
-                                    </Link>
-                                </div>
-
-                                <div className="grid aspect-[5/3] grid-cols-2 grid-rows-2 gap-2 sm:aspect-[2/1] sm:gap-3">
-                                    {galleryPreview
-                                        .slice(0, 3)
-                                        .map((image, idx) => (
-                                            <button
-                                                key={`gallery-teaser-${image.id}`}
-                                                type="button"
-                                                onClick={() =>
-                                                    setLightboxIndex(idx)
-                                                }
-                                                aria-label={`Preview gallery image ${idx + 1}`}
-                                                className={`group relative overflow-hidden rounded-xl bg-muted text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                                                    idx === 0
-                                                        ? 'row-span-2'
-                                                        : ''
-                                                }`}
-                                            >
-                                                <img
-                                                    src={image.url}
-                                                    alt={`${provider.businessName} gallery ${idx + 1}`}
-                                                    loading="lazy"
-                                                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                                                />
-                                                {idx === 2 &&
-                                                    galleryTotal > 3 && (
-                                                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-base font-semibold text-white transition group-hover:bg-black/50 sm:text-lg">
-                                                            +{galleryTotal - 3}{' '}
-                                                            more
-                                                        </div>
-                                                    )}
-                                            </button>
-                                        ))}
-                                </div>
-                            </section>
-                        )}
-
-                        <section className="border-t border-border/70 pt-8 pb-20 md:pb-0">
-                            <div className="mb-6 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-1 w-8 rounded bg-primary sm:w-12" />
-                                    <h2 className="text-xl font-bold sm:text-2xl">
-                                        Customer Reviews
-                                    </h2>
-                                </div>
-                                {reviews.length > 3 && (
-                                    <ReviewDrawal reviews={reviews} />
-                                )}
-                            </div>
-                            {reviews.length === 0 ? (
-                                <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <ChatBubbleBottomCenterTextIcon className="h-5 w-5 opacity-40" />
-                                    No reviews yet. Book a service and be the
-                                    first to leave one.
-                                </p>
-                            ) : (
-                                <ReviewSection
-                                    reviews={reviews.slice(0, 5)}
-                                    canReview={provider.can_review}
-                                    pendingAppointmentId={
-                                        provider.pending_appointment_id
-                                    }
-                                />
-                            )}
-                        </section>
-                    </div>
-
-                    <aside className="mb-20 space-y-6 sm:mb-0">
-                        <div className="border border-border/70 bg-background p-4 sm:p-6 lg:sticky lg:top-6">
-                            <div className="mb-4 flex items-center gap-3 sm:mb-6">
-                                <FireIcon className="h-5 w-5 text-primary sm:h-6 sm:w-6" />
-                                <h3 className="text-lg font-bold sm:text-xl">
-                                    Working Hours
-                                </h3>
-                            </div>
-
-                            <div className="space-y-0">
-                                {orderedHours.map(([day, hours]) => {
-                                    const isToday = day === today;
-                                    return (
-                                        <div
-                                            key={day}
-                                            className="flex items-center justify-between border-b border-border/50 py-3 text-sm sm:text-base"
-                                        >
-                                            <span
-                                                className={`font-semibold ${
-                                                    isToday
-                                                        ? 'text-primary'
-                                                        : ''
-                                                }`}
-                                            >
-                                                <span className="sm:hidden">
-                                                    {day.slice(0, 3)}
-                                                </span>
-                                                <span className="hidden sm:inline">
-                                                    {day}
-                                                </span>
-                                                {isToday && (
-                                                    <span className="ml-1.5 text-xs opacity-70">
-                                                        (Today)
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[15px]">
+                                        <span className="inline-flex items-center gap-1">
+                                            <strong>{provider.reviews_count ? provider.rating.toFixed(1) : 'New'}</strong>
+                                            <Star className="size-4 fill-ink" />
+                                            <a href="#reviews" className="font-semibold text-forest">
+                                                ({provider.reviews_count})
+                                            </a>
+                                        </span>
+                                        {todayHours !== undefined && (
+                                            <>
+                                                <span className="text-sage">•</span>
+                                                <span>
+                                                    <span className={cn('font-semibold', isOpenNow ? 'text-leaf' : 'text-moss')}>
+                                                        {isOpenNow ? 'Open now' : 'Closed'}
                                                     </span>
-                                                )}
-                                            </span>
-                                            {hours.isOpen ? (
-                                                <span className="text-right text-xs font-medium text-muted-foreground sm:text-sm">
-                                                    {hours.hours
-                                                        ?.map(
-                                                            (hour) =>
-                                                                `${hour.start} – ${hour.end}`,
-                                                        )
-                                                        .join(', ') || 'Open'}
+                                                    {!isOpenNow && nextOpening && <span className="text-moss"> · {nextOpening}</span>}
                                                 </span>
-                                            ) : (
-                                                <span className="text-xs text-muted-foreground">
-                                                    Closed
-                                                </span>
-                                            )}
-                                        </div>
-                                    );
-                                })}
+                                            </>
+                                        )}
+                                        {locationLabel && (
+                                            <>
+                                                <span className="text-sage">•</span>
+                                                <span className="max-w-[20rem] truncate text-moss">{locationLabel}</span>
+                                            </>
+                                        )}
+                                        {distance !== null && <span className="text-moss">{distance.toFixed(1)} km</span>}
+                                        {offersHomeService && (
+                                            <>
+                                                <span className="text-sage">•</span>
+                                                <span className="text-moss">Home service available</span>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
 
-                            {canBookProvider && (
-                                <Link
-                                    prefetch
-                                    href={`/provider/${provider.slug}/book`}
-                                >
-                                    <Button className="mt-2 h-11 w-full px-6">
-                                        <Calendar className="mr-2 h-4 w-4" />
-                                        {bookingCtaLabel}
-                                    </Button>
-                                </Link>
-                            )}
-                        </div>
-                    </aside>
-                </div>
-            </div>
-
-            {nearbyProviders?.length > 0 && (
-                <div className="mx-auto w-full px-4 pb-24 sm:px-6 md:pb-16">
-                    <section className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="h-1 w-8 rounded bg-primary sm:w-12" />
-                                <h2 className="text-xl font-bold sm:text-2xl">
-                                    Providers nearby
-                                </h2>
-                            </div>
-
-                            <div className="hidden items-center gap-2 sm:flex">
-                                <button
-                                    type="button"
-                                    className="flex h-9 w-9 items-center justify-center border bg-background transition hover:bg-muted"
-                                    onClick={() => scrollNearby('left')}
-                                    aria-label="Scroll left"
-                                >
-                                    <ChevronLeft className="h-4 w-4" />
+                            <div className="flex shrink-0 items-center gap-2.5">
+                                <button type="button" onClick={handleShare} aria-label="Share profile" className="grid size-11 place-items-center rounded-full border border-[#DDE3DE] hover:bg-paper">
+                                    <Share2 className="size-4.5" />
                                 </button>
                                 <button
                                     type="button"
-                                    className="flex h-9 w-9 items-center justify-center border bg-background transition hover:bg-muted"
-                                    onClick={() => scrollNearby('right')}
-                                    aria-label="Scroll right"
+                                    onClick={handleFavourite}
+                                    aria-label={isFavorite ? 'Remove from saved' : 'Save provider'}
+                                    aria-pressed={isFavorite}
+                                    className="grid size-11 place-items-center rounded-full border border-[#DDE3DE] hover:bg-paper"
                                 >
-                                    <ChevronRight className="h-4 w-4" />
+                                    <Heart className={cn('size-4.5', isFavorite && 'fill-forest text-forest')} />
+                                </button>
+                                <button type="button" onClick={openMessage} className={outlineButtonClass}>
+                                    <MessageCircle className="size-4" />
+                                    Message
                                 </button>
                             </div>
                         </div>
 
                         <div
-                            ref={nearbyRef}
-                            className="scrollbar-none flex snap-x snap-mandatory gap-6 overflow-x-auto pb-2"
+                            className={cn(
+                                'relative grid gap-2 overflow-hidden rounded-[20px]',
+                                heroImages.length >= 3 ? 'h-80 grid-cols-[2fr_1fr] grid-rows-2 sm:h-[480px]' : 'h-64 sm:h-[420px]',
+                            )}
                         >
-                            {nearbyProviders.map((nearbyProvider) => (
-                                <div
-                                    key={nearbyProvider.id}
-                                    className="w-[85%] shrink-0 snap-start sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-3rem)/3)]"
+                            {heroImages.slice(0, heroImages.length >= 3 ? 3 : 1).map((image, index) => (
+                                <div key={`${image.url}-${index}`} className={cn('group overflow-hidden bg-mint', index === 0 && heroImages.length >= 3 && 'row-span-2')}>
+                                    <img
+                                        src={image.url}
+                                        alt={`${provider.businessName} photo ${index + 1}`}
+                                        className="size-full object-cover transition duration-500 group-hover:scale-[1.04]"
+                                    />
+                                </div>
+                            ))}
+                            {galleryTotal > 0 && (
+                                <Link
+                                    href={gallery(provider.slug)}
+                                    className="absolute right-4 bottom-4 rounded-full bg-white px-4 py-2.5 text-sm font-semibold shadow-lg"
                                 >
-                                    <BusinessCard
+                                    See all {galleryTotal} photos
+                                </Link>
+                            )}
+                        </div>
+                    </section>
+
+                    {!canBookProvider && (
+                        <p className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                            {bookingBlockedReason}
+                        </p>
+                    )}
+
+                    <div className="mt-12 grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-14">
+                        <div className="space-y-5">
+                            <section className={cn(surfaceClass, 'p-5 sm:p-6')}>
+                                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                    <h2 className="text-[28px] font-bold tracking-tight">
+                                        Services & pricing
+                                    </h2>
+                                    {serviceCategories.length > 0 && (
+                                        <div className="flex gap-2 overflow-x-auto">
+                                            {serviceCategories.map(
+                                                (category) => {
+                                                    const isActive =
+                                                        activeServiceCategory ===
+                                                        category;
+
+                                                    return (
+                                                        <button
+                                                            key={category}
+                                                            type="button"
+                                                            aria-pressed={
+                                                                isActive
+                                                            }
+                                                            onClick={() =>
+                                                                setActiveServiceCategory(
+                                                                    category,
+                                                                )
+                                                            }
+                                                            className={cn(
+                                                                'shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition',
+                                                                isActive
+                                                                    ? 'bg-[#0E3B2E] text-white'
+                                                                    : 'border border-[#E1E6DE] bg-white text-[#163026] hover:bg-[#F7F8F5] dark:border-border dark:bg-card dark:text-foreground',
+                                                            )}
+                                                        >
+                                                            {category}
+                                                        </button>
+                                                    );
+                                                },
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {visibleServices.length === 0 ? (
+                                    <p className="mt-6 text-sm text-[#667068] dark:text-muted-foreground">
+                                        No services available.
+                                    </p>
+                                ) : (
+                                    <ul className="mt-2">
+                                        {visibleServices.map((service) => {
+                                            const isAdded =
+                                                service.id ===
+                                                selectedServiceId;
+
+                                            return (
+                                                <li
+                                                    key={service.id}
+                                                    className="flex items-center justify-between gap-4 border-t border-[#EEF1EA] py-5 first:border-t-0 dark:border-border"
+                                                >
+                                                    <div className="min-w-0">
+                                                        <h3 className="font-semibold capitalize">
+                                                            {service.name}
+                                                        </h3>
+                                                        {service.description && (
+                                                            <p className="mt-1 line-clamp-2 text-sm leading-6 text-[#667068] dark:text-muted-foreground">
+                                                                {
+                                                                    service.description
+                                                                }
+                                                            </p>
+                                                        )}
+                                                        {service.duration_minutes >
+                                                            0 && (
+                                                            <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-[#667068] dark:text-muted-foreground">
+                                                                <Clock className="size-3.5" />
+                                                                {formatDuration(
+                                                                    service.duration_minutes,
+                                                                )}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex shrink-0 items-center gap-3">
+                                                        <p className="font-semibold">
+                                                            {formatNaira(
+                                                                service.price,
+                                                            )}
+                                                        </p>
+                                                        {isAdded ? (
+                                                            <span className="inline-flex items-center gap-1 rounded-full bg-[#D7F36A] px-3 py-1.5 text-sm font-semibold text-[#163026]">
+                                                                <Check className="size-3.5" />
+                                                                Added
+                                                            </span>
+                                                        ) : (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    setSelectedServiceId(
+                                                                        service.id,
+                                                                    )
+                                                                }
+                                                                className="rounded-full border border-[#E1E6DE] bg-white px-4 py-1.5 text-sm font-medium transition hover:border-[#0E3B2E] dark:border-border dark:bg-card"
+                                                            >
+                                                                Book
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                )}
+                            </section>
+
+                            <section className={cn(surfaceClass, 'p-5 sm:p-6')}>
+                                <h2 className="text-[28px] font-bold tracking-tight">
+                                    About & location
+                                </h2>
+                                <p className="mt-3 text-sm leading-7 text-[#5E6A62] dark:text-muted-foreground">
+                                    {provider.description ||
+                                        'This provider has not added a description yet.'}
+                                </p>
+                                <div
+                                    className={cn(
+                                        'mt-5 grid gap-4',
+                                        provider.latitude && provider.longitude
+                                            ? 'sm:grid-cols-[220px_minmax(0,1fr)]'
+                                            : '',
+                                    )}
+                                >
+                                    {provider.latitude &&
+                                        provider.longitude && (
+                                            <div className="h-40 overflow-hidden rounded-2xl bg-[#E7F0E4] sm:h-full">
+                                                <iframe
+                                                    title={`${provider.businessName} map`}
+                                                    src={`https://www.google.com/maps?q=${provider.latitude},${provider.longitude}&z=15&output=embed`}
+                                                    className="h-full min-h-40 w-full border-0"
+                                                    loading="lazy"
+                                                    referrerPolicy="no-referrer-when-downgrade"
+                                                />
+                                            </div>
+                                        )}
+                                    <div className="space-y-3 text-sm">
+                                        {fullAddress && (
+                                            <p className="flex items-start gap-2 text-[#163026] dark:text-foreground">
+                                                <MapPin className="mt-0.5 size-4 shrink-0 text-[#0E3B2E]" />
+                                                <span>{fullAddress}</span>
+                                            </p>
+                                        )}
+                                        {provider.phone && (
+                                            <a
+                                                href={`tel:${provider.phone}`}
+                                                className="flex items-center gap-2 font-medium"
+                                            >
+                                                <Phone className="size-4 text-[#0E3B2E]" />
+                                                {provider.phone}
+                                            </a>
+                                        )}
+                                        {provider.latitude &&
+                                            provider.longitude && (
+                                                <button
+                                                    type="button"
+                                                    onClick={getDirections}
+                                                    className="inline-flex items-center gap-1 font-medium text-[#0E3B2E] dark:text-emerald-300"
+                                                >
+                                                    Get directions
+                                                    <ArrowRight className="size-4" />
+                                                </button>
+                                            )}
+                                    </div>
+                                </div>
+                            </section>
+
+                            {galleryPreview.length > 0 && (
+                                <section
+                                    className={cn(surfaceClass, 'p-5 sm:p-6')}
+                                >
+                                    <div className="flex items-center justify-between gap-3">
+                                        <h2 className="text-[28px] font-bold tracking-tight">
+                                            Gallery
+                                        </h2>
+                                        <Link
+                                            href={gallery(provider.slug)}
+                                            className="inline-flex items-center gap-1 text-sm font-medium text-[#0E3B2E] dark:text-emerald-300"
+                                        >
+                                            See all
+                                            {galleryTotal >
+                                            galleryPreview.length
+                                                ? ` ${galleryTotal}`
+                                                : ''}
+                                            <ArrowRight className="size-4" />
+                                        </Link>
+                                    </div>
+                                    <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                                        {galleryPreview
+                                            .slice(0, 4)
+                                            .map((image, index) => (
+                                                <button
+                                                    key={image.id}
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setLightboxIndex(index)
+                                                    }
+                                                    aria-label={`Open gallery image ${index + 1}`}
+                                                    className="aspect-square overflow-hidden rounded-2xl bg-[#0E3B2E]"
+                                                >
+                                                    <img
+                                                        src={image.url}
+                                                        alt=""
+                                                        className="h-full w-full object-cover"
+                                                    />
+                                                </button>
+                                            ))}
+                                    </div>
+                                </section>
+                            )}
+
+                            <section className={cn(surfaceClass, 'p-5 sm:p-6')}>
+                                <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                        <h2 className="text-[28px] font-bold tracking-tight">
+                                            Customer reviews
+                                        </h2>
+                                        <ReviewSection
+                                            reviews={reviews}
+                                            canReview={provider.can_review}
+                                            pendingAppointmentId={
+                                                provider.pending_appointment_id
+                                            }
+                                            composerOnly
+                                        />
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-heading text-3xl leading-none font-semibold">
+                                            {provider.reviews_count
+                                                ? provider.rating.toFixed(1)
+                                                : '–'}
+                                        </p>
+                                        <p className="mt-1 text-xs text-[#667068] dark:text-muted-foreground">
+                                            {provider.reviews_count} verified{' '}
+                                            {provider.reviews_count === 1
+                                                ? 'review'
+                                                : 'reviews'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {reviews.length === 0 ? (
+                                    <p className="mt-6 text-sm text-[#667068] dark:text-muted-foreground">
+                                        No reviews yet. Book a service and be
+                                        the first to leave one.
+                                    </p>
+                                ) : (
+                                    <ul className="mt-2">
+                                        {reviews.slice(0, 2).map((review) => (
+                                            <li
+                                                key={review.id}
+                                                className="border-t border-[#EEF1EA] py-5 first:border-t-0 dark:border-border"
+                                            >
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <div className="flex min-w-0 gap-3">
+                                                        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#E7F0E4] text-xs font-semibold text-[#0E3B2E] dark:bg-muted dark:text-foreground">
+                                                            {initialsFrom(
+                                                                review.client_name,
+                                                            )}
+                                                        </span>
+                                                        <div className="min-w-0">
+                                                            <p className="font-semibold capitalize">
+                                                                {
+                                                                    review.client_name
+                                                                }
+                                                            </p>
+                                                            <p className="text-xs text-[#667068] dark:text-muted-foreground">
+                                                                {
+                                                                    review.created_at
+                                                                }
+                                                            </p>
+                                                            <p className="mt-2 text-sm leading-6 text-[#5E6A62] dark:text-muted-foreground">
+                                                                {review.comment}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <StarRow
+                                                        rating={review.rating}
+                                                    />
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+
+                                {reviews.length > 2 && (
+                                    <div className="mt-2 flex justify-center">
+                                        <ReviewDrawal reviews={reviews} />
+                                    </div>
+                                )}
+                            </section>
+                        </div>
+
+                        <aside className="space-y-5 lg:sticky lg:top-6">
+                            <section className={cn(surfaceClass, 'rounded-[24px] p-7 shadow-[0_12px_40px_rgba(19,32,27,0.08)]')}>
+                                <h2 className="text-2xl font-bold tracking-tight">
+                                    Book with {provider.businessName}
+                                </h2>
+                                {selectedService ? (
+                                    <div className="mt-4 flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <p className="font-medium capitalize">
+                                                {selectedService.name}
+                                            </p>
+                                            <p className="mt-1 text-sm text-[#667068] dark:text-muted-foreground">
+                                                {formatDuration(
+                                                    selectedService.duration_minutes,
+                                                )}
+                                            </p>
+                                        </div>
+                                        <p className="shrink-0 font-semibold">
+                                            {formatNaira(selectedService.price)}
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <p className="mt-4 text-sm text-[#667068] dark:text-muted-foreground">
+                                        Choose a service to continue.
+                                    </p>
+                                )}
+
+                                {nextOpening && (
+                                    <div className="mt-5">
+                                        <p className="text-sm text-[#667068] dark:text-muted-foreground">
+                                            Next available
+                                        </p>
+                                        <span className="mt-2 inline-flex rounded-full bg-[#F3F6F0] px-3 py-1.5 text-sm font-medium dark:bg-muted">
+                                            {nextOpening}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {canBookProvider && selectedService ? (
+                                    <Link
+                                        href={bookingHref}
+                                        className={cn(
+                                            forestButtonClass,
+                                            'mt-5 w-full',
+                                        )}
+                                    >
+                                        Continue to book
+                                        <ArrowRight className="size-4" />
+                                    </Link>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        disabled
+                                        title={
+                                            canBookProvider
+                                                ? 'Choose a service first'
+                                                : bookingBlockedReason
+                                        }
+                                        className={cn(
+                                            forestButtonClass,
+                                            'mt-5 w-full',
+                                        )}
+                                    >
+                                        Continue to book
+                                        <ArrowRight className="size-4" />
+                                    </button>
+                                )}
+                                <p className="mt-3 flex items-center justify-center gap-1.5 text-sm text-[#667068] dark:text-muted-foreground">
+                                    <Check className="size-4 text-[#0E3B2E]" />
+                                    Pay when you&apos;re satisfied
+                                </p>
+                            </section>
+
+                            <section className={cn(surfaceClass, 'p-5')}>
+                                <h2 className="text-[28px] font-bold tracking-tight">
+                                    Working hours
+                                </h2>
+                                <dl className="mt-3">
+                                    {orderedHours.map(([day, hours]) => {
+                                        const isToday = day === today;
+
+                                        return (
+                                            <div
+                                                key={day}
+                                                className="flex items-center justify-between gap-4 border-b border-[#F1F3EE] py-2.5 text-sm last:border-b-0 dark:border-border"
+                                            >
+                                                <dt
+                                                    className={cn(
+                                                        isToday &&
+                                                            'font-semibold text-[#1F7A45]',
+                                                    )}
+                                                >
+                                                    {day.slice(0, 3)}
+                                                </dt>
+                                                <dd
+                                                    className={cn(
+                                                        'text-right',
+                                                        isToday
+                                                            ? 'font-semibold text-[#1F7A45]'
+                                                            : 'text-[#5E6A62] dark:text-muted-foreground',
+                                                        !hours.isOpen &&
+                                                            'text-[#98A099]',
+                                                    )}
+                                                >
+                                                    {hours.isOpen
+                                                        ? formatHours(
+                                                              hours.hours,
+                                                          )
+                                                        : 'Closed'}
+                                                </dd>
+                                            </div>
+                                        );
+                                    })}
+                                </dl>
+                            </section>
+                        </aside>
+                    </div>
+
+                    {nearbyProviders.length > 0 && (
+                        <section className="mt-10">
+                            <div className="flex items-center justify-between gap-3">
+                                <h2 className="text-[28px] font-bold tracking-tight">
+                                    Providers nearby
+                                </h2>
+                                <Link
+                                    href={findOnMap()}
+                                    className="inline-flex items-center gap-1 text-sm font-medium text-[#0E3B2E] dark:text-emerald-300"
+                                >
+                                    See all
+                                    <ArrowRight className="size-4" />
+                                </Link>
+                            </div>
+                            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                {nearbyProviders.map((nearbyProvider) => (
+                                    <NearbyCard
+                                        key={nearbyProvider.id}
                                         provider={nearbyProvider}
                                         favoriteBusinessIds={
                                             favoriteBusinessIds
                                         }
                                     />
-                                </div>
-                            ))}
-                        </div>
-                    </section>
+                                ))}
+                            </div>
+                        </section>
+                    )}
                 </div>
-            )}
 
-            {selectedService && (
-                <ServiceModal
-                    service={selectedService}
-                    providerSlug={provider.slug}
-                    canBook={canBookProvider}
-                    bookingBlockedReason={bookingBlockedReason}
-                    bookingCtaLabel={bookingCtaLabel}
-                    onClose={() => setSelectedService(null)}
-                />
-            )}
+                {canBookProvider && (
+                    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E4E9E1] bg-white/95 p-3 backdrop-blur md:hidden dark:border-border dark:bg-card/95">
+                        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
+                            <div className="min-w-0">
+                                <p className="truncate text-sm font-medium capitalize">
+                                    {selectedService?.name ??
+                                        'Select a service'}
+                                </p>
+                                <p className="text-sm text-[#667068] dark:text-muted-foreground">
+                                    {selectedService
+                                        ? formatNaira(selectedService.price)
+                                        : 'Choose a service to book'}
+                                </p>
+                            </div>
+                            {selectedService ? (
+                                <Link
+                                    href={bookingHref}
+                                    className={cn(
+                                        forestButtonClass,
+                                        'shrink-0',
+                                    )}
+                                >
+                                    Continue
+                                </Link>
+                            ) : (
+                                <button
+                                    type="button"
+                                    disabled
+                                    className={cn(
+                                        forestButtonClass,
+                                        'shrink-0',
+                                    )}
+                                >
+                                    Continue
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
 
             <DialogPrimitive.Root
                 open={lightboxOpen}
                 onOpenChange={(open) => {
-                    if (!open) closeLightbox();
+                    if (!open) {
+                        closeLightbox();
+                    }
                 }}
             >
                 <DialogPrimitive.Portal>
-                    <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/90 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0" />
+                    <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/90" />
                     <DialogPrimitive.Content
                         aria-describedby={undefined}
-                        className="fixed inset-0 z-50 flex flex-col items-center justify-center outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0"
+                        className="fixed inset-0 z-50 flex items-center justify-center outline-none"
                     >
                         <DialogPrimitive.Title className="sr-only">
                             {provider.businessName} gallery
                         </DialogPrimitive.Title>
-
                         <DialogPrimitive.Close
-                            className="absolute top-4 right-4 inline-flex size-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white sm:top-6 sm:right-6"
-                            aria-label="Close gallery preview"
+                            className="absolute top-4 right-4 inline-flex size-10 items-center justify-center rounded-full bg-white/15 text-white"
+                            aria-label="Close gallery"
                         >
                             <X className="size-5" />
                         </DialogPrimitive.Close>
-
                         {galleryPreviewCount > 1 && (
                             <>
                                 <button
                                     type="button"
                                     onClick={showPrevLightbox}
                                     aria-label="Previous image"
-                                    className="absolute top-1/2 left-3 z-10 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white sm:left-6 sm:size-12"
+                                    className="absolute top-1/2 left-3 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-white"
                                 >
-                                    <ChevronLeft className="size-5 sm:size-6" />
+                                    <ChevronLeft className="size-5" />
                                 </button>
                                 <button
                                     type="button"
                                     onClick={showNextLightbox}
                                     aria-label="Next image"
-                                    className="absolute top-1/2 right-3 z-10 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white sm:right-6 sm:size-12"
+                                    className="absolute top-1/2 right-3 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-white"
                                 >
-                                    <ChevronRight className="size-5 sm:size-6" />
+                                    <ChevronRight className="size-5" />
                                 </button>
                             </>
                         )}
-
                         {lightboxIndex !== null &&
                             galleryPreview[lightboxIndex] && (
                                 <img
                                     src={galleryPreview[lightboxIndex].url}
-                                    alt={`${provider.businessName} gallery ${lightboxIndex + 1}`}
+                                    alt=""
                                     className="max-h-[85vh] max-w-[92vw] object-contain"
                                 />
                             )}
-
-                        <div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-3 text-xs text-white/80 sm:text-sm">
-                            {galleryPreviewCount > 1 && (
-                                <div className="flex items-center gap-1.5">
-                                    {galleryPreview.map((image, idx) => (
-                                        <span
-                                            key={`lightbox-dot-${image.id}`}
-                                            className={`h-1.5 rounded-full transition-all ${
-                                                idx === lightboxIndex
-                                                    ? 'w-6 bg-white'
-                                                    : 'w-3 bg-white/40'
-                                            }`}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                            {galleryTotal > galleryPreviewCount && (
-                                <Link
-                                    href={`/provider/${provider.slug}/gallery`}
-                                    className="rounded-full border border-white/20 bg-white/10 px-3 py-1 backdrop-blur transition hover:bg-white/20"
-                                >
-                                    View all {galleryTotal} photos
-                                </Link>
-                            )}
-                        </div>
                     </DialogPrimitive.Content>
                 </DialogPrimitive.Portal>
             </DialogPrimitive.Root>
+
             <KiroChat
                 business={{
                     slug: provider.slug,
                     businessName: provider.businessName,
                     canBook: canBookProvider,
                 }}
-                launcherClassName="bottom-24 sm:bottom-24 md:bottom-6"
+                launcherClassName="bottom-32 md:bottom-6"
             />
         </GuestLayout>
     );

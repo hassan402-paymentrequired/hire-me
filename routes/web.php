@@ -16,6 +16,7 @@ Route::post('/kiro/chat', \App\Http\Controllers\KiroChatController::class)
 
 Route::middleware(['provider.setup'])->group(function () {
     Route::get('/', [\App\Http\Controllers\Guest\GuestController::class, 'welcome'])->name('home');
+    Route::get('/explore', [\App\Http\Controllers\Guest\GuestController::class, 'explore'])->name('explore.index');
     Route::get('/find-on-map', [\App\Http\Controllers\Guest\GuestController::class, 'findOnMap'])->name('find-on-map');
     Route::get('/provider/{slug}', [\App\Http\Controllers\Client\MarketplaceController::class, 'show'])->name('provider.show');
     Route::get('/provider/{slug}/gallery', [\App\Http\Controllers\Client\MarketplaceController::class, 'gallery'])->name('provider.gallery');
@@ -218,6 +219,7 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
         Route::post('/verification/submit', [\App\Http\Controllers\Provider\VerificationController::class, 'store'])->name('verification.submit');
     });
 
+    Route::get('/favourites', [\App\Http\Controllers\Client\FavouriteController::class, 'index'])->name('favourites.index');
     Route::post('/mark-as-favourite', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'markFavourites'])->name('favourite.update');
     Route::get('/service/favourite', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'getUserFav'])->name('favourite.index');
 

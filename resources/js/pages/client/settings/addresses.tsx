@@ -10,9 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import ClientLayout from '@/layouts/client-layout';
 import ClientSettingsLayout from '@/layouts/client-settings/layout';
-import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import { gooeyToast as toast } from 'goey-toast';
@@ -35,9 +33,6 @@ interface Props {
     addresses: ClientAddress[];
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Saved addresses', href: '/settings/addresses' },
-];
 
 const emptyForm = {
     label: '',
@@ -185,7 +180,7 @@ export default function ClientAddresses({ addresses }: Props) {
     };
 
     return (
-        <ClientLayout breadcrumbs={breadcrumbs}>
+        <>
             <Head title="Saved addresses" />
 
             <ClientSettingsLayout>
@@ -261,7 +256,7 @@ export default function ClientAddresses({ addresses }: Props) {
                 cancelLabel="Cancel"
                 icon={<PencilLine className="h-4 w-4 text-primary" />}
             />
-        </ClientLayout>
+        </>
     );
 }
 

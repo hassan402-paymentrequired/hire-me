@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Appointment;
+use App\Notifications\Concerns\RespectsNotificationPreferences;
 use App\Notifications\Concerns\SendsWebPush;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -10,11 +11,11 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use NotificationChannels\WebPush\WebPushChannel;
 
 class AppointmentUrgentApprovalNotification extends Notification implements ShouldQueue
 {
     use Queueable, SendsWebPush;
+    use RespectsNotificationPreferences;
 
     public function __construct(public Appointment $appointment)
     {
@@ -23,7 +24,7 @@ class AppointmentUrgentApprovalNotification extends Notification implements Shou
 
     public function via(object $notifiable): array
     {
-        return ['mail', 'database', WebPushChannel::class];
+        return $this->bookingChannels($notifiable);
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -34,7 +35,7 @@ class AppointmentUrgentApprovalNotification extends Notification implements Shou
         $serviceNames = $this->appointment->services->pluck('name')->join(', ');
 
         return (new MailMessage)
-            ->subject("🚨 Action needed: {$serviceNames} appointment in {$timeLabel} — " . config('app.name'))
+            ->subject("🚨 Action needed: {$serviceNames} appointment in {$timeLabel} — ".config('app.name'))
             ->priority(1)
             ->view('emails.provider.urgent-appointment', [
                 'appointment' => $this->appointment,
@@ -49,10 +50,10 @@ class AppointmentUrgentApprovalNotification extends Notification implements Shou
             ->diffForHumans(['parts' => 1, 'syntax' => CarbonInterface::DIFF_ABSOLUTE]);
 
         return [
-            'title'      => "⚡ Respond now — {$serviceNames} in {$timeLabel}",
-            'message'    => "Your appointment with {$this->appointment->client_name} starts in {$timeLabel}. Confirm or cancel immediately.",
-            'action_url' => '/business/schedule/appointments/' . $this->appointment->id,
-            'type'       => 'appointment_urgent',
+            'title' => "⚡ Respond now — {$serviceNames} in {$timeLabel}",
+            'message' => "Your appointment with {$this->appointment->client_name} starts in {$timeLabel}. Confirm or cancel immediately.",
+            'action_url' => '/business/schedule/appointments/'.$this->appointment->id,
+            'type' => 'appointment_urgent',
         ];
     }
 }

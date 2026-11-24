@@ -49,7 +49,7 @@ export function DateTimePicker({
             : '';
 
     return (
-        <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+        <div className="overflow-hidden rounded-3xl border border-line bg-white font-heading">
             <div className="flex flex-col md:h-[420px] md:flex-row">
                 <div className="flex shrink-0 justify-center border-b px-2 py-3 md:border-r md:border-b-0 md:p-3">
                     <Calendar
@@ -95,7 +95,7 @@ export function DateTimePicker({
 
                 <div className="flex min-w-0 flex-1 flex-col space-y-3 bg-muted/5 px-3 pb-2 pt-4 md:overflow-hidden md:p-4">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-base font-semibold tracking-tight uppercase md:text-xl md:tracking-tighter">
+                        <h3 className="text-lg font-bold tracking-tight md:text-xl">
                             {format(selectedDate, 'EEEE, MMM d')}
                         </h3>
                     </div>
@@ -149,7 +149,7 @@ export function DateTimePicker({
                                         if (slots.length === 0) return null;
                                         return (
                                             <div key={cat} className="space-y-3 md:space-y-4">
-                                                <h4 className="text-[10px] font-semibold tracking-[0.2em] text-muted-foreground/60 uppercase">
+                                                <h4 className="text-[13px] font-semibold text-moss capitalize">
                                                     {cat}
                                                 </h4>
                                                 <div className="grid grid-cols-3 gap-2 md:grid-cols-3 md:gap-3 lg:grid-cols-4">
@@ -157,18 +157,13 @@ export function DateTimePicker({
                                                         <Button
                                                             key={slot.datetime}
                                                             size="sm"
-                                                            variant={
-                                                                selectedSlot ===
-                                                                slot.datetime
-                                                                    ? 'default'
-                                                                    : 'outline'
-                                                            }
+                                                            variant="outline"
                                                             className={cn(
-                                                                'h-9 rounded-md px-2 text-[11px] font-semibold transition-all md:h-10 md:text-xs lg:text-sm',
+                                                                'h-11 rounded-[14px] px-2 text-sm font-semibold text-ink shadow-none transition-colors',
                                                                 selectedSlot ===
                                                                     slot.datetime
-                                                                    ? 'border-primary md:scale-[1.02]'
-                                                                    : 'hover:border-primary/30 hover:bg-primary/5',
+                                                                    ? 'border-2 border-forest bg-mint hover:bg-mint'
+                                                                    : 'border-[#DDE3DE] bg-white hover:border-forest',
                                                             )}
                                                             disabled={
                                                                 !canBookProvider

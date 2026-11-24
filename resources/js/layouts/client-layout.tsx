@@ -1,18 +1,13 @@
-import AppLayoutTemplate from '@/layouts/app/app-header-layout';
+import GuestLayout from '@/layouts/guest-layout';
 import { type BreadcrumbItem } from '@/types';
 import { type ReactNode } from 'react';
-import ToastNotification from '@/components/ui/toast-notification';
-import FavoriteSheet from '@/pages/client/favorite';
 
 interface ClientLayoutProps {
     children: ReactNode;
     breadcrumbs?: BreadcrumbItem[];
 }
 
-export default ({ children, breadcrumbs, ...props }: ClientLayoutProps) => (
-    <AppLayoutTemplate breadcrumbs={breadcrumbs} {...props}>
-        {children}
-        <FavoriteSheet />
-        <ToastNotification />
-    </AppLayoutTemplate>
-);
+/** Signed-in client pages share the public site shell (navbar adapts to auth). */
+export default function ClientLayout({ children }: ClientLayoutProps) {
+    return <GuestLayout>{children}</GuestLayout>;
+}

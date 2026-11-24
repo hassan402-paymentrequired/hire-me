@@ -1,4 +1,3 @@
-import React from 'react'
 import {
     Sheet,
     SheetContent,
@@ -6,24 +5,26 @@ import {
     SheetHeader,
     SheetTitle,
     SheetTrigger,
-} from '@/components/ui/sheet'
-import { Button } from '@/components/ui/button'
-import { Star, MessageSquare } from 'lucide-react'
+} from '@/components/ui/sheet';
+import { MessageSquare, Star } from 'lucide-react';
 
 interface Review {
-    client_name: string
-    comment: string
-    rating: number
-    created_at: string
+    client_name: string;
+    comment: string;
+    rating: number;
+    created_at: string;
 }
 
 const ReviewDrawal = ({ reviews }: { reviews: Review[] }) => {
     return (
         <Sheet>
             <SheetTrigger asChild>
-                <Button variant="outline">
-                    See all reviews
-                </Button>
+                <button
+                    type="button"
+                    className="text-sm font-medium text-[#0E3B2E] underline-offset-4 hover:underline dark:text-emerald-300"
+                >
+                    Show all reviews
+                </button>
             </SheetTrigger>
 
             <SheetContent className="sm:max-w-md">
@@ -37,22 +38,23 @@ const ReviewDrawal = ({ reviews }: { reviews: Review[] }) => {
                 </SheetHeader>
 
                 {/* CONTENT */}
-                <div className="mt-6 space-y-4 divide-y divide-border h-full overflow-y-auto">
+                <div className="mt-6 h-full space-y-4 divide-y divide-border overflow-y-auto">
                     {reviews.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center  p-8 text-center">
+                        <div className="flex flex-col items-center justify-center p-8 text-center">
                             <MessageSquare className="mb-3 size-8 text-muted-foreground" />
                             <p className="text-sm font-medium">
                                 No reviews yet
                             </p>
                             <p className="mt-1 text-xs text-muted-foreground">
-                                Reviews from customers will appear here once available.
+                                Reviews from customers will appear here once
+                                available.
                             </p>
                         </div>
                     ) : (
                         reviews.map((review, index) => (
                             <div
                                 key={index}
-                                className="flex flex-col gap-3 bg-background p-5 "
+                                className="flex flex-col gap-3 bg-background p-5"
                             >
                                 {/* Stars */}
                                 <div className="flex gap-0.5">
@@ -80,8 +82,13 @@ const ReviewDrawal = ({ reviews }: { reviews: Review[] }) => {
                                 </div>
 
                                 {/* Author */}
-                                <div className="text-sm text-muted-foreground flex items-center gap-2">
-                                  <span className='size-8 rounded-full bg-primary text-white flex items-center justify-center'>{review.client_name.charAt(0).toUpperCase()}</span>  — {review.client_name}
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <span className="flex size-8 items-center justify-center rounded-full bg-primary text-white">
+                                        {review.client_name
+                                            .charAt(0)
+                                            .toUpperCase()}
+                                    </span>{' '}
+                                    — {review.client_name}
                                 </div>
                             </div>
                         ))
@@ -89,7 +96,7 @@ const ReviewDrawal = ({ reviews }: { reviews: Review[] }) => {
                 </div>
             </SheetContent>
         </Sheet>
-    )
-}
+    );
+};
 
-export default ReviewDrawal
+export default ReviewDrawal;

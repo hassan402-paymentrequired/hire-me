@@ -236,6 +236,13 @@ export default function KiroChat({
     }, [messages, isSending, isOpen]);
 
     useEffect(() => {
+        const openChat = () => setIsOpen(true);
+        window.addEventListener('kiro:open', openChat);
+
+        return () => window.removeEventListener('kiro:open', openChat);
+    }, []);
+
+    useEffect(() => {
         if (!isOpen) {
             return;
         }

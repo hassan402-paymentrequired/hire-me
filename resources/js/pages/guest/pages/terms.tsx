@@ -1,103 +1,48 @@
-import AppLayout from '@/layouts/guest-layout';
-import { Head } from '@inertiajs/react';
+import { LegalPage } from '@/components/site/legal-page';
 
-interface Props {
-    title: string;
-}
-
-export default function TermsAndConditions({ title }: Props) {
+export default function Terms({ title }: { title: string }) {
     return (
-        <>
-            <Head title={title} />
-            <AppLayout>
-                <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl dark:text-white">
-                        Terms and Conditions
-                    </h1>
-                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                        Last updated: January 2026
-                    </p>
-                    <div className="mt-8 space-y-8 text-gray-600 dark:text-gray-400">
-                        <section>
-                            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                                Acceptance of Terms
-                            </h2>
-                            <p className="mt-4 leading-relaxed">
-                                By accessing or using proxideck, you agree to be
-                                bound by these Terms and Conditions. If you do
-                                not agree with any part of these terms, you may
-                                not use our platform.
-                            </p>
-                        </section>
-                        <section>
-                            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                                Use of the Platform
-                            </h2>
-                            <p className="mt-4 leading-relaxed">
-                                You agree to use proxideck only for lawful
-                                purposes. You must provide accurate information
-                                when creating an account and booking services.
-                                You are responsible for maintaining the
-                                confidentiality of your account credentials.
-                            </p>
-                        </section>
-                        <section>
-                            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                                Bookings and Payments
-                            </h2>
-                            <p className="mt-4 leading-relaxed">
-                                When you book a service, you enter into an
-                                agreement with the service provider. proxideck
-                                facilitates the connection but is not a party to
-                                the service contract. Payments are processed in
-                                accordance with our payment policies.
-                                Cancellation and refund policies may vary by
-                                provider.
-                            </p>
-                        </section>
-                        <section>
-                            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                                Provider Services
-                            </h2>
-                            <p className="mt-4 leading-relaxed">
-                                Service providers listed on our platform are
-                                independent. We verify providers but do not
-                                guarantee the quality of their services. Any
-                                disputes regarding services should be raised
-                                with the provider or through our support team.
-                            </p>
-                        </section>
-                        <section>
-                            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                                Limitation of Liability
-                            </h2>
-                            <p className="mt-4 leading-relaxed">
-                                proxideck is provided &quot;as is&quot;. We are
-                                not liable for any indirect, incidental, or
-                                consequential damages arising from your use of
-                                the platform. Our liability is limited to the
-                                extent permitted by applicable law.
-                            </p>
-                        </section>
-                        <section>
-                            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                                Contact
-                            </h2>
-                            <p className="mt-4 leading-relaxed">
-                                For questions about these Terms and Conditions,
-                                contact us at{' '}
-                                <a
-                                    href="mailto:support@proxideck.com"
-                                    className="text-primary hover:underline"
-                                >
-                                    support@proxideck.com
-                                </a>
-                                .
-                            </p>
-                        </section>
-                    </div>
-                </div>
-            </AppLayout>
-        </>
+        <LegalPage
+            document="terms"
+            title={title}
+            lastUpdated="November 2026"
+            summary={[
+                'Book in good faith and turn up on time.',
+                'Payments are held until your appointment is complete.',
+                'Reviews must be honest and based on a real booking.',
+            ]}
+            sections={[
+                {
+                    id: 'using',
+                    title: 'Using Proxideck',
+                    body: 'Proxideck is a marketplace that connects customers with independent service providers. Providers set their own services, prices and availability.',
+                },
+                {
+                    id: 'bookings',
+                    title: 'Bookings and cancellations',
+                    body: 'A booking is confirmed when the provider accepts it. Each provider sets a cancellation window, shown before you pay. Late cancellations may mean you lose part of your payment.',
+                },
+                {
+                    id: 'payments',
+                    title: 'Payments and refunds',
+                    body: 'Payments are held in escrow and released to the provider after both sides confirm the appointment is complete. If the provider cancels or does not show up, the money goes back to your wallet.',
+                },
+                {
+                    id: 'providers',
+                    title: 'Provider responsibilities',
+                    body: 'Providers must list accurate prices, keep their calendar up to date, hold any licences their work requires, and treat customers with respect.',
+                },
+                {
+                    id: 'reviews',
+                    title: 'Reviews',
+                    body: 'Only customers with a completed booking can leave a review. We may remove reviews that are abusive, fake or unrelated to the service.',
+                },
+                {
+                    id: 'liability',
+                    title: 'Liability',
+                    body: 'Services are provided by independent providers. Proxideck is responsible for the platform and payments, and will help resolve disputes raised through the app.',
+                },
+            ]}
+        />
     );
 }

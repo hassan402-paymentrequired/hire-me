@@ -263,8 +263,7 @@ class MarketplaceController extends Controller
             'isLogo' => $img->is_logo,
         ]);
 
-        // Pull the latest images from the provider's actual gallery (ProviderGalleryItem/Image),
-        // not the business hero images. Only need a small teaser + total count for "+N more".
+        // Latest gallery images for the profile teaser. The page shows up to four.
         $galleryImageQuery = ProviderGalleryImage::query()
             ->whereHas('galleryItem', function ($query) use ($provider, $businessProfile) {
                 $query->where('provider_id', $provider->id)
@@ -273,7 +272,7 @@ class MarketplaceController extends Controller
 
         $galleryPreview = (clone $galleryImageQuery)
             ->latest('id')
-            ->limit(3)
+            ->limit(4)
             ->get(['id', 'image_path'])
             ->map(fn (ProviderGalleryImage $image) => [
                 'id' => (string) $image->id,
@@ -293,6 +292,8 @@ class MarketplaceController extends Controller
                 'businessId' => $businessProfile->id,
                 'businessName' => $businessProfile->business_name,
                 'address' => $businessProfile->address,
+                'city' => $businessProfile->city,
+                'phone' => $businessProfile->phone,
                 'slug' => $businessProfile->slug,
                 'description' => $businessProfile->description,
                 'category' => $businessProfile->category,

@@ -1,89 +1,48 @@
-import AppLayout from '@/layouts/guest-layout';
-import { Head } from '@inertiajs/react';
+import { LegalPage } from '@/components/site/legal-page';
 
-interface Props {
-    title: string;
-}
-
-export default function PrivacyPolicy({ title }: Props) {
+export default function PrivacyPolicy({ title }: { title: string }) {
     return (
-        <>
-            <Head title={title} />
-            <AppLayout>
-                <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl dark:text-white">
-                        Privacy Policy
-                    </h1>
-                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                        Last updated: January 2026
-                    </p>
-                    <div className="mt-8 space-y-8 text-gray-600 dark:text-gray-400">
-                        <section>
-                            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                                Information We Collect
-                            </h2>
-                            <p className="mt-4 leading-relaxed">
-                                We collect information you provide when you
-                                register, book services, or contact us. This may
-                                include your name, email address, phone number,
-                                location, and payment information. We also
-                                collect usage data to improve our services.
-                            </p>
-                        </section>
-                        <section>
-                            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                                How We Use Your Information
-                            </h2>
-                            <p className="mt-4 leading-relaxed">
-                                We use your information to facilitate bookings,
-                                process payments, communicate with you about
-                                your appointments, and improve our platform. We
-                                may send you service-related notifications and,
-                                with your consent, promotional updates.
-                            </p>
-                        </section>
-                        <section>
-                            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                                Data Sharing
-                            </h2>
-                            <p className="mt-4 leading-relaxed">
-                                We share necessary information with service
-                                providers to complete your bookings. We do not
-                                sell your personal data to third parties. We may
-                                share data with trusted partners who assist in
-                                operating our platform, under strict
-                                confidentiality agreements.
-                            </p>
-                        </section>
-                        <section>
-                            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                                Security
-                            </h2>
-                            <p className="mt-4 leading-relaxed">
-                                We implement industry-standard security measures
-                                to protect your personal information. All data
-                                transmitted over our platform is encrypted.
-                            </p>
-                        </section>
-                        <section>
-                            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                                Contact Us
-                            </h2>
-                            <p className="mt-4 leading-relaxed">
-                                If you have questions about this Privacy Policy,
-                                please contact us at{' '}
-                                <a
-                                    href="mailto:support@proxideck.com"
-                                    className="text-primary hover:underline"
-                                >
-                                    support@proxideck.com
-                                </a>
-                                .
-                            </p>
-                        </section>
-                    </div>
-                </div>
-            </AppLayout>
-        </>
+        <LegalPage
+            document="privacy"
+            title={title}
+            lastUpdated="November 2026"
+            summary={[
+                'We only collect what we need to run your bookings and payments.',
+                'We never sell your personal data.',
+                'You can ask us to export or delete your data at any time.',
+            ]}
+            sections={[
+                {
+                    id: 'collect',
+                    title: 'What we collect',
+                    body: 'Your name, email, phone number and saved addresses; your booking history; wallet transactions; and basic device information we use to keep your account secure.',
+                },
+                {
+                    id: 'use',
+                    title: 'How we use it',
+                    body: 'To create and manage bookings, process wallet payments and refunds, send booking updates, prevent fraud, and improve Proxideck. You choose which booking updates reach you by email or push in Account settings.',
+                },
+                {
+                    id: 'share',
+                    title: 'Who we share it with',
+                    body: 'The pro you book sees your name, phone number and, for home-service bookings, your address. Our payment partner processes wallet top-ups and withdrawals. We do not sell your data.',
+                },
+                {
+                    id: 'payments',
+                    title: 'Payments and your wallet',
+                    body: 'Card and bank details are handled by our licensed payment partner. Proxideck stores only the references needed to show your transaction history.',
+                },
+                {
+                    id: 'security',
+                    title: 'Security',
+                    body: 'We use industry-standard measures to protect your information, and all data sent to and from Proxideck is encrypted.',
+                },
+                {
+                    id: 'rights',
+                    title: 'Your rights',
+                    body: 'Under the Nigeria Data Protection Act you can access, correct, export or delete your personal data. Contact us and we will act on your request.',
+                },
+            ]}
+        />
     );
 }

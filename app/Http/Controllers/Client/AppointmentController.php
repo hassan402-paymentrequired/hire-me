@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Client;
 use App\Http\Controllers\Controller;
 use App\Jobs\DeleteGoogleCalendarEventJob;
 use App\Jobs\SyncAppointmentToGoogleCalendarJob;
+use App\Mail\AppointmentCancelledMail;
 use App\Models\Appointment;
 use App\Models\ClientAddress;
 use App\Models\Report;
@@ -15,22 +16,20 @@ use App\Models\Wallet;
 use App\Models\WorkHour;
 use App\Notifications\AppointmentCompletedNotification;
 use App\Notifications\AppointmentUpdatedNotification;
-use Carbon\Carbon;
-use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\NewBookingMail;
-use App\Mail\AppointmentCancelledMail;
-use App\Mail\AppointmentCompletedMail;
 use App\Notifications\NewAppoinmentBookedNotification;
 use App\Support\ProviderSettings;
 use App\Support\ServiceDeliveryMode;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Inertia\Inertia;
 
 class AppointmentController extends Controller
 {
     private const APPOINTMENT_CHANGE_CUTOFF_HOURS = 12;
+
     private const LATE_CANCELLATION_PENALTY_PERCENT = 10;
 
     public function index(Request $request)
@@ -40,6 +39,7 @@ class AppointmentController extends Controller
 
         $query = Appointment::where('client_id', $user->id)
             ->with(['provider.businessProfile.images', 'services'])
+            ->withExists('review as has_review')
             ->orderBy('start_time', 'desc');
 
         if ($statusFilter === 'active') {
@@ -62,18 +62,30 @@ class AppointmentController extends Controller
                 $path = $logoImage?->image_path ?? $bp->logo_path;
                 if ($path) {
                     $logoUrl = \App\Services\FileUploadService::url($path, 'public');
-                    if (!$logoUrl) {
-                        $logoUrl = '/storage/' . ltrim($path, '/');
+                    if (! $logoUrl) {
+                        $logoUrl = '/storage/'.ltrim($path, '/');
                     }
                 }
             }
             $data['provider_logo_url'] = $logoUrl;
+
             return $data;
         });
+
+        $statusCounts = Appointment::where('client_id', $user->id)
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
 
         return Inertia::render('client/bookings/index', [
             'bookings' => $bookings,
             'statusFilter' => $statusFilter,
+            'counts' => [
+                'active' => $statusCounts->only(['pending', 'confirmed', 'pending_completion'])->sum(),
+                'completed' => (int) $statusCounts->get('completed', 0),
+                'cancelled' => (int) $statusCounts->get('cancelled', 0),
+                'all' => $statusCounts->sum(),
+            ],
         ]);
     }
 
@@ -88,7 +100,7 @@ class AppointmentController extends Controller
         if ($hoursUntilStart < self::APPOINTMENT_CHANGE_CUTOFF_HOURS || $appointment->start_time->isPast()) {
             return redirect()
                 ->route('client.bookings.show', $appointment->id)
-                ->with('error-toast', 'You can only edit this appointment up to ' . self::APPOINTMENT_CHANGE_CUTOFF_HOURS . ' hours before it starts.');
+                ->with('error-toast', 'You can only edit this appointment up to '.self::APPOINTMENT_CHANGE_CUTOFF_HOURS.' hours before it starts.');
         }
 
         $request->validate([
@@ -157,8 +169,9 @@ class AppointmentController extends Controller
 
                 if ($priceDifference > 0) {
                     // Client needs to pay more
-                    if (!$clientWallet->hasSufficientBalance($priceDifference)) {
+                    if (! $clientWallet->hasSufficientBalance($priceDifference)) {
                         DB::rollBack();
+
                         return back()
                             ->with('error-toast', 'Insufficient wallet balance to cover the increased total. Please top up your wallet and try again.');
                     }
@@ -232,7 +245,7 @@ class AppointmentController extends Controller
                 }
             }
 
-            if (!$originalAppointment->start_time->equalTo($startTime)) {
+            if (! $originalAppointment->start_time->equalTo($startTime)) {
                 $changesSummary[] = sprintf(
                     'Start time changed from %s to %s.',
                     $originalAppointment->start_time->format('M j, Y g:i A'),
@@ -256,7 +269,7 @@ class AppointmentController extends Controller
 
             SyncAppointmentToGoogleCalendarJob::dispatch($appointment->id);
 
-            if (!empty($changesSummary)) {
+            if (! empty($changesSummary)) {
                 $appointment->provider->notify(new AppointmentUpdatedNotification($appointment, $changesSummary));
             }
 
@@ -281,7 +294,7 @@ class AppointmentController extends Controller
             ? Appointment::find($appointment->recurrence_parent_id)
             : ($appointment->isRecurrenceParent() ? $appointment : null);
 
-        $hasFutureRecurrences = $parent && !$parent->recurrence_stopped_at
+        $hasFutureRecurrences = $parent && ! $parent->recurrence_stopped_at
             ? Appointment::where('recurrence_parent_id', $parent->id)
                 ->where('start_time', '>', now())
                 ->where('status', '!=', 'cancelled')
@@ -465,7 +478,7 @@ class AppointmentController extends Controller
 
             if (! $clientWallet->hasSufficientBalance($totalPrice)) {
                 return redirect()->route('marketplace.booking', ['slug' => $provider->businessProfile->slug])
-                    ->with('error-toast', "Insufficient wallet balance. Please top up your wallet with at least ₦" . number_format($totalPrice, 2) . " to book this appointment.")
+                    ->with('error-toast', 'Insufficient wallet balance. Please top up your wallet with at least ₦'.number_format($totalPrice, 2).' to book this appointment.')
                     ->with('insufficient_balance', true)
                     ->with('required_amount', $totalPrice);
             }
@@ -506,11 +519,11 @@ class AppointmentController extends Controller
                 $appointmentData['recurrence_pattern'] = $request->recurrence_pattern;
                 $appointmentData['original_price'] = $originalPrice;
                 $appointmentData['discount_percent'] = $discountPercent;
-                
+
                 if ($request->recurrence_end_date) {
                     $appointmentData['recurrence_end_date'] = Carbon::parse($request->recurrence_end_date);
                 }
-                
+
                 if ($request->recurrence_count) {
                     $appointmentData['recurrence_count'] = $request->recurrence_count;
                 }
@@ -518,13 +531,13 @@ class AppointmentController extends Controller
 
             $appointment = Appointment::create($appointmentData);
             $appointment->services()->attach($request->service_ids);
-            
-            $message = $request->recurrence_pattern 
+
+            $message = $request->recurrence_pattern
                 ? 'Recurring appointment booked successfully! Future appointments will be created automatically.'
                 : 'Appointment booked successfully!';
 
             if ($paymentOption === 'online') {
-                $escrowTransaction = $clientWallet->holdPayment($totalPrice, $appointment, "Payment held for appointment booking (pending dual approval)");
+                $escrowTransaction = $clientWallet->holdPayment($totalPrice, $appointment, 'Payment held for appointment booking (pending dual approval)');
                 $appointment->update([
                     'escrow_amount' => $totalPrice,
                     'escrow_status' => 'held',
@@ -539,7 +552,7 @@ class AppointmentController extends Controller
             DB::commit();
 
             SyncAppointmentToGoogleCalendarJob::dispatch($appointment->id);
-            
+
             $appointment->provider->notify(new NewAppoinmentBookedNotification($appointment));
 
             return redirect()->route('client.bookings.show', $appointment->id)
@@ -556,7 +569,7 @@ class AppointmentController extends Controller
             };
 
             $redirectParams = ['slug' => $provider->businessProfile->slug];
-            if (!empty($request->service_ids)) {
+            if (! empty($request->service_ids)) {
                 $redirectParams['service_ids'] = is_array($request->service_ids)
                     ? implode(',', $request->service_ids)
                     : $request->service_ids;
@@ -587,7 +600,7 @@ class AppointmentController extends Controller
             DB::beginTransaction();
 
             // Get the parent appointment if this is a child
-            $parentAppointment = $appointment->recurrence_parent_id 
+            $parentAppointment = $appointment->recurrence_parent_id
                 ? Appointment::find($appointment->recurrence_parent_id)
                 : ($appointment->isRecurrenceParent() ? $appointment : null);
 
@@ -623,13 +636,14 @@ class AppointmentController extends Controller
             Mail::to($appointment->provider->email)->queue(new AppointmentCancelledMail($appointment, 'client'));
 
             $message = $isLateCancellation && $appointment->escrow_status === 'forfeited'
-                ? 'Appointment cancelled. Because you cancelled less than ' . self::APPOINTMENT_CHANGE_CUTOFF_HOURS . ' hours before the appointment, a ' . self::LATE_CANCELLATION_PENALTY_PERCENT . '% late cancellation fee was applied. The remainder has been refunded to your wallet.'
+                ? 'Appointment cancelled. Because you cancelled less than '.self::APPOINTMENT_CHANGE_CUTOFF_HOURS.' hours before the appointment, a '.self::LATE_CANCELLATION_PENALTY_PERCENT.'% late cancellation fee was applied. The remainder has been refunded to your wallet.'
                 : 'Appointment cancelled successfully. Your refund has been processed.';
 
             return back()->with('success-toast', $message);
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error-toast', 'Failed to cancel appointment: ' . $e->getMessage());
+
+            return back()->with('error-toast', 'Failed to cancel appointment: '.$e->getMessage());
         }
     }
 
@@ -716,7 +730,7 @@ class AppointmentController extends Controller
             ? Appointment::where('client_id', $user->id)->find($appointment->recurrence_parent_id)
             : ($appointment->isRecurrenceParent() ? $appointment : null);
 
-        if (!$parent) {
+        if (! $parent) {
             return back()->with('error-toast', 'This is not a recurring appointment.');
         }
 
@@ -747,7 +761,8 @@ class AppointmentController extends Controller
             return back()->with('success-toast', 'Remaining recurring appointments have been cancelled. You will receive a refund for each.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error-toast', 'Failed to cancel: ' . $e->getMessage());
+
+            return back()->with('error-toast', 'Failed to cancel: '.$e->getMessage());
         }
     }
 
@@ -770,17 +785,17 @@ class AppointmentController extends Controller
                 // Apply penalty: forfeit percentage to provider, refund rest
                 $penaltyAmount = ($appointment->escrow_amount * $cancellationPenaltyPercent) / 100;
                 $refundAmount = $appointment->escrow_amount - $penaltyAmount;
-                
+
                 if ($penaltyAmount > 0) {
-                    $clientWallet->forfeitEscrow($penaltyAmount, $appointment, "Late cancellation penalty");
+                    $clientWallet->forfeitEscrow($penaltyAmount, $appointment, 'Late cancellation penalty');
                 }
                 if ($refundAmount > 0) {
-                    $clientWallet->refundEscrow($refundAmount, $appointment, "Partial refund after late cancellation");
+                    $clientWallet->refundEscrow($refundAmount, $appointment, 'Partial refund after late cancellation');
                 }
                 $appointment->update(['escrow_status' => 'forfeited']);
             } else {
                 // Full refund for early cancellation
-                $clientWallet->refundEscrow($appointment->escrow_amount, $appointment, "Full refund for cancelled appointment");
+                $clientWallet->refundEscrow($appointment->escrow_amount, $appointment, 'Full refund for cancelled appointment');
                 $appointment->update(['escrow_status' => 'refunded']);
             }
         }
@@ -846,7 +861,8 @@ class AppointmentController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Failed to complete appointment', ['error' => $e->getMessage()]);
-            return back()->with('error-toast', 'Failed to complete appointment: ' . $e->getMessage());
+
+            return back()->with('error-toast', 'Failed to complete appointment: '.$e->getMessage());
         }
     }
 
@@ -870,7 +886,7 @@ class AppointmentController extends Controller
         if ($hoursUntilStart < self::APPOINTMENT_CHANGE_CUTOFF_HOURS || $appointment->start_time->isPast()) {
             return redirect()
                 ->route('client.bookings.show', $appointment->id)
-                ->with('error-toast', 'You can only edit this appointment up to ' . self::APPOINTMENT_CHANGE_CUTOFF_HOURS . ' hours before it starts.');
+                ->with('error-toast', 'You can only edit this appointment up to '.self::APPOINTMENT_CHANGE_CUTOFF_HOURS.' hours before it starts.');
         }
 
         $provider = $appointment->provider;
@@ -987,8 +1003,8 @@ class AppointmentController extends Controller
 
         // Get provider settings
         $settings = $provider->businessProfile->settings ?? [];
-        $advanceBooking = (int)($settings['advanceBooking'] ?? 30); // days
-        $minNotice = isset($settings['minNotice']) ? (int)$settings['minNotice'] : null; // hours
+        $advanceBooking = (int) ($settings['advanceBooking'] ?? 30); // days
+        $minNotice = isset($settings['minNotice']) ? (int) $settings['minNotice'] : null; // hours
         $allowSameDay = $settings['allowSameDay'] ?? false;
         $maxDaily = $settings['maxDaily'] ?? null;
         $providerBufferTimeMinutes = (int) ($settings['bufferTime'] ?? 0);
@@ -1012,7 +1028,7 @@ class AppointmentController extends Controller
         if ($date->gt($maxDate)) {
             return response()->json([
                 'slots' => [],
-                'message' => "Bookings can only be made up to {$advanceBooking} days in advance."
+                'message' => "Bookings can only be made up to {$advanceBooking} days in advance.",
             ]);
         }
 
@@ -1022,16 +1038,16 @@ class AppointmentController extends Controller
             if ($date->isToday() && Carbon::now()->addHours($minNotice)->gt($date->endOfDay())) {
                 return response()->json([
                     'slots' => [],
-                    'message' => "Minimum notice period is {$minNotice} hours. Please select a later date."
+                    'message' => "Minimum notice period is {$minNotice} hours. Please select a later date.",
                 ]);
             }
         }
 
         // Check same-day booking
-        if (!$allowSameDay && $date->isToday()) {
+        if (! $allowSameDay && $date->isToday()) {
             return response()->json([
                 'slots' => [],
-                'message' => 'Same-day bookings are not allowed. Please select a future date.'
+                'message' => 'Same-day bookings are not allowed. Please select a future date.',
             ]);
         }
 
@@ -1056,7 +1072,7 @@ class AppointmentController extends Controller
         if ($totalDuration > $maxAvailableBlock) {
             return response()->json([
                 'slots' => [],
-                'message' => "The selected services require {$totalDuration} minutes, which exceeds the provider's longest working block ({$maxAvailableBlock} minutes) on this day."
+                'message' => "The selected services require {$totalDuration} minutes, which exceeds the provider's longest working block ({$maxAvailableBlock} minutes) on this day.",
             ]);
         }
 
@@ -1077,28 +1093,28 @@ class AppointmentController extends Controller
         $slots = [];
 
         foreach ($workHours as $workHour) {
-            $start = Carbon::parse($date->format('Y-m-d') . ' ' . $workHour->start_time);
-            $end = Carbon::parse($date->format('Y-m-d') . ' ' . $workHour->end_time);
+            $start = Carbon::parse($date->format('Y-m-d').' '.$workHour->start_time);
+            $end = Carbon::parse($date->format('Y-m-d').' '.$workHour->end_time);
 
             // If the date is today, ensure start time meets minimum notice
             if ($date->isToday()) {
                 $now = Carbon::now();
                 $minStartTime = $now;
-                
+
                 // Apply minimum notice if set
                 if ($minNotice !== null) {
                     $minStartTime = $now->copy()->addHours($minNotice)->ceilMinutes(30);
                 } else {
                     $minStartTime = $now->copy()->ceilMinutes(30); // Start from next 30min block
                 }
-                
+
                 if ($start->lt($minStartTime)) {
                     $start = $minStartTime;
                 }
             }
-            
+
             // For future dates, check minimum notice for each slot
-            if (!$date->isToday() && $minNotice !== null) {
+            if (! $date->isToday() && $minNotice !== null) {
                 $minSlotTime = Carbon::now()->addHours($minNotice);
                 if ($start->lt($minSlotTime)) {
                     $start = $minSlotTime->copy()->ceilMinutes(30);
@@ -1110,12 +1126,13 @@ class AppointmentController extends Controller
             while ($current->copy()->addMinutes($totalDuration)->lte($end)) {
                 $slotStart = $current->copy();
                 $slotEnd = $current->copy()->addMinutes($totalDuration);
-                
+
                 // Skip slots that don't meet minimum notice requirement
                 if ($minNotice !== null) {
                     $minSlotTime = Carbon::now()->addHours($minNotice);
                     if ($slotStart->lt($minSlotTime)) {
                         $current->addMinutes(30);
+
                         continue;
                     }
                 }
@@ -1124,8 +1141,8 @@ class AppointmentController extends Controller
                 $isDuringBreak = false;
                 if ($workHour->breaks) {
                     foreach ($workHour->breaks as $break) {
-                        $breakStart = Carbon::parse($date->format('Y-m-d') . ' ' . $break['start']);
-                        $breakEnd = Carbon::parse($date->format('Y-m-d') . ' ' . $break['end']);
+                        $breakStart = Carbon::parse($date->format('Y-m-d').' '.$break['start']);
+                        $breakEnd = Carbon::parse($date->format('Y-m-d').' '.$break['end']);
                         // Overlap check
                         if ($slotStart->lt($breakEnd) && $slotEnd->gt($breakStart)) {
                             $isDuringBreak = true;
@@ -1142,7 +1159,7 @@ class AppointmentController extends Controller
                     return $slotStart->lt($aptEndWithBuffer) && $slotEndWithBuffer->gt($apt->start_time);
                 });
 
-                if (!$isDuringBreak && !$isBooked) {
+                if (! $isDuringBreak && ! $isBooked) {
                     $slots[] = [
                         'start' => $slotStart->format('H:i'),
                         'end' => $slotEnd->format('H:i'),
@@ -1157,7 +1174,7 @@ class AppointmentController extends Controller
 
         return response()->json([
             'slots' => $slots,
-            'message' => empty($slots) ? 'No available slots found for the selected services and date.' : null
+            'message' => empty($slots) ? 'No available slots found for the selected services and date.' : null,
         ]);
     }
 
@@ -1175,8 +1192,8 @@ class AppointmentController extends Controller
         }
 
         foreach ($workHours as $workHour) {
-            $start = Carbon::parse($startTime->format('Y-m-d') . ' ' . $workHour->start_time);
-            $end = Carbon::parse($startTime->format('Y-m-d') . ' ' . $workHour->end_time);
+            $start = Carbon::parse($startTime->format('Y-m-d').' '.$workHour->start_time);
+            $end = Carbon::parse($startTime->format('Y-m-d').' '.$workHour->end_time);
 
             if ($startTime->lt($start) || $endTime->gt($end)) {
                 continue;
@@ -1199,8 +1216,8 @@ class AppointmentController extends Controller
         }
 
         foreach ($workHour->breaks as $break) {
-            $breakStart = Carbon::parse($startTime->format('Y-m-d') . ' ' . $break['start']);
-            $breakEnd = Carbon::parse($startTime->format('Y-m-d') . ' ' . $break['end']);
+            $breakStart = Carbon::parse($startTime->format('Y-m-d').' '.$break['start']);
+            $breakEnd = Carbon::parse($startTime->format('Y-m-d').' '.$break['end']);
 
             if ($startTime->lt($breakEnd) && $endTime->gt($breakStart)) {
                 return true;
@@ -1233,6 +1250,7 @@ class AppointmentController extends Controller
 
         return $existingAppointments->contains(function ($apt) use ($slotStart, $slotEndWithBuffer) {
             $aptEndWithBuffer = $apt->end_time->copy()->addMinutes((int) ($apt->buffer_time_minutes ?? 0));
+
             return $slotStart->lt($aptEndWithBuffer) && $slotEndWithBuffer->gt($apt->start_time);
         });
     }

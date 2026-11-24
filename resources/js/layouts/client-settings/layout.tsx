@@ -1,85 +1,50 @@
-import Heading from '@/components/heading';
-import KeenIcon from '@/components/keen-icon';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { cn, isSameUrl, resolveUrl } from '@/lib/utils';
-// import { edit as editAppearance } from '@/routes/appearance';
-import { edit } from '@/routes/profile';
-import { show } from '@/routes/two-factor';
+import AccountLayout from '@/layouts/account-layout';
+import { cn, isSameUrl } from '@/lib/utils';
+import clientAddresses from '@/routes/client-addresses';
+import notificationPreferences from '@/routes/notification-preferences';
+import { edit as editProfile } from '@/routes/profile';
+import { show as showTwoFactor } from '@/routes/two-factor';
 import { edit as editPassword } from '@/routes/user-password';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
 
-const sidebarNavItems: Array<{ title: string; href: string; icon: string }> = [
-    {
-        title: 'Profile',
-        href: edit().url,
-        icon: 'security-user',
-    },
-    {
-        title: 'Addresses',
-        href: '/settings/addresses',
-        icon: 'map',
-    },
-    {
-        title: 'Password',
-        href: editPassword().url,
-        icon: 'lock',
-    },
-    {
-        title: 'Two-Factor Auth',
-        href: show().url,
-        icon: 'shield-tick',
-    },
+const tabs = [
+    { title: 'Profile', href: editProfile().url },
+    { title: 'Addresses', href: clientAddresses.index().url },
+    { title: 'Password', href: editPassword().url },
+    { title: 'Two-factor', href: showTwoFactor().url },
+    { title: 'Notifications', href: notificationPreferences.edit().url },
 ];
 
 export default function ClientSettingsLayout({ children }: PropsWithChildren) {
-    if (typeof window === 'undefined') {
-        return null;
-    }
-
-    const currentPath = window.location.pathname;
+    const { url } = usePage();
 
     return (
-        <div className="mx-auto w-full max-w-7xl p-4">
-            <Heading
-                title="Settings"
-                description="Manage your profile and account settings"
-            />
+        <AccountLayout active="settings" title="Account settings" description="Manage your details, addresses and security.">
+            <nav aria-label="Settings sections" className="flex gap-1.5 self-start overflow-x-auto rounded-full bg-[#F2F5F2] p-1.5">
+                {tabs.map((tab) => {
+                    const isActive = isSameUrl(url.split('?')[0], tab.href);
 
-            <div className="flex flex-col lg:flex-row lg:space-x-12">
-                <aside className="w-full max-w-xl lg:w-48">
-                    <nav className="flex flex-col space-y-1 space-x-0">
-                        {sidebarNavItems.map((item, index) => (
-                            <Button
-                                key={`${resolveUrl(item.href)}-${index}`}
-                                size="sm"
-                                variant="ghost"
-                                asChild
-                                className={cn('w-full justify-start', {
-                                    'bg-muted': isSameUrl(
-                                        currentPath,
-                                        item.href,
-                                    ),
-                                })}
-                            >
-                                <Link href={item.href} prefetch>
-                                    {item.icon && <KeenIcon name={item.icon} />}
-                                    {item.title}
-                                </Link>
-                            </Button>
-                        ))}
-                    </nav>
-                </aside>
+                    return (
+                        <Link
+                            key={tab.href}
+                            href={tab.href}
+                            prefetch
+                            aria-current={isActive ? 'page' : undefined}
+                            className={cn(
+                                'flex h-10 shrink-0 items-center rounded-full px-4.5 text-sm font-semibold',
+                                isActive ? 'bg-white text-ink shadow-sm' : 'text-moss hover:text-ink',
+                            )}
+                        >
+                            {tab.title}
+                        </Link>
+                    );
+                })}
+            </nav>
 
-                <Separator className="my-6 lg:hidden" />
-
-                <div className="flex-1 md:max-w-3xl">
-                    <section className="max-w-3xl space-y-12">
-                        {children}
-                    </section>
-                </div>
+            <div className="rounded-3xl border border-line p-6 sm:p-8">
+                <div className="max-w-3xl space-y-10">{children}</div>
             </div>
-        </div>
+        </AccountLayout>
     );
 }

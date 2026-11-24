@@ -19,7 +19,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import AppLayout from '@/layouts/guest-layout';
+import AccountLayout from '@/layouts/account-layout';
 import walletRoutes from '@/routes/wallet';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowDown, ArrowDownUp, Building2, Loader2, Plus } from 'lucide-react';
@@ -243,64 +243,38 @@ export default function WalletIndex({
     }));
 
     return (
-        <AppLayout>
+        <AccountLayout
+            active="wallet"
+            title="Wallet"
+            description="Top up once, pay deposits in a tap, get refunds back instantly."
+        >
             <Head title="My Wallet" />
-            <div className="mx-auto w-full max-w-6xl px-4 py-8">
-                <div className="mb-6">
-                    <h1 className="text-3xl font-bold tracking-tight">
-                        My Wallet
-                    </h1>
-                    <p className="mt-2 text-muted-foreground">
-                        Manage your wallet balance and view transaction history
-                    </p>
-                </div>
-
-                <div className="mb-8 grid gap-6 md:grid-cols-3">
-                    {/* Available Balance */}
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardDescription>Available Balance</CardDescription>
-                            <CardTitle className="text-3xl font-bold">
-                                ₦{wallet.available_balance.toLocaleString()}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-xs text-muted-foreground">
-                                Ready to use for bookings
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    {/* Total Balance */}
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardDescription>Total Balance</CardDescription>
-                            <CardTitle className="text-3xl font-bold">
+            <div className="[&_[data-slot=card]]:rounded-3xl [&_[data-slot=card]]:border-line [&_[data-slot=card]]:shadow-none">
+                <section className="relative mb-8 overflow-hidden rounded-[28px] bg-forest-deep text-white">
+                    <img src="/brand/banners/proxideck-banner-general-dark.jpg" alt="" aria-hidden className="absolute inset-0 size-full object-cover" />
+                    <div className="relative flex flex-wrap items-end justify-between gap-8 bg-forest-deep/60 p-9">
+                        <div className="flex flex-col gap-2">
+                            <span className="text-[15px] text-[#C9E2D3]">Total balance</span>
+                            <span className="text-5xl leading-none font-bold tracking-tight sm:text-[64px]">
                                 ₦{wallet.balance.toLocaleString()}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-xs text-muted-foreground">
-                                Including escrow funds
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    {/* Escrow Balance */}
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardDescription>Escrow Balance</CardDescription>
-                            <CardTitle className="text-3xl font-bold">
-                                ₦{wallet.escrow_balance.toLocaleString()}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-xs text-muted-foreground">
-                                Held for active appointments
-                            </p>
-                        </CardContent>
-                    </Card>
-                </div>
+                            </span>
+                            <div className="mt-3 flex flex-wrap gap-6">
+                                <div>
+                                    <div className="text-[13px] text-sage">Available</div>
+                                    <div className="text-xl font-bold">₦{wallet.available_balance.toLocaleString()}</div>
+                                </div>
+                                <div className="w-px bg-white/20" />
+                                <div>
+                                    <div className="text-[13px] text-sage">Held for bookings</div>
+                                    <div className="text-xl font-bold text-lime">₦{wallet.escrow_balance.toLocaleString()}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <p className="max-w-70 text-sm leading-relaxed text-[#C9E2D3]">
+                            Held money is released to the pro after your appointment. If they cancel or don’t show, it comes back here.
+                        </p>
+                    </div>
+                </section>
 
                 {paymentProvider === 'payengine' ? (
                     <Card className="mb-8">
@@ -799,6 +773,6 @@ export default function WalletIndex({
                     </CardContent>
                 </Card>
             </div>
-        </AppLayout>
+        </AccountLayout>
     );
 }

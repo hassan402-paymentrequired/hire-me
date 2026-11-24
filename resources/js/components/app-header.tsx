@@ -48,7 +48,7 @@ interface NavItem {
 }
 
 const mainNavItems = (auth?: any): NavItem[] => [
-    { title: 'Marketplace', href: '/#marketplace' },
+    { title: 'Marketplace', href: '/explore' },
     { title: 'Faq', href: '/faqs' },
     { title: 'Contact', href: '/contact' },
     { title: 'About Us', href: '/about' },
@@ -243,7 +243,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
 
                     {/* ── Logo ── */}
                     <Link
-                        href="/#marketplace"
+                        href="/explore"
                         prefetch
                         className="flex shrink-0 items-center"
                     >

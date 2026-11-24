@@ -4,17 +4,18 @@ namespace App\Notifications;
 
 use App\Models\Appointment;
 use App\Models\User;
+use App\Notifications\Concerns\RespectsNotificationPreferences;
 use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Collection;
-use NotificationChannels\WebPush\WebPushChannel;
 
 class AppointmentCancelledNotification extends Notification implements ShouldQueue
 {
     use Queueable, SendsWebPush;
+    use RespectsNotificationPreferences;
 
     public Appointment $appointment;
 
@@ -51,7 +52,7 @@ class AppointmentCancelledNotification extends Notification implements ShouldQue
         return User::query()
             ->with([
                 'services' => fn ($q) => $q->whereIn('category_id', $categoryIds)->limit(3),
-                'businessProfile'
+                'businessProfile',
             ])
             ->whereHas('services', fn ($q) => $q->whereIn('category_id', $categoryIds))
             ->where('id', '!=', $this->appointment->provider_id)
@@ -64,7 +65,7 @@ class AppointmentCancelledNotification extends Notification implements ShouldQue
 
     public function via(object $notifiable): array
     {
-        return ['mail', 'database', WebPushChannel::class];
+        return $this->bookingChannels($notifiable);
     }
 
     public function toMail(object $notifiable): MailMessage
