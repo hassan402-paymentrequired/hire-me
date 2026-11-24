@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Provider profile</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:'Satoshi';src:url('/_blob/aa99b90ef361c613c9d43e57b82b3414') format('woff2');font-weight:300 900;font-style:normal;font-display:swap}
+body{margin:0;background:#FFFFFF}
+a{color:#0E3B2E}a:hover{color:#13201B}
+.pd *{box-sizing:border-box}
+.pd button{font-family:inherit;cursor:pointer}
+.pd .row:hover{background:#F7FAF7}
+.pd .ghost:hover{background:#F2F5F2}
+.pd .cta:hover{background:#13201B}
+.pd .tile img{transition:transform .5s ease}
+.pd .tile:hover img{transform:scale(1.04)}
+</style>
+</helmet>
+<div class="pd" style="font-family: 'Satoshi', system-ui, sans-serif; color: #13201B; background: #FFFFFF; min-height: 100%;">
+
+  <!-- Top bar -->
+  <dc-import name="SiteNav" variant="light" hint-size="100%,80px"></dc-import>
+
+  <main style="max-width: 1240px; margin: 0 auto; padding: 20px 24px 0;">
+    <!-- Breadcrumb -->
+    <nav aria-label="Breadcrumb" style="font-size: 13px; color: #4A5A52; display: flex; gap: 8px; flex-wrap: wrap;">
+      <a href="#" style="color: #4A5A52; text-decoration: none;">Home</a><span>/</span>
+      <a href="#" style="color: #4A5A52; text-decoration: none;">Lagos</a><span>/</span>
+      <a href="#" style="color: #4A5A52; text-decoration: none;">Lekki</a><span>/</span>
+      <span style="color: #13201B;">Hair &amp; beauty</span>
+    </nav>
+
+    <!-- Title -->
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-top: 18px;">
+      <div style="display: flex; flex-direction: column; gap: 10px; min-width: 0;">
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+          <h1 style="margin: 0; font-size: 44px; line-height: 1.05; font-weight: 700; letter-spacing: -0.02em;">Glow House by Amara</h1>
+          <span style="display: inline-flex; align-items: center; gap: 6px; background: #E6F4EC; color: #0E3B2E; font-size: 13px; font-weight: 600; padding: 6px 10px; border-radius: 999px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1F6B43" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l2.4 1.8 3-.2.9 2.9 2.4 1.8-1 2.8 1 2.8-2.4 1.8-.9 2.9-3-.2L12 22l-2.4-1.8-3 .2-.9-2.9-2.4-1.8 1-2.8-1-2.8 2.4-1.8.9-2.9 3 .2z"></path><path d="M8.5 12l2.5 2.5 4.5-5"></path></svg>Verified</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 15px;">
+          <span style="font-weight: 700;">4.9</span>
+          <span style="display: inline-flex; gap: 2px;" role="img" aria-label="Rated 4.9 out of 5">
+            <sc-for list="{{stars}}" as="s" hint-placeholder-count="5"><svg width="16" height="16" viewBox="0 0 24 24" fill="#13201B" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3 6.1 20.6l1.3-6.6L2.5 9.4l6.6-.8z"></path></svg></sc-for>
+          </span>
+          <a href="#reviews" style="font-weight: 600;">(1,284)</a>
+          <span style="color: #A9C7B8;">•</span>
+          <span><span style="color: #1F6B43; font-weight: 600;">Open</span> until 8:00 pm</span>
+          <span style="color: #A9C7B8;">•</span>
+          <span style="color: #4A5A52;">Admiralty Way, Lekki Phase 1, Lagos</span>
+          <a href="#location" style="font-weight: 600;">Get directions</a>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <button class="ghost" aria-label="Share" style="width: 44px; height: 44px; border-radius: 999px; border: 1px solid #DDE3DE; background: #FFFFFF; display: grid; place-items: center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#13201B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v13"></path><path d="M7 8l5-5 5 5"></path><path d="M5 13v6a2 2 0 002 2h10a2 2 0 002-2v-6"></path></svg></button>
+        <button class="ghost" aria-label="Save to favourites" style="width: 44px; height: 44px; border-radius: 999px; border: 1px solid #DDE3DE; background: #FFFFFF; display: grid; place-items: center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#13201B" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7.5-4.6-9.2-9.3C1.6 7.3 4 4 7.3 4c2 0 3.6 1.1 4.7 2.7C13.1 5.1 14.7 4 16.7 4 20 4 22.4 7.3 21.2 10.7 19.5 15.4 12 20 12 20z"></path></svg></button>
+      </div>
+    </div>
+
+    <!-- Gallery -->
+    <section aria-label="Photos" style="margin-top: 24px; display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); grid-template-rows: 236px 236px; gap: 8px; border-radius: 20px; overflow: hidden; position: relative;">
+      <div class="tile" style="grid-row: span 2; overflow: hidden; background: #E6F4EC;"><img src="/_blob/cdf24fbcb8d78ab34151bc7182d1ad42" alt="Stylists preparing a client's hair and makeup in the salon" style="width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; display: block;"></div>
+      <div class="tile" style="overflow: hidden; background: #E6F4EC;"><img src="/_blob/cdf24fbcb8d78ab34151bc7182d1ad42" alt="Close-up of finished glam makeup" style="width: 100%; height: 100%; object-fit: cover; object-position: 56% 48%; transform-origin: 56% 48%; scale: 2.4; display: block;"></div>
+      <div class="tile" style="overflow: hidden; background: #E6F4EC;"><img src="/_blob/cdf24fbcb8d78ab34151bc7182d1ad42" alt="Stylist at work" style="width: 100%; height: 100%; object-fit: cover; object-position: 22% 40%; transform-origin: 22% 40%; scale: 1.9; display: block;"></div>
+      <button class="ghost" style="position: absolute; right: 16px; bottom: 16px; background: #FFFFFF; border: 0; border-radius: 999px; padding: 10px 16px; font-size: 14px; font-weight: 600; color: #13201B; box-shadow: 0 4px 16px rgba(19,32,27,.18); display: flex; align-items: center; gap: 8px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#13201B" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>See all 24 photos</button>
+    </section>
+
+    <!-- Body: content + booking card -->
+    <div style="display: flex; flex-wrap: wrap; gap: 56px; margin-top: 48px; align-items: flex-start;">
+      <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 64px;">
+
+        <!-- Services -->
+        <section id="services" style="display: flex; flex-direction: column; gap: 20px;">
+          <h2 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.01em;">Services</h2>
+          <div role="tablist" aria-label="Service categories" style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <sc-for list="{{tabs}}" as="t" hint-placeholder-count="6">
+              <sc-if value="{{t.active}}" hint-placeholder-val="{{false}}">
+                <button role="tab" aria-selected="true" onClick="{{t.pick}}" style="height: 40px; padding: 0 18px; border-radius: 999px; border: 1px solid #0E3B2E; background: #0E3B2E; color: #FFFFFF; font-size: 14px; font-weight: 600;">{{t.label}}</button>
+              </sc-if>
+              <sc-if value="{{t.idle}}" hint-placeholder-val="{{true}}">
+                <button role="tab" aria-selected="false" class="ghost" onClick="{{t.pick}}" style="height: 40px; padding: 0 18px; border-radius: 999px; border: 1px solid #DDE3DE; background: #FFFFFF; color: #13201B; font-size: 14px; font-weight: 500;">{{t.label}}</button>
+              </sc-if>
+            </sc-for>
+          </div>
+          <div style="display: flex; flex-direction: column; border: 1px solid #E6EBE7; border-radius: 16px; overflow: hidden;">
+            <sc-for list="{{services}}" as="s" hint-placeholder-count="5">
+              <div class="row" style="display: flex; align-items: center; gap: 20px; padding: 20px 24px; border-bottom: 1px solid #EEF2EF;">
+                <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+                  <div style="font-size: 17px; font-weight: 600;">{{s.name}}</div>
+                  <div style="font-size: 14px; color: #4A5A52;">{{s.duration}}</div>
+                  <div style="font-size: 15px; font-weight: 600; margin-top: 6px;">{{s.price}}</div>
+                </div>
+                <button class="ghost" style="height: 40px; padding: 0 20px; border-radius: 999px; border: 1px solid #DDE3DE; background: #FFFFFF; font-size: 14px; font-weight: 600; color: #13201B;">Book</button>
+              </div>
+            </sc-for>
+          </div>
+          <a href="#" class="ghost" style="align-self: flex-start; font-size: 15px; font-weight: 600; text-decoration: none; padding: 10px 18px; border: 1px solid #DDE3DE; border-radius: 999px;">See all 38 services</a>
+        </section>
+
+        <!-- Team -->
+        <section style="display: flex; flex-direction: column; gap: 20px;">
+          <div style="display: flex; align-items: baseline; justify-content: space-between;">
+            <h2 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.01em;">Team</h2>
+            <a href="#" style="font-size: 15px; font-weight: 600;">See all</a>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 16px;">
+            <sc-for list="{{team}}" as="m" hint-placeholder-count="5">
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 8px 4px;">
+                <div style="position: relative;">
+                  <div style="width: 96px; height: 96px; border-radius: 999px; background: {{m.bg}}; color: {{m.fg}}; display: grid; place-items: center; font-size: 30px; font-weight: 700;">{{m.initials}}</div>
+                  <span style="position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%); background: #FFFFFF; border: 1px solid #E6EBE7; border-radius: 999px; padding: 2px 8px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 3px; white-space: nowrap;">{{m.rating}}<svg width="11" height="11" viewBox="0 0 24 24" fill="#13201B" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3 6.1 20.6l1.3-6.6L2.5 9.4l6.6-.8z"></path></svg></span>
+                </div>
+                <div style="margin-top: 6px; font-size: 15px; font-weight: 600;">{{m.name}}</div>
+                <div style="font-size: 13px; color: #4A5A52; margin-top: -6px;">{{m.role}}</div>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <!-- Reviews -->
+        <section id="reviews" style="display: flex; flex-direction: column; gap: 24px;">
+          <h2 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.01em;">Reviews</h2>
+          <div style="display: flex; gap: 40px; flex-wrap: wrap; align-items: center; padding: 28px; background: #F7FAF7; border-radius: 20px;">
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div style="font-size: 56px; font-weight: 700; line-height: 1; letter-spacing: -0.02em;">4.9</div>
+              <span style="display: inline-flex; gap: 2px;" role="img" aria-label="4.9 out of 5"><sc-for list="{{stars}}" as="s" hint-placeholder-count="5"><svg width="18" height="18" viewBox="0 0 24 24" fill="#0E3B2E" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3 6.1 20.6l1.3-6.6L2.5 9.4l6.6-.8z"></path></svg></sc-for></span>
+              <div style="font-size: 14px; color: #4A5A52;">1,284 verified reviews</div>
+            </div>
+            <div style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 8px;">
+              <sc-for list="{{bars}}" as="b" hint-placeholder-count="5">
+                <div style="display: flex; align-items: center; gap: 12px; font-size: 13px;">
+                  <span style="width: 12px; font-weight: 600;">{{b.n}}</span>
+                  <div style="flex: 1; height: 8px; border-radius: 99px; background: #E3E9E4; overflow: hidden;"><div style="height: 100%; width: {{b.pct}}; background: #0E3B2E; border-radius: 99px;"></div></div>
+                  <span style="width: 40px; color: #4A5A52; text-align: right;">{{b.count}}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 28px 32px;">
+            <sc-for list="{{reviews}}" as="r" hint-placeholder-count="4">
+              <article style="display: flex; flex-direction: column; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div style="width: 44px; height: 44px; border-radius: 999px; background: #E6F4EC; color: #0E3B2E; display: grid; place-items: center; font-weight: 700;">{{r.initial}}</div>
+                  <div><div style="font-size: 15px; font-weight: 600;">{{r.name}}</div><div style="font-size: 13px; color: #4A5A52;">{{r.date}} · {{r.service}}</div></div>
+                </div>
+                <span style="display: inline-flex; gap: 2px;" role="img" aria-label="5 stars"><sc-for list="{{stars}}" as="s" hint-placeholder-count="5"><svg width="14" height="14" viewBox="0 0 24 24" fill="#13201B" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3 6.1 20.6l1.3-6.6L2.5 9.4l6.6-.8z"></path></svg></sc-for></span>
+                <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #13201B;">{{r.text}}</p>
+              </article>
+            </sc-for>
+          </div>
+          <a href="#" class="ghost" style="align-self: flex-start; font-size: 15px; font-weight: 600; text-decoration: none; padding: 10px 18px; border: 1px solid #DDE3DE; border-radius: 999px;">See all reviews</a>
+        </section>
+
+        <!-- About + location -->
+        <section id="location" style="display: flex; flex-direction: column; gap: 20px;">
+          <h2 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.01em;">About &amp; visit</h2>
+          <p style="margin: 0; font-size: 16px; line-height: 1.7; color: #13201B; max-width: 680px;">Bridal glam, silk presses and nail art in a calm studio off Admiralty Way. Every appointment starts with a short consultation, and our home-service team covers Lekki, Ikoyi and Victoria Island.</p>
+          <div style="display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 16px; align-items: stretch;">
+            <!-- Visit info (left) -->
+            <div style="border: 1px solid #E6EBE7; border-radius: 24px; padding: 24px; display: flex; flex-direction: column; gap: 20px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                <div>
+                  <div style="font-size: 13px; font-weight: 700; color: #4A5A52;">Hours this week</div>
+                  <div style="font-size: 22px; font-weight: 700; margin-top: 2px;"><span style="color: #1F6B43;">Open now</span> · closes 8 pm</div>
+                </div>
+                <span style="font-size: 12px; font-weight: 700; color: #0E3B2E; background: #C8F169; padding: 5px 10px; border-radius: 999px;">Busy after 5 pm</span>
+              </div>
+
+              <!-- Hours ribbon: each bar spans open–close on a 7 am – 10 pm scale -->
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <sc-for list="{{hours}}" as="h" hint-placeholder-count="7">
+                  <div style="display: grid; grid-template-columns: 44px 1fr 118px; align-items: center; gap: 12px; font-size: 14px;">
+                    <span style="font-weight: {{h.weight}}; color: {{h.labelColor}};">{{h.short}}</span>
+                    <span style="position: relative; height: 10px; border-radius: 99px; background: #EEF2EF;">
+                      <span style="position: absolute; top: 0; bottom: 0; left: {{h.left}}; width: {{h.width}}; border-radius: 99px; background: {{h.bar}};"></span>
+                      <sc-if value="{{h.today}}" hint-placeholder-val="{{false}}"><span aria-label="Now" style="position: absolute; top: -5px; bottom: -5px; left: 56%; width: 2px; border-radius: 2px; background: #13201B;"></span></sc-if>
+                    </span>
+                    <span style="text-align: right; font-weight: {{h.weight}}; color: {{h.labelColor}};">{{h.time}}</span>
+                  </div>
+                </sc-for>
+                <div style="display: grid; grid-template-columns: 44px 1fr 118px; gap: 12px; font-size: 11px; color: #4A5A52;"><span></span><span style="display: flex; justify-content: space-between;"><span>7am</span><span>12pm</span><span>5pm</span><span>10pm</span></span><span></span></div>
+              </div>
+
+              <div style="display: flex; flex-wrap: wrap; gap: 8px; padding-top: 16px; border-top: 1px solid #EEF2EF;">
+                <sc-for list="{{perks}}" as="p" hint-placeholder-count="4">
+                  <span style="display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; border-radius: 999px; background: #F7FAF7; border: 1px solid #E6EBE7; font-size: 13px; font-weight: 600;"><span style="width: 8px; height: 8px; border-radius: 99px; background: #1F6B43;"></span>{{p}}</span>
+                </sc-for>
+              </div>
+            </div>
+
+            <!-- Map (right) -->
+          <div style="height: 100%; min-height: 380px; border-radius: 24px; overflow: hidden; position: relative; background: #EAF1EC;">
+            <svg width="100%" height="100%" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="800" height="300" fill="#EAF1EC"></rect><path d="M0 210 C 200 180, 340 250, 520 200 S 760 150, 800 170" stroke="#FFFFFF" stroke-width="18" fill="none"></path><path d="M120 0 L 180 300" stroke="#FFFFFF" stroke-width="10"></path><path d="M470 0 L 430 300" stroke="#FFFFFF" stroke-width="12"></path><path d="M0 90 L 800 120" stroke="#FFFFFF" stroke-width="8"></path><path d="M640 0 L 700 300" stroke="#FFFFFF" stroke-width="6"></path><rect x="220" y="140" width="150" height="40" rx="6" fill="#D9E7DD"></rect><rect x="520" y="20" width="90" height="70" rx="6" fill="#D9E7DD"></rect><path d="M0 260 C 300 240, 500 300, 800 270 L 800 300 L 0 300 Z" fill="#CFE3EA"></path></svg>
+            <div style="position: absolute; left: 50%; top: 46%; transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center;">
+              <div style="width: 52px; height: 52px; border-radius: 999px; background: #0E3B2E; border: 4px solid #FFFFFF; box-shadow: 0 6px 18px rgba(14,59,46,.35); display: grid; place-items: center; color: #C8F169; font-weight: 700; font-size: 18px;">G</div>
+              <div style="width: 3px; height: 14px; background: #0E3B2E;"></div>
+            </div>
+          </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Booking card -->
+      <aside style="flex: 1 1 340px; max-width: 400px; position: sticky; top: 24px;">
+        <div style="border: 1px solid #E6EBE7; border-radius: 24px; padding: 28px; display: flex; flex-direction: column; gap: 20px; box-shadow: 0 12px 40px rgba(19,32,27,.08); background: #FFFFFF;">
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="font-size: 24px; font-weight: 700; letter-spacing: -0.01em;">Glow House by Amara</div>
+            <div style="display: flex; align-items: center; gap: 6px; font-size: 14px;"><span style="font-weight: 700;">4.9</span><svg width="14" height="14" viewBox="0 0 24 24" fill="#13201B" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3 6.1 20.6l1.3-6.6L2.5 9.4l6.6-.8z"></path></svg><a href="#reviews" style="font-weight: 600;">(1,284)</a></div>
+          </div>
+          <a href="Booking.dc.html" class="cta" style="display: flex; align-items: center; justify-content: center; height: 56px; border-radius: 999px; background: {{accentBg}}; color: {{accentFg}}; font-size: 17px; font-weight: 700; text-decoration: none; transition: background .2s;">Book now</a>
+          <div style="display: flex; flex-direction: column; gap: 14px; padding-top: 4px; border-top: 1px solid #EEF2EF; padding-top: 20px;">
+            <div style="display: flex; gap: 12px; font-size: 15px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4A5A52" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg><span><span style="color: #1F6B43; font-weight: 600;">Open</span> until 8:00 pm</span></div>
+            <div style="display: flex; gap: 12px; font-size: 15px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4A5A52" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0119 9.5C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg><span style="line-height: 1.4;">Admiralty Way, Lekki Phase 1, Lagos <a href="#location" style="font-weight: 600; display: block;">Get directions</a></span></div>
+            <div style="display: flex; gap: 12px; font-size: 15px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4A5A52" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></svg><span>In-studio &amp; home service</span></div>
+          </div>
+        </div>
+        <div style="margin-top: 16px; padding: 16px 20px; border-radius: 18px; background: #0E3B2E; color: #E3EFE8; display: flex; align-items: center; gap: 14px;">
+          <span style="width: 40px; height: 40px; border-radius: 12px; background: rgba(200,241,105,.14); display: grid; place-items: center; flex-shrink: 0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8F169" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="3"></rect><path d="M16 12.5h2"></path><path d="M3 10h18"></path></svg></span>
+          <span style="font-size: 14px; line-height: 1.45;"><strong style="color: #FFFFFF;">Pay with your Proxideck wallet</strong><br>Deposit held safely until your appointment.</span>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Nearby -->
+    <section style="margin-top: 80px; display: flex; flex-direction: column; gap: 20px;">
+      <h2 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.01em;">Venues nearby</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 24px;">
+        <sc-for list="{{nearby}}" as="n" hint-placeholder-count="4">
+          <a href="#" style="text-decoration: none; color: #13201B; display: flex; flex-direction: column; gap: 10px;">
+            <div class="tile" style="height: 180px; border-radius: 16px; overflow: hidden; background: {{n.bg}}; display: grid; place-items: center;"><span style="font-size: 40px; font-weight: 700; color: {{n.fg}}; letter-spacing: -0.02em;">{{n.mono}}</span></div>
+            <div style="font-size: 16px; font-weight: 600;">{{n.name}}</div>
+            <div style="display: flex; align-items: center; gap: 6px; font-size: 14px;"><strong>{{n.rating}}</strong><svg width="13" height="13" viewBox="0 0 24 24" fill="#13201B" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3 6.1 20.6l1.3-6.6L2.5 9.4l6.6-.8z"></path></svg><span style="color: #4A5A52;">({{n.count}}) · {{n.area}}</span></div>
+            <span style="align-self: flex-start; font-size: 12px; font-weight: 600; color: #0E3B2E; background: #E6F4EC; padding: 4px 10px; border-radius: 999px;">{{n.cat}}</span>
+          </a>
+        </sc-for>
+      </div>
+    </section>
+  </main>
+
+  <div style="height: 96px;"></div>
+  <dc-import name="SiteFooter" hint-size="100%,620px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"ctaStyle":{"editor":"enum","options":["Forest","Lime"],"default":"Forest"},"$preview":{"width":1440,"height":3900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { cat: 'Featured' }; }
+  renderVals() {
+    const lime = (this.props.ctaStyle ?? 'Forest') === 'Lime';
+    const all = {
+      Featured: [
+        { name: 'Silk press & trim', duration: '1 hr 30 min', price: 'from ₦25,000' },
+        { name: 'Gel manicure', duration: '45 min', price: '₦12,000' },
+        { name: 'Soft glam makeup', duration: '1 hr', price: 'from ₦35,000' },
+        { name: 'Classic lash extensions', duration: '1 hr 45 min', price: '₦28,000' },
+        { name: 'Knotless braids — medium', duration: '5 hr', price: 'from ₦45,000' }
+      ],
+      Nails: [
+        { name: 'Gel manicure', duration: '45 min', price: '₦12,000' },
+        { name: 'Acrylic full set', duration: '1 hr 30 min', price: '₦22,000' },
+        { name: 'Spa pedicure', duration: '1 hr', price: '₦15,000' },
+        { name: 'Nail art (per set)', duration: '30 min', price: 'from ₦5,000' }
+      ],
+      Hair: [
+        { name: 'Silk press & trim', duration: '1 hr 30 min', price: 'from ₦25,000' },
+        { name: 'Knotless braids — medium', duration: '5 hr', price: 'from ₦45,000' },
+        { name: 'Wig install & styling', duration: '2 hr', price: '₦30,000' }
+      ],
+      Makeup: [
+        { name: 'Soft glam makeup', duration: '1 hr', price: 'from ₦35,000' },
+        { name: 'Bridal glam (home service)', duration: '2 hr 30 min', price: 'from ₦120,000' }
+      ],
+      Lashes: [
+        { name: 'Classic lash extensions', duration: '1 hr 45 min', price: '₦28,000' },
+        { name: 'Lash refill', duration: '1 hr', price: '₦15,000' }
+      ],
+      Packages: [
+        { name: 'Bridal party (bride + 3)', duration: '5 hr', price: 'from ₦320,000' }
+      ]
+    };
+    const cat = this.state.cat;
+    const tabs = Object.keys(all).map((label) => ({ label, active: label === cat, idle: label !== cat, pick: () => this.setState({ cat: label }) }));
+    return {
+      accentBg: lime ? '#C8F169' : '#0E3B2E',
+      accentFg: lime ? '#0E3B2E' : '#FFFFFF',
+      stars: [1, 2, 3, 4, 5],
+      tabs,
+      services: all[cat],
+      team: [
+        { initials: 'AO', name: 'Amara', role: 'Founder · Makeup', rating: '5.0', bg: '#0E3B2E', fg: '#C8F169' },
+        { initials: 'TB', name: 'Tobi', role: 'Hair stylist', rating: '4.9', bg: '#E6F4EC', fg: '#0E3B2E' },
+        { initials: 'KE', name: 'Kemi', role: 'Nail technician', rating: '4.9', bg: '#C8F169', fg: '#0E3B2E' },
+        { initials: 'ZU', name: 'Zainab', role: 'Lash artist', rating: '4.8', bg: '#E6F4EC', fg: '#0E3B2E' },
+        { initials: 'FA', name: 'Funmi', role: 'Braider', rating: '4.9', bg: '#13201B', fg: '#E6F4EC' }
+      ],
+      bars: [
+        { n: '5', pct: '91%', count: '1,168' },
+        { n: '4', pct: '6%', count: '77' },
+        { n: '3', pct: '2%', count: '26' },
+        { n: '2', pct: '1%', count: '9' },
+        { n: '1', pct: '0.5%', count: '4' }
+      ],
+      reviews: [
+        { initial: 'C', name: 'Chioma N.', date: 'Sat, 16 Nov', service: 'Bridal glam', text: 'Amara came to the house at 5am and had four of us ready on time. Makeup lasted the whole reception.' },
+        { initial: 'D', name: 'Damilola A.', date: 'Thu, 14 Nov', service: 'Silk press', text: 'Silky, bouncy and no heat damage. Booking and paying through the app took two minutes.' },
+        { initial: 'R', name: 'Ruth O.', date: 'Mon, 11 Nov', service: 'Gel manicure', text: 'Kemi is so precise. Clean studio, started exactly at my slot.' },
+        { initial: 'B', name: 'Bisola K.', date: 'Fri, 8 Nov', service: 'Lash extensions', text: 'Natural and light, exactly what I asked for. Already booked my refill.' }
+      ],
+      hours: [
+        ['Mon', 9, 19, '9 am – 7 pm'], ['Tue', 9, 20, '9 am – 8 pm'], ['Wed', 9, 19, '9 am – 7 pm'], ['Thu', 9, 19, '9 am – 7 pm'],
+        ['Fri', 9, 21, '9 am – 9 pm'], ['Sat', 7, 21, '7 am – 9 pm'], ['Sun', null, null, 'Closed']
+      ].map(([short, open, close, time]) => {
+        const today = short === 'Tue';
+        const span = 15;
+        return {
+          short, time, today,
+          left: open === null ? '0%' : ((open - 7) / span * 100) + '%',
+          width: open === null ? '0%' : ((close - open) / span * 100) + '%',
+          bar: today ? '#0E3B2E' : '#A9C7B8',
+          weight: today ? 700 : 500,
+          labelColor: open === null ? '#99A58D' : '#13201B'
+        };
+      }),
+      perks: ['Instant confirmation', 'Home service in Lekki, Ikoyi, VI', 'Pay by wallet or card', 'Free cancellation up to 24 hrs', 'Wheelchair accessible', 'Parking on site'],
+      nearby: [
+        { mono: 'Ny', name: 'Nyla Nail Bar', rating: '4.8', count: '612', area: 'Lekki Phase 1', cat: 'Nails', bg: '#E6F4EC', fg: '#0E3B2E' },
+        { mono: 'Ks', name: 'Kraft Studio Barbers', rating: '4.9', count: '940', area: 'Ikate', cat: 'Barber', bg: '#0E3B2E', fg: '#C8F169' },
+        { mono: 'Lu', name: 'Lumière Skin Clinic', rating: '4.7', count: '233', area: 'Oniru', cat: 'Skincare', bg: '#C8F169', fg: '#0E3B2E' },
+        { mono: 'Bb', name: 'Braids by Bola', rating: '5.0', count: '158', area: 'Chevron', cat: 'Hair', bg: '#13201B', fg: '#E6F4EC' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

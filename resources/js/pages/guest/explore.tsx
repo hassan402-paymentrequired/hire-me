@@ -1,4 +1,5 @@
 import { ProviderCard } from '@/components/site/provider-card';
+import { EmptyState } from '@/components/site/empty-state';
 import { SiteNav } from '@/components/site/site-nav';
 import { cn } from '@/lib/utils';
 import GuestLayout from '@/layouts/guest-layout';
@@ -159,13 +160,21 @@ export default function Explore({ providers, categories, filters, favoriteBusine
                 </div>
 
                 {resultCount === 0 ? (
-                    <div className="flex flex-col items-center gap-3 rounded-[28px] bg-paper px-6 py-20 text-center">
-                        <h3 className="text-xl font-bold">No pros match that yet</h3>
-                        <p className="max-w-90 text-moss">Try another area or category, or clear your filters.</p>
-                        <button onClick={() => router.get(explore.index())} className="mt-2 rounded-full bg-forest px-6 py-3 font-bold text-white">
-                            Clear filters
-                        </button>
-                    </div>
+                    <EmptyState
+                        illustration="search"
+                        title="No pros match that yet"
+                        description="Try another area or category, or clear your filters to see everyone near you."
+                        actions={
+                            <>
+                                <button onClick={() => router.get(explore.index())} className="h-12 rounded-full bg-forest px-5.5 text-[15px] font-bold text-white">
+                                    Clear filters
+                                </button>
+                                <button onClick={useMyLocation} className="h-12 rounded-full border border-[#DDE3DE] px-5 text-[15px] font-semibold">
+                                    Use my location
+                                </button>
+                            </>
+                        }
+                    />
                 ) : (
                     <InfiniteScroll
                         data="providers"

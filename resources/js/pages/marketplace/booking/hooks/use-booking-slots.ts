@@ -2,13 +2,13 @@ import axios from 'axios';
 import { format } from 'date-fns';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import type { TimeSlot } from '../types';
+import type { ServiceTeamMembers, TimeSlot } from '../types';
 
 interface UseBookingSlotsArgs {
     providerId: string;
     serviceIds: string[];
     selectedDate: Date;
-    teamMemberId: string;
+    serviceTeamMembers: ServiceTeamMembers;
     rescheduleId: string | null;
 }
 
@@ -24,19 +24,25 @@ interface UseBookingSlotsResult {
     refetch: () => void;
 }
 
+/** Only the pros for the chosen services, so the request key stays stable. */
+export function teamMembersForServices(serviceIds: string[], serviceTeamMembers: ServiceTeamMembers): Record<string, string> {
+    return Object.fromEntries(serviceIds.map((id) => [id, serviceTeamMembers[id] ?? '']));
+}
+
 export function useBookingSlots({
     providerId,
     serviceIds,
     selectedDate,
-    teamMemberId,
+    serviceTeamMembers,
     rescheduleId,
 }: UseBookingSlotsArgs): UseBookingSlotsResult {
     const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
     const [loading, setLoading] = useState(false);
     const [apiMessage, setApiMessage] = useState<string | null>(null);
 
-    const serializedServiceIds = serviceIds.join(',');
     const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+    const pros = teamMembersForServices(serviceIds, serviceTeamMembers);
+    const requestKey = JSON.stringify([serviceIds, pros]);
 
     const fetchSlots = useCallback(
         async (signal?: AbortSignal) => {
@@ -49,7 +55,7 @@ export function useBookingSlots({
                         provider_id: providerId,
                         service_ids: serviceIds,
                         date: formattedDate,
-                        team_member_id: teamMemberId || undefined,
+                        service_team_members: pros,
                         reschedule_id: rescheduleId,
                     },
                 });
@@ -61,9 +67,7 @@ export function useBookingSlots({
                 }
                 console.error('Failed to fetch slots:', error);
                 setAvailableSlots([]);
-                const msg =
-                    (error as { response?: { data?: { message?: string } } })
-                        ?.response?.data?.message;
+                const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
                 setApiMessage(
                     msg ||
                         'We could not load available slots. Please check your connection and try again, or select a different date.',
@@ -72,9 +76,9 @@ export function useBookingSlots({
                 setLoading(false);
             }
         },
-        // serializedServiceIds is a stable string derived from serviceIds.
+        // requestKey is a stable string derived from serviceIds and pros.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [providerId, serializedServiceIds, formattedDate, teamMemberId, rescheduleId],
+        [providerId, requestKey, formattedDate, rescheduleId],
     );
 
     useEffect(() => {
@@ -86,7 +90,7 @@ export function useBookingSlots({
         fetchSlots(ctrl.signal);
         return () => ctrl.abort();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [providerId, serializedServiceIds, formattedDate, teamMemberId, rescheduleId]);
+    }, [fetchSlots]);
 
     const categorizedSlots = useMemo(() => {
         const categories = {

@@ -15,15 +15,22 @@ interface Review {
     created_at: string;
 }
 
-const ReviewDrawal = ({ reviews }: { reviews: Review[] }) => {
+interface ReviewDrawalProps {
+    reviews: Review[];
+    triggerLabel?: string;
+    triggerClassName?: string;
+}
+
+const ReviewDrawal = ({
+    reviews,
+    triggerLabel = 'Show all reviews',
+    triggerClassName = 'text-sm font-medium text-[#0E3B2E] underline-offset-4 hover:underline dark:text-emerald-300',
+}: ReviewDrawalProps) => {
     return (
         <Sheet>
             <SheetTrigger asChild>
-                <button
-                    type="button"
-                    className="text-sm font-medium text-[#0E3B2E] underline-offset-4 hover:underline dark:text-emerald-300"
-                >
-                    Show all reviews
+                <button type="button" className={triggerClassName}>
+                    {triggerLabel}
                 </button>
             </SheetTrigger>
 

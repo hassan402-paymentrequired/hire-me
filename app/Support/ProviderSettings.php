@@ -42,6 +42,11 @@ class ProviderSettings
             $settings[$key] = ($value === '' || $value === null) ? null : (string) $value;
         }
 
+        $homeServiceFee = $settings['home_service_fee'] ?? null;
+        $settings['home_service_fee'] = is_numeric($homeServiceFee) && (float) $homeServiceFee > 0
+            ? round((float) $homeServiceFee, 2)
+            : null;
+
         $settings['bufferTime'] = (string) ($settings['bufferTime'] ?? '0');
         $settings['advanceBooking'] = (string) ($settings['advanceBooking'] ?? '30');
         $settings['billing_model'] = in_array($settings['billing_model'] ?? 'commission', ['commission', 'subscription'], true)

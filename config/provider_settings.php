@@ -15,6 +15,7 @@ return [
         'accept_online_payment' => true,
         'accept_offline_booking' => false,
         'offers_home_service' => false,
+        'home_service_fee' => null,
         'service_delivery_mode' => 'client_visits_provider',
         'billing_model' => 'commission',
     ],

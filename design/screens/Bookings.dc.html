@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>My bookings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:'Satoshi';src:url('/_blob/aa99b90ef361c613c9d43e57b82b3414') format('woff2');font-weight:300 900;font-style:normal;font-display:swap}
+body{margin:0;background:#FFFFFF}
+a{color:#0E3B2E}a:hover{color:#13201B}
+.ac *{box-sizing:border-box}
+.ac button{font-family:inherit;cursor:pointer}
+.ac .row:hover{border-color:#C9E2D3}
+</style>
+</helmet>
+<div class="ac" style="font-family: 'Satoshi', system-ui, sans-serif; color: #13201B; background: #FFFFFF;">
+  <dc-import name="SiteNav" variant="light" auth="user" hint-size="100%,80px"></dc-import>
+
+  <div style="max-width: 1240px; margin: 0 auto; padding: 40px 24px 96px; display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-start;">
+    <aside style="flex: 1 1 240px; max-width: 280px;">
+      <dc-import name="AccountMenu" active="bookings" hint-size="100%,560px"></dc-import>
+    </aside>
+
+    <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 28px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap;">
+        <div>
+          <h1 style="margin: 0; font-size: 40px; font-weight: 700; letter-spacing: -0.02em;">My bookings</h1>
+          <p style="margin: 6px 0 0; font-size: 16px; color: #4A5A52;">Everything you’ve booked, in one place.</p>
+        </div>
+        <a href="Marketplace.dc.html" style="height: 48px; padding: 0 22px; border-radius: 999px; background: #0E3B2E; color: #FFFFFF; font-size: 15px; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 8px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C8F169" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>New booking</a>
+      </div>
+
+      <div role="tablist" aria-label="Booking status" style="display: flex; gap: 4px; border-bottom: 1px solid #E6EBE7;">
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+          <button role="tab" aria-selected="{{t.active}}" onClick="{{t.pick}}" style="height: 48px; padding: 0 18px; border: 0; background: transparent; font-size: 15px; font-weight: {{t.weight}}; color: {{t.color}}; border-bottom: 2px solid {{t.line}}; margin-bottom: -1px; display: flex; align-items: center; gap: 8px;">{{t.label}}<span style="font-size: 12px; font-weight: 700; background: #F2F5F2; color: #4A5A52; padding: 2px 8px; border-radius: 999px;">{{t.count}}</span></button>
+        </sc-for>
+      </div>
+
+      <!-- UPCOMING -->
+      <sc-if value="{{isUpcoming}}" hint-placeholder-val="{{true}}">
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <!-- Next up -->
+          <article style="border-radius: 28px; overflow: hidden; background: #0E3B2E; color: #FFFFFF; display: flex; flex-wrap: wrap;">
+            <div style="flex: 0 0 180px; background: #C8F169; color: #0E3B2E; padding: 28px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px;">
+              <span style="font-size: 14px; font-weight: 700;">Next up</span>
+              <div>
+                <div style="font-size: 16px; font-weight: 700;">Sat</div>
+                <div style="font-size: 72px; font-weight: 700; line-height: 0.9; letter-spacing: -0.04em;">29</div>
+                <div style="font-size: 16px; font-weight: 700;">November</div>
+              </div>
+              <span style="font-size: 14px; font-weight: 600;">In 5 days</span>
+            </div>
+            <div style="flex: 1 1 360px; padding: 28px; display: flex; flex-direction: column; gap: 18px;">
+              <div style="display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: flex-start;">
+                <div>
+                  <div style="font-size: 26px; font-weight: 700; letter-spacing: -0.01em;">Silk press &amp; trim</div>
+                  <div style="font-size: 15px; color: #A9C7B8; margin-top: 4px;">with Amara · Glow House by Amara</div>
+                </div>
+                <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: #C8F169; background: rgba(200,241,105,0.14); padding: 6px 12px; border-radius: 999px;"><span style="width: 7px; height: 7px; border-radius: 99px; background: #C8F169;"></span>Confirmed</span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;">
+                <div style="background: rgba(255,255,255,0.06); border-radius: 16px; padding: 14px 16px;"><div style="font-size: 12px; color: #A9C7B8;">Time</div><div style="font-size: 16px; font-weight: 700; margin-top: 4px;">10:30 am · 1h 30m</div></div>
+                <div style="background: rgba(255,255,255,0.06); border-radius: 16px; padding: 14px 16px;"><div style="font-size: 12px; color: #A9C7B8;">Where</div><div style="font-size: 16px; font-weight: 700; margin-top: 4px;">Lekki Phase 1</div></div>
+                <div style="background: rgba(255,255,255,0.06); border-radius: 16px; padding: 14px 16px;"><div style="font-size: 12px; color: #A9C7B8;">Paid</div><div style="font-size: 16px; font-weight: 700; margin-top: 4px;">₦5,000 of ₦25,000</div></div>
+              </div>
+              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <a href="BookingDetail.dc.html" style="height: 44px; padding: 0 18px; border-radius: 999px; background: #C8F169; color: #0E3B2E; font-size: 14px; font-weight: 700; text-decoration: none; display: flex; align-items: center;">View details</a>
+                <a href="Booking.dc.html" style="height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.3); color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none; display: flex; align-items: center;">Reschedule</a>
+                <a href="#" style="height: 44px; padding: 0 18px; border-radius: 999px; color: #C9E2D3; font-size: 14px; font-weight: 600; text-decoration: none; display: flex; align-items: center;">Cancel booking</a>
+              </div>
+            </div>
+          </article>
+
+          <sc-for list="{{upcomingGroups}}" as="g" hint-placeholder-count="2">
+            <section style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+              <h3 style="margin: 0; display: flex; justify-content: space-between; align-items: baseline; font-size: 15px; font-weight: 700; color: #13201B;">{{g.label}}<span style="font-size: 13px; font-weight: 500; color: #4A5A52;">{{g.count}}</span></h3>
+              <sc-for list="{{g.items}}" as="b" hint-placeholder-count="3">
+            <article class="row" style="border: 1px solid #E6EBE7; border-radius: 18px; padding: 14px 18px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+              <div style="width: 52px; height: 52px; border-radius: 14px; background: #E6F4EC; color: #0E3B2E; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0;"><span style="font-size: 11px; font-weight: 700;">{{b.dow}}</span><span style="font-size: 20px; font-weight: 700; line-height: 1;">{{b.day}}</span></div>
+              <div style="flex: 1 1 220px; min-width: 0;">
+                <div style="font-size: 16px; font-weight: 700;">{{b.service}}</div>
+                <div style="font-size: 14px; color: #4A5A52; margin-top: 2px;">{{b.meta}}</div>
+              </div>
+              <span style="font-size: 12px; font-weight: 700; color: {{b.statusFg}}; background: {{b.statusBg}}; padding: 5px 10px; border-radius: 999px;">{{b.status}}</span>
+              <a href="BookingDetail.dc.html" style="font-size: 14px; font-weight: 700;">Details</a>
+            </article>
+              </sc-for>
+            </section>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- PAST -->
+      <sc-if value="{{isPast}}" hint-placeholder-val="{{false}}">
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 14px; color: #4A5A52;">{{pastSummary}}</span>
+            <span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border: 1px solid #DDE3DE; border-radius: 999px; font-size: 14px; color: #4A5A52; min-width: 240px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A5A52" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>Search by pro or service</span>
+          </div>
+          <sc-for list="{{pastGroups}}" as="g" hint-placeholder-count="2">
+            <section style="display: flex; flex-direction: column; gap: 8px;">
+              <h3 style="margin: 0; display: flex; justify-content: space-between; align-items: baseline; font-size: 15px; font-weight: 700;">{{g.label}}<span style="font-size: 13px; font-weight: 500; color: #4A5A52;">{{g.count}}</span></h3>
+              <sc-for list="{{g.items}}" as="b" hint-placeholder-count="3">
+                <article class="row" style="border: 1px solid #E6EBE7; border-radius: 18px; padding: 14px 18px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                  <div style="width: 52px; height: 52px; border-radius: 14px; background: #F2F5F2; color: #4A5A52; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0;"><span style="font-size: 11px; font-weight: 700;">{{b.mon}}</span><span style="font-size: 20px; font-weight: 700; line-height: 1;">{{b.day}}</span></div>
+                  <div style="flex: 1 1 220px; min-width: 0;">
+                    <div style="font-size: 16px; font-weight: 700;">{{b.service}}</div>
+                    <div style="font-size: 14px; color: #4A5A52; margin-top: 2px;">{{b.meta}}</div>
+                  </div>
+                  <sc-if value="{{b.reviewed}}" hint-placeholder-val="{{false}}"><span style="font-size: 13px; font-weight: 600; color: #4A5A52;">You rated {{b.rating}} ★</span></sc-if>
+                  <sc-if value="{{b.needsReview}}" hint-placeholder-val="{{true}}"><a href="#" style="height: 38px; padding: 0 14px; border-radius: 999px; background: #C8F169; color: #0E3B2E; font-size: 13px; font-weight: 700; text-decoration: none; display: flex; align-items: center;">Leave a review</a></sc-if>
+                  <a href="Booking.dc.html" style="height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid #DDE3DE; color: #13201B; font-size: 13px; font-weight: 600; text-decoration: none; display: flex; align-items: center;">Book again</a>
+                </article>
+              </sc-for>
+            </section>
+          </sc-for>
+          <sc-if value="{{hasMorePast}}" hint-placeholder-val="{{true}}">
+            <button onClick="{{showMorePast}}" style="align-self: center; height: 46px; padding: 0 24px; border-radius: 999px; border: 1px solid #DDE3DE; background: #FFFFFF; font-size: 15px; font-weight: 700; color: #13201B;">Show {{morePastCount}} more</button>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- CANCELLED -->
+      <sc-if value="{{isCancelled}}" hint-placeholder-val="{{false}}">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <article class="row" style="border: 1px solid #E6EBE7; border-radius: 22px; padding: 20px 22px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+            <div style="width: 64px; height: 64px; border-radius: 16px; background: #F2F5F2; color: #99A58D; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0;"><span style="font-size: 12px; font-weight: 700;">OCT</span><span style="font-size: 24px; font-weight: 700; line-height: 1;">18</span></div>
+            <div style="flex: 1 1 220px; min-width: 0;">
+              <div style="font-size: 17px; font-weight: 700; text-decoration: line-through; color: #4A5A52;">Deep home cleaning</div>
+              <div style="font-size: 14px; color: #4A5A52; margin-top: 3px;">Sparkle Home Cleaning · Cancelled by provider</div>
+            </div>
+            <span style="font-size: 13px; font-weight: 700; color: #1F6B43; background: #E6F4EC; padding: 6px 12px; border-radius: 999px;">₦8,000 refunded to wallet</span>
+          </article>
+        </div>
+      </sc-if>
+    </main>
+  </div>
+
+  <dc-import name="SiteFooter" hint-size="100%,640px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"volume":{"editor":"enum","options":["Few","Many"],"default":"Many"},"$preview":{"width":1440,"height":2300}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { tab: 'upcoming', pastShown: 6 }; }
+  renderVals() {
+    const many = (this.props.volume ?? 'Many') === 'Many';
+    const tab = this.state.tab;
+    const group = (items, key) => {
+      const out = [];
+      items.forEach((it) => {
+        const last = out[out.length - 1];
+        if (last && last.label === it[key]) { last.items.push(it); } else { out.push({ label: it[key], items: [it] }); }
+      });
+      return out.map((g) => ({ ...g, count: g.items.length + (g.items.length === 1 ? ' booking' : ' bookings') }));
+    };
+    const pending = { status: 'Awaiting confirmation', statusBg: '#FFF4D6', statusFg: '#7A5200' };
+    const ok = { status: 'Confirmed', statusBg: '#E6F4EC', statusFg: '#1F6B43' };
+    const upcomingAll = [
+      { when: 'This week', dow: 'TUE', day: '02', service: 'Fade & beard trim', meta: 'Kraft Studio Barbers · 2:00 pm · Home service', ...pending },
+      { when: 'This week', dow: 'THU', day: '04', service: 'Gel manicure', meta: 'Nyla Nail Bar · 4:30 pm · with Kemi', ...ok },
+      { when: 'This week', dow: 'SAT', day: '06', service: 'Deep home cleaning', meta: 'Sparkle Home Cleaning · 9:00 am · Home service', ...ok },
+      { when: 'Later in December', dow: 'MON', day: '08', service: 'Lash refill', meta: 'Glow House by Amara · 11:00 am', ...ok },
+      { when: 'Later in December', dow: 'FRI', day: '12', service: 'Knotless braids — medium', meta: 'Braids by Bola · 8:00 am · 5 hrs', ...ok },
+      { when: 'Later in December', dow: 'SAT', day: '20', service: 'Bridal trial', meta: 'Glow House by Amara · 10:00 am', ...pending },
+      { when: 'Later in December', dow: 'WED', day: '24', service: 'Silk press & trim', meta: 'Glow House by Amara · 12:30 pm', ...ok },
+      { when: 'January 2027', dow: 'SAT', day: '03', service: 'AC servicing', meta: 'FixRight Technicians · 10:00 am · Home service', ...ok },
+      { when: 'January 2027', dow: 'SAT', day: '17', service: 'Fade & beard trim', meta: 'Kraft Studio Barbers · 2:00 pm', ...ok }
+    ];
+    const p = (o) => ({ ...o, needsReview: !o.reviewed });
+    const pastAll = [
+      p({ when: 'November', mon: 'NOV', day: '14', service: 'Gel manicure', meta: 'Nyla Nail Bar · with Kemi · ₦12,000', reviewed: false }),
+      p({ when: 'November', mon: 'NOV', day: '09', service: 'Skin fade', meta: 'Kraft Studio Barbers · ₦6,000', reviewed: false }),
+      p({ when: 'November', mon: 'NOV', day: '02', service: 'Knotless braids — medium', meta: 'Braids by Bola · ₦45,000', reviewed: true, rating: '5' }),
+      p({ when: 'October', mon: 'OCT', day: '25', service: 'Deep home cleaning', meta: 'Sparkle Home Cleaning · ₦20,000', reviewed: true, rating: '4' }),
+      p({ when: 'October', mon: 'OCT', day: '21', service: 'Soft glam makeup', meta: 'Glow House by Amara · ₦35,000', reviewed: true, rating: '5' }),
+      p({ when: 'October', mon: 'OCT', day: '04', service: 'Fade & beard trim', meta: 'Kraft Studio Barbers · ₦8,000', reviewed: true, rating: '4' }),
+      p({ when: 'September', mon: 'SEP', day: '28', service: 'Spa pedicure', meta: 'Nyla Nail Bar · ₦15,000', reviewed: true, rating: '5' }),
+      p({ when: 'September', mon: 'SEP', day: '13', service: 'Silk press & trim', meta: 'Glow House by Amara · ₦25,000', reviewed: true, rating: '5' }),
+      p({ when: 'September', mon: 'SEP', day: '06', service: 'Fade & beard trim', meta: 'Kraft Studio Barbers · ₦8,000', reviewed: true, rating: '5' }),
+      p({ when: 'August', mon: 'AUG', day: '30', service: 'Facial', meta: 'Lumière Skin Clinic · ₦18,000', reviewed: true, rating: '4' }),
+      p({ when: 'August', mon: 'AUG', day: '16', service: 'Gel manicure', meta: 'Nyla Nail Bar · ₦12,000', reviewed: true, rating: '5' }),
+      p({ when: 'August', mon: 'AUG', day: '02', service: 'Fade & beard trim', meta: 'Kraft Studio Barbers · ₦8,000', reviewed: true, rating: '5' })
+    ];
+    const upcoming = many ? upcomingAll : upcomingAll.slice(0, 1);
+    const past = many ? pastAll : pastAll.slice(0, 4);
+    const shownPast = past.slice(0, this.state.pastShown);
+    const defs = [
+      { id: 'upcoming', label: 'Upcoming', count: String(upcoming.length + 1) },
+      { id: 'past', label: 'Past', count: String(past.length) },
+      { id: 'cancelled', label: 'Cancelled', count: '1' }
+    ];
+    const tabs = defs.map((d) => {
+      const on = d.id === tab;
+      return { ...d, active: on, weight: on ? 700 : 500, color: on ? '#13201B' : '#4A5A52', line: on ? '#0E3B2E' : 'transparent', pick: () => this.setState({ tab: d.id }) };
+    });
+    return {
+      no: false,
+      tabs,
+      isUpcoming: tab === 'upcoming',
+      isPast: tab === 'past',
+      isCancelled: tab === 'cancelled',
+      upcomingGroups: group(upcoming, 'when'),
+      pastGroups: group(shownPast, 'when'),
+      pastSummary: past.length + ' past visits · ' + past.filter((b) => b.needsReview).length + ' waiting for your review',
+      hasMorePast: shownPast.length < past.length,
+      morePastCount: String(Math.min(6, past.length - shownPast.length)),
+      showMorePast: () => this.setState({ pastShown: this.state.pastShown + 6 })
+    };
+  }
+}
+</script>
+</body>
+</html>

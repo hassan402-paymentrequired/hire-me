@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Empty states</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:'Satoshi';src:url('/_blob/aa99b90ef361c613c9d43e57b82b3414') format('woff2');font-weight:300 900;font-style:normal;font-display:swap}
+body{margin:0;background:#FFFFFF}
+.es *{box-sizing:border-box}
+</style>
+</helmet>
+<div class="es" style="width: 1440px; min-height: 1500px; background: #FFFFFF; font-family: 'Satoshi', system-ui, sans-serif; color: #13201B; padding: 80px 100px; display: flex; flex-direction: column; gap: 48px;">
+  <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 40px;">
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <span style="font-size: 15px; font-weight: 700; color: #1F6B43;">Empty states</span>
+      <h1 style="margin: 0; font-size: 52px; line-height: 1.02; font-weight: 700; letter-spacing: -0.03em;">Nothing here yet, and that's fine.</h1>
+    </div>
+    <p style="margin: 0; max-width: 420px; font-size: 16px; line-height: 1.6; color: #4A5A52;">Every empty screen says what will appear, why it's empty, and the one thing to do next. The illustration sits on the Horizon lines from the logo.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px;">
+
+    <!-- Bookings -->
+    <div style="border: 1px solid #E6EBE7; border-radius: 28px; padding: 48px 36px 40px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px;">
+      <svg width="140" height="120" viewBox="0 0 140 120" aria-hidden="true">
+        <circle cx="70" cy="56" r="48" fill="#E6F4EC"></circle>
+        <rect x="44" y="34" width="52" height="46" rx="9" fill="#FFFFFF" stroke="#0E3B2E" stroke-width="4"></rect>
+        <path d="M44 48H96M57 26v14M83 26v14" stroke="#0E3B2E" stroke-width="4" stroke-linecap="round"></path>
+        <circle cx="70" cy="64" r="6" fill="#C8F169" stroke="#0E3B2E" stroke-width="3"></circle>
+        <path d="M30 104H110" stroke="#0E3B2E" stroke-width="5" stroke-linecap="round"></path>
+        <path d="M48 114H92" stroke="#A9C7B8" stroke-width="5" stroke-linecap="round"></path>
+      </svg>
+      <h2 style="margin: 6px 0 0; font-size: 22px; font-weight: 700;">No bookings yet</h2>
+      <p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A5A52; max-width: 280px;">When you book a pro, your appointments show up here with directions and reminders.</p>
+      <a href="Marketplace.dc.html" style="margin-top: 8px; height: 48px; padding: 0 24px; border-radius: 999px; background: #0E3B2E; color: #FFFFFF; font-size: 15px; font-weight: 700; text-decoration: none; display: flex; align-items: center;">Find a pro</a>
+      <span style="font-size: 12px; color: #4A5A52; margin-top: 4px;">My bookings</span>
+    </div>
+
+    <!-- Favourites -->
+    <div style="border: 1px solid #E6EBE7; border-radius: 28px; padding: 48px 36px 40px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px;">
+      <svg width="140" height="120" viewBox="0 0 140 120" aria-hidden="true">
+        <circle cx="70" cy="56" r="48" fill="#E6F4EC"></circle>
+        <path d="M70 84s-24-14.5-29.5-29.5C37 44 44.5 34 55 34c6.3 0 11.5 3.5 15 8.6C73.5 37.5 78.7 34 85 34c10.5 0 18 10 14.5 20.5C94 69.5 70 84 70 84z" fill="#FFFFFF" stroke="#0E3B2E" stroke-width="4" stroke-linejoin="round"></path>
+        <path d="M100 30l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#C8F169" stroke="#0E3B2E" stroke-width="2"></path>
+        <path d="M30 104H110" stroke="#0E3B2E" stroke-width="5" stroke-linecap="round"></path>
+        <path d="M48 114H92" stroke="#A9C7B8" stroke-width="5" stroke-linecap="round"></path>
+      </svg>
+      <h2 style="margin: 6px 0 0; font-size: 22px; font-weight: 700;">No favourites yet</h2>
+      <p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A5A52; max-width: 280px;">Tap the heart on any pro to keep them here for quick rebooking.</p>
+      <a href="Marketplace.dc.html" style="margin-top: 8px; height: 48px; padding: 0 24px; border-radius: 999px; background: #0E3B2E; color: #FFFFFF; font-size: 15px; font-weight: 700; text-decoration: none; display: flex; align-items: center;">Explore pros</a>
+      <span style="font-size: 12px; color: #4A5A52; margin-top: 4px;">Favourite pros</span>
+    </div>
+
+    <!-- Search -->
+    <div style="border: 1px solid #E6EBE7; border-radius: 28px; padding: 48px 36px 40px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px;">
+      <svg width="140" height="120" viewBox="0 0 140 120" aria-hidden="true">
+        <circle cx="70" cy="56" r="48" fill="#E6F4EC"></circle>
+        <circle cx="64" cy="52" r="20" fill="#FFFFFF" stroke="#0E3B2E" stroke-width="4"></circle>
+        <path d="M79 67l16 16" stroke="#0E3B2E" stroke-width="6" stroke-linecap="round"></path>
+        <path d="M56 52h16" stroke="#C8F169" stroke-width="5" stroke-linecap="round"></path>
+        <path d="M30 104H110" stroke="#0E3B2E" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 10"></path>
+        <path d="M48 114H92" stroke="#A9C7B8" stroke-width="5" stroke-linecap="round"></path>
+      </svg>
+      <h2 style="margin: 6px 0 0; font-size: 22px; font-weight: 700;">No pros match that yet</h2>
+      <p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A5A52; max-width: 280px;">Try another area or category, or clear your filters to see everyone near you.</p>
+      <div style="margin-top: 8px; display: flex; gap: 8px;">
+        <a href="Marketplace.dc.html" style="height: 48px; padding: 0 22px; border-radius: 999px; background: #0E3B2E; color: #FFFFFF; font-size: 15px; font-weight: 700; text-decoration: none; display: flex; align-items: center;">Clear filters</a>
+        <a href="#" style="height: 48px; padding: 0 20px; border-radius: 999px; border: 1px solid #DDE3DE; color: #13201B; font-size: 15px; font-weight: 600; text-decoration: none; display: flex; align-items: center;">Use my location</a>
+      </div>
+      <span style="font-size: 12px; color: #4A5A52; margin-top: 4px;">Explore</span>
+    </div>
+
+    <!-- Wallet -->
+    <div style="border: 1px solid #E6EBE7; border-radius: 28px; padding: 48px 36px 40px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px;">
+      <svg width="140" height="120" viewBox="0 0 140 120" aria-hidden="true">
+        <circle cx="70" cy="56" r="48" fill="#E6F4EC"></circle>
+        <rect x="40" y="36" width="60" height="42" rx="10" fill="#FFFFFF" stroke="#0E3B2E" stroke-width="4"></rect>
+        <path d="M40 48H100" stroke="#0E3B2E" stroke-width="4"></path>
+        <rect x="78" y="56" width="22" height="12" rx="6" fill="#C8F169" stroke="#0E3B2E" stroke-width="3"></rect>
+        <path d="M30 104H110" stroke="#0E3B2E" stroke-width="5" stroke-linecap="round"></path>
+        <path d="M48 114H92" stroke="#A9C7B8" stroke-width="5" stroke-linecap="round"></path>
+      </svg>
+      <h2 style="margin: 6px 0 0; font-size: 22px; font-weight: 700;">No transactions yet</h2>
+      <p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A5A52; max-width: 280px;">Top up once and pay deposits in a tap. Refunds land back here instantly.</p>
+      <a href="Wallet.dc.html" style="margin-top: 8px; height: 48px; padding: 0 24px; border-radius: 999px; background: #C8F169; color: #0E3B2E; font-size: 15px; font-weight: 700; text-decoration: none; display: flex; align-items: center;">Add money</a>
+      <span style="font-size: 12px; color: #4A5A52; margin-top: 4px;">Wallet</span>
+    </div>
+
+    <!-- Notifications -->
+    <div style="border: 1px solid #E6EBE7; border-radius: 28px; padding: 48px 36px 40px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px;">
+      <svg width="140" height="120" viewBox="0 0 140 120" aria-hidden="true">
+        <circle cx="70" cy="56" r="48" fill="#E6F4EC"></circle>
+        <path d="M50 70c4-4 4-10 4-18a16 16 0 0132 0c0 8 0 14 4 18z" fill="#FFFFFF" stroke="#0E3B2E" stroke-width="4" stroke-linejoin="round"></path>
+        <path d="M64 78a6 6 0 0012 0" stroke="#0E3B2E" stroke-width="4" stroke-linecap="round" fill="none"></path>
+        <path d="M60 52l7 7 13-13" stroke="#1F6B43" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+        <path d="M30 104H110" stroke="#0E3B2E" stroke-width="5" stroke-linecap="round"></path>
+        <path d="M48 114H92" stroke="#A9C7B8" stroke-width="5" stroke-linecap="round"></path>
+      </svg>
+      <h2 style="margin: 6px 0 0; font-size: 22px; font-weight: 700;">You're all caught up</h2>
+      <p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A5A52; max-width: 280px;">Booking confirmations, reminders and refunds will appear here.</p>
+      <span style="font-size: 12px; color: #4A5A52; margin-top: 16px;">Notifications panel</span>
+    </div>
+
+    <!-- Reviews -->
+    <div style="border: 1px solid #E6EBE7; border-radius: 28px; padding: 48px 36px 40px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px;">
+      <svg width="140" height="120" viewBox="0 0 140 120" aria-hidden="true">
+        <circle cx="70" cy="56" r="48" fill="#E6F4EC"></circle>
+        <path d="M70 30l7.5 15.5 17 2-12.5 11.8 3.3 16.9L70 68l-15.3 8.2 3.3-16.9-12.5-11.8 17-2z" fill="#C8F169" stroke="#0E3B2E" stroke-width="4" stroke-linejoin="round"></path>
+        <path d="M30 104H110" stroke="#0E3B2E" stroke-width="5" stroke-linecap="round"></path>
+        <path d="M48 114H92" stroke="#A9C7B8" stroke-width="5" stroke-linecap="round"></path>
+      </svg>
+      <h2 style="margin: 6px 0 0; font-size: 22px; font-weight: 700;">No reviews yet</h2>
+      <p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A5A52; max-width: 280px;">This pro is new on Proxideck. Book a visit and be the first to say how it went.</p>
+      <a href="Booking.dc.html" style="margin-top: 8px; height: 48px; padding: 0 24px; border-radius: 999px; border: 1px solid #DDE3DE; color: #13201B; font-size: 15px; font-weight: 700; text-decoration: none; display: flex; align-items: center;">Book a visit</a>
+      <span style="font-size: 12px; color: #4A5A52; margin-top: 4px;">Provider profile</span>
+    </div>
+  </div>
+
+  <!-- Inline (compact) variant -->
+  <div style="display: flex; flex-direction: column; gap: 16px;">
+    <h2 style="margin: 0; font-size: 22px; font-weight: 700;">Compact version, for inside a section</h2>
+    <div style="display: flex; align-items: center; gap: 20px; padding: 24px 28px; border-radius: 22px; background: #F7FAF7;">
+      <svg width="56" height="56" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="22" r="20" fill="#E6F4EC"></circle><rect x="14" y="13" width="20" height="17" rx="4" fill="#FFFFFF" stroke="#0E3B2E" stroke-width="2.5"></rect><path d="M14 19h20" stroke="#0E3B2E" stroke-width="2.5"></path><path d="M12 40h24" stroke="#0E3B2E" stroke-width="3" stroke-linecap="round"></path></svg>
+      <div style="flex: 1;"><div style="font-size: 17px; font-weight: 700;">No upcoming bookings</div><div style="font-size: 14px; color: #4A5A52; margin-top: 2px;">Your past visits are under the Past tab.</div></div>
+      <a href="Marketplace.dc.html" style="height: 44px; padding: 0 20px; border-radius: 999px; background: #0E3B2E; color: #FFFFFF; font-size: 14px; font-weight: 700; text-decoration: none; display: flex; align-items: center;">Book something</a>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,3 +1,4 @@
+import BrandLogo from '@/components/brand-logo';
 import { about, becomeProvider, contact, faqs, privacyPolicy, terms } from '@/routes';
 import explore from '@/routes/explore';
 import { Link } from '@inertiajs/react';
@@ -84,7 +85,7 @@ export function SiteFooter() {
 
                 <div className="flex flex-wrap gap-10 border-t border-white/10 pt-10">
                     <div className="flex flex-[1.4_1_240px] flex-col gap-3.5">
-                        <img src="/brand/wordmark/proxideck-wordmark-white-1600w.png" alt="Proxideck" className="h-6.5 w-auto self-start" />
+                        <BrandLogo onDark className="self-start" />
                         <p className="max-w-70 text-[15px] leading-relaxed text-sage">
                             Book trusted artisans, studios and home services near you.
                         </p>

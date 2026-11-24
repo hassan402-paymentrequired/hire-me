@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
+use App\Services\BookingCheckoutService;
 use App\Services\PaystackService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,20 +27,22 @@ class PaystackWebhookController extends Controller
         $signature = $request->header('X-Paystack-Signature');
         $payload = $request->getContent();
 
-        if (!$this->verifySignature($signature, $payload)) {
+        if (! $this->verifySignature($signature, $payload)) {
             Log::warning('Invalid Paystack webhook signature', [
                 'event' => $request->input('event'),
             ]);
+
             return response()->json(['error' => 'Invalid signature'], 401);
         }
 
         $event = $request->input('event');
         $data = $request->input('data');
 
-        if (!is_array($data)) {
+        if (! is_array($data)) {
             Log::warning('Malformed Paystack webhook payload', [
                 'event' => $event,
             ]);
+
             return response()->json(['error' => 'Malformed payload'], 422);
         }
 
@@ -84,6 +87,12 @@ class PaystackWebhookController extends Controller
         $reference = $data['reference'];
         $metadata = $data['metadata'] ?? [];
 
+        if (($metadata['type'] ?? null) === BookingCheckoutService::METADATA_TYPE && isset($metadata['user_id'])) {
+            app(BookingCheckoutService::class)->creditWallet($metadata['user_id'], $reference, $data['amount'] / 100);
+
+            return;
+        }
+
         // Only process wallet top-ups
         if (($metadata['type'] ?? null) !== 'wallet_topup') {
             return;
@@ -94,14 +103,16 @@ class PaystackWebhookController extends Controller
             ->where('status', 'pending')
             ->first();
 
-        if (!$transaction) {
+        if (! $transaction) {
             Log::warning('Transaction not found for Paystack webhook', ['reference' => $reference]);
+
             return;
         }
 
         // Check if already processed (idempotency)
         if ($transaction->status === 'completed') {
             Log::info('Transaction already processed', ['reference' => $reference]);
+
             return;
         }
 
@@ -113,7 +124,7 @@ class PaystackWebhookController extends Controller
             $wallet->deposit(
                 $amount,
                 $reference,
-                "Wallet top-up via Paystack",
+                'Wallet top-up via Paystack',
                 ['paystack_reference' => $reference, 'webhook' => true]
             );
 
@@ -150,8 +161,9 @@ class PaystackWebhookController extends Controller
             ->where('status', 'pending')
             ->first();
 
-        if (!$transaction) {
+        if (! $transaction) {
             Log::warning('Withdrawal transaction not found', ['reference' => $reference]);
+
             return;
         }
 
@@ -176,7 +188,7 @@ class PaystackWebhookController extends Controller
             ->where('status', 'pending')
             ->first();
 
-        if (!$transaction) {
+        if (! $transaction) {
             return;
         }
 
@@ -212,7 +224,7 @@ class PaystackWebhookController extends Controller
 
         Log::info('Handling Paystack callback', ['reference' => $reference]);
 
-        if (!$reference) {
+        if (! $reference) {
             return redirect()->route('wallet.index')
                 ->with('error-toast', 'Invalid payment reference');
         }
@@ -272,13 +284,14 @@ class PaystackWebhookController extends Controller
      */
     protected function verifySignature(?string $signature, string $payload): bool
     {
-        if (!$signature) {
+        if (! $signature) {
             return false;
         }
 
         $secretKey = config('services.paystack.secret_key');
-        if (!$secretKey) {
+        if (! $secretKey) {
             Log::error('Paystack secret key missing while verifying webhook signature');
+
             return false;
         }
 

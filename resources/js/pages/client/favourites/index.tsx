@@ -1,4 +1,5 @@
 import { ProviderCard } from '@/components/site/provider-card';
+import { EmptyState } from '@/components/site/empty-state';
 import AccountLayout from '@/layouts/account-layout';
 import explore from '@/routes/explore';
 import { booking as bookProvider } from '@/routes/marketplace';
@@ -18,13 +19,16 @@ export default function Favourites({ favourites }: { favourites: Favourite[] }) 
             <Head title="Favourite pros" />
 
             {favourites.length === 0 ? (
-                <div className="flex flex-col items-center gap-3 rounded-[28px] bg-paper px-6 py-20 text-center">
-                    <h2 className="text-xl font-bold">No favourites yet</h2>
-                    <p className="max-w-90 text-moss">Tap the heart on any pro to keep them here for quick rebooking.</p>
-                    <Link href={explore.index()} className="mt-2 rounded-full bg-forest px-6 py-3 font-bold text-white">
-                        Explore pros
-                    </Link>
-                </div>
+                <EmptyState
+                    illustration="favourites"
+                    title="No favourites yet"
+                    description="Tap the heart on any pro to keep them here for quick rebooking."
+                    actions={
+                        <Link href={explore.index()} className="flex h-12 items-center rounded-full bg-forest px-6 text-[15px] font-bold text-white">
+                            Explore pros
+                        </Link>
+                    }
+                />
             ) : (
                 <div className="grid gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
                     {favourites.map((provider) => (

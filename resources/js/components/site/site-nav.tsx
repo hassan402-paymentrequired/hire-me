@@ -1,3 +1,4 @@
+import BrandLogo from '@/components/brand-logo';
 import { NotificationBell } from '@/components/notification-bell';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -56,15 +57,7 @@ export function SiteNav({ variant = 'light' }: { variant?: SiteNavVariant }) {
         >
             <div className="mx-auto flex max-w-[1240px] items-center gap-7 px-4 py-4 sm:px-6">
                 <Link href={home()} aria-label="Proxideck home" className="shrink-0">
-                    <img
-                        src={
-                            isDark
-                                ? '/brand/wordmark/proxideck-wordmark-white-1600w.png'
-                                : '/brand/wordmark/proxideck-wordmark-primary-1600w.png'
-                        }
-                        alt="Proxideck"
-                        className="h-6 w-auto"
-                    />
+                    <BrandLogo onDark={isDark} />
                 </Link>
 
                 <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">

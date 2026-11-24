@@ -35,7 +35,7 @@ it('includes the business phone and city on the provider profile', function () {
             ->where('provider.city', 'Lagos'));
 });
 
-it('shows at most five nearby providers from the same category', function () {
+it('shows at most four nearby providers from the same category', function () {
     $business = providerInCategory('Salon');
 
     foreach (range(1, 7) as $i) {
@@ -48,7 +48,7 @@ it('shows at most five nearby providers from the same category', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('marketplace/provider')
-            ->has('nearbyProviders', 5)
+            ->has('nearbyProviders', 4)
             ->where('nearbyProviders', fn ($nearby) => collect($nearby)->every(
                 fn (array $p): bool => $p['category'] === 'Salon' && $p['slug'] !== $business->slug && $p['isVerified'],
             )));

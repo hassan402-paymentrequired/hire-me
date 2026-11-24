@@ -17,13 +17,21 @@ use App\Models\WorkHour;
 use App\Notifications\AppointmentCompletedNotification;
 use App\Notifications\AppointmentUpdatedNotification;
 use App\Notifications\NewAppoinmentBookedNotification;
+use App\Services\BookingAvailabilityService;
+use App\Services\BookingCheckoutService;
+use App\Services\BookingQuoteService;
+use App\Services\PaystackService;
+use App\Services\PromoCodeService;
 use App\Support\ProviderSettings;
 use App\Support\ServiceDeliveryMode;
 use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class AppointmentController extends Controller
@@ -31,6 +39,21 @@ class AppointmentController extends Controller
     private const APPOINTMENT_CHANGE_CUTOFF_HOURS = 12;
 
     private const LATE_CANCELLATION_PENALTY_PERCENT = 10;
+
+    private const CHECKOUT_CACHE_PREFIX = 'booking_checkout_';
+
+    private const CHECKOUT_TTL_MINUTES = 60;
+
+    public function __construct(
+        private BookingAvailabilityService $availability,
+        private BookingQuoteService $quotes,
+        private PromoCodeService $promoCodes,
+    ) {}
+
+    public static function changeCutoffHours(): int
+    {
+        return self::APPOINTMENT_CHANGE_CUTOFF_HOURS;
+    }
 
     public function index(Request $request)
     {
@@ -145,14 +168,7 @@ class AppointmentController extends Controller
             return back()->with('error-toast', 'The selected time is outside the provider’s working hours.');
         }
 
-        if ($this->slotConflictsWithExistingAppointments(
-            $provider->id,
-            $startTime,
-            $endTime,
-            $maxBuffer,
-            $selectedTeamMember?->id,
-            $appointment->id,
-        )) {
+        if ($this->availability->conflicts($provider->id, $startTime, $endTime, $maxBuffer, [$selectedTeamMember?->id], $appointment->id)) {
             return back()->with('error-toast', 'This time slot was just booked. Please select another time.');
         }
 
@@ -311,6 +327,14 @@ class AppointmentController extends Controller
                 'service_address_state' => $appointment->service_address_state,
             ],
             'hasFutureRecurrences' => $hasFutureRecurrences,
+            'providerRating' => [
+                'average' => round((float) $appointment->provider->reviewsReceived()->avg('rating'), 1),
+                'count' => $appointment->provider->reviewsReceived()->count(),
+            ],
+            'policy' => [
+                'changeCutoffHours' => self::APPOINTMENT_CHANGE_CUTOFF_HOURS,
+                'latePenaltyPercent' => self::LATE_CANCELLATION_PENALTY_PERCENT,
+            ],
         ]);
     }
 
@@ -321,9 +345,12 @@ class AppointmentController extends Controller
             'service_ids' => 'required|array',
             'service_ids.*' => 'exists:services,id',
             'start_time' => 'required|date',
-            'payment_option' => 'nullable|in:online,offline',
+            'payment_option' => 'nullable|in:online,offline,card',
             'notes' => 'nullable|string|max:500',
             'team_member_id' => 'nullable|exists:team_members,id',
+            'service_team_members' => 'nullable|array',
+            'service_team_members.*' => 'nullable|string',
+            'promo_code' => 'nullable|string|max:32',
             'recurrence_pattern' => 'nullable|in:weekly,bi_weekly,monthly',
             'recurrence_end_date' => 'nullable|date|after:today',
             'recurrence_count' => 'nullable|integer|min:2|max:52',
@@ -340,6 +367,58 @@ class AppointmentController extends Controller
             'start_time.date' => 'The selected time is invalid. Please choose another slot.',
         ]);
 
+        return $this->placeBooking($request);
+    }
+
+    /**
+     * Paystack sends the client back here after a card or bank transfer payment.
+     * The money lands in their wallet first, then the booking is placed from it.
+     */
+    public function checkoutCallback(Request $request)
+    {
+        $reference = (string) ($request->query('reference') ?? $request->query('trxref'));
+        $checkout = $reference !== '' ? cache()->get(self::CHECKOUT_CACHE_PREFIX.$reference) : null;
+
+        if (! $checkout || $checkout['client_id'] !== auth()->id()) {
+            return to_route('client.bookings.index')->with('error-toast', 'This payment session has expired. If you were charged, the money is in your wallet.');
+        }
+
+        $bookingPageUrl = route('marketplace.booking', ['slug' => $checkout['slug']]);
+        $checkouts = app(BookingCheckoutService::class);
+
+        if (! $checkouts->isCredited($reference)) {
+            $verification = app(PaystackService::class)->verifyTransaction($reference);
+
+            if (! $verification['success'] || ($verification['status'] ?? null) !== 'success') {
+                return redirect($bookingPageUrl)->with('error-toast', 'Your payment didn’t go through, so nothing was booked. Please try again.');
+            }
+
+            $checkouts->creditWallet(auth()->id(), $reference, (float) $verification['amount']);
+        }
+
+        cache()->forget(self::CHECKOUT_CACHE_PREFIX.$reference);
+
+        $bookingRequest = Request::create($bookingPageUrl, 'POST', [...$checkout['payload'], 'payment_option' => 'online']);
+        $error = null;
+
+        try {
+            $response = $this->placeBooking($bookingRequest);
+        } catch (ValidationException $exception) {
+            $response = null;
+            $error = collect($exception->errors())->flatten()->first();
+        }
+
+        if ($response instanceof RedirectResponse && str_contains($response->getTargetUrl(), '/booked')) {
+            return $response;
+        }
+
+        $error ??= session('error-toast') ?? session('errors')?->first() ?? 'We couldn’t place the booking.';
+
+        return redirect($bookingPageUrl)->with('error-toast', 'Your payment is safe in your wallet. '.$error);
+    }
+
+    protected function placeBooking(Request $request)
+    {
         $provider = User::with('businessProfile')->findOrFail($request->provider_id);
         $client = auth_user();
 
@@ -347,12 +426,20 @@ class AppointmentController extends Controller
             return back()->with('error-toast', 'You cannot book your own business or a provider workspace you belong to.');
         }
 
-        $selectedTeamMember = $this->resolveSelectedTeamMember($provider->id, $request->team_member_id);
-        if ($request->filled('team_member_id') && ! $selectedTeamMember) {
+        $serviceIds = array_values((array) $request->service_ids);
+        $segmentTeamMembers = $this->availability->resolveTeamMembers(
+            $provider->id,
+            $serviceIds,
+            (array) $request->input('service_team_members', []),
+            $request->team_member_id,
+        );
+        if ($segmentTeamMembers === null) {
             return back()->withErrors([
                 'team_member_id' => 'The selected team member is no longer available.',
             ]);
         }
+        $teamMemberIds = collect($segmentTeamMembers)->map(fn (?TeamMember $member) => $member?->id)->values()->all();
+        $sharedTeamMemberId = count(array_unique($teamMemberIds)) === 1 ? $teamMemberIds[0] : null;
 
         $settings = ProviderSettings::resolve($provider->businessProfile->settings ?? []);
 
@@ -376,7 +463,7 @@ class AppointmentController extends Controller
             $paymentOption = $acceptOnlinePayment ? 'online' : 'offline';
         }
 
-        if ($paymentOption === 'online' && ! $acceptOnlinePayment) {
+        if (in_array($paymentOption, ['online', 'card'], true) && ! $acceptOnlinePayment) {
             return back()->withErrors([
                 'payment_option' => 'This provider is not accepting online payment for bookings right now.',
             ]);
@@ -414,15 +501,31 @@ class AppointmentController extends Controller
             }
         }
 
-        $services = Service::whereIn('id', $request->service_ids)->get();
+        $services = Service::whereIn('id', $serviceIds)
+            ->where('provider_id', $provider->id)
+            ->get()
+            ->sortBy(fn (Service $service) => array_search($service->id, $serviceIds, true))
+            ->values();
 
-        $originalPrice = $services->sum('price');
-        // Derive the discount from server-trusted config so the FE cannot
-        // tamper with it. Only apply when the booking is actually recurring.
-        $discountPercent = $request->recurrence_pattern
-            ? (float) config('booking.recurring_discount_percent', 10)
-            : 0;
-        $totalPrice = $originalPrice * (1 - ($discountPercent / 100));
+        if ($services->count() !== count(array_unique($serviceIds))) {
+            return back()->withErrors([
+                'service_ids' => 'One or more selected services are no longer available. Please refresh and try again.',
+            ]);
+        }
+
+        [$serviceClientAddressId, $serviceAtBusinessAddress] = $this->serviceAddressInputsForBooking($request, $settings);
+        $promoCode = $this->promoCodes->resolve($provider->id, $request->input('promo_code'));
+        // Prices come from the server so the client cannot tamper with discounts or fees.
+        $quote = $this->quotes->quote(
+            $services,
+            $settings,
+            isRecurring: (bool) $request->recurrence_pattern,
+            atClientLocation: filled($serviceClientAddressId) || $serviceAtBusinessAddress,
+            promoCode: $promoCode,
+        );
+        $originalPrice = $quote['subtotal'];
+        $discountPercent = $quote['recurring_discount_percent'];
+        $totalPrice = $quote['total'];
         $totalDuration = $services->sum('duration_minutes');
         $maxBuffer = ($services->max('buffer_time_minutes') ?? 0) + $providerBufferTimeMinutes;
 
@@ -461,15 +564,12 @@ class AppointmentController extends Controller
             return back()->with('error-toast', 'The selected time is outside the provider’s working hours.');
         }
 
-        if ($this->slotConflictsWithExistingAppointments(
-            $provider->id,
-            $startTime,
-            $endTime,
-            $maxBuffer,
-            $selectedTeamMember?->id,
-            null,
-        )) {
+        if ($this->availability->conflicts($provider->id, $startTime, $endTime, $maxBuffer, $teamMemberIds)) {
             return back()->with('error-toast', 'This time slot was just booked. Please select another time.');
+        }
+
+        if ($paymentOption === 'card') {
+            return $this->startCardCheckout($request, $client, $provider, $totalPrice);
         }
 
         $clientWallet = null;
@@ -497,15 +597,18 @@ class AppointmentController extends Controller
             $appointmentData = [
                 'client_id' => auth()->id(),
                 'provider_id' => $request->provider_id,
-                'service_id' => $request->service_ids[0],
+                'service_id' => $services->first()->id,
                 'start_time' => $startTime,
                 'end_time' => $endTime,
                 'buffer_time_minutes' => $maxBuffer,
                 'status' => $autoConfirm ? 'confirmed' : 'pending',
                 'price' => $totalPrice,
+                'home_service_fee' => $quote['home_service_fee'],
+                'promo_code_id' => $promoCode?->id,
+                'promo_discount_amount' => $quote['promo_discount'],
                 'payment_method' => $paymentOption,
                 'notes' => $request->notes,
-                'team_member_id' => $selectedTeamMember?->id,
+                'team_member_id' => $sharedTeamMemberId,
                 'provider_approved' => $autoConfirm,
                 'provider_approved_at' => $autoConfirm ? now() : null,
                 ...$this->resolveAppointmentServiceAddressData(
@@ -529,8 +632,14 @@ class AppointmentController extends Controller
                 }
             }
 
+            if ($promoCode) {
+                $this->promoCodes->redeem($promoCode);
+            }
+
             $appointment = Appointment::create($appointmentData);
-            $appointment->services()->attach($request->service_ids);
+            $appointment->services()->attach(
+                collect($segmentTeamMembers)->map(fn (?TeamMember $member) => ['team_member_id' => $member?->id])->all()
+            );
 
             $message = $request->recurrence_pattern
                 ? 'Recurring appointment booked successfully! Future appointments will be created automatically.'
@@ -555,8 +664,12 @@ class AppointmentController extends Controller
 
             $appointment->provider->notify(new NewAppoinmentBookedNotification($appointment));
 
-            return redirect()->route('client.bookings.show', $appointment->id)
+            return redirect()->route('client.bookings.booked', $appointment->id)
                 ->with('success-toast', $message);
+        } catch (ValidationException $e) {
+            DB::rollBack();
+
+            throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Appointment booking failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
@@ -583,8 +696,10 @@ class AppointmentController extends Controller
         }
     }
 
-    public function cancel($id)
+    public function cancel(Request $request, $id)
     {
+        $request->validate(['reason' => 'nullable|string|max:500']);
+
         $appointment = Appointment::where('client_id', auth()->id())
             ->where('status', '!=', 'cancelled')
             ->findOrFail($id);
@@ -606,6 +721,10 @@ class AppointmentController extends Controller
 
             // Cancel this appointment
             $this->cancelSingleAppointment($appointment, $isLateCancellation);
+
+            if ($request->filled('reason')) {
+                $appointment->update(['cancellation_reason' => $request->input('reason')]);
+            }
 
             // If this is a parent recurring appointment, cancel all future children
             if ($parentAppointment && $parentAppointment->id === $appointment->id) {
@@ -973,209 +1092,75 @@ class AppointmentController extends Controller
             'service_ids.*' => 'exists:services,id',
             'date' => 'required|date',
             'team_member_id' => 'nullable|exists:team_members,id',
+            'service_team_members' => 'nullable|array',
+            'service_team_members.*' => 'nullable|string',
             'reschedule_id' => 'nullable|exists:appointments,id',
         ]);
 
         $provider = User::with('businessProfile')->findOrFail($request->provider_id);
-        $client = auth_user();
 
-        if (! $client->canBookProvider($provider)) {
+        if (! auth_user()->canBookProvider($provider)) {
             return response()->json([
                 'slots' => [],
                 'message' => 'You cannot book your own business or a provider workspace you belong to.',
             ], 422);
         }
 
-        $selectedTeamMember = $this->resolveSelectedTeamMember($provider->id, $request->team_member_id);
-        if ($request->filled('team_member_id') && ! $selectedTeamMember) {
+        $teamMembers = $this->availability->resolveTeamMembers(
+            $provider->id,
+            array_values($request->service_ids),
+            (array) $request->input('service_team_members', []),
+            $request->team_member_id,
+        );
+
+        if ($teamMembers === null) {
             return response()->json([
                 'slots' => [],
                 'message' => 'The selected team member is no longer available.',
             ], 422);
         }
 
-        $services = Service::whereIn('id', $request->service_ids)->get();
-        $totalDuration = $services->sum('duration_minutes');
-        $maxBuffer = $services->max('buffer_time_minutes') ?? 0;
+        return response()->json($this->availability->slotsForDate(
+            $provider,
+            Service::whereIn('id', $request->service_ids)->get(),
+            Carbon::parse($request->date),
+            collect($teamMembers)->map(fn (?TeamMember $member) => $member?->id)->values()->all(),
+            $request->reschedule_id,
+        ));
+    }
 
-        $date = Carbon::parse($request->date);
-        $dayOfWeek = $date->format('l');
+    /**
+     * Holds the booking details, then sends the client to Paystack to pay by card or bank transfer.
+     */
+    private function startCardCheckout(Request $request, User $client, User $provider, float $amount)
+    {
+        $reference = 'BKG_'.Str::ulid();
 
-        // Get provider settings
-        $settings = $provider->businessProfile->settings ?? [];
-        $advanceBooking = (int) ($settings['advanceBooking'] ?? 30); // days
-        $minNotice = isset($settings['minNotice']) ? (int) $settings['minNotice'] : null; // hours
-        $allowSameDay = $settings['allowSameDay'] ?? false;
-        $maxDaily = $settings['maxDaily'] ?? null;
-        $providerBufferTimeMinutes = (int) ($settings['bufferTime'] ?? 0);
-        $maxBuffer += $providerBufferTimeMinutes;
+        cache()->put(self::CHECKOUT_CACHE_PREFIX.$reference, [
+            'client_id' => $client->id,
+            'slug' => $provider->businessProfile->slug,
+            'payload' => $request->except(['payment_option']),
+        ], now()->addMinutes(self::CHECKOUT_TTL_MINUTES));
 
-        if ($maxDaily) {
-            $dailyCount = Appointment::where('provider_id', $provider->id)
-                ->whereDate('start_time', $date->toDateString())
-                ->where('status', '!=', 'cancelled')
-                ->count();
-            if ($dailyCount >= (int) $maxDaily) {
-                return response()->json([
-                    'slots' => [],
-                    'message' => 'This provider has reached the maximum number of appointments for that day.',
-                ]);
-            }
-        }
-
-        // Check advance booking window
-        $maxDate = Carbon::now()->addDays($advanceBooking);
-        if ($date->gt($maxDate)) {
-            return response()->json([
-                'slots' => [],
-                'message' => "Bookings can only be made up to {$advanceBooking} days in advance.",
-            ]);
-        }
-
-        // Check minimum notice period
-        if ($minNotice !== null) {
-            $minDateTime = Carbon::now()->addHours($minNotice);
-            if ($date->isToday() && Carbon::now()->addHours($minNotice)->gt($date->endOfDay())) {
-                return response()->json([
-                    'slots' => [],
-                    'message' => "Minimum notice period is {$minNotice} hours. Please select a later date.",
-                ]);
-            }
-        }
-
-        // Check same-day booking
-        if (! $allowSameDay && $date->isToday()) {
-            return response()->json([
-                'slots' => [],
-                'message' => 'Same-day bookings are not allowed. Please select a future date.',
-            ]);
-        }
-
-        // Get work hours for this day
-        $workHours = WorkHour::where('provider_id', $provider->id)
-            ->where('day_of_week', $dayOfWeek)
-            ->where('is_closed', false)
-            ->get();
-
-        if ($workHours->isEmpty()) {
-            return response()->json(['slots' => [], 'message' => 'The provider is closed on this day.']);
-        }
-
-        // Check if any work hours block can accommodate the total duration
-        $maxAvailableBlock = 0;
-        foreach ($workHours as $wh) {
-            $s = Carbon::parse($wh->start_time);
-            $e = Carbon::parse($wh->end_time);
-            $maxAvailableBlock = max($maxAvailableBlock, $s->diffInMinutes($e));
-        }
-
-        if ($totalDuration > $maxAvailableBlock) {
-            return response()->json([
-                'slots' => [],
-                'message' => "The selected services require {$totalDuration} minutes, which exceeds the provider's longest working block ({$maxAvailableBlock} minutes) on this day.",
-            ]);
-        }
-
-        // Get existing appointments for this day
-        $existingAppointments = Appointment::where('provider_id', $provider->id)
-            ->whereDate('start_time', $date)
-            ->whereIn('status', ['pending', 'confirmed'])
-            ->when(
-                $selectedTeamMember,
-                fn ($q) => $q->where('team_member_id', $selectedTeamMember->id),
-                fn ($q) => $q->whereNull('team_member_id'),
-            )
-            ->when($request->reschedule_id, function ($q) use ($request) {
-                return $q->where('id', '!=', $request->reschedule_id);
-            })
-            ->get();
-
-        $slots = [];
-
-        foreach ($workHours as $workHour) {
-            $start = Carbon::parse($date->format('Y-m-d').' '.$workHour->start_time);
-            $end = Carbon::parse($date->format('Y-m-d').' '.$workHour->end_time);
-
-            // If the date is today, ensure start time meets minimum notice
-            if ($date->isToday()) {
-                $now = Carbon::now();
-                $minStartTime = $now;
-
-                // Apply minimum notice if set
-                if ($minNotice !== null) {
-                    $minStartTime = $now->copy()->addHours($minNotice)->ceilMinutes(30);
-                } else {
-                    $minStartTime = $now->copy()->ceilMinutes(30); // Start from next 30min block
-                }
-
-                if ($start->lt($minStartTime)) {
-                    $start = $minStartTime;
-                }
-            }
-
-            // For future dates, check minimum notice for each slot
-            if (! $date->isToday() && $minNotice !== null) {
-                $minSlotTime = Carbon::now()->addHours($minNotice);
-                if ($start->lt($minSlotTime)) {
-                    $start = $minSlotTime->copy()->ceilMinutes(30);
-                }
-            }
-
-            $current = $start->copy();
-
-            while ($current->copy()->addMinutes($totalDuration)->lte($end)) {
-                $slotStart = $current->copy();
-                $slotEnd = $current->copy()->addMinutes($totalDuration);
-
-                // Skip slots that don't meet minimum notice requirement
-                if ($minNotice !== null) {
-                    $minSlotTime = Carbon::now()->addHours($minNotice);
-                    if ($slotStart->lt($minSlotTime)) {
-                        $current->addMinutes(30);
-
-                        continue;
-                    }
-                }
-
-                // Check if slot is during break
-                $isDuringBreak = false;
-                if ($workHour->breaks) {
-                    foreach ($workHour->breaks as $break) {
-                        $breakStart = Carbon::parse($date->format('Y-m-d').' '.$break['start']);
-                        $breakEnd = Carbon::parse($date->format('Y-m-d').' '.$break['end']);
-                        // Overlap check
-                        if ($slotStart->lt($breakEnd) && $slotEnd->gt($breakStart)) {
-                            $isDuringBreak = true;
-                            break;
-                        }
-                    }
-                }
-
-                // Check if slot overlaps with existing appointment
-                $isBooked = $existingAppointments->contains(function ($apt) use ($slotStart, $slotEnd, $maxBuffer) {
-                    $aptEndWithBuffer = $apt->end_time->copy()->addMinutes($apt->buffer_time_minutes);
-                    $slotEndWithBuffer = $slotEnd->copy()->addMinutes($maxBuffer);
-
-                    return $slotStart->lt($aptEndWithBuffer) && $slotEndWithBuffer->gt($apt->start_time);
-                });
-
-                if (! $isDuringBreak && ! $isBooked) {
-                    $slots[] = [
-                        'start' => $slotStart->format('H:i'),
-                        'end' => $slotEnd->format('H:i'),
-                        'display' => $slotStart->format('g:i A'),
-                        'datetime' => $slotStart->toIso8601String(),
-                    ];
-                }
-
-                $current->addMinutes(30);
-            }
-        }
-
-        return response()->json([
-            'slots' => $slots,
-            'message' => empty($slots) ? 'No available slots found for the selected services and date.' : null,
+        $payment = app(PaystackService::class)->initializeTransaction([
+            'email' => $client->email,
+            'amount' => $amount,
+            'reference' => $reference,
+            'callback_url' => route('appointments.checkout.callback'),
+            'metadata' => [
+                'type' => BookingCheckoutService::METADATA_TYPE,
+                'user_id' => $client->id,
+                'provider_id' => $provider->id,
+            ],
         ]);
+
+        if (! $payment['success']) {
+            cache()->forget(self::CHECKOUT_CACHE_PREFIX.$reference);
+
+            return back()->with('error-toast', 'We couldn’t start the card payment. Please try again or pay from your wallet.');
+        }
+
+        return Inertia::location($payment['data']['authorization_url']);
     }
 
     private function isWithinProviderWorkHours(string $providerId, Carbon $startTime, Carbon $endTime): bool
@@ -1225,34 +1210,6 @@ class AppointmentController extends Controller
         }
 
         return false;
-    }
-
-    private function slotConflictsWithExistingAppointments(
-        string $providerId,
-        Carbon $slotStart,
-        Carbon $slotEnd,
-        int $bufferMinutes,
-        ?string $teamMemberId,
-        ?string $ignoreAppointmentId,
-    ): bool {
-        $existingAppointments = Appointment::where('provider_id', $providerId)
-            ->whereDate('start_time', $slotStart)
-            ->whereIn('status', ['pending', 'confirmed', 'pending_completion'])
-            ->when(
-                $teamMemberId,
-                fn ($q) => $q->where('team_member_id', $teamMemberId),
-                fn ($q) => $q->whereNull('team_member_id'),
-            )
-            ->when($ignoreAppointmentId, fn ($q) => $q->where('id', '!=', $ignoreAppointmentId))
-            ->get();
-
-        $slotEndWithBuffer = $slotEnd->copy()->addMinutes($bufferMinutes);
-
-        return $existingAppointments->contains(function ($apt) use ($slotStart, $slotEndWithBuffer) {
-            $aptEndWithBuffer = $apt->end_time->copy()->addMinutes((int) ($apt->buffer_time_minutes ?? 0));
-
-            return $slotStart->lt($aptEndWithBuffer) && $slotEndWithBuffer->gt($apt->start_time);
-        });
     }
 
     private function resolveSelectedTeamMember(string $providerId, ?string $teamMemberId): ?TeamMember

@@ -6,6 +6,7 @@ import { BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import AdvancedSettings from '../components/advance-setting';
 import FloatingSaveButton from './components/floating-save-button';
+import { type ProviderPromoCode, PromoCodesSection } from './components/promo-codes-section';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: business.dashboard().url },
@@ -15,8 +16,10 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function BusinessSettingsAdvanced({
     profile,
+    promoCodes = [],
 }: {
     profile: any;
+    promoCodes?: ProviderPromoCode[];
 }) {
     const form = useForm({
         settings: profile?.settings || {},
@@ -62,6 +65,8 @@ export default function BusinessSettingsAdvanced({
                         onDiscard={() => form.reset()}
                     />
                 </form>
+
+                <PromoCodesSection codes={promoCodes} />
             </BusinessSettingsLayout>
         </AppLayout>
     );

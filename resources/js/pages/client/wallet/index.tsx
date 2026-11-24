@@ -7,7 +7,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { EmptyCard } from '@/components/ui/empty-card';
+import { EmptyState } from '@/components/site/empty-state';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SearchableSelect } from '@/components/ui/searchable-select';
@@ -664,10 +664,11 @@ export default function WalletIndex({
                     </CardHeader>
                     <CardContent>
                         {transactions.data.length === 0 ? (
-                            <EmptyCard
+                            <EmptyState
+                                illustration="wallet"
                                 title="No transactions yet"
-                                image="assets/gifs/empty.svg"
-                                className="size-36"
+                                description="Top up once and pay deposits in a tap. Refunds land back here instantly."
+                                className="border-0 py-8"
                             />
                         ) : (
                             <div className="overflow-x-auto">

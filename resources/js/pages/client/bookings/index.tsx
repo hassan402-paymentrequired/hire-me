@@ -1,4 +1,5 @@
 import { formatNaira } from '@/components/site/provider-card';
+import { EmptyState } from '@/components/site/empty-state';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import AccountLayout from '@/layouts/account-layout';
 import { cn, formatStatus } from '@/lib/utils';
@@ -8,7 +9,7 @@ import explore from '@/routes/explore';
 import { booking as bookProvider } from '@/routes/marketplace';
 import reviews from '@/routes/reviews';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Plus, Star } from 'lucide-react';
+import { Plus, Search, Star } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 
 type Booking = BookingCardBooking & { has_review?: boolean };
@@ -141,12 +142,62 @@ function ReviewDialog({ booking, onClose }: { booking: Booking; onClose: () => v
     );
 }
 
+const PAGE_SIZE = 6;
+
+/** Group label for a booking: "This week", "Later in December", or "January 2027" / "October". */
+function groupLabel(date: Date, now: Date, upcoming: boolean): string {
+    const sameYear = date.getFullYear() === now.getFullYear();
+    const month = date.toLocaleDateString('en-NG', sameYear ? { month: 'long' } : { month: 'long', year: 'numeric' });
+
+    if (upcoming) {
+        const daysAway = (date.getTime() - now.getTime()) / 86_400_000;
+
+        if (daysAway < 7) {
+            return 'This week';
+        }
+
+        return sameYear && date.getMonth() === now.getMonth() ? `Later in ${month}` : month;
+    }
+
+    return month;
+}
+
+function groupBookings(bookings: Booking[], now: Date, upcoming: boolean): { label: string; items: Booking[] }[] {
+    const groups: { label: string; items: Booking[] }[] = [];
+
+    bookings.forEach((booking) => {
+        const label = groupLabel(startDate(booking), now, upcoming);
+        const last = groups[groups.length - 1];
+
+        if (last?.label === label) {
+            last.items.push(booking);
+        } else {
+            groups.push({ label, items: [booking] });
+        }
+    });
+
+    return groups;
+}
+
 export default function BookingList({ bookings = [], statusFilter = 'active', counts = {} }: Props) {
     const [reviewing, setReviewing] = useState<Booking | null>(null);
     const [now] = useState(() => Date.now());
+    const [search, setSearch] = useState('');
+    const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
     const upcoming = statusFilter === 'active';
-    const nextUp = upcoming ? [...bookings].sort((a, b) => startDate(a).getTime() - startDate(b).getTime()).find((b) => startDate(b).getTime() >= now) : undefined;
-    const rows = bookings.filter((booking) => booking !== nextUp);
+
+    const sorted = [...bookings].sort((a, b) =>
+        upcoming ? startDate(a).getTime() - startDate(b).getTime() : startDate(b).getTime() - startDate(a).getTime(),
+    );
+    const nextUp = upcoming ? sorted.find((booking) => startDate(booking).getTime() >= now) : undefined;
+    const term = search.trim().toLowerCase();
+    const matching = sorted
+        .filter((booking) => booking !== nextUp)
+        .filter((booking) => !term || `${serviceNames(booking)} ${businessName(booking)}`.toLowerCase().includes(term));
+    // Upcoming lists stay short enough to show in full; history pages in batches.
+    const shown = upcoming ? matching : matching.slice(0, visibleCount);
+    const groups = groupBookings(shown, new Date(now), upcoming);
+    const awaitingReview = bookings.filter((booking) => booking.status === 'completed' && !booking.has_review).length;
 
     return (
         <AccountLayout
@@ -171,7 +222,6 @@ export default function BookingList({ bookings = [], statusFilter = 'active', co
                             role="tab"
                             aria-selected={isActive}
                             href={client.bookings.index({ query: { status: filter.value } })}
-                            preserveState
                             className={cn(
                                 '-mb-px flex h-12 shrink-0 items-center gap-2 border-b-2 px-4.5 text-[15px]',
                                 isActive ? 'border-forest font-bold text-ink' : 'border-transparent text-moss',
@@ -185,60 +235,111 @@ export default function BookingList({ bookings = [], statusFilter = 'active', co
             </div>
 
             {bookings.length === 0 ? (
-                <div className="flex flex-col items-center gap-3 rounded-[28px] bg-paper px-6 py-20 text-center">
-                    <h2 className="text-xl font-bold">Nothing here yet</h2>
-                    <p className="max-w-90 text-moss">When you book a pro, your appointments show up here.</p>
-                    <Link href={explore.index()} className="mt-2 rounded-full bg-forest px-6 py-3 font-bold text-white">
-                        Find a pro
-                    </Link>
-                </div>
+                <EmptyState
+                    illustration="bookings"
+                    title={upcoming ? 'No upcoming bookings' : 'No bookings here yet'}
+                    description="When you book a pro, your appointments show up here with directions and reminders."
+                    actions={
+                        <Link href={explore.index()} className="flex h-12 items-center rounded-full bg-forest px-6 text-[15px] font-bold text-white">
+                            Find a pro
+                        </Link>
+                    }
+                />
             ) : (
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-4">
                     {nextUp && <NextUpCard booking={nextUp} now={now} />}
 
-                    {rows.map((booking) => {
-                        const date = startDate(booking);
-                        const canReview = booking.status === 'completed' && !booking.has_review;
+                    {!upcoming && (
+                        <div className="flex flex-wrap items-center gap-3">
+                            <span className="text-sm text-moss">
+                                {bookings.length} {bookings.length === 1 ? 'visit' : 'visits'}
+                                {awaitingReview > 0 && ` · ${awaitingReview} waiting for your review`}
+                            </span>
+                            <label className="ml-auto flex h-10 min-w-60 items-center gap-2 rounded-full border border-[#DDE3DE] px-3.5 focus-within:border-forest">
+                                <Search className="size-4 text-moss" />
+                                <span className="sr-only">Search bookings</span>
+                                <input
+                                    value={search}
+                                    onChange={(event) => setSearch(event.target.value)}
+                                    placeholder="Search by pro or service"
+                                    className="w-full bg-transparent text-sm outline-none placeholder:text-moss"
+                                />
+                            </label>
+                        </div>
+                    )}
 
-                        return (
-                            <article key={booking.id} className="flex flex-wrap items-center gap-5 rounded-[22px] border border-line px-5.5 py-5 hover:border-[#C9E2D3]">
-                                <div className="flex size-16 shrink-0 flex-col items-center justify-center rounded-2xl bg-mint text-forest">
-                                    <span className="text-xs font-bold uppercase">{date.toLocaleDateString('en-NG', { month: 'short' })}</span>
-                                    <span className="text-2xl leading-none font-bold">{date.getDate()}</span>
-                                </div>
-                                <div className="min-w-55 flex-1">
-                                    <div className="text-[17px] font-bold capitalize">{serviceNames(booking)}</div>
-                                    <div className="mt-0.5 text-sm text-moss">
-                                        {businessName(booking)} · {timeLabel(booking)} · {formatNaira(booking.price)}
-                                    </div>
-                                </div>
-                                <span className={cn('rounded-full px-3 py-1.5 text-[13px] font-bold', STATUS_STYLES[booking.status] ?? 'bg-paper text-moss')}>
-                                    {formatStatus(booking.status)}
+                    {groups.map((group) => (
+                        <section key={group.label} className="flex flex-col gap-2">
+                            <h3 className="flex items-baseline justify-between text-[15px] font-bold">
+                                {group.label}
+                                <span className="text-[13px] font-medium text-moss">
+                                    {group.items.length} {group.items.length === 1 ? 'booking' : 'bookings'}
                                 </span>
-                                {canReview && (
-                                    <button onClick={() => setReviewing(booking)} className="h-10 rounded-full bg-lime px-4 text-sm font-bold text-forest">
-                                        Leave a review
-                                    </button>
-                                )}
-                                {['completed', 'cancelled'].includes(booking.status) && booking.provider?.business_profile?.slug ? (
-                                    <Link
-                                        href={bookProvider(booking.provider.business_profile.slug)}
-                                        className="flex h-10 items-center rounded-full border border-[#DDE3DE] px-4 text-sm font-semibold"
-                                    >
-                                        Book again
-                                    </Link>
-                                ) : (
-                                    <Link href={client.bookings.show(booking.id)} className="text-sm font-bold text-forest">
-                                        View details
-                                    </Link>
-                                )}
-                            </article>
-                        );
-                    })}
+                            </h3>
+                            {group.items.map((booking) => (
+                                <BookingRow key={booking.id} booking={booking} upcoming={upcoming} onReview={() => setReviewing(booking)} />
+                            ))}
+                        </section>
+                    ))}
+
+                    {term && matching.length === 0 && <p className="py-6 text-center text-moss">No bookings match “{search}”.</p>}
+
+                    {shown.length < matching.length && (
+                        <button
+                            onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
+                            className="h-11.5 self-center rounded-full border border-[#DDE3DE] px-6 text-[15px] font-bold"
+                        >
+                            Show {Math.min(PAGE_SIZE, matching.length - shown.length)} more
+                        </button>
+                    )}
                 </div>
             )}
 
             {reviewing && <ReviewDialog booking={reviewing} onClose={() => setReviewing(null)} />}
         </AccountLayout>
+    );
+}
+
+function BookingRow({ booking, upcoming, onReview }: { booking: Booking; upcoming: boolean; onReview: () => void }) {
+    const date = startDate(booking);
+    const isCancelled = booking.status === 'cancelled';
+    const canReview = booking.status === 'completed' && !booking.has_review;
+    const slug = booking.provider?.business_profile?.slug;
+
+    return (
+        <article className="flex flex-wrap items-center gap-4 rounded-[18px] border border-line px-4.5 py-3.5 hover:border-[#C9E2D3]">
+            <div className={cn('flex size-13 shrink-0 flex-col items-center justify-center rounded-[14px]', upcoming ? 'bg-mint text-forest' : 'bg-[#F2F5F2] text-moss')}>
+                <span className="text-[11px] font-bold uppercase">
+                    {date.toLocaleDateString('en-NG', upcoming ? { weekday: 'short' } : { month: 'short' })}
+                </span>
+                <span className="text-xl leading-none font-bold">{date.getDate()}</span>
+            </div>
+            <Link href={client.bookings.show(booking.id)} className="min-w-55 flex-1">
+                <div className={cn('font-bold capitalize', isCancelled && 'text-moss line-through')}>{serviceNames(booking)}</div>
+                <div className="mt-0.5 text-sm text-moss">
+                    {businessName(booking)} · {timeLabel(booking)} · {formatNaira(booking.price)}
+                </div>
+            </Link>
+            {(upcoming || isCancelled) && (
+                <span className={cn('rounded-full px-2.5 py-1 text-xs font-bold', STATUS_STYLES[booking.status] ?? 'bg-paper text-moss')}>
+                    {formatStatus(booking.status)}
+                </span>
+            )}
+            {booking.has_review && <span className="text-[13px] font-semibold text-moss">Reviewed</span>}
+            {canReview && (
+                <button onClick={onReview} className="h-9.5 rounded-full bg-lime px-3.5 text-[13px] font-bold text-forest">
+                    Leave a review
+                </button>
+            )}
+            {!upcoming && slug ? (
+                <Link href={bookProvider(slug)} className="flex h-9.5 items-center rounded-full border border-[#DDE3DE] px-3.5 text-[13px] font-semibold">
+                    Book again
+                </Link>
+            ) : (
+                <Link href={client.bookings.show(booking.id)} className="text-sm font-bold text-forest">
+                    Details
+                </Link>
+            )}
+        </article>
     );
 }

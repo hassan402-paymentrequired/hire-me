@@ -14,6 +14,10 @@ use App\Models\Service;
 use App\Models\TeamMember;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Models\WorkHour;
+use App\Services\BookingQuoteService;
+use App\Services\BookingWaitlistService;
+use App\Services\ProviderProfileService;
 use App\Support\ProviderSettings;
 use App\Support\ServiceDeliveryMode;
 use Carbon\Carbon;
@@ -81,7 +85,7 @@ class MarketplaceController extends Controller
         ]);
     }
 
-    public function show(string $slug)
+    public function show(string $slug, ProviderProfileService $profileService)
     {
         $businessProfile = BusinessProfile::where('slug', $slug)->firstOrFail();
 
@@ -120,7 +124,7 @@ class MarketplaceController extends Controller
 
         // Get reviews
         $reviews = \App\Models\Review::where('provider_id', $provider->id)
-            ->with('client:id,name')
+            ->with(['client:id,name', 'appointment:id,service_id', 'appointment.service:id,name'])
             ->latest()
             ->get();
 
@@ -228,7 +232,7 @@ class MarketplaceController extends Controller
             }
 
             $nearbyProviders = $nearbyQuery
-                ->limit(5)
+                ->limit(4)
                 ->get()
                 ->map(function ($row) {
                     $logoUrl = null;
@@ -283,6 +287,8 @@ class MarketplaceController extends Controller
 
         $galleryTotal = (clone $galleryImageQuery)->count();
 
+        $coverImage = null;
+
         return Inertia::render('marketplace/provider', [
             'provider' => [
                 'id' => $provider->id,
@@ -293,6 +299,7 @@ class MarketplaceController extends Controller
                 'businessName' => $businessProfile->business_name,
                 'address' => $businessProfile->address,
                 'city' => $businessProfile->city,
+                'state' => $businessProfile->state,
                 'phone' => $businessProfile->phone,
                 'slug' => $businessProfile->slug,
                 'description' => $businessProfile->description,
@@ -313,10 +320,20 @@ class MarketplaceController extends Controller
                 'total_service_hours' => round($totalServiceHours, 1),
                 'canBook' => $bookingEligibility['canBook'],
                 'bookingBlockedReason' => $bookingEligibility['bookingBlockedReason'],
+                'city' => $businessProfile->city,
+                'category' => $businessProfile->category,
+                'cover' => $coverImage ? \App\Services\FileUploadService::url($coverImage, 'public') : null,
+                'rating' => round((float) $provider->reviewsReceived()->avg('rating'), 1),
+                'reviewsCount' => $provider->reviewsReceived()->count(),
                 'serviceDeliveryMode' => $serviceDeliveryMode,
                 'deliveryModeLabel' => ServiceDeliveryMode::clientLocationLabel($serviceDeliveryMode),
                 'bookingCtaLabel' => ServiceDeliveryMode::bookingCtaLabel($serviceDeliveryMode),
+                'autoConfirm' => (bool) ($deliverySettings['autoConfirm'] ?? false),
+                'acceptsOnlinePayment' => (bool) ($deliverySettings['accept_online_payment'] ?? true),
+                'acceptsOfflinePayment' => (bool) ($deliverySettings['accept_offline_booking'] ?? false),
             ],
+            'teamMembers' => $profileService->teamMembers($provider),
+            'ratingBreakdown' => $profileService->ratingBreakdown($reviews),
             'services' => $provider->services->map(fn ($service) => [
                 'id' => $service->id,
                 'name' => $service->name,
@@ -333,6 +350,8 @@ class MarketplaceController extends Controller
                 'rating' => $r->rating,
                 'comment' => $r->comment,
                 'created_at' => $r->created_at->diffForHumans(),
+                'date_label' => $r->created_at->format('D, j M'),
+                'service_name' => $r->appointment?->service?->name,
             ]),
             'canEdit' => Auth::check(),
             'isFavourite' => $isFavourite,
@@ -348,7 +367,7 @@ class MarketplaceController extends Controller
         ]);
     }
 
-    public function booking($slug)
+    public function booking($slug, BookingWaitlistService $waitlist)
     {
         $businessProfile = BusinessProfile::where('slug', $slug)->firstOrFail();
 
@@ -411,14 +430,28 @@ class MarketplaceController extends Controller
             ->values();
 
         $bookingEligibility = $this->bookingEligibilityForProvider($provider);
+        $coverImage = $businessProfile->images->where('is_logo', false)->first()?->image_path;
+
+        $mostBookedServiceIds = $this->mostBookedServiceIds($provider->id);
 
         return Inertia::render('marketplace/booking', [
+            'closedDays' => $this->closedWeekdays($provider->id),
+            'popularHours' => $this->popularBookingHours($provider->id),
+            'waitlistDates' => $user ? $waitlist->waitingDates($user, $provider->id) : [],
+            'cancellationCutoffHours' => AppointmentController::changeCutoffHours(),
             'provider' => [
                 'id' => $provider->id,
                 'name' => $provider->name,
                 'isVerified' => (bool) $provider->is_verified,
                 'businessName' => $businessProfile->business_name,
                 'address' => $businessProfile->address,
+                'city' => $businessProfile->city,
+                'category' => $businessProfile->category,
+                'latitude' => $businessProfile->latitude !== null ? (float) $businessProfile->latitude : null,
+                'longitude' => $businessProfile->longitude !== null ? (float) $businessProfile->longitude : null,
+                'cover' => $coverImage ? \App\Services\FileUploadService::url($coverImage, 'public') : null,
+                'rating' => round((float) $provider->reviewsReceived()->avg('rating'), 1),
+                'reviewsCount' => $provider->reviewsReceived()->count(),
                 'slug' => $businessProfile->slug,
                 'logo' => $businessProfile->images->where('is_logo', true)->first()?->image_path
                     ? \App\Services\FileUploadService::url($businessProfile->images->where('is_logo', true)->first()->image_path, 'public')
@@ -436,6 +469,7 @@ class MarketplaceController extends Controller
                 'price' => $service->price,
                 'categoryId' => $service->service_category_id,
                 'categoryName' => $service->serviceCategory?->name,
+                'isMostBooked' => in_array($service->id, $mostBookedServiceIds, true),
             ])->values(),
             'walletBalance' => $walletBalance,
             'clientAddresses' => $clientAddresses,
@@ -461,6 +495,7 @@ class MarketplaceController extends Controller
                 'accept_offline_booking' => $settings['accept_offline_booking'] ?? false,
                 'offers_home_service' => $settings['offers_home_service'] ?? false,
                 'service_delivery_mode' => $serviceDeliveryMode,
+                'home_service_fee' => BookingQuoteService::homeServiceFee($settings),
             ],
             'recurringDiscountPercent' => (float) config('booking.recurring_discount_percent', 10),
         ]);
@@ -494,5 +529,71 @@ class MarketplaceController extends Controller
             // Required for @inertiajs/react <InfiniteScroll /> to track/restore scroll state.
             'items' => Inertia::scroll(fn () => $items),
         ]);
+    }
+
+    /**
+     * Weekdays the provider doesn't work, e.g. ['Sunday'].
+     *
+     * @return array<int, string>
+     */
+    private function closedWeekdays(string $providerId): array
+    {
+        $openDays = WorkHour::query()
+            ->where('provider_id', $providerId)
+            ->where('is_closed', false)
+            ->whereNotNull('start_time')
+            ->pluck('day_of_week')
+            ->unique();
+
+        // No hours set up yet: don't block any day, the slots API decides.
+        if ($openDays->isEmpty()) {
+            return [];
+        }
+
+        return collect(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'])
+            ->diff($openDays)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Up to two services booked at least three times in the last 90 days, most booked first.
+     *
+     * @return array<int, string>
+     */
+    private function mostBookedServiceIds(string $providerId): array
+    {
+        return DB::table('appointment_services')
+            ->join('appointments', 'appointments.id', '=', 'appointment_services.appointment_id')
+            ->where('appointments.provider_id', $providerId)
+            ->where('appointments.status', '!=', 'cancelled')
+            ->where('appointments.start_time', '>=', now()->subDays(90))
+            ->groupBy('appointment_services.service_id')
+            ->havingRaw('COUNT(*) >= 3')
+            ->orderByRaw('COUNT(*) DESC')
+            ->limit(2)
+            ->pluck('appointment_services.service_id')
+            ->all();
+    }
+
+    /**
+     * The hours of day customers book most often (last 90 days), e.g. [11, 14].
+     *
+     * @return array<int, int>
+     */
+    private function popularBookingHours(string $providerId): array
+    {
+        return Appointment::query()
+            ->where('provider_id', $providerId)
+            ->where('status', '!=', 'cancelled')
+            ->where('start_time', '>=', now()->subDays(90))
+            ->get(['start_time'])
+            ->countBy(fn (Appointment $appointment): int => $appointment->start_time->hour)
+            ->filter(fn (int $count): bool => $count >= 3)
+            ->sortDesc()
+            ->keys()
+            ->take(2)
+            ->values()
+            ->all();
     }
 }

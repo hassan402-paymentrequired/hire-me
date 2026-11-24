@@ -7,6 +7,7 @@ use App\Models\BusinessImage;
 use App\Models\BusinessProfile;
 use App\Models\Category;
 use App\Models\FavouriteBusiness;
+use App\Models\PromoCode;
 use App\Models\ProviderServiceCategory;
 use App\Support\ProviderSettings;
 use Illuminate\Http\Request;
@@ -712,6 +713,21 @@ class BusinessController extends Controller
                 'id' => $profile->id,
                 'settings' => ProviderSettings::resolve($profile->settings ?? []),
             ] : null,
+            'promoCodes' => PromoCode::query()
+                ->where('provider_id', $this->managedProvider()?->id)
+                ->latest()
+                ->get()
+                ->map(fn (PromoCode $promoCode): array => [
+                    'id' => $promoCode->id,
+                    'code' => $promoCode->code,
+                    'discountType' => $promoCode->discount_type,
+                    'discountValue' => (float) $promoCode->discount_value,
+                    'maxUses' => $promoCode->max_uses,
+                    'timesUsed' => $promoCode->times_used,
+                    'expiresAt' => $promoCode->expires_at?->toDateString(),
+                    'isActive' => $promoCode->is_active,
+                    'isExpired' => $promoCode->isExpired(),
+                ]),
         ]);
     }
 

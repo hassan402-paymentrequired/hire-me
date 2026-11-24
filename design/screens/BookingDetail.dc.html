@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Booking details</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:'Satoshi';src:url('/_blob/aa99b90ef361c613c9d43e57b82b3414') format('woff2');font-weight:300 900;font-style:normal;font-display:swap}
+body{margin:0;background:#FFFFFF}
+a{color:#0E3B2E}a:hover{color:#13201B}
+.bd *{box-sizing:border-box}
+.bd button{font-family:inherit;cursor:pointer}
+.bd textarea{font-family:inherit}
+</style>
+</helmet>
+<div class="bd" style="font-family: 'Satoshi', system-ui, sans-serif; color: #13201B; background: #FFFFFF; position: relative;">
+  <dc-import name="SiteNav" variant="light" auth="user" hint-size="100%,80px"></dc-import>
+
+  <div style="max-width: 1240px; margin: 0 auto; padding: 32px 24px 96px; display: flex; flex-direction: column; gap: 28px;">
+    <a href="Bookings.dc.html" style="align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; text-decoration: none; color: #4A5A52;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A5A52" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>My bookings</a>
+
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap;">
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+          <h1 style="margin: 0; font-size: 40px; font-weight: 700; letter-spacing: -0.02em;">Silk press &amp; trim</h1>
+          <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: {{statusFg}}; background: {{statusBg}}; padding: 6px 12px; border-radius: 999px;"><span style="width: 7px; height: 7px; border-radius: 99px; background: {{statusFg}};"></span>{{statusLabel}}</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; font-size: 15px; color: #4A5A52; flex-wrap: wrap;">
+          <span>Sat 29 November 2026 · 10:30 am – 12:00 pm</span>
+          <span style="color: #A9C7B8;">•</span>
+          <span>Booking ref <strong style="color: #13201B;">PDX-48213</strong></span>
+          <button onClick="{{copyRef}}" style="height: 30px; padding: 0 10px; border-radius: 999px; border: 1px solid #DDE3DE; background: #FFFFFF; font-size: 12px; font-weight: 700; color: #13201B;">{{copyLabel}}</button>
+        </div>
+      </div>
+      <sc-if value="{{isActive}}" hint-placeholder-val="{{true}}">
+        <div style="display: flex; gap: 10px;">
+          <a href="#" style="height: 48px; padding: 0 20px; border-radius: 999px; border: 1px solid #DDE3DE; color: #13201B; font-size: 15px; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 8px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#13201B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>Add to calendar</a>
+          <a href="#" style="height: 48px; padding: 0 22px; border-radius: 999px; background: #0E3B2E; color: #FFFFFF; font-size: 15px; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 8px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C8F169" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0119 9.5C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>Get directions</a>
+        </div>
+      </sc-if>
+    </div>
+
+    <!-- Visit ticket -->
+    <section aria-label="Visit progress" style="position: relative; display: flex; border-radius: 28px; overflow: hidden; background: {{ticketBg}}; color: #FFFFFF; min-height: 220px;">
+      <!-- Stub -->
+      <div style="width: 220px; flex-shrink: 0; background: {{stubBg}}; color: #0E3B2E; padding: 26px 28px; display: flex; flex-direction: column; justify-content: space-between;">
+        <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.02em;">Your visit</span>
+        <div style="display: flex; align-items: flex-end; gap: 10px;">
+          <span style="font-size: 88px; font-weight: 700; line-height: 0.82; letter-spacing: -0.05em;">29</span>
+          <span style="display: flex; flex-direction: column; font-size: 15px; font-weight: 700; line-height: 1.2; padding-bottom: 4px;">Sat<span>Nov</span></span>
+        </div>
+        <span style="font-size: 15px; font-weight: 700;">{{stubNote}}</span>
+      </div>
+
+      <!-- Perforation -->
+      <div aria-hidden="true" style="position: relative; width: 0; border-left: 2px dashed rgba(255,255,255,0.28);">
+        <span style="position: absolute; top: -14px; left: -15px; width: 28px; height: 28px; border-radius: 999px; background: #FFFFFF;"></span>
+        <span style="position: absolute; bottom: -14px; left: -15px; width: 28px; height: 28px; border-radius: 999px; background: #FFFFFF;"></span>
+      </div>
+
+      <!-- Journey -->
+      <div style="flex: 1; min-width: 0; padding: 26px 36px 28px; display: flex; flex-direction: column; justify-content: space-between; gap: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap;">
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-size: 13px; font-weight: 700; color: {{accent}};">{{nextLabel}}</span>
+            <span style="font-size: 22px; font-weight: 700; letter-spacing: -0.01em; max-width: 520px; line-height: 1.25;">{{nextText}}</span>
+          </div>
+          <sc-if value="{{isActive}}" hint-placeholder-val="{{true}}">
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right;">
+              <span style="font-size: 12px; color: #A9C7B8;">Free cancellation ends in</span>
+              <span style="font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums;">3d 22h</span>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="position: relative; padding-top: 18px;">
+          <!-- track -->
+          <div style="position: relative; height: 6px; border-radius: 99px; background: rgba(255,255,255,0.14); margin: 0 6px;">
+            <div style="position: absolute; left: 0; top: 0; bottom: 0; width: {{progress}}; border-radius: 99px; background: {{accent}};"></div>
+            <!-- Horizon marker at current point -->
+            <span aria-hidden="true" style="position: absolute; left: {{progress}}; top: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; border-radius: 999px; background: {{accent}}; display: grid; place-items: center; box-shadow: 0 0 0 6px {{ring}};">
+              <svg width="22" height="22" viewBox="0 0 48 48"><path d="M4 24a20 20 0 0 1 40 0z" fill="#0E3B2E"></path><path d="M10 30H38" stroke="#0E3B2E" stroke-width="5" stroke-linecap="round"></path><path d="M16 38H32" stroke="#0E3B2E" stroke-width="5" stroke-linecap="round"></path></svg>
+            </span>
+          </div>
+          <!-- stops -->
+          <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 24px;">
+            <sc-for list="{{steps}}" as="s" hint-placeholder-count="4">
+              <div style="display: flex; flex-direction: column; gap: 3px; text-align: {{s.align}};">
+                <span style="font-size: 14px; font-weight: 700; color: {{s.titleColor}};">{{s.title}}</span>
+                <span style="font-size: 12px; color: #A9C7B8;">{{s.when}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start;">
+      <!-- Left -->
+      <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 20px;">
+
+        <!-- Provider -->
+        <section style="border: 1px solid #E6EBE7; border-radius: 24px; overflow: hidden;">
+          <div style="display: flex; align-items: center; gap: 16px; padding: 22px 24px;">
+            <span style="width: 56px; height: 56px; border-radius: 16px; background: #0E3B2E; color: #C8F169; display: grid; place-items: center; font-size: 20px; font-weight: 700; flex-shrink: 0;">G</span>
+            <div style="flex: 1; min-width: 0;">
+              <a href="Main.dc.html" style="font-size: 18px; font-weight: 700; text-decoration: none; color: #13201B;">Glow House by Amara</a>
+              <div style="font-size: 14px; color: #4A5A52; margin-top: 2px;">4.9 ★ (1,284) · Admiralty Way, Lekki Phase 1</div>
+            </div>
+            <a href="#" style="height: 42px; padding: 0 16px; border-radius: 999px; border: 1px solid #DDE3DE; color: #13201B; font-size: 14px; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 8px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#13201B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8.5 8.5 0 01-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1121 12z"></path></svg>Message</a>
+            <a href="#" style="height: 42px; padding: 0 16px; border-radius: 999px; border: 1px solid #DDE3DE; color: #13201B; font-size: 14px; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 8px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#13201B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2"></path></svg>Call</a>
+          </div>
+          <div style="height: 180px; background: #EAF1EC; position: relative; overflow: hidden; border-top: 1px solid #E6EBE7;">
+            <svg width="100%" height="100%" viewBox="0 0 800 180" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><path d="M0 120 C 200 90, 340 160, 520 110 S 760 80, 800 90" stroke="#FFFFFF" stroke-width="16" fill="none"></path><path d="M150 0 L 190 180" stroke="#FFFFFF" stroke-width="9"></path><path d="M520 0 L 480 180" stroke="#FFFFFF" stroke-width="10"></path><path d="M0 50 L 800 70" stroke="#FFFFFF" stroke-width="6"></path></svg>
+            <span style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -70%); width: 44px; height: 44px; border-radius: 999px; background: #0E3B2E; border: 4px solid #FFFFFF; display: grid; place-items: center; color: #C8F169; font-weight: 700; box-shadow: 0 6px 18px rgba(14,59,46,.35);">G</span>
+            <span style="position: absolute; left: 20px; bottom: 16px; background: #FFFFFF; border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,.08);">14 Admiralty Way, Lekki Phase 1 · 0.8 km away</span>
+          </div>
+        </section>
+
+        <!-- Services -->
+        <section style="border: 1px solid #E6EBE7; border-radius: 24px; padding: 22px 24px; display: flex; flex-direction: column; gap: 14px;">
+          <h2 style="margin: 0; font-size: 20px; font-weight: 700;">What you booked</h2>
+          <div style="display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid #EEF2EF;">
+            <div style="flex: 1;"><div style="font-size: 16px; font-weight: 700;">Silk press &amp; trim</div><div style="font-size: 14px; color: #4A5A52; margin-top: 2px;">1 hr 30 min · with Amara</div></div>
+            <strong style="font-size: 16px;">₦25,000</strong>
+          </div>
+          <div style="display: flex; align-items: center; gap: 14px; padding: 4px 0 0;">
+            <span style="width: 36px; height: 36px; border-radius: 999px; background: #0E3B2E; color: #C8F169; display: grid; place-items: center; font-size: 13px; font-weight: 700;">AO</span>
+            <div style="flex: 1; font-size: 14px; color: #4A5A52;"><strong style="color: #13201B;">Amara Okafor</strong> is your stylist</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; padding-top: 14px; border-top: 1px solid #EEF2EF;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <span style="font-size: 13px; font-weight: 700; color: #4A5A52;">Your note to Amara</span>
+              <a href="#" style="font-size: 13px; font-weight: 700;">Edit</a>
+            </div>
+            <p style="margin: 0; align-self: flex-start; max-width: 520px; font-size: 15px; line-height: 1.55; color: #13201B; background: #E6F4EC; border-radius: 18px 18px 18px 6px; padding: 12px 16px;">Please keep the length, just a light trim on the ends. I have a 4c texture.</p>
+          </div>
+        </section>
+
+        <!-- Cancellation window -->
+        <section style="border-radius: 24px; background: #F7FAF7; padding: 24px; display: flex; flex-direction: column; gap: 18px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap;">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <h2 style="margin: 0; font-size: 20px; font-weight: 700;">Change of plans?</h2>
+              <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #4A5A52; max-width: 460px;">You can cancel for free for another <strong style="color: #13201B;">3 days 22 hrs</strong>. Rescheduling is free right up to 2 hours before.</p>
+            </div>
+            <span style="display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 999px; background: #C8F169; color: #0E3B2E; font-size: 13px; font-weight: 700;">Free to cancel now</span>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="position: relative; display: flex; height: 12px; border-radius: 99px; overflow: visible;">
+              <div style="flex: 0 0 80%; background: #0E3B2E; border-radius: 99px 0 0 99px;"></div>
+              <div style="flex: 1; background: repeating-linear-gradient(135deg, #F3D9A4 0 6px, #FFF4D6 6px 12px); border-radius: 0 99px 99px 0;"></div>
+              <span aria-label="You are here" style="position: absolute; left: 6%; top: 50%; transform: translate(-50%, -50%); width: 22px; height: 22px; border-radius: 999px; background: #C8F169; border: 4px solid #FFFFFF; box-shadow: 0 1px 4px rgba(0,0,0,.2);"></span>
+            </div>
+            <div style="display: flex; font-size: 13px;">
+              <div style="flex: 0 0 80%; display: flex; justify-content: space-between; padding-right: 12px;">
+                <span><strong>Today</strong><br><span style="color: #4A5A52;">Cancel free, full refund</span></span>
+                <span style="text-align: right;"><strong>Fri 28 Nov, 10:30 am</strong><br><span style="color: #4A5A52;">Free window closes</span></span>
+              </div>
+              <div style="flex: 1; text-align: right;"><strong>Sat 29, 10:30</strong><br><span style="color: #7A5200;">₦5,000 kept</span></div>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; align-items: center; font-size: 13px; color: #4A5A52; border-top: 1px solid #E6EBE7; padding-top: 14px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1F6B43" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"></path><path d="M8.5 12l2.5 2.5 4.5-5"></path></svg>
+            If Amara cancels or doesn't show, you always get everything back.
+          </div>
+        </section>
+      </div>
+
+      <!-- Right: payment + actions -->
+      <aside style="flex: 1 1 340px; max-width: 400px; display: flex; flex-direction: column; gap: 16px;">
+        <section style="border-radius: 24px; background: #0E3B2E; color: #FFFFFF; padding: 24px; display: flex; flex-direction: column; gap: 14px;">
+          <h2 style="margin: 0; font-size: 18px; font-weight: 700;">Payment</h2>
+          <div style="display: flex; justify-content: space-between; font-size: 15px;"><span style="color: #C9E2D3;">Silk press &amp; trim</span><span>₦25,000</span></div>
+          <div style="display: flex; justify-content: space-between; font-size: 15px;"><span style="color: #C9E2D3;">Deposit paid from wallet</span><span style="color: #C8F169; font-weight: 700;">−₦5,000</span></div>
+          <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: 700; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.14);"><span>Pay at the studio</span><span>₦20,000</span></div>
+          <div style="display: flex; gap: 10px; align-items: center; background: rgba(200,241,105,0.12); border-radius: 14px; padding: 12px 14px; font-size: 13px; line-height: 1.45; color: #E3EFE8;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C8F169" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 018 0v3"></path></svg>
+            <span>Your deposit is held by Proxideck until the appointment is complete.</span>
+          </div>
+          <a href="Wallet.dc.html" style="font-size: 14px; font-weight: 700; color: #C8F169; text-decoration: none;">View in wallet →</a>
+        </section>
+
+        <sc-if value="{{isActive}}" hint-placeholder-val="{{true}}">
+          <section style="border: 1px solid #E6EBE7; border-radius: 24px; padding: 20px; display: flex; flex-direction: column; gap: 10px;">
+            <a href="Booking.dc.html" style="height: 50px; border-radius: 999px; background: #C8F169; color: #0E3B2E; font-size: 15px; font-weight: 700; text-decoration: none; display: flex; align-items: center; justify-content: center;">Reschedule</a>
+            <button onClick="{{openCancel}}" style="height: 50px; border-radius: 999px; border: 1px solid #DDE3DE; background: #FFFFFF; color: #B42318; font-size: 15px; font-weight: 700;">Cancel booking</button>
+            <a href="Contact.dc.html" style="align-self: center; margin-top: 4px; font-size: 14px; font-weight: 600; color: #4A5A52; text-decoration: none;">Report a problem</a>
+          </section>
+        </sc-if>
+        <sc-if value="{{isCancelled}}" hint-placeholder-val="{{false}}">
+          <section style="border: 1px solid #E6EBE7; border-radius: 24px; padding: 20px; display: flex; flex-direction: column; gap: 10px;">
+            <div style="font-size: 15px; font-weight: 700;">Booking cancelled</div>
+            <div style="font-size: 14px; color: #4A5A52; line-height: 1.5;">You cancelled within the free window, so your ₦5,000 deposit is back in your wallet.</div>
+            <a href="Booking.dc.html" style="height: 48px; border-radius: 999px; background: #0E3B2E; color: #FFFFFF; font-size: 15px; font-weight: 700; text-decoration: none; display: flex; align-items: center; justify-content: center; margin-top: 6px;">Book again</a>
+          </section>
+        </sc-if>
+      </aside>
+    </div>
+  </div>
+
+  <dc-import name="SiteFooter" hint-size="100%,640px"></dc-import>
+
+  <!-- Cancel dialog -->
+  <sc-if value="{{cancelOpen}}" hint-placeholder-val="{{false}}">
+    <div style="position: fixed; inset: 0; background: rgba(19,32,27,0.45); display: grid; place-items: center; padding: 24px; z-index: 10;">
+      <div role="dialog" aria-modal="true" aria-label="Cancel this booking?" style="width: 100%; max-width: 440px; background: #FFFFFF; border-radius: 24px; padding: 28px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 24px 60px rgba(0,0,0,.25);">
+        <h2 style="margin: 0; font-size: 22px; font-weight: 700;">Cancel this booking?</h2>
+        <p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A5A52;">You're inside the free window, so your ₦5,000 deposit goes straight back to your wallet.</p>
+        <label style="display: flex; flex-direction: column; gap: 8px; font-size: 14px; font-weight: 600;">Reason (optional)
+          <textarea rows="3" placeholder="Let Amara know why" style="border: 1px solid #DDE3DE; border-radius: 14px; padding: 12px 14px; font-size: 15px; font-weight: 400; resize: none;"></textarea>
+        </label>
+        <div style="display: flex; gap: 10px; margin-top: 6px;">
+          <button onClick="{{closeCancel}}" style="flex: 1; height: 48px; border-radius: 999px; border: 1px solid #DDE3DE; background: #FFFFFF; font-size: 15px; font-weight: 700; color: #13201B;">Keep booking</button>
+          <button onClick="{{confirmCancel}}" style="flex: 1; height: 48px; border-radius: 999px; border: 0; background: #B42318; font-size: 15px; font-weight: 700; color: #FFFFFF;">Yes, cancel</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1800}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { cancelOpen: false, cancelled: false, copied: false }; }
+  renderVals() {
+    const cancelled = this.state.cancelled;
+    const stepDefs = cancelled
+      ? [ { title: 'Booked', when: 'Mon 24 Nov, 9:12 am', state: 'done' }, { title: 'Confirmed', when: 'Mon 24 Nov, 9:40 am', state: 'done' }, { title: 'Cancelled', when: 'Just now', state: 'stop' }, { title: 'Completed', when: '—', state: 'todo' } ]
+      : [ { title: 'Booked', when: 'Mon 24 Nov, 9:12 am', state: 'done' }, { title: 'Confirmed', when: 'Mon 24 Nov, 9:40 am', state: 'done' }, { title: 'Appointment', when: 'Sat 29 Nov, 10:30 am', state: 'next' }, { title: 'Completed', when: 'Confirm after your visit', state: 'todo' } ];
+    const steps = stepDefs.map((s, i) => ({
+      ...s,
+      align: i === 0 ? 'left' : i === stepDefs.length - 1 ? 'right' : 'center',
+      titleColor: s.state === 'todo' ? '#A9C7B8' : s.state === 'stop' ? '#FFB4AB' : '#FFFFFF'
+    }));
+    return {
+      steps,
+      ticketBg: cancelled ? '#3A1F1C' : '#0E3B2E',
+      stubBg: cancelled ? '#FFB4AB' : '#C8F169',
+      accent: cancelled ? '#FFB4AB' : '#C8F169',
+      ring: cancelled ? 'rgba(255,180,171,0.18)' : 'rgba(200,241,105,0.18)',
+      progress: cancelled ? '66%' : '58%',
+      stubNote: cancelled ? 'Cancelled' : 'In 5 days',
+      nextLabel: cancelled ? 'Refunded' : 'What happens next',
+      nextText: cancelled ? 'Your ₦5,000 deposit is back in your wallet. Book a new time whenever you like.' : 'Amara will send you a reminder on Fri 28 Nov at 6 pm. Arrive 10 minutes early.',
+      isActive: !cancelled,
+      isCancelled: cancelled,
+      statusLabel: cancelled ? 'Cancelled' : 'Confirmed',
+      statusBg: cancelled ? '#FFF1F0' : '#E6F4EC',
+      statusFg: cancelled ? '#B42318' : '#1F6B43',
+      copyLabel: this.state.copied ? 'Copied' : 'Copy',
+      copyRef: () => this.setState({ copied: true }),
+      cancelOpen: this.state.cancelOpen,
+      openCancel: () => this.setState({ cancelOpen: true }),
+      closeCancel: () => this.setState({ cancelOpen: false }),
+      confirmCancel: () => this.setState({ cancelOpen: false, cancelled: true })
+    };
+  }
+}
+</script>
+</body>
+</html>
