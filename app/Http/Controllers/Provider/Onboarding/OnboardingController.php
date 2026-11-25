@@ -96,15 +96,15 @@ class OnboardingController extends Controller
             'description' => 'nullable|string',
             'images' => $hasProfile ? 'nullable|array|max:3' : 'required|array|min:1|max:3',
             'images.*' => 'image|max:5120',
-            'logo_index' => [
-                'required',
+            'cover_index' => [
+                'nullable',
                 'integer',
                 'min:0',
                 'max:2',
                 function (string $attribute, mixed $value, \Closure $fail) use ($request) {
                     $imagesCount = is_array($request->images) ? count($request->images) : 0;
                     if ($imagesCount > 0 && (int) $value >= $imagesCount) {
-                        $fail('Invalid logo selection.');
+                        $fail('Invalid cover photo selection.');
                     }
                 },
             ],
@@ -142,12 +142,24 @@ class OnboardingController extends Controller
                 $data
             );
 
-            // Handle images upload
+            // Handle images upload (listing banners — profile logo is set later in business settings)
             if ($request->hasFile('images')) {
-                // Remove existing onboarding images if new ones are uploaded
                 $businessProfile->images()->delete();
 
-                foreach ($request->file('images') as $index => $image) {
+                $files = array_values($request->file('images'));
+                $coverIndex = min(
+                    max((int) $request->input('cover_index', 0), 0),
+                    max(count($files) - 1, 0),
+                );
+
+                if ($coverIndex > 0 && count($files) > 1) {
+                    $files = array_merge(
+                        array_slice($files, $coverIndex),
+                        array_slice($files, 0, $coverIndex),
+                    );
+                }
+
+                foreach ($files as $image) {
                     $path = \App\Services\FileUploadService::upload(
                         $image,
                         'business-images',
@@ -155,15 +167,8 @@ class OnboardingController extends Controller
                     );
                     $businessProfile->images()->create([
                         'image_path' => $path,
-                        'is_logo' => $index == $request->logo_index,
+                        'is_logo' => false,
                     ]);
-
-                    if ($index == $request->logo_index) {
-                        $businessProfile->update([
-                            'logo_path' => $path,
-                        ]);
-                    }
-
                 }
             }
 

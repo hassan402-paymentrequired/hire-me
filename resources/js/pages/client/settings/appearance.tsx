@@ -5,7 +5,6 @@ import HeadingSmall from '@/components/heading-small';
 
 import ClientSettingsLayout from '@/layouts/client-settings/layout';
 
-
 export default function Appearance() {
     return (
         <>

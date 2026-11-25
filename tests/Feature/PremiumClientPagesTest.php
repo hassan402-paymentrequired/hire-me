@@ -67,6 +67,18 @@ it('lists only the signed-in client’s favourite providers with their last book
             ->whereNot('favourites.0.lastBookedAt', null));
 });
 
+it('renders my bookings empty state for clients with no appointments', function () {
+    $client = User::factory()->create();
+
+    $this->actingAs($client)
+        ->get(route('client.bookings.index'))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/bookings/index')
+            ->where('counts.all', 0)
+            ->has('bookings', 0));
+});
+
 it('returns booking counts and review status on my bookings', function () {
     $client = User::factory()->create();
     $provider = listedProvider();
@@ -86,23 +98,13 @@ it('returns booking counts and review status on my bookings', function () {
             ->where('bookings.0.has_review', true));
 });
 
-it('saves notification preferences', function () {
-    $user = User::factory()->create();
-
-    $this->actingAs($user)
-        ->get(route('notification-preferences.edit'))
-        ->assertInertia(fn (Assert $page) => $page
-            ->component('client/settings/notifications')
-            ->where('preferences', ['email' => true, 'push' => true]));
-
-    $this->actingAs($user)
-        ->put(route('notification-preferences.update'), ['email' => false, 'push' => true])
-        ->assertRedirect();
-
-    expect($user->fresh()->notificationPreferences())->toBe(['email' => false, 'push' => true]);
+it('no longer has a notification settings page', function () {
+    $this->actingAs(User::factory()->create())
+        ->get('/settings/notifications')
+        ->assertNotFound();
 });
 
-it('only sends booking notifications on channels the user wants', function () {
+it('sends booking notifications on every channel', function () {
     $user = User::factory()->create(['notification_preferences' => ['email' => false, 'push' => false]]);
     $provider = listedProvider();
     $appointment = Appointment::factory()->create([
@@ -110,10 +112,6 @@ it('only sends booking notifications on channels the user wants', function () {
         'provider_id' => $provider->user_id,
         'service_id' => Service::where('provider_id', $provider->user_id)->value('id'),
     ]);
-
-    expect((new AppointmentConfirmedNotification($appointment))->via($user))->toBe(['database']);
-
-    $user->notification_preferences = ['email' => true, 'push' => true];
 
     expect((new AppointmentConfirmedNotification($appointment))->via($user))
         ->toBe(['mail', 'database', WebPushChannel::class]);

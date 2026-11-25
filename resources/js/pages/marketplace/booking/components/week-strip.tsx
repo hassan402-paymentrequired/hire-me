@@ -14,6 +14,8 @@ interface WeekStripProps {
     isDisabled: (date: Date) => boolean;
     maxDate: Date;
     availability: Record<string, DayAvailability>;
+    /** Hides the large page heading for use inside dialogs. */
+    compact?: boolean;
 }
 
 const weekRangeLabel = (start: Date): string => {
@@ -26,18 +28,18 @@ const weekRangeLabel = (start: Date): string => {
 };
 
 /** "Pick a time" heading with week navigation, then seven day buttons showing how open each day is. */
-export function WeekStrip({ weekStart, onWeekChange, selectedDate, onSelect, isDisabled, maxDate, availability }: WeekStripProps) {
+export function WeekStrip({ weekStart, onWeekChange, selectedDate, onSelect, isDisabled, maxDate, availability, compact = false }: WeekStripProps) {
     const thisWeek = startOfWeek(new Date(), { weekStartsOn: 1 });
     const days = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
     const canGoBack = weekStart > thisWeek;
     const canGoForward = addDays(weekStart, 7) <= startOfDay(maxDate);
 
     return (
-        <div className="flex flex-col gap-6">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-                <h1 className="text-[40px] leading-tight font-bold tracking-tight">Pick a time</h1>
-                <div className="flex items-center gap-2">
-                    <span className="mr-2 font-bold">{weekRangeLabel(weekStart)}</span>
+        <div className={cn('flex flex-col', compact ? 'gap-4' : 'gap-6')}>
+            <div className={cn('flex flex-wrap justify-between gap-3', compact ? 'items-center' : 'items-end')}>
+                {!compact && <h1 className="text-[40px] leading-tight font-bold tracking-tight">Pick a time</h1>}
+                <div className={cn('flex items-center gap-2', compact && 'w-full justify-between')}>
+                    <span className={cn('font-bold', compact ? 'text-[15px] text-moss' : 'mr-2')}>{weekRangeLabel(weekStart)}</span>
                     <button
                         type="button"
                         aria-label="Previous week"

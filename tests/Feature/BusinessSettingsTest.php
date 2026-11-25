@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\BusinessImage;
 use App\Models\BusinessProfile;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -16,6 +17,31 @@ function settingsProvider(): User
 
     return $provider;
 }
+
+test('general settings reclassifies legacy onboarding photos as banners', function () {
+    Storage::fake('public');
+    $provider = settingsProvider();
+    $path = 'business-images/legacy-banner.jpg';
+    Storage::disk('public')->put($path, 'fake-image');
+
+    $profile = $provider->businessProfile;
+    $profile->update(['logo_path' => $path]);
+    BusinessImage::query()->create([
+        'business_profile_id' => $profile->id,
+        'image_path' => $path,
+        'is_logo' => true,
+    ]);
+
+    $this->actingAs($provider)
+        ->get('/business/settings')
+        ->assertOk();
+
+    $profile->refresh();
+
+    expect($profile->logo_path)->toBeNull()
+        ->and($profile->images()->where('is_logo', false)->count())->toBe(1)
+        ->and($profile->images()->where('is_logo', true)->count())->toBe(0);
+});
 
 test('general settings page includes location and images', function () {
     $provider = settingsProvider();

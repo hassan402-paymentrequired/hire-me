@@ -32,6 +32,10 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $fillable = [
         'name',
         'email',
+        'phone',
+        'gender',
+        'date_of_birth',
+        'avatar',
         'password',
         'role',
         'referral_code',
@@ -82,19 +86,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'role' => UserRoleEnum::class,
             'is_verified' => 'boolean',
             'notification_preferences' => 'array',
-        ];
-    }
-
-    /**
-     * Channels the user wants booking updates on (all on by default).
-     *
-     * @return array{email: bool, push: bool}
-     */
-    public function notificationPreferences(): array
-    {
-        return [
-            'email' => (bool) ($this->notification_preferences['email'] ?? true),
-            'push' => (bool) ($this->notification_preferences['push'] ?? true),
+            'date_of_birth' => 'date:Y-m-d',
         ];
     }
 

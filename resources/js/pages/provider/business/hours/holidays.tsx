@@ -1,6 +1,7 @@
 import KeenIcon from '@/components/keen-icon';
 import { AppSelect } from '@/components/ui/app-select';
 import { Spinner } from '@/components/ui/spinner';
+import { DateField } from '@/pages/client/settings/components/date-field';
 import AppLayout from '@/layouts/app-layout';
 import BusinessHoursLayout from '@/layouts/business-hours/layout';
 import {
@@ -307,22 +308,27 @@ export default function BusinessHoursHolidays({
                                     className={inputClass}
                                 />
                             </label>
-                            <label className="flex flex-col gap-2">
-                                <span className="text-[13px] font-bold text-foreground">
+                            <div className="flex flex-col gap-2">
+                                <label
+                                    htmlFor="holiday-date"
+                                    className="text-[13px] font-bold text-foreground"
+                                >
                                     Date
-                                </span>
-                                <input
-                                    type="date"
+                                </label>
+                                <DateField
+                                    id="holiday-date"
                                     value={draft.date}
-                                    onChange={(e) =>
+                                    onChange={(date) =>
                                         setDraft({
                                             ...draft,
-                                            date: e.target.value,
+                                            date,
                                         })
                                     }
-                                    className={inputClass}
+                                    triggerClassName={inputClass}
+                                    fromYear={today.getFullYear() - 1}
+                                    allowFuture
                                 />
-                            </label>
+                            </div>
                             <div className="flex flex-col gap-2">
                                 <span className="text-[13px] font-bold text-foreground">
                                     On this day

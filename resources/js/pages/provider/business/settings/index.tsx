@@ -29,11 +29,13 @@ export default function BusinessSettingsGeneral({
     profile: any;
     categories: { value: string; label: string }[];
 }) {
+    const logoImage =
+        profile?.images?.find((image: any) => image.is_logo) ?? null;
     const coverBanner =
         profile?.images?.find((image: any) => !image.is_logo) ?? null;
 
     const [logoPreview, setLogoPreview] = React.useState<string | null>(
-        profile?.logo_path ?? null,
+        logoImage?.path ?? profile?.logo_path ?? null,
     );
     const [bannerPreview, setBannerPreview] = React.useState<string | null>(
         coverBanner?.path ?? null,
@@ -77,7 +79,7 @@ export default function BusinessSettingsGeneral({
 
     const discardChanges = () => {
         form.reset();
-        setLogoPreview(profile?.logo_path ?? null);
+        setLogoPreview(logoImage?.path ?? profile?.logo_path ?? null);
         setBannerPreview(coverBanner?.path ?? null);
     };
 

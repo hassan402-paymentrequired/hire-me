@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
+use App\Models\Appointment;
 use App\Models\ClientBankAccount;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
@@ -27,7 +28,7 @@ class WalletController extends Controller
         $wallet = Wallet::firstOrCreate(['user_id' => $user->id]);
 
         $transactions = WalletTransaction::where('user_id', $user->id)
-            ->with('appointment')
+            ->with(['appointment.service:id,name', 'appointment.provider.businessProfile:id,user_id,business_name'])
             ->latest()
             ->paginate(20);
 
@@ -47,6 +48,15 @@ class WalletController extends Controller
         // Get user's saved bank account (one per user)
         $bankAccount = $user->clientBankAccount;
 
+        $heldBookings = Appointment::query()
+            ->where('client_id', $user->id)
+            ->where('escrow_status', 'held')
+            ->whereNotIn('status', ['cancelled', 'completed'])
+            ->with(['service:id,name', 'provider.businessProfile:id,user_id,business_name'])
+            ->orderBy('start_time')
+            ->limit(5)
+            ->get();
+
         return Inertia::render('client/wallet/index', [
             'wallet' => [
                 'balance' => (int) $wallet->balance + (int) $wallet->escrow_balance,
@@ -63,10 +73,22 @@ class WalletController extends Controller
                     'status' => $transaction->status,
                     'description' => $transaction->description,
                     'created_at' => $transaction->created_at->format('M d, Y g:i A'),
+                    'date_label' => $transaction->created_at->format('j M'),
+                    'business_name' => $transaction->appointment?->provider?->businessProfile?->business_name,
+                    'is_held' => in_array($transaction->type, ['payment_hold', 'escrow_hold'], true)
+                        && $transaction->appointment?->escrow_status === 'held',
                     'appointment_id' => $transaction->appointment_id,
                     'reference' => $transaction->reference,
                 ];
             }),
+            'heldBookings' => $heldBookings->map(fn (Appointment $appointment): array => [
+                'id' => $appointment->id,
+                'service_name' => $appointment->service?->name ?? 'Booking',
+                'business_name' => $appointment->provider?->businessProfile?->business_name ?? $appointment->provider?->name,
+                'amount' => (float) $appointment->escrow_amount,
+                'month' => $appointment->start_time->format('M'),
+                'day' => $appointment->start_time->format('j'),
+            ])->values(),
             'withdrawals' => $withdrawals->through(function ($transaction) {
                 return [
                     'id' => $transaction->id,
@@ -91,6 +113,8 @@ class WalletController extends Controller
                 'is_configured' => (bool) $wallet->payengine_wallet_id,
                 'account_number' => $wallet->payengine_account_number,
                 'status' => $wallet->payengine_status,
+                'bank_name' => config('services.payengine.partner_bank'),
+                'account_name' => 'Proxideck / '.$user->name,
             ],
         ]);
     }

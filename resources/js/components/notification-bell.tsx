@@ -1,3 +1,4 @@
+import { EmptyState } from '@/components/site/empty-state';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -6,11 +7,17 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Spinner } from '@/components/ui/spinner';
 import { cn, formatDate } from '@/lib/utils';
-import { EmptyState } from '@/components/site/empty-state';
-import notificationPreferences from '@/routes/notification-preferences';
 import notifications from '@/routes/notifications';
 import { Link, router } from '@inertiajs/react';
-import { Bell, Check, Clock, type LucideIcon, Star, Wallet, X } from 'lucide-react';
+import {
+    Bell,
+    Check,
+    Clock,
+    type LucideIcon,
+    Star,
+    Wallet,
+    X,
+} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 const NOTIFICATIONS_POLL_INTERVAL_MS = 60_000;
@@ -44,27 +51,45 @@ async function fetchNotifications(): Promise<NotificationsResponse> {
 }
 
 async function markAsRead(id: string): Promise<void> {
-    router.post(notifications.read(id).url, {}, {
-        preserveScroll: true,
-    });
+    router.post(
+        notifications.read(id).url,
+        {},
+        {
+            preserveScroll: true,
+        },
+    );
 }
 
 async function markAllAsRead(): Promise<void> {
-    router.post(notifications.readAll().url, {}, {
-        preserveScroll: true,
-    });
+    router.post(
+        notifications.readAll().url,
+        {},
+        {
+            preserveScroll: true,
+        },
+    );
 }
 
 const groupLabel = (createdAt: string): string =>
-    new Date(createdAt).toDateString() === new Date().toDateString() ? 'Today' : 'Earlier';
+    new Date(createdAt).toDateString() === new Date().toDateString()
+        ? 'Today'
+        : 'Earlier';
 
 /** Pick an icon and colour from the notification class name. */
-function notificationKind(type: string): { icon: LucideIcon; className: string } {
-    if (/Cancel/i.test(type)) return { icon: X, className: 'bg-[#FFF1F0] text-[#B42318]' };
-    if (/Confirmed|Booked/i.test(type)) return { icon: Check, className: 'bg-lime text-forest' };
-    if (/Completed|Awaiting/i.test(type)) return { icon: Star, className: 'bg-[#FFF4D6] text-[#7A5200]' };
-    if (/Balance|Refund|Wallet/i.test(type)) return { icon: Wallet, className: 'bg-mint text-leaf' };
-    if (/Recurring|Updated|Urgent|Delayed/i.test(type)) return { icon: Clock, className: 'bg-mint text-forest' };
+function notificationKind(type: string): {
+    icon: LucideIcon;
+    className: string;
+} {
+    if (/Cancel/i.test(type))
+        return { icon: X, className: 'bg-[#FFF1F0] text-[#B42318]' };
+    if (/Confirmed|Booked/i.test(type))
+        return { icon: Check, className: 'bg-lime text-forest' };
+    if (/Completed|Awaiting/i.test(type))
+        return { icon: Star, className: 'bg-[#FFF4D6] text-[#7A5200]' };
+    if (/Balance|Refund|Wallet/i.test(type))
+        return { icon: Wallet, className: 'bg-mint text-leaf' };
+    if (/Recurring|Updated|Urgent|Delayed/i.test(type))
+        return { icon: Clock, className: 'bg-mint text-forest' };
 
     return { icon: Bell, className: 'bg-mint text-forest' };
 }
@@ -132,12 +157,19 @@ export function NotificationBell() {
         }
     }, []);
 
-    const visible = filter === 'unread' ? notifications.filter((n) => !n.read_at) : notifications;
+    const visible =
+        filter === 'unread'
+            ? notifications.filter((n) => !n.read_at)
+            : notifications;
 
     return (
         <DropdownMenu open={open} onOpenChange={setOpen}>
             <DropdownMenuTrigger
-                aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} new` : 'Notifications'}
+                aria-label={
+                    unreadCount > 0
+                        ? `Notifications, ${unreadCount} new`
+                        : 'Notifications'
+                }
                 className="relative grid size-11 place-items-center rounded-full border border-[#DDE3DE] bg-transparent transition hover:bg-black/5"
             >
                 <Bell className="size-5" />
@@ -163,7 +195,11 @@ export function NotificationBell() {
                             Mark all as read
                         </button>
                     </div>
-                    <div role="tablist" aria-label="Filter notifications" className="flex gap-1 border-b border-line">
+                    <div
+                        role="tablist"
+                        aria-label="Filter notifications"
+                        className="flex gap-1 border-b border-line"
+                    >
                         {(['all', 'unread'] as const).map((tab) => (
                             <button
                                 key={tab}
@@ -173,12 +209,16 @@ export function NotificationBell() {
                                 onClick={() => setFilter(tab)}
                                 className={cn(
                                     '-mb-px flex h-10 items-center gap-1.5 border-b-2 px-3 text-sm capitalize',
-                                    filter === tab ? 'border-forest font-bold' : 'border-transparent text-moss',
+                                    filter === tab
+                                        ? 'border-forest font-bold'
+                                        : 'border-transparent text-moss',
                                 )}
                             >
                                 {tab}
                                 {tab === 'unread' && unreadCount > 0 && (
-                                    <span className="rounded-full bg-lime px-1.5 text-xs font-bold text-forest">{unreadCount}</span>
+                                    <span className="rounded-full bg-lime px-1.5 text-xs font-bold text-forest">
+                                        {unreadCount}
+                                    </span>
                                 )}
                             </button>
                         ))}
@@ -190,7 +230,9 @@ export function NotificationBell() {
                         <Spinner className="size-6" />
                     </div>
                 ) : error ? (
-                    <p className="px-6 py-10 text-center text-sm text-moss">{error}</p>
+                    <p className="px-6 py-10 text-center text-sm text-moss">
+                        {error}
+                    </p>
                 ) : visible.length === 0 ? (
                     <EmptyState
                         illustration="notifications"
@@ -203,29 +245,67 @@ export function NotificationBell() {
                         <ul className="p-2">
                             {visible.map((n, index) => {
                                 const group = groupLabel(n.created_at);
-                                const showGroup = index === 0 || groupLabel(visible[index - 1].created_at) !== group;
+                                const showGroup =
+                                    index === 0 ||
+                                    groupLabel(
+                                        visible[index - 1].created_at,
+                                    ) !== group;
                                 const isUnread = !n.read_at;
                                 const kind = notificationKind(n.type);
                                 const content = (
-                                    <span className={cn('flex gap-3 rounded-2xl px-3.5 py-3 text-left hover:bg-paper', isUnread && 'bg-[#F3FAF5]')}>
-                                        <span className={cn('grid size-10 shrink-0 place-items-center rounded-xl', kind.className)}>
+                                    <span
+                                        className={cn(
+                                            'flex gap-3 rounded-2xl px-3.5 py-3 text-left hover:bg-paper',
+                                            isUnread && 'bg-[#F3FAF5]',
+                                        )}
+                                    >
+                                        <span
+                                            className={cn(
+                                                'grid size-10 shrink-0 place-items-center rounded-xl',
+                                                kind.className,
+                                            )}
+                                        >
                                             <kind.icon className="size-4.5" />
                                         </span>
                                         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                                            <span className={cn('text-[15px]', isUnread ? 'font-bold' : 'font-semibold')}>
-                                                {n.data?.title || 'Notification'}
+                                            <span
+                                                className={cn(
+                                                    'text-[15px]',
+                                                    isUnread
+                                                        ? 'font-bold'
+                                                        : 'font-semibold',
+                                                )}
+                                            >
+                                                {n.data?.title ||
+                                                    'Notification'}
                                             </span>
-                                            {n.data?.message && <span className="line-clamp-2 text-sm leading-snug text-moss">{n.data.message}</span>}
-                                            <span className="mt-0.5 text-xs text-moss">{formatDate(n.created_at)}</span>
+                                            {n.data?.message && (
+                                                <span className="line-clamp-2 text-sm leading-snug text-moss">
+                                                    {n.data.message}
+                                                </span>
+                                            )}
+                                            <span className="mt-0.5 text-xs text-moss">
+                                                {formatDate(n.created_at)}
+                                            </span>
                                         </span>
-                                        {isUnread && <span aria-label="Unread" className="mt-1.5 size-2.5 shrink-0 rounded-full bg-leaf" />}
+                                        {isUnread && (
+                                            <span
+                                                aria-label="Unread"
+                                                className="mt-1.5 size-2.5 shrink-0 rounded-full bg-leaf"
+                                            />
+                                        )}
                                     </span>
                                 );
-                                const markRead = () => isUnread && handleMarkAsRead(n.id);
+                                const markRead = () =>
+                                    isUnread && handleMarkAsRead(n.id);
 
                                 return (
                                     <li key={n.id}>
-                                        {showGroup && <div className="px-3.5 pt-3 pb-1.5 text-xs font-bold text-moss">{group}</div>}
+                                        {showGroup && (
+                                            <div className="px-3.5 pt-3 pb-1.5 text-xs font-bold text-moss">
+                                                {group}
+                                            </div>
+                                        )}
                                         {n.data?.action_url ? (
                                             <Link
                                                 href={n.data.action_url}
@@ -238,7 +318,11 @@ export function NotificationBell() {
                                                 {content}
                                             </Link>
                                         ) : (
-                                            <button type="button" className="block w-full" onClick={markRead}>
+                                            <button
+                                                type="button"
+                                                className="block w-full"
+                                                onClick={markRead}
+                                            >
                                                 {content}
                                             </button>
                                         )}
@@ -249,11 +333,12 @@ export function NotificationBell() {
                     </ScrollArea>
                 )}
 
-                <div className="flex items-center justify-between border-t border-line px-5.5 py-3.5">
-                    <span className="text-sm text-moss">{unreadCount > 0 ? `${unreadCount} unread` : 'Nothing new'}</span>
-                    <Link href={notificationPreferences.edit()} onClick={() => setOpen(false)} className="text-sm font-bold text-forest">
-                        Notification settings
-                    </Link>
+                <div className="border-t border-line px-5.5 py-3.5">
+                    <span className="text-sm text-moss">
+                        {unreadCount > 0
+                            ? `${unreadCount} unread`
+                            : 'Nothing new'}
+                    </span>
                 </div>
             </DropdownMenuContent>
         </DropdownMenu>

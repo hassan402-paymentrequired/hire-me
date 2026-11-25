@@ -1,5 +1,10 @@
 import { formatNaira } from '@/components/site/provider-card';
-import { EmptyState } from '@/components/site/empty-state';
+import {
+    EmptyState,
+    EmptyStateCompact,
+    emptyStateCompactActionClassName,
+    emptyStatePrimaryActionClassName,
+} from '@/components/site/empty-state';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import AccountLayout from '@/layouts/account-layout';
 import { cn, formatStatus } from '@/lib/utils';
@@ -10,7 +15,7 @@ import { booking as bookProvider } from '@/routes/marketplace';
 import reviews from '@/routes/reviews';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { Plus, Search, Star } from 'lucide-react';
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, type ReactNode, useState } from 'react';
 
 type Booking = BookingCardBooking & { has_review?: boolean };
 
@@ -198,6 +203,44 @@ export default function BookingList({ bookings = [], statusFilter = 'active', co
     const shown = upcoming ? matching : matching.slice(0, visibleCount);
     const groups = groupBookings(shown, new Date(now), upcoming);
     const awaitingReview = bookings.filter((booking) => booking.status === 'completed' && !booking.has_review).length;
+    const totalBookings = counts.all ?? 0;
+    const findAProLink = (
+        <Link href={explore.index()} className={emptyStatePrimaryActionClassName()}>
+            Find a pro
+        </Link>
+    );
+    const bookSomethingLink = (
+        <Link href={explore.index()} className={emptyStateCompactActionClassName()}>
+            Book something
+        </Link>
+    );
+
+    const filteredEmptyCopy = (): { title: string; description: string; actions?: ReactNode } => {
+        switch (statusFilter) {
+            case 'active':
+                return {
+                    title: 'No upcoming bookings',
+                    description: 'Your past visits are under the Past tab.',
+                    actions: bookSomethingLink,
+                };
+            case 'completed':
+                return {
+                    title: 'No past visits yet',
+                    description: 'After you finish an appointment, it appears here so you can rebook or leave a review.',
+                    actions: bookSomethingLink,
+                };
+            case 'cancelled':
+                return {
+                    title: 'No cancelled bookings',
+                    description: 'If you cancel a visit, it shows up here for your records.',
+                };
+            default:
+                return {
+                    title: 'Nothing in this view',
+                    description: 'Try another tab to see your bookings.',
+                };
+        }
+    };
 
     return (
         <AccountLayout
@@ -235,16 +278,18 @@ export default function BookingList({ bookings = [], statusFilter = 'active', co
             </div>
 
             {bookings.length === 0 ? (
-                <EmptyState
-                    illustration="bookings"
-                    title={upcoming ? 'No upcoming bookings' : 'No bookings here yet'}
-                    description="When you book a pro, your appointments show up here with directions and reminders."
-                    actions={
-                        <Link href={explore.index()} className="flex h-12 items-center rounded-full bg-forest px-6 text-[15px] font-bold text-white">
-                            Find a pro
-                        </Link>
-                    }
-                />
+                totalBookings === 0 ? (
+                    <EmptyState
+                        illustration="bookings"
+                        title="No bookings yet"
+                        description="When you book a pro, your appointments show up here with directions and reminders."
+                        actions={findAProLink}
+                        contextLabel="My bookings"
+                        className="bg-white"
+                    />
+                ) : (
+                    <EmptyStateCompact {...filteredEmptyCopy()} />
+                )
             ) : (
                 <div className="flex flex-col gap-4">
                     {nextUp && <NextUpCard booking={nextUp} now={now} />}

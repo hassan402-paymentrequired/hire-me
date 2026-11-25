@@ -27,6 +27,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { accountDropdownPanelClass } from '@/components/site/account-menu-nav';
 import { UserMenuContent } from '@/components/user-menu-content';
 import { useLoading } from '@/contexts/loading-context';
 import { useInitials } from '@/hooks/use-initials';
@@ -412,8 +413,9 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent
-                                        className="w-56"
                                         align="end"
+                                        sideOffset={10}
+                                        className={accountDropdownPanelClass}
                                     >
                                         <UserMenuContent user={auth.user} />
                                     </DropdownMenuContent>

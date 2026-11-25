@@ -7,6 +7,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { accountDropdownPanelClass } from '@/components/site/account-menu-nav';
 import { UserMenuContent } from '@/components/user-menu-content';
 import { useInitials } from '@/hooks/use-initials';
 import { cn } from '@/lib/utils';
@@ -111,7 +112,11 @@ export function SiteNav({ variant = 'light' }: { variant?: SiteNavVariant }) {
                                     <span className="hidden sm:inline">{user.name.split(' ')[0]}</span>
                                     <ChevronDown className="size-3.5" />
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-56" align="end">
+                                <DropdownMenuContent
+                                    align="end"
+                                    sideOffset={10}
+                                    className={accountDropdownPanelClass}
+                                >
                                     <UserMenuContent user={user} />
                                 </DropdownMenuContent>
                             </DropdownMenu>

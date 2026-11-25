@@ -267,6 +267,13 @@ class MarketplaceController extends Controller
             'isLogo' => $img->is_logo,
         ]);
 
+        $logoImage = $businessProfile->images->firstWhere('is_logo', true);
+        $logoUrl = $logoImage?->image_path
+            ? \App\Services\FileUploadService::url($logoImage->image_path, 'public')
+            : ($businessProfile->logo_path
+                ? \App\Services\FileUploadService::url($businessProfile->logo_path, 'public')
+                : null);
+
         // Latest gallery images for the profile teaser. The page shows up to four.
         $galleryImageQuery = ProviderGalleryImage::query()
             ->whereHas('galleryItem', function ($query) use ($provider, $businessProfile) {
@@ -294,6 +301,7 @@ class MarketplaceController extends Controller
                 'id' => $provider->id,
                 'name' => $provider->name,
                 'avatar' => $provider->avatar,
+                'logo' => $logoUrl,
                 'isVerified' => (bool) $provider->is_verified,
                 'businessId' => $businessProfile->id,
                 'businessName' => $businessProfile->business_name,
@@ -331,6 +339,7 @@ class MarketplaceController extends Controller
                 'autoConfirm' => (bool) ($deliverySettings['autoConfirm'] ?? false),
                 'acceptsOnlinePayment' => (bool) ($deliverySettings['accept_online_payment'] ?? true),
                 'acceptsOfflinePayment' => (bool) ($deliverySettings['accept_offline_booking'] ?? false),
+                'busyFrom' => $profileService->busyFrom($provider, now()),
             ],
             'teamMembers' => $profileService->teamMembers($provider),
             'ratingBreakdown' => $profileService->ratingBreakdown($reviews),
@@ -340,6 +349,7 @@ class MarketplaceController extends Controller
                 'description' => $service->description,
                 'duration_minutes' => $service->duration_minutes,
                 'price' => $service->price,
+                'price_is_starting' => (bool) $service->price_is_starting,
                 'service_category_id' => $service->service_category_id,
                 'service_category_name' => $service->serviceCategory?->name,
             ])->values(),

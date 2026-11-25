@@ -59,12 +59,12 @@ export default function ProfileHeader({
             <div className="-mt-9 flex flex-wrap items-end gap-4 px-[22px] pb-[22px]">
                 <label
                     className="relative shrink-0 cursor-pointer"
-                    aria-label="Change logo"
+                    aria-label="Change profile photo"
                 >
                     {logoUrl ? (
                         <img
                             src={resolveImageUrl(logoUrl)}
-                            alt="Business logo"
+                            alt="Profile photo"
                             className="size-[92px] rounded-full border-4 border-card object-cover"
                         />
                     ) : (

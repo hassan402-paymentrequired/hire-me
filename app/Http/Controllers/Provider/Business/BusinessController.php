@@ -29,6 +29,32 @@ class BusinessController extends Controller
         return $this->managedProvider()?->businessProfile;
     }
 
+    /**
+     * Older onboarding stored listing photos as logos; reclassify them as banners.
+     */
+    private function healLegacyListingPhotos(BusinessProfile $profile): void
+    {
+        if ($profile->images()->where('is_logo', false)->exists()) {
+            return;
+        }
+
+        $misclassified = $profile->images()->where('is_logo', true)->get();
+
+        if ($misclassified->isEmpty()) {
+            return;
+        }
+
+        foreach ($misclassified as $image) {
+            $image->update(['is_logo' => false]);
+        }
+
+        $misclassifiedPaths = $misclassified->pluck('image_path');
+
+        if ($profile->logo_path && $misclassifiedPaths->contains($profile->logo_path)) {
+            $profile->update(['logo_path' => null]);
+        }
+    }
+
     public function businessHours()
     {
         return Inertia::render('provider/business/hours/index', $this->businessHoursPayload());
@@ -168,6 +194,7 @@ class BusinessController extends Controller
                 'name' => $s->name,
                 'description' => $s->description,
                 'price' => $s->price,
+                'price_is_starting' => (bool) $s->price_is_starting,
                 'duration_minutes' => $s->duration_minutes,
                 'category_id' => $s->category_id,
                 'category_name' => $s->category?->name,
@@ -213,6 +240,7 @@ class BusinessController extends Controller
             ],
             'name' => 'required|string|max:255',
             'price' => 'required|numeric|min:0',
+            'price_is_starting' => 'nullable|boolean',
             'duration_minutes' => 'required|integer|min:1',
             'description' => 'nullable|string|max:1000',
             'status' => 'nullable|in:active,inactive',
@@ -236,6 +264,7 @@ class BusinessController extends Controller
             'name' => $request->name,
             'description' => $request->description,
             'price' => $request->price,
+            'price_is_starting' => $request->boolean('price_is_starting'),
             'duration_minutes' => $request->duration_minutes,
             'status' => $request->input('status', 'active'),
         ]);
@@ -256,6 +285,7 @@ class BusinessController extends Controller
             ],
             'name' => 'required|string|max:255',
             'price' => 'required|numeric|min:0',
+            'price_is_starting' => 'nullable|boolean',
             'duration_minutes' => 'required|integer|min:1',
             'description' => 'nullable|string|max:1000',
             'status' => 'nullable|in:active,inactive',
@@ -267,7 +297,10 @@ class BusinessController extends Controller
             'description',
             'price',
             'duration_minutes',
-        ]) + ['status' => $request->input('status', $service->status)]);
+        ]) + [
+            'price_is_starting' => $request->boolean('price_is_starting', (bool) $service->price_is_starting),
+            'status' => $request->input('status', $service->status),
+        ]);
 
         return back()->with('success-toast', 'Service updated successfully.');
     }
@@ -670,6 +703,12 @@ class BusinessController extends Controller
     public function settings()
     {
         $profile = $this->managedProvider()?->businessProfile()->with('images')->first();
+
+        if ($profile) {
+            $this->healLegacyListingPhotos($profile);
+            $profile->load('images');
+        }
+
         $categories = Category::orderBy('name')->get()->map(function ($category) {
             return [
                 'value' => $category->slug,
@@ -691,9 +730,11 @@ class BusinessController extends Controller
                 'zip_code' => $profile->zip_code,
                 'latitude' => $profile->latitude,
                 'longitude' => $profile->longitude,
-                'logo_path' => $profile->logo_path
-                    ? \App\Services\FileUploadService::url($profile->logo_path, 'public')
-                    : null,
+                'logo_path' => ($logoImage = $profile->images->firstWhere('is_logo', true))
+                    ? \App\Services\FileUploadService::url($logoImage->image_path, 'public')
+                    : ($profile->logo_path
+                        ? \App\Services\FileUploadService::url($profile->logo_path, 'public')
+                        : null),
                 'images' => $profile->images->map(fn ($img) => [
                     'id' => $img->id,
                     'path' => \App\Services\FileUploadService::url($img->image_path, 'public'),

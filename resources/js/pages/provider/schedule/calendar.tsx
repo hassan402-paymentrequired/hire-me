@@ -8,7 +8,6 @@ import {
     type WeeklySchedule,
 } from '@/lib/schedule';
 import { cn } from '@/lib/utils';
-import business from '@/routes/business';
 import schedule from '@/routes/schedule';
 import { Appointment, type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
@@ -725,58 +724,6 @@ export default function Calendar({
                                     </span>
                                 </div>
                             ))}
-                        </div>
-
-                        <div className="flex flex-col gap-2.5 rounded-[20px] bg-[#0E3B2E] p-[18px] text-white">
-                            <span className="flex items-center gap-2 text-[13px] font-bold text-[#C8F169]">
-                                <KeenIcon
-                                    name="night-day"
-                                    className="text-base"
-                                />
-                                Your hours
-                            </span>
-                            {businessHours ? (
-                                <ul className="flex flex-col gap-1 text-[13px] text-white/85">
-                                    {WEEK_DAYS.map((day) => {
-                                        const daySchedule = businessHours[day];
-
-                                        return (
-                                            <li
-                                                key={day}
-                                                className="flex justify-between gap-3"
-                                            >
-                                                <span>{day.slice(0, 3)}</span>
-                                                <span
-                                                    className={cn(
-                                                        !daySchedule?.isOpen &&
-                                                            'text-white/50',
-                                                    )}
-                                                >
-                                                    {daySchedule?.isOpen
-                                                        ? daySchedule.shifts
-                                                              .map(
-                                                                  (shift) =>
-                                                                      `${formatHour(toHours(shift.start))} – ${formatHour(toHours(shift.end))}`,
-                                                              )
-                                                              .join(', ')
-                                                        : 'Closed'}
-                                                </span>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            ) : (
-                                <span className="text-sm text-white/80">
-                                    You haven’t set your business hours yet.
-                                </span>
-                            )}
-                            <Link
-                                href={business.hours()}
-                                className="text-[13px] font-bold text-white"
-                                prefetch
-                            >
-                                Edit business hours →
-                            </Link>
                         </div>
                     </div>
                 </div>

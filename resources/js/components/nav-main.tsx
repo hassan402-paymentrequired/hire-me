@@ -6,7 +6,11 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { resolveUrl } from '@/lib/utils';
+import {
+    normalizePathname,
+    resolveActiveNavPath,
+    resolveUrl,
+} from '@/lib/utils';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import { LockKeyhole } from 'lucide-react';
@@ -19,6 +23,16 @@ import {
 
 export function NavMain({ items = [] }: { items: NavItem[] }) {
     const page = usePage();
+
+    const activePath = React.useMemo(() => {
+        const hrefs = items.flatMap((section) =>
+            section.links
+                .filter((link) => !link.isLocked)
+                .map((link) => link.href),
+        );
+
+        return resolveActiveNavPath(page.url, hrefs);
+    }, [items, page.url]);
 
     return (
         <SidebarGroup className="px-2 py-0">
@@ -58,7 +72,12 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                 <SidebarMenuItem key={item.title}>
                                     <SidebarMenuButton
                                         asChild
-                                        isActive={page.url?.startsWith(resolveUrl(item.href))}
+                                        isActive={
+                                            activePath !== null &&
+                                            normalizePathname(
+                                                resolveUrl(item.href),
+                                            ) === activePath
+                                        }
                                         tooltip={{ children: item.title }}
                                     >
                                         <Link href={item.href} prefetch>

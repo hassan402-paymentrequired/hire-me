@@ -46,6 +46,7 @@ return [
         'api_key' => env('PAYENGINE_API_KEY'),
         'bearer_token' => env('PAYENGINE_BEARER_TOKEN'),
         'webhook_token' => env('PAYENGINE_WEBHOOK_TOKEN'),
+        'partner_bank' => env('PAYENGINE_PARTNER_BANK'),
     ],
 
     // NVIDIA hosted models (build.nvidia.com), OpenAI-style API. Powers the Kiro assistant.

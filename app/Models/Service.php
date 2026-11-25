@@ -4,10 +4,9 @@ namespace App\Models;
 
 use App\Observers\ServiceObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUlids;
-
 
 #[ObservedBy(ServiceObserver::class)]
 class Service extends Model
@@ -23,8 +22,19 @@ class Service extends Model
         'duration_minutes',
         'buffer_time_minutes',
         'price',
+        'price_is_starting',
         'status',
     ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'price_is_starting' => 'boolean',
+        ];
+    }
 
     public function provider()
     {

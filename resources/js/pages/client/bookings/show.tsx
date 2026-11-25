@@ -8,9 +8,11 @@ import client from '@/routes/client';
 import { booking as bookProvider } from '@/routes/marketplace';
 import { show as providerShow } from '@/routes/provider';
 import wallet from '@/routes/wallet';
+import { RescheduleDialog } from '@/pages/client/bookings/components/reschedule-dialog';
+import type { ProviderSettings, ServiceTeamMembers } from '@/pages/marketplace/booking/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { CalendarPlus, ChevronLeft, Lock, MapPin, Phone, ShieldCheck, Star } from 'lucide-react';
-import { type ComponentProps, type FormEvent, type ReactNode, useState } from 'react';
+import { type ComponentProps, type FormEvent, type ReactNode, useEffect, useState } from 'react';
 
 interface Service {
     id: string;
@@ -52,6 +54,14 @@ interface Booking {
     services: Service[];
     review?: Review | Review[] | null;
     team_member?: { user: { name: string } } | null;
+    team_member_id?: string | null;
+}
+
+interface RescheduleOptions {
+    serviceTeamMembers: ServiceTeamMembers;
+    settings: ProviderSettings;
+    closedDays: string[];
+    popularHours: number[];
 }
 
 interface Props {
@@ -59,6 +69,8 @@ interface Props {
     hasFutureRecurrences?: boolean;
     providerRating: { average: number; count: number };
     policy: { changeCutoffHours: number; latePenaltyPercent: number };
+    rescheduleOptions: RescheduleOptions;
+    openReschedule?: boolean;
 }
 
 const REPORT_REASONS = [
@@ -87,10 +99,23 @@ const formatCountdown = (ms: number) => {
 
 const dateTime = (value: Date, options: Intl.DateTimeFormatOptions) => value.toLocaleString('en-NG', options);
 
-export default function BookingDetails({ booking, hasFutureRecurrences = false, providerRating, policy }: Props) {
+export default function BookingDetails({
+    booking,
+    hasFutureRecurrences = false,
+    providerRating,
+    policy,
+    rescheduleOptions,
+    openReschedule = false,
+}: Props) {
     const [now] = useState(() => Date.now());
     const [copied, setCopied] = useState(false);
-    const [dialog, setDialog] = useState<'cancel' | 'complete' | 'report' | null>(null);
+    const [dialog, setDialog] = useState<'cancel' | 'complete' | 'report' | 'reschedule' | null>(null);
+
+    useEffect(() => {
+        if (openReschedule) {
+            setDialog('reschedule');
+        }
+    }, [openReschedule]);
 
     const services = booking.services?.length ? booking.services : booking.service ? [booking.service] : [];
     const title = services.map((service) => service.name).join(', ') || 'Appointment';
@@ -110,6 +135,7 @@ export default function BookingDetails({ booking, hasFutureRecurrences = false, 
     const isFreeToChange = now < freeUntil;
     const canCancel = isActive && !hasStarted;
     const canReschedule = ['pending', 'confirmed'].includes(booking.status) && isFreeToChange;
+    const canEdit = canReschedule;
     const canMarkComplete = ['confirmed', 'pending_completion'].includes(booking.status) && end.getTime() < now;
     const daysAway = Math.ceil((start.getTime() - now) / (24 * HOUR));
     const total = services.reduce((sum, service) => sum + Number(service.price), 0) || Number(booking.price);
@@ -305,10 +331,28 @@ export default function BookingDetails({ booking, hasFutureRecurrences = false, 
                                     <strong>{formatNaira(service.price)}</strong>
                                 </div>
                             ))}
-                            {booking.notes && (
+                            {(booking.notes || canEdit) && (
                                 <div className="flex flex-col gap-2 pt-1">
-                                    <span className="text-[13px] font-bold text-moss">Your note to {pro}</span>
-                                    <p className="max-w-130 self-start rounded-[18px_18px_18px_6px] bg-mint px-4 py-3 text-[15px] leading-relaxed">{booking.notes}</p>
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="text-[13px] font-bold text-moss">Your note to {pro}</span>
+                                        {canEdit && (
+                                            <Link href={`/appointments/${booking.id}/edit`} className="text-sm font-semibold text-moss underline">
+                                                Edit
+                                            </Link>
+                                        )}
+                                    </div>
+                                    {booking.notes ? (
+                                        <p className="max-w-130 self-start rounded-[18px_18px_18px_6px] bg-mint px-4 py-3 text-[15px] leading-relaxed">{booking.notes}</p>
+                                    ) : (
+                                        canEdit && (
+                                            <Link
+                                                href={`/appointments/${booking.id}/edit`}
+                                                className="text-sm font-semibold text-forest underline"
+                                            >
+                                                Add a note for your pro
+                                            </Link>
+                                        )
+                                    )}
                                 </div>
                             )}
                             {isCancelled && booking.cancellation_reason && (
@@ -426,8 +470,20 @@ export default function BookingDetails({ booking, hasFutureRecurrences = false, 
                                     </button>
                                 )}
                                 {canReschedule && (
-                                    <Link href={`/appointments/${booking.id}/edit`} className="flex h-12.5 items-center justify-center rounded-full bg-lime text-[15px] font-bold text-forest">
+                                    <button
+                                        type="button"
+                                        onClick={() => setDialog('reschedule')}
+                                        className="flex h-12.5 items-center justify-center rounded-full bg-lime text-[15px] font-bold text-forest"
+                                    >
                                         Reschedule
+                                    </button>
+                                )}
+                                {canEdit && (
+                                    <Link
+                                        href={`/appointments/${booking.id}/edit`}
+                                        className="flex h-12.5 items-center justify-center rounded-full border border-[#DDE3DE] text-[15px] font-bold text-ink"
+                                    >
+                                        Edit booking
                                     </Link>
                                 )}
                                 {canCancel && (
@@ -477,6 +533,21 @@ export default function BookingDetails({ booking, hasFutureRecurrences = false, 
             {dialog === 'cancel' && <CancelDialog booking={booking} pro={pro} isFree={isFreeToChange} policy={policy} onClose={() => setDialog(null)} />}
             {dialog === 'complete' && <CompleteDialog bookingId={booking.id} pro={pro} onClose={() => setDialog(null)} />}
             {dialog === 'report' && <ReportDialog bookingId={booking.id} onClose={() => setDialog(null)} />}
+            {dialog === 'reschedule' && (
+                <RescheduleDialog
+                    bookingId={booking.id}
+                    providerId={booking.provider.id}
+                    serviceIds={services.map((service) => service.id)}
+                    serviceTeamMembers={rescheduleOptions.serviceTeamMembers}
+                    teamMemberId={booking.team_member_id}
+                    notes={booking.notes}
+                    currentStartTime={booking.start_time}
+                    settings={rescheduleOptions.settings}
+                    closedDays={rescheduleOptions.closedDays}
+                    popularHours={rescheduleOptions.popularHours}
+                    onClose={() => setDialog(null)}
+                />
+            )}
         </GuestLayout>
     );
 }

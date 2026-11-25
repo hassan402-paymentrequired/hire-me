@@ -116,6 +116,11 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
             Route::get('/billing', [\App\Http\Controllers\Provider\Billing\SubscriptionBillingController::class, 'index'])->name('billing');
             Route::post('/billing/subscribe', [\App\Http\Controllers\Provider\Billing\SubscriptionBillingController::class, 'subscribe'])->name('billing.subscribe');
             Route::post('/billing/cancel', [\App\Http\Controllers\Provider\Billing\SubscriptionBillingController::class, 'cancel'])->name('billing.cancel');
+            // Personal account settings shown inside the provider workspace
+            Route::redirect('/account', '/business/account/profile')->name('account');
+            Route::get('/account/profile', [\App\Http\Controllers\Settings\ProfileController::class, 'edit'])->name('account.profile');
+            Route::get('/account/password', [\App\Http\Controllers\Settings\PasswordController::class, 'edit'])->name('account.password');
+            Route::get('/account/two-factor', [\App\Http\Controllers\Settings\TwoFactorAuthenticationController::class, 'show'])->name('account.two-factor');
             Route::get('/settings', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'settings'])->name('settings');
             Route::get('/settings/advanced', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'settingsAdvanced'])->name('settings.advanced');
             Route::redirect('/settings/location', '/business/settings')->name('settings.location');

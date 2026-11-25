@@ -2,6 +2,7 @@ import KiroChat from '@/components/kiro/kiro-chat';
 import { ProviderCard } from '@/components/site/provider-card';
 import { SiteNav } from '@/components/site/site-nav';
 import GuestLayout from '@/layouts/guest-layout';
+import { cn } from '@/lib/utils';
 import { becomeProvider } from '@/routes';
 import explore from '@/routes/explore';
 import { type Provider } from '@/types';
@@ -9,6 +10,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import {
     ArrowRight,
     BadgeCheck,
+    Check,
     Droplet,
     Flower2,
     Lock,
@@ -250,22 +252,7 @@ export default function Welcome({ featuredProviders }: WelcomeProps) {
                         </div>
                     </TrustCard>
 
-                    <div className="flex flex-col overflow-hidden rounded-[28px] bg-forest text-white">
-                        <div className="flex h-55 flex-col justify-center gap-4 p-7">
-                            {['You pay a ₦5,000 deposit', 'Held by Proxideck', 'Released after your appointment'].map((label, index) => (
-                                <div key={label} className="flex items-center gap-3.5">
-                                    <span className="grid size-7 shrink-0 place-items-center rounded-full bg-lime text-forest">
-                                        {index === 1 ? <Lock className="size-3.5" /> : <span className="text-xs font-bold">{index + 1}</span>}
-                                    </span>
-                                    <span className="text-[15px] font-semibold">{label}</span>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="flex flex-col gap-1.5 border-t border-white/10 px-7 pt-6 pb-7">
-                            <div className="text-xl font-bold">Your money waits with us</div>
-                            <p className="leading-relaxed text-sage">No-show or cancelled by the pro? Your deposit goes straight back to your wallet.</p>
-                        </div>
-                    </div>
+                    <EscrowTrustCard />
 
                     <TrustCard title="Reviews you can trust" text="Only people who actually completed a booking can leave one.">
                         <div className="flex flex-col gap-2.5 rounded-2xl border border-line bg-white p-4">
@@ -299,6 +286,84 @@ export default function Welcome({ featuredProviders }: WelcomeProps) {
 
             <KiroChat />
         </GuestLayout>
+    );
+}
+
+const escrowSteps = [
+    {
+        label: 'You pay ₦5,000 deposit',
+        day: 'Mon',
+        icon: 'check' as const,
+        labelClassName: 'font-semibold text-white',
+    },
+    {
+        label: 'Held by Proxideck',
+        day: 'Mon–Sat',
+        icon: 'lock' as const,
+        labelClassName: 'font-semibold text-white',
+    },
+    {
+        label: 'Released after your appointment',
+        day: 'Sat',
+        icon: 'pending' as const,
+        labelClassName: 'text-[#C9E2D3]',
+    },
+];
+
+function EscrowTrustCard() {
+    return (
+        <div className="flex flex-col overflow-hidden rounded-[28px] border border-forest bg-forest text-white">
+            <div className="flex h-55 flex-col justify-center px-7 py-7">
+                {escrowSteps.map((step, index) => (
+                    <div key={step.label}>
+                        <div className="flex items-center gap-3.5">
+                            {step.icon === 'check' && (
+                                <span className="grid size-7 shrink-0 place-items-center rounded-full bg-lime text-forest">
+                                    <Check
+                                        className="size-3.5"
+                                        strokeWidth={3}
+                                        aria-hidden
+                                    />
+                                </span>
+                            )}
+                            {step.icon === 'lock' && (
+                                <span className="grid size-7 shrink-0 place-items-center rounded-full bg-lime text-forest">
+                                    <Lock className="size-3.5" aria-hidden />
+                                </span>
+                            )}
+                            {step.icon === 'pending' && (
+                                <span
+                                    className="size-7 shrink-0 rounded-full border-2 border-dashed border-lime/60"
+                                    aria-hidden
+                                />
+                            )}
+                            <span
+                                className={`flex-1 text-[15px] ${step.labelClassName}`}
+                            >
+                                {step.label}
+                            </span>
+                            <span className="text-xs text-sage">{step.day}</span>
+                        </div>
+                        {index < escrowSteps.length - 1 && (
+                            <div
+                                className={cn(
+                                    'ml-[13px] h-[18px] w-0.5',
+                                    index === 0 ? 'bg-lime' : 'bg-lime/35',
+                                )}
+                                aria-hidden
+                            />
+                        )}
+                    </div>
+                ))}
+            </div>
+            <div className="flex flex-col gap-1.5 border-t border-white/10 px-7 pt-6 pb-7">
+                <div className="text-xl font-bold">Your money waits with us</div>
+                <p className="text-[15px] leading-relaxed text-sage">
+                    No-show or cancelled by the pro? Your deposit goes straight
+                    back to your wallet.
+                </p>
+            </div>
+        </div>
     );
 }
 

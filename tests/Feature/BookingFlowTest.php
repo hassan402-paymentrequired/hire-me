@@ -574,3 +574,130 @@ it('when the provider sets a home service fee then only positive amounts are kep
     'negative' => ['-5', null],
     'text' => ['free', null],
 ]);
+
+it('when the client hits the reschedule link then they land on booking details ready to pick a new time', function () {
+    $setup = bookingFlowProvider();
+    $client = bookingFlowClient();
+
+    $this->actingAs($client)->post(route('appointments.store'), [
+        'provider_id' => $setup['provider']->id,
+        'service_ids' => [$setup['silk']->id],
+        'start_time' => '2026-11-25T11:30:00',
+        'payment_option' => 'online',
+    ])->assertRedirect();
+
+    $appointment = Appointment::sole();
+
+    $this->actingAs($client)
+        ->get(route('appointments.reschedule', $appointment->id))
+        ->assertRedirect(route('client.bookings.show', $appointment->id))
+        ->assertSessionHas('openReschedule', true);
+});
+
+it('when the client reschedules then only the appointment time changes', function () {
+    $setup = bookingFlowProvider();
+    $client = bookingFlowClient();
+
+    $this->actingAs($client)->post(route('appointments.store'), [
+        'provider_id' => $setup['provider']->id,
+        'service_ids' => [$setup['silk']->id],
+        'start_time' => '2026-11-25T11:30:00',
+        'payment_option' => 'online',
+    ])->assertRedirect();
+
+    $appointment = Appointment::sole();
+    $originalPrice = (float) $appointment->price;
+
+    $this->actingAs($client)
+        ->put(route('appointments.update', $appointment->id), [
+            'service_ids' => [$setup['silk']->id],
+            'start_time' => '2026-11-26T14:00:00',
+            'notes' => $appointment->notes,
+            'team_member_id' => $appointment->team_member_id,
+        ])
+        ->assertRedirect(route('client.bookings.show', $appointment->id));
+
+    $appointment->refresh();
+
+    expect($appointment->start_time->format('Y-m-d H:i'))->toBe('2026-11-26 14:00')
+        ->and((float) $appointment->price)->toBe($originalPrice)
+        ->and($appointment->services->sole()->id)->toBe($setup['silk']->id);
+});
+
+it('when the client edits services without changing the time then the booking updates', function () {
+    $setup = bookingFlowProvider();
+    $client = bookingFlowClient();
+
+    $this->actingAs($client)->post(route('appointments.store'), [
+        'provider_id' => $setup['provider']->id,
+        'service_ids' => [$setup['silk']->id],
+        'start_time' => '2026-11-25T11:30:00',
+        'payment_option' => 'online',
+        'notes' => 'Keep the length',
+    ])->assertRedirect();
+
+    $appointment = Appointment::sole();
+
+    $this->actingAs($client)
+        ->put(route('appointments.update', $appointment->id), [
+            'service_ids' => [$setup['silk']->id, $setup['gel']->id],
+            'start_time' => $appointment->start_time->toIso8601String(),
+            'notes' => 'Keep the length and shape',
+            'service_team_members' => [
+                $setup['silk']->id => $setup['amara']->id,
+                $setup['gel']->id => $setup['kemi']->id,
+            ],
+        ])
+        ->assertRedirect(route('client.bookings.show', $appointment->id));
+
+    $appointment->refresh();
+
+    expect($appointment->notes)->toBe('Keep the length and shape')
+        ->and($appointment->services->pluck('id')->sort()->values()->all())
+        ->toBe(collect([$setup['silk']->id, $setup['gel']->id])->sort()->values()->all())
+        ->and($appointment->start_time->format('Y-m-d H:i'))->toBe('2026-11-25 11:30')
+        ->and($appointment->team_member_id)->toBeNull();
+});
+
+it('when the client opens the edit screen then it uses the redesigned booking form', function () {
+    $setup = bookingFlowProvider();
+    $client = bookingFlowClient();
+
+    $this->actingAs($client)->post(route('appointments.store'), [
+        'provider_id' => $setup['provider']->id,
+        'service_ids' => [$setup['silk']->id],
+        'start_time' => '2026-11-25T11:30:00',
+        'payment_option' => 'online',
+    ])->assertRedirect();
+
+    $appointment = Appointment::sole();
+
+    $this->actingAs($client)
+        ->get(route('appointments.edit', $appointment->id))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/bookings/edit')
+            ->has('serviceTeamMembers')
+            ->has('policy.changeCutoffHours'));
+});
+
+it('when the client opens booking details then reschedule slot data is available', function () {
+    $setup = bookingFlowProvider();
+    $client = bookingFlowClient();
+
+    $this->actingAs($client)->post(route('appointments.store'), [
+        'provider_id' => $setup['provider']->id,
+        'service_ids' => [$setup['silk']->id],
+        'start_time' => '2026-11-25T11:30:00',
+        'payment_option' => 'online',
+    ])->assertRedirect();
+
+    $appointment = Appointment::sole();
+
+    $this->actingAs($client)
+        ->get(route('client.bookings.show', $appointment->id))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('rescheduleOptions.serviceTeamMembers')
+            ->has('rescheduleOptions.settings')
+            ->has('rescheduleOptions.closedDays')
+            ->has('rescheduleOptions.popularHours'));
+});

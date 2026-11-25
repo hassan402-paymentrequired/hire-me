@@ -1,12 +1,15 @@
 <?php
 
 use App\Models\Appointment;
+use App\Models\BusinessImage;
 use App\Models\BusinessProfile;
 use App\Models\Review;
 use App\Models\Service;
 use App\Models\TeamMember;
 use App\Models\User;
+use App\Models\WorkHour;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
 function profileProvider(array $settings = []): array
@@ -58,6 +61,28 @@ function acceptedMember(User $provider, string $name, string $role = 'staff', bo
         'accepted_at' => $accepted ? now() : null,
     ]);
 }
+
+it('when a business profile photo exists then the page exposes it as the provider logo', function () {
+    Storage::fake('public');
+    [$provider, $profile] = profileProvider();
+    $path = 'business-logos/glow.jpg';
+    Storage::disk('public')->put($path, 'logo');
+
+    BusinessImage::query()->create([
+        'business_profile_id' => $profile->id,
+        'image_path' => $path,
+        'is_logo' => true,
+    ]);
+    $profile->update(['logo_path' => $path]);
+
+    $logoUrl = \App\Services\FileUploadService::url($path, 'public');
+
+    $this->get(route('provider.show', $profile->slug))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('provider.logo', $logoUrl)
+            ->where('teamMembers.0.avatar', $logoUrl));
+});
 
 it('when reviews exist then the page receives a five-to-one star breakdown', function () {
     [$provider, $profile, $service] = profileProvider();
@@ -160,4 +185,64 @@ it('when booking settings are configured then the good-to-know flags reflect the
             ->where('provider.autoConfirm', true)
             ->where('provider.acceptsOnlinePayment', false)
             ->where('provider.acceptsOfflinePayment', true));
+});
+
+it('when a service has a starting price then the page flags it', function () {
+    [$provider, $profile, $service] = profileProvider();
+    $service->update(['price_is_starting' => true]);
+
+    $this->get(route('provider.show', $profile->slug))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('services.0.price_is_starting', true));
+});
+
+it('when the rest of today is booked then the page shows when it gets busy', function () {
+    Carbon::setTestNow(Carbon::parse('2026-11-25 10:30', 'Africa/Lagos'));
+    [$provider, $profile, $service] = profileProvider();
+    WorkHour::create([
+        'provider_id' => $provider->id,
+        'day_of_week' => 'Wednesday',
+        'start_time' => '09:00',
+        'end_time' => '20:00',
+        'is_closed' => false,
+    ]);
+    Appointment::factory()->create([
+        'provider_id' => $provider->id,
+        'client_id' => User::factory()->create()->id,
+        'service_id' => $service->id,
+        'status' => 'confirmed',
+        'start_time' => Carbon::parse('2026-11-25 17:00'),
+        'end_time' => Carbon::parse('2026-11-25 20:00'),
+    ]);
+
+    $this->get(route('provider.show', $profile->slug))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('provider.busyFrom', '5 pm'));
+});
+
+it('when today still has free time before closing then no busy time is shown', function () {
+    Carbon::setTestNow(Carbon::parse('2026-11-25 10:30', 'Africa/Lagos'));
+    [$provider, $profile, $service] = profileProvider();
+    WorkHour::create([
+        'provider_id' => $provider->id,
+        'day_of_week' => 'Wednesday',
+        'start_time' => '09:00',
+        'end_time' => '20:00',
+        'is_closed' => false,
+    ]);
+    Appointment::factory()->create([
+        'provider_id' => $provider->id,
+        'client_id' => User::factory()->create()->id,
+        'service_id' => $service->id,
+        'status' => 'confirmed',
+        'start_time' => Carbon::parse('2026-11-25 14:00'),
+        'end_time' => Carbon::parse('2026-11-25 16:00'),
+    ]);
+
+    $this->get(route('provider.show', $profile->slug))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('provider.busyFrom', null));
 });

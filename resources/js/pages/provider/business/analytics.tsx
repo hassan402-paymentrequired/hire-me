@@ -1,4 +1,5 @@
 import KeenIcon from '@/components/keen-icon';
+import { EmptyStateInset } from '@/components/site/empty-state';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import business from '@/routes/business';
@@ -433,12 +434,16 @@ export default function Analytics({
                                 All services →
                             </Link>
                         </div>
-                        {topServices.length === 0 && (
-                            <span className="py-6 text-center text-sm text-muted-foreground">
-                                No bookings in this period yet.
-                            </span>
-                        )}
-                        {topServices.map((service) => {
+                        {topServices.length === 0 ? (
+                            <EmptyStateInset
+                                borderTop
+                                illustration="reviews"
+                                className="min-h-[200px] justify-center"
+                                title="No service data yet"
+                                description="When clients book you in this period, your best-performing services show up here."
+                            />
+                        ) : (
+                            topServices.map((service) => {
                             const share = Math.round(
                                 (service.revenue / totalServiceRevenue) * 100,
                             );
@@ -470,7 +475,8 @@ export default function Analytics({
                                     </div>
                                 </div>
                             );
-                        })}
+                            })
+                        )}
                     </section>
 
                     <section
@@ -678,12 +684,16 @@ export default function Analytics({
                         <h2 className="mb-1.5 font-[Sora] text-lg font-semibold text-foreground">
                             Where clients come from
                         </h2>
-                        {geographicData.length === 0 && (
-                            <span className="py-6 text-center text-sm text-muted-foreground">
-                                No location data yet.
-                            </span>
-                        )}
-                        {geographicData.slice(0, 5).map((item) => (
+                        {geographicData.length === 0 ? (
+                            <EmptyStateInset
+                                borderTop
+                                illustration="search"
+                                className="min-h-[200px] justify-center"
+                                title="No location data yet"
+                                description="Areas show up here once clients book and share where they’re coming from."
+                            />
+                        ) : (
+                            geographicData.slice(0, 5).map((item) => (
                             <div
                                 key={item.location}
                                 className="flex items-center gap-3 border-t border-[#0E3B2E]/[0.07] py-2.5 dark:border-white/10"
@@ -713,7 +723,8 @@ export default function Analytics({
                                     </div>
                                 </div>
                             </div>
-                        ))}
+                            ))
+                        )}
                     </section>
                 </div>
             </div>

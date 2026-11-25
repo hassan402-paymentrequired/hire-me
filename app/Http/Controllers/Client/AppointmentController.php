@@ -132,18 +132,30 @@ class AppointmentController extends Controller
             'start_time' => 'required|date',
             'notes' => 'nullable|string|max:500',
             'team_member_id' => 'nullable|exists:team_members,id',
+            'service_team_members' => 'nullable|array',
+            'service_team_members.*' => 'nullable|string',
             'client_address_id' => 'nullable|exists:client_addresses,id',
             'use_business_address' => 'nullable|boolean',
             'set_address_active' => 'nullable|boolean',
         ]);
 
         $provider = $appointment->provider->load('businessProfile');
-        $selectedTeamMember = $this->resolveSelectedTeamMember($provider->id, $request->team_member_id);
-        if ($request->filled('team_member_id') && ! $selectedTeamMember) {
+        $serviceIds = array_values($request->service_ids);
+        $segmentTeamMembers = $this->availability->resolveTeamMembers(
+            $provider->id,
+            $serviceIds,
+            (array) $request->input('service_team_members', []),
+            $request->team_member_id,
+        );
+        if ($segmentTeamMembers === null) {
             return back()->withErrors([
                 'team_member_id' => 'The selected team member is no longer available.',
             ]);
         }
+
+        $teamMemberIds = collect($segmentTeamMembers)->map(fn (?TeamMember $member) => $member?->id)->values()->all();
+        $uniquePros = array_unique(array_filter($teamMemberIds));
+        $sharedTeamMemberId = count($uniquePros) === 1 ? reset($uniquePros) : null;
 
         $settings = ProviderSettings::resolve($provider->businessProfile->settings ?? []);
         $providerBufferTimeMinutes = (int) ($settings['bufferTime'] ?? 0);
@@ -168,7 +180,7 @@ class AppointmentController extends Controller
             return back()->with('error-toast', 'The selected time is outside the provider’s working hours.');
         }
 
-        if ($this->availability->conflicts($provider->id, $startTime, $endTime, $maxBuffer, [$selectedTeamMember?->id], $appointment->id)) {
+        if ($this->availability->conflicts($provider->id, $startTime, $endTime, $maxBuffer, $teamMemberIds, $appointment->id)) {
             return back()->with('error-toast', 'This time slot was just booked. Please select another time.');
         }
 
@@ -229,7 +241,7 @@ class AppointmentController extends Controller
                 'status' => $autoConfirm ? 'confirmed' : 'pending',
                 'price' => $totalPrice,
                 'notes' => $request->notes,
-                'team_member_id' => $selectedTeamMember?->id,
+                'team_member_id' => $sharedTeamMemberId,
                 'provider_approved' => $autoConfirm,
                 'provider_approved_at' => $autoConfirm ? now() : null,
                 ...$this->resolveAppointmentServiceAddressData(
@@ -237,7 +249,11 @@ class AppointmentController extends Controller
                     ...$this->serviceAddressInputsForBooking($request, $settings),
                 ),
             ]);
-            $appointment->services()->sync($request->service_ids);
+            $appointment->services()->sync(
+                collect($segmentTeamMembers)->mapWithKeys(fn (?TeamMember $member, string $serviceId) => [
+                    $serviceId => ['team_member_id' => $member?->id],
+                ])->all(),
+            );
 
             $message = 'Appointment updated successfully!';
 
@@ -303,7 +319,7 @@ class AppointmentController extends Controller
     public function show($id)
     {
         $appointment = Appointment::where('client_id', auth()->id())
-            ->with(['provider.businessProfile', 'services', 'review', 'teamMember.user'])
+            ->with(['provider.businessProfile', 'services' => fn ($query) => $query->withPivot('team_member_id'), 'review', 'teamMember.user'])
             ->findOrFail($id);
 
         $parent = $appointment->recurrence_parent_id
@@ -316,6 +332,14 @@ class AppointmentController extends Controller
                 ->where('status', '!=', 'cancelled')
                 ->exists()
             : false;
+
+        $providerId = $appointment->provider_id;
+        $settings = ProviderSettings::resolve($appointment->provider->businessProfile->settings ?? []);
+        $serviceTeamMembers = [];
+        foreach ($appointment->services as $service) {
+            $proId = $service->pivot->team_member_id ?? $appointment->team_member_id;
+            $serviceTeamMembers[$service->id] = $proId ? (string) $proId : '';
+        }
 
         return Inertia::render('client/bookings/show', [
             'booking' => [
@@ -335,6 +359,13 @@ class AppointmentController extends Controller
                 'changeCutoffHours' => self::APPOINTMENT_CHANGE_CUTOFF_HOURS,
                 'latePenaltyPercent' => self::LATE_CANCELLATION_PENALTY_PERCENT,
             ],
+            'rescheduleOptions' => [
+                'serviceTeamMembers' => $serviceTeamMembers,
+                'settings' => $settings,
+                'closedDays' => $this->closedWeekdays($providerId),
+                'popularHours' => $this->popularBookingHours($providerId),
+            ],
+            'openReschedule' => (bool) session('openReschedule'),
         ]);
     }
 
@@ -985,19 +1016,19 @@ class AppointmentController extends Controller
         }
     }
 
-    public function reschedule($id)
+    public function reschedule($id): RedirectResponse
     {
-        $appointment = Appointment::where('client_id', auth()->id())
-            ->with('services')
-            ->findOrFail($id);
+        $appointment = Appointment::where('client_id', auth()->id())->findOrFail($id);
 
-        return redirect()->route('appointments.edit', ['id' => $appointment->id]);
+        return redirect()
+            ->route('client.bookings.show', $appointment->id)
+            ->with('openReschedule', true);
     }
 
     public function edit($id)
     {
         $appointment = Appointment::where('client_id', auth()->id())
-            ->with(['provider.businessProfile', 'services'])
+            ->with(['provider.businessProfile', 'services' => fn ($query) => $query->withPivot('team_member_id')])
             ->findOrFail($id);
 
         // Only allow editing for future appointments and at least the cutoff window before start
@@ -1011,16 +1042,17 @@ class AppointmentController extends Controller
         $provider = $appointment->provider;
         $businessProfile = $provider->businessProfile;
 
-        $settings = $businessProfile->settings ?? [];
-
-        $walletBalance = null;
-        if (auth()->check()) {
-            $wallet = Wallet::firstOrCreate(['user_id' => auth()->id()]);
-            $walletBalance = $wallet->balance;
+        $serviceTeamMembers = [];
+        foreach ($appointment->services as $service) {
+            $proId = $service->pivot->team_member_id ?? $appointment->team_member_id;
+            $serviceTeamMembers[$service->id] = $proId ? (string) $proId : '';
         }
+
+        $wallet = Wallet::firstOrCreate(['user_id' => auth()->id()]);
 
         $services = $provider->services()
             ->where('status', 'active')
+            ->with('serviceCategory')
             ->get();
 
         return Inertia::render('client/bookings/edit', [
@@ -1030,37 +1062,35 @@ class AppointmentController extends Controller
                 'end_time' => $appointment->end_time?->toIso8601String(),
                 'notes' => $appointment->notes,
                 'price' => (float) $appointment->price,
-                'service_ids' => $appointment->services->pluck('id'),
-                'team_member_id' => $appointment->team_member_id,
+                'service_ids' => $appointment->services->pluck('id')->values()->all(),
+                'payment_method' => $appointment->payment_method,
+                'escrow_status' => $appointment->escrow_status,
             ],
+            'serviceTeamMembers' => $serviceTeamMembers,
             'provider' => [
                 'id' => $provider->id,
                 'name' => $provider->name,
                 'businessName' => $businessProfile->business_name,
                 'address' => $businessProfile->address,
                 'slug' => $businessProfile->slug,
+                'canBook' => true,
                 'logo' => $businessProfile->images->where('is_logo', true)->first()?->image_path
                     ? \App\Services\FileUploadService::url($businessProfile->images->where('is_logo', true)->first()->image_path, 'public')
                     : null,
             ],
-            'services' => $services->map(function ($service) {
-                return [
-                    'id' => $service->id,
-                    'name' => $service->name,
-                    'description' => $service->description,
-                    'duration' => $service->duration_minutes,
-                    'price' => $service->price,
-                ];
-            }),
-            'walletBalance' => $walletBalance,
+            'services' => $services->map(fn (Service $service): array => [
+                'id' => $service->id,
+                'name' => $service->name,
+                'description' => $service->description,
+                'duration' => $service->duration_minutes,
+                'price' => $service->price,
+                'categoryId' => $service->service_category_id,
+                'categoryName' => $service->serviceCategory?->name,
+            ])->values(),
+            'walletBalance' => (float) $wallet->balance,
             'teamMembers' => $this->eligibleTeamMembersForProvider($provider),
-            'settings' => [
-                'advanceBooking' => $settings['advanceBooking'] ?? '30',
-                'minNotice' => $settings['minNotice'] ?? null,
-                'allowSameDay' => $settings['allowSameDay'] ?? false,
-                'autoConfirm' => $settings['autoConfirm'] ?? $settings['auto_confirm'] ?? false,
-                'max_bookings_per_week' => $settings['max_bookings_per_week'] ?? null,
-                'max_bookings_per_month' => $settings['max_bookings_per_month'] ?? null,
+            'policy' => [
+                'changeCutoffHours' => self::APPOINTMENT_CHANGE_CUTOFF_HOURS,
             ],
         ]);
     }
@@ -1273,5 +1303,46 @@ class AppointmentController extends Controller
             $request->boolean('use_business_address'),
             $request->boolean('set_address_active'),
         ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function closedWeekdays(string $providerId): array
+    {
+        $openDays = WorkHour::query()
+            ->where('provider_id', $providerId)
+            ->where('is_closed', false)
+            ->whereNotNull('start_time')
+            ->pluck('day_of_week')
+            ->unique();
+
+        if ($openDays->isEmpty()) {
+            return [];
+        }
+
+        return collect(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'])
+            ->diff($openDays)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function popularBookingHours(string $providerId): array
+    {
+        return Appointment::query()
+            ->where('provider_id', $providerId)
+            ->where('status', '!=', 'cancelled')
+            ->where('start_time', '>=', now()->subDays(90))
+            ->get(['start_time'])
+            ->countBy(fn (Appointment $appointment): int => $appointment->start_time->hour)
+            ->filter(fn (int $count): bool => $count >= 3)
+            ->sortDesc()
+            ->keys()
+            ->take(2)
+            ->values()
+            ->all();
     }
 }
