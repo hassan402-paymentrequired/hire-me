@@ -17,6 +17,7 @@ class SupportController extends Controller
 
         return Inertia::render('guest/pages/contact', [
             'title' => 'Contact Us',
+            'support' => config('app.support'),
             'prefill' => [
                 'name' => $user?->name ?? '',
                 'email' => $user?->email ?? '',

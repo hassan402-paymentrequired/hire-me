@@ -3,16 +3,17 @@
 namespace App\Notifications;
 
 use App\Models\Appointment;
+use App\Notifications\Concerns\RespectsNotificationPreferences;
 use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use NotificationChannels\WebPush\WebPushChannel;
 
 class AwaitingClientConfirmation extends Notification implements ShouldQueue
 {
     use Queueable, SendsWebPush;
+    use RespectsNotificationPreferences;
 
     protected Appointment $appointment;
 
@@ -26,7 +27,7 @@ class AwaitingClientConfirmation extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail', 'database', WebPushChannel::class];
+        return $this->bookingChannels($notifiable);
     }
 
     public function toMail(object $notifiable): MailMessage

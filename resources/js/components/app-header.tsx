@@ -27,6 +27,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { accountDropdownPanelClass } from '@/components/site/account-menu-nav';
 import { UserMenuContent } from '@/components/user-menu-content';
 import { useLoading } from '@/contexts/loading-context';
 import { useInitials } from '@/hooks/use-initials';
@@ -48,7 +49,7 @@ interface NavItem {
 }
 
 const mainNavItems = (auth?: any): NavItem[] => [
-    { title: 'Marketplace', href: '/#marketplace' },
+    { title: 'Marketplace', href: '/explore' },
     { title: 'Faq', href: '/faqs' },
     { title: 'Contact', href: '/contact' },
     { title: 'About Us', href: '/about' },
@@ -243,7 +244,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
 
                     {/* ── Logo ── */}
                     <Link
-                        href="/#marketplace"
+                        href="/explore"
                         prefetch
                         className="flex shrink-0 items-center"
                     >
@@ -412,8 +413,9 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent
-                                        className="w-56"
                                         align="end"
+                                        sideOffset={10}
+                                        className={accountDropdownPanelClass}
                                     >
                                         <UserMenuContent user={auth.user} />
                                     </DropdownMenuContent>

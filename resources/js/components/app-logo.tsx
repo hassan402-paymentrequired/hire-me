@@ -1,25 +1,14 @@
-import AppLogoIcon from './app-logo-icon';
-import BrandMark from './brand-mark';
+import BrandLogo from './brand-logo';
 
-export default function AppLogo({
-    variant = 'default',
-}: {
-    variant?: 'default' | 'sidebar';
-}) {
+export default function AppLogo({ variant = 'default' }: { variant?: 'default' | 'sidebar' }) {
     if (variant === 'sidebar') {
-        return (
-            <div className="flex items-center gap-2.5">
-                <BrandMark className="size-8 shrink-0" onDark />
-                <span className="font-[Sora] text-lg font-bold tracking-[-0.03em] text-white group-data-[collapsible=icon]:hidden">
-                    proxideck
-                </span>
-            </div>
-        );
+        return <BrandLogo onDark className="[&>span:last-child]:text-lg group-data-[collapsible=icon]:[&>span:last-child]:hidden" />;
     }
 
     return (
-        <div>
-            <AppLogoIcon />
-        </div>
+        <>
+            <BrandLogo className="dark:hidden" />
+            <BrandLogo onDark className="hidden dark:inline-flex" />
+        </>
     );
 }

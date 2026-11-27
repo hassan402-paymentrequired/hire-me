@@ -58,7 +58,10 @@ export interface User {
     id: number;
     name: string;
     email: string;
-    avatar?: string;
+    avatar?: string | null;
+    phone?: string | null;
+    gender?: string | null;
+    date_of_birth?: string | null;
     email_verified_at: string | null;
     role: 'client' | 'provider';
     has_provider_setup?: boolean;

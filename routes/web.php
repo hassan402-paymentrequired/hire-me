@@ -16,6 +16,7 @@ Route::post('/kiro/chat', \App\Http\Controllers\KiroChatController::class)
 
 Route::middleware(['provider.setup'])->group(function () {
     Route::get('/', [\App\Http\Controllers\Guest\GuestController::class, 'welcome'])->name('home');
+    Route::get('/explore', [\App\Http\Controllers\Guest\GuestController::class, 'explore'])->name('explore.index');
     Route::get('/find-on-map', [\App\Http\Controllers\Guest\GuestController::class, 'findOnMap'])->name('find-on-map');
     Route::get('/provider/{slug}', [\App\Http\Controllers\Client\MarketplaceController::class, 'show'])->name('provider.show');
     Route::get('/provider/{slug}/gallery', [\App\Http\Controllers\Client\MarketplaceController::class, 'gallery'])->name('provider.gallery');
@@ -63,6 +64,10 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
     Route::patch('/client-addresses/{clientAddress}', [\App\Http\Controllers\Client\ClientAddressController::class, 'update'])->name('client-addresses.update');
     Route::delete('/client-addresses/{clientAddress}', [\App\Http\Controllers\Client\ClientAddressController::class, 'destroy'])->name('client-addresses.destroy');
     Route::get('/appointments/slots', [\App\Http\Controllers\Client\AppointmentController::class, 'availableSlots'])->name('slots');
+    Route::get('/appointments/slots/week', [\App\Http\Controllers\Client\BookingAvailabilityController::class, 'week'])->name('slots.week');
+    Route::get('/appointments/next-available', [\App\Http\Controllers\Client\BookingAvailabilityController::class, 'nextAvailable'])->name('slots.next-available');
+    Route::post('/promo-codes/check', [\App\Http\Controllers\Client\PromoCodeController::class, 'check'])->middleware('throttle:20,1')->name('promo-codes.check');
+    Route::post('/booking-waitlist', [\App\Http\Controllers\Client\BookingWaitlistController::class, 'store'])->name('booking-waitlist.store');
     // Become a Provider (available to all authenticated users)
     Route::get('/become-provider', [\App\Http\Controllers\Provider\BecomeProviderController::class, 'index'])->name('become-provider');
     Route::post('/become-provider', [\App\Http\Controllers\Provider\BecomeProviderController::class, 'store'])->name('become-provider.store');
@@ -111,12 +116,20 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
             Route::get('/billing', [\App\Http\Controllers\Provider\Billing\SubscriptionBillingController::class, 'index'])->name('billing');
             Route::post('/billing/subscribe', [\App\Http\Controllers\Provider\Billing\SubscriptionBillingController::class, 'subscribe'])->name('billing.subscribe');
             Route::post('/billing/cancel', [\App\Http\Controllers\Provider\Billing\SubscriptionBillingController::class, 'cancel'])->name('billing.cancel');
+            // Personal account settings shown inside the provider workspace
+            Route::redirect('/account', '/business/account/profile')->name('account');
+            Route::get('/account/profile', [\App\Http\Controllers\Settings\ProfileController::class, 'edit'])->name('account.profile');
+            Route::get('/account/password', [\App\Http\Controllers\Settings\PasswordController::class, 'edit'])->name('account.password');
+            Route::get('/account/two-factor', [\App\Http\Controllers\Settings\TwoFactorAuthenticationController::class, 'show'])->name('account.two-factor');
             Route::get('/settings', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'settings'])->name('settings');
             Route::get('/settings/advanced', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'settingsAdvanced'])->name('settings.advanced');
             Route::redirect('/settings/location', '/business/settings')->name('settings.location');
             Route::redirect('/settings/appearance', '/business/settings')->name('settings.appearance');
             Route::post('/settings', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateGeneralSettings'])->name('settings.update');
             Route::post('/settings/advanced', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'updateAdvancedSettings'])->name('settings.advanced.update');
+            Route::post('/promo-codes', [\App\Http\Controllers\Provider\Business\PromoCodeController::class, 'store'])->name('promo-codes.store');
+            Route::patch('/promo-codes/{id}', [\App\Http\Controllers\Provider\Business\PromoCodeController::class, 'update'])->name('promo-codes.update');
+            Route::delete('/promo-codes/{id}', [\App\Http\Controllers\Provider\Business\PromoCodeController::class, 'destroy'])->name('promo-codes.destroy');
 
             // Integration (Widget)
             Route::get('/integration', [\App\Http\Controllers\Provider\Integration\IntegrationController::class, 'index'])->name('integration.index');
@@ -152,6 +165,7 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
     // Client Appointments
     Route::prefix('appointments')->name('appointments.')->group(function () {
         Route::post('/', [\App\Http\Controllers\Client\AppointmentController::class, 'store'])->name('store');
+        Route::get('/checkout/callback', [\App\Http\Controllers\Client\AppointmentController::class, 'checkoutCallback'])->name('checkout.callback');
         Route::put('/{id}', [\App\Http\Controllers\Client\AppointmentController::class, 'update'])->name('update');
         Route::post('/{id}/cancel-remaining-recurrences', [\App\Http\Controllers\Client\AppointmentController::class, 'cancelRemainingRecurrences'])->name('cancel-remaining');
         Route::post('/{id}/cancel', [\App\Http\Controllers\Client\AppointmentController::class, 'cancel'])->name('cancel');
@@ -165,6 +179,8 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
     Route::prefix('my-bookings')->name('client.bookings.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Client\AppointmentController::class, 'index'])->name('index');
         Route::get('/{id}', [\App\Http\Controllers\Client\AppointmentController::class, 'show'])->name('show');
+        Route::get('/{id}/booked', [\App\Http\Controllers\Client\BookingConfirmationController::class, 'show'])->name('booked');
+        Route::get('/{id}/calendar.ics', [\App\Http\Controllers\Client\BookingConfirmationController::class, 'calendar'])->name('calendar');
     });
 
     // Web Push: store/remove browser push subscription
@@ -218,6 +234,7 @@ Route::middleware(['auth', 'verified', 'provider.setup'])->group(function () {
         Route::post('/verification/submit', [\App\Http\Controllers\Provider\VerificationController::class, 'store'])->name('verification.submit');
     });
 
+    Route::get('/favourites', [\App\Http\Controllers\Client\FavouriteController::class, 'index'])->name('favourites.index');
     Route::post('/mark-as-favourite', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'markFavourites'])->name('favourite.update');
     Route::get('/service/favourite', [\App\Http\Controllers\Provider\Business\BusinessController::class, 'getUserFav'])->name('favourite.index');
 

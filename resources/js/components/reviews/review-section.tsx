@@ -17,12 +17,14 @@ interface ReviewSectionProps {
     reviews: Review[];
     canReview: boolean;
     pendingAppointmentId: string | null;
+    composerOnly?: boolean;
 }
 
 export const ReviewSection = ({
     reviews,
     canReview,
     pendingAppointmentId,
+    composerOnly = false,
 }: ReviewSectionProps) => {
     const [isWriting, setIsWriting] = useState(false);
     const { data, setData, post, processing, reset, errors } = useForm({
@@ -54,26 +56,42 @@ export const ReviewSection = ({
         });
     };
 
+    if (composerOnly && !canReview && !isWriting) {
+        return null;
+    }
+
     return (
-        <div className="space-y-8">
+        <div className={composerOnly ? 'space-y-4' : 'space-y-8'}>
             <div className="flex items-center justify-between gap-4">
-                <div className="space-y-1">
-                    <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-                        Reviews
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        {reviews.length}{' '}
-                        {reviews.length === 1 ? 'review' : 'reviews'}
-                    </p>
-                </div>
-                {canReview && !isWriting && (
-                    <Button
-                        onClick={() => setIsWriting(true)}
-                        className="shrink-0"
-                    >
-                        Write a Review
-                    </Button>
+                {!composerOnly && (
+                    <div className="space-y-1">
+                        <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+                            Reviews
+                        </h2>
+                        <p className="text-sm text-muted-foreground">
+                            {reviews.length}{' '}
+                            {reviews.length === 1 ? 'review' : 'reviews'}
+                        </p>
+                    </div>
                 )}
+                {canReview &&
+                    !isWriting &&
+                    (composerOnly ? (
+                        <button
+                            type="button"
+                            onClick={() => setIsWriting(true)}
+                            className="text-sm font-medium text-[#0E3B2E] underline-offset-4 hover:underline dark:text-emerald-300"
+                        >
+                            Write a review
+                        </button>
+                    ) : (
+                        <Button
+                            onClick={() => setIsWriting(true)}
+                            className="shrink-0"
+                        >
+                            Write a Review
+                        </Button>
+                    ))}
             </div>
 
             {isWriting && (
@@ -174,7 +192,7 @@ export const ReviewSection = ({
                 </form>
             )}
 
-            {reviews.length === 0 ? (
+            {!composerOnly && reviews.length === 0 && (
                 <div className="rounded-3xl border border-dashed border-border/80 bg-muted/20 px-6 py-12 text-center">
                     <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-background text-muted-foreground shadow-sm">
                         <MessageSquare className="size-6" />
@@ -188,10 +206,11 @@ export const ReviewSection = ({
                         tone.
                     </p>
                 </div>
-            ) : (
+            )}
+
+            {!composerOnly && reviews.length > 0 && (
                 <div className="grid gap-6">
                     {reviews.map((review) => (
-                    
                         <div key={review.id}>
                             <div className="mt-6 space-y-4">
                                 <div className="flex flex-col items-start gap-3 sm:flex-row">
@@ -201,7 +220,7 @@ export const ReviewSection = ({
                                         alt="user avatar"
                                     />
                                     <div>
-                                        <h4 className="text-sm capitalize font-semibold text-slate-900 dark:text-slate-50">
+                                        <h4 className="text-sm font-semibold text-slate-900 capitalize dark:text-slate-50">
                                             {review.client_name}
                                         </h4>
 

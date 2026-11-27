@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>About Proxideck</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:'Satoshi';src:url('/_blob/aa99b90ef361c613c9d43e57b82b3414') format('woff2');font-weight:300 900;font-style:normal;font-display:swap}
+body{margin:0;background:#FFFFFF}
+a{color:#0E3B2E}a:hover{color:#13201B}
+.ab *{box-sizing:border-box}
+</style>
+</helmet>
+<div class="ab" style="font-family: 'Satoshi', system-ui, sans-serif; color: #13201B; background: #FFFFFF;">
+
+  <!-- Hero on banner -->
+  <section style="position: relative; overflow: hidden; background: #0B3227;">
+    <img src="/_blob/a3af140719150ee9eef5b57357fd1c46" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;">
+    <div style="position: absolute; inset: 0; background: rgba(11,50,39,0.62);"></div>
+    <div style="position: relative;"><dc-import name="SiteNav" variant="dark" show-search="{{no}}" hint-size="100%,80px"></dc-import></div>
+    <div style="position: relative; max-width: 1240px; margin: 0 auto; padding: 96px 24px 120px; display: flex; flex-direction: column; gap: 24px;">
+      <span style="font-size: 16px; font-weight: 700; color: #C8F169;">About Proxideck</span>
+      <h1 style="margin: 0; font-size: 72px; line-height: 1; font-weight: 700; letter-spacing: -0.035em; color: #FFFFFF; max-width: 980px;">Good work deserves to be found. Good customers deserve to be <span style="color: #C8F169;">sure.</span></h1>
+      <p style="margin: 0; font-size: 20px; line-height: 1.6; color: #C9E2D3; max-width: 640px;">Proxideck connects people with the stylists, barbers, cleaners and technicians around them, and makes booking them feel as easy as ordering a ride.</p>
+    </div>
+  </section>
+
+  <!-- Story -->
+  <section style="max-width: 1240px; margin: 0 auto; padding: 112px 24px 0; display: flex; flex-wrap: wrap; gap: 64px;">
+    <h2 style="flex: 1 1 380px; margin: 0; font-size: 44px; line-height: 1.08; font-weight: 700; letter-spacing: -0.02em;">Booking a pro shouldn’t take ten DMs and a prayer.</h2>
+    <div style="flex: 1.2 1 460px; display: flex; flex-direction: column; gap: 20px; font-size: 18px; line-height: 1.7; color: #33392D;">
+      <p style="margin: 0;">Finding someone good usually means asking around, scrolling through Instagram, sending voice notes about prices, then hoping they actually show up. Pros have it just as hard: no-shows, last-minute haggling and payments that never arrive.</p>
+      <p style="margin: 0;">We built Proxideck to fix both sides. Customers see real prices, real reviews and real availability. Pros get a booking page, a calendar and a wallet that pays them, without chasing anyone.</p>
+    </div>
+  </section>
+
+  <!-- Principles: editorial numbered list -->
+  <section style="max-width: 1240px; margin: 0 auto; padding: 112px 24px 0; display: flex; flex-direction: column; gap: 8px;">
+    <h2 style="margin: 0 0 24px; font-size: 18px; font-weight: 700; color: #1F6B43;">What we hold ourselves to</h2>
+    <sc-for list="{{principles}}" as="p" hint-placeholder-count="4">
+      <div style="display: flex; gap: 40px; align-items: baseline; padding: 32px 0; border-top: 1px solid #E6EBE7; flex-wrap: wrap;">
+        <span style="flex: 0 0 120px; font-size: 64px; font-weight: 700; color: #C8F169; -webkit-text-stroke: 1.5px #0E3B2E; letter-spacing: -0.04em; line-height: 1;">{{p.n}}</span>
+        <h3 style="flex: 1 1 300px; margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.01em;">{{p.title}}</h3>
+        <p style="flex: 1.2 1 360px; margin: 0; font-size: 17px; line-height: 1.65; color: #4A5A52;">{{p.text}}</p>
+      </div>
+    </sc-for>
+  </section>
+
+  <!-- Two audiences -->
+  <section style="max-width: 1240px; margin: 0 auto; padding: 112px 24px 0;">
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
+      <div style="background: #E6F4EC; border-radius: 32px; padding: 48px; display: flex; flex-direction: column; gap: 18px; min-height: 360px;">
+        <span style="font-size: 15px; font-weight: 700; color: #1F6B43;">For customers</span>
+        <h3 style="margin: 0; font-size: 36px; line-height: 1.1; font-weight: 700; letter-spacing: -0.02em;">Find someone good, near you, today.</h3>
+        <p style="margin: 0; font-size: 17px; line-height: 1.6; color: #4A5A52;">Compare prices and reviews, pick a time that suits you, and pay a protected deposit from your wallet.</p>
+        <a href="Marketplace.dc.html" style="margin-top: auto; align-self: flex-start; height: 52px; padding: 0 24px; border-radius: 999px; background: #0E3B2E; color: #FFFFFF; font-size: 16px; font-weight: 700; text-decoration: none; display: flex; align-items: center;">Explore venues</a>
+      </div>
+      <div style="background: #0E3B2E; color: #FFFFFF; border-radius: 32px; padding: 48px; display: flex; flex-direction: column; gap: 18px; min-height: 360px;">
+        <span style="font-size: 15px; font-weight: 700; color: #C8F169;">For pros</span>
+        <h3 style="margin: 0; font-size: 36px; line-height: 1.1; font-weight: 700; letter-spacing: -0.02em;">Spend your time on the work, not the admin.</h3>
+        <p style="margin: 0; font-size: 17px; line-height: 1.6; color: #A9C7B8;">A booking page, team calendar, deposits paid into your wallet, and reviews that build your name.</p>
+        <a href="#" style="margin-top: auto; align-self: flex-start; height: 52px; padding: 0 24px; border-radius: 999px; background: #C8F169; color: #0E3B2E; font-size: 16px; font-weight: 700; text-decoration: none; display: flex; align-items: center;">List your business</a>
+      </div>
+    </div>
+  </section>
+
+  <div style="height: 112px;"></div>
+  <dc-import name="SiteFooter" hint-size="100%,640px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      no: false,
+      principles: [
+        { n: '01', title: 'Show the real price', text: 'Prices are on the page before you book. What you see is what you pay, unless you add something on the day.' },
+        { n: '02', title: 'Protect both sides', text: 'Deposits sit in escrow, so customers are covered if a pro doesn’t show, and pros are covered if a customer doesn’t.' },
+        { n: '03', title: 'Earn every review', text: 'Only completed bookings can be reviewed. No bought stars, no fake praise.' },
+        { n: '04', title: 'Built for here', text: 'Naira pricing, bank-transfer top-ups, home service across the city. Made for how Lagos actually books.' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

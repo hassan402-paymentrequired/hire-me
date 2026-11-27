@@ -1,22 +1,25 @@
 import PasswordController from '@/actions/App/Http/Controllers/Settings/PasswordController';
 import InputError from '@/components/input-error';
 import AppLayout from '@/layouts/app-layout';
-import SettingsLayout from '@/layouts/settings/layout';
+import SettingsLayout, {
+    SettingsSection,
+    settingsInputClass,
+    settingsPrimaryButtonClass,
+} from '@/layouts/settings/layout';
 import { type BreadcrumbItem } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Form, Head } from '@inertiajs/react';
 import { useRef } from 'react';
 
-import HeadingSmall from '@/components/heading-small';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { edit } from '@/routes/user-password';
+import { Spinner } from '@/components/ui/spinner';
+import account from '@/routes/business/account';
+import { Check } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Password settings',
-        href: edit().url,
+        href: account.password().url,
     },
 ];
 
@@ -29,12 +32,10 @@ export default function Password() {
             <Head title="Password settings" />
 
             <SettingsLayout>
-                <div className="space-y-6">
-                    <HeadingSmall
-                        title="Update password"
-                        description="Ensure your account is using a long, random password to stay secure"
-                    />
-
+                <SettingsSection
+                    title="Update password"
+                    description="Use a long, unique password you don't use anywhere else."
+                >
                     <Form
                         {...PasswordController.update.form()}
                         options={{
@@ -55,21 +56,21 @@ export default function Password() {
                                 currentPasswordInput.current?.focus();
                             }
                         }}
-                        className="space-y-6"
+                        className="flex flex-col gap-4"
                     >
                         {({ errors, processing, recentlySuccessful }) => (
                             <>
-                                <div className="grid gap-2">
+                                <div className="flex flex-col gap-2">
                                     <Label htmlFor="current_password">
                                         Current password
                                     </Label>
 
-                                    <Input
+                                    <input
                                         id="current_password"
                                         ref={currentPasswordInput}
                                         name="current_password"
                                         type="password"
-                                        className="mt-1 block w-full"
+                                        className={settingsInputClass}
                                         autoComplete="current-password"
                                         placeholder="Current password"
                                     />
@@ -79,17 +80,17 @@ export default function Password() {
                                     />
                                 </div>
 
-                                <div className="grid gap-2">
+                                <div className="flex flex-col gap-2">
                                     <Label htmlFor="password">
                                         New password
                                     </Label>
 
-                                    <Input
+                                    <input
                                         id="password"
                                         ref={passwordInput}
                                         name="password"
                                         type="password"
-                                        className="mt-1 block w-full"
+                                        className={settingsInputClass}
                                         autoComplete="new-password"
                                         placeholder="New password"
                                     />
@@ -97,16 +98,16 @@ export default function Password() {
                                     <InputError message={errors.password} />
                                 </div>
 
-                                <div className="grid gap-2">
+                                <div className="flex flex-col gap-2">
                                     <Label htmlFor="password_confirmation">
                                         Confirm password
                                     </Label>
 
-                                    <Input
+                                    <input
                                         id="password_confirmation"
                                         name="password_confirmation"
                                         type="password"
-                                        className="mt-1 block w-full"
+                                        className={settingsInputClass}
                                         autoComplete="new-password"
                                         placeholder="Confirm password"
                                     />
@@ -116,13 +117,16 @@ export default function Password() {
                                     />
                                 </div>
 
-                                <div className="flex items-center gap-4">
-                                    <Button
+                                <div className="flex items-center gap-3 border-t border-[#0E3B2E]/10 pt-4 dark:border-white/10">
+                                    <button
+                                        type="submit"
                                         disabled={processing}
                                         data-test="update-password-button"
+                                        className={settingsPrimaryButtonClass}
                                     >
+                                        {processing && <Spinner />}
                                         Save password
-                                    </Button>
+                                    </button>
 
                                     <Transition
                                         show={recentlySuccessful}
@@ -131,7 +135,8 @@ export default function Password() {
                                         leave="transition ease-in-out"
                                         leaveTo="opacity-0"
                                     >
-                                        <p className="text-sm text-neutral-600">
+                                        <p className="flex items-center gap-1.5 text-sm font-semibold text-[#0E3B2E] dark:text-[#C8F169]">
+                                            <Check className="size-4" />
                                             Saved
                                         </p>
                                     </Transition>
@@ -139,7 +144,7 @@ export default function Password() {
                             </>
                         )}
                     </Form>
-                </div>
+                </SettingsSection>
             </SettingsLayout>
         </AppLayout>
     );

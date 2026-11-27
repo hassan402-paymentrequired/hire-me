@@ -1,4 +1,10 @@
 import KeenIcon from '@/components/keen-icon';
+import {
+    EmptyState,
+    EmptyStateCompact,
+    emptyStateCompactActionClassName,
+    emptyStatePrimaryActionClassName,
+} from '@/components/site/empty-state';
 import { Pagination } from '@/components/pagination';
 import { Button } from '@/components/ui/button';
 import {
@@ -223,6 +229,11 @@ export default function Appointments({
         return groups;
     }, [appointments.data]);
 
+    const hasSearch = Boolean(searchTerm.trim());
+    const isFilteredView = statusFilter !== 'all' || hasSearch;
+    const totalAppointments = appointments.total ?? 0;
+    const listIsEmpty = groupedByDay.length === 0;
+
     const handleSearch = (value: string) => {
         setSearchTerm(value);
         searchAppointments(value);
@@ -364,25 +375,49 @@ export default function Appointments({
                 <div className="flex flex-wrap items-start gap-6">
                     {/* List */}
                     <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-[22px]">
-                        {groupedByDay.length === 0 ? (
-                            <div
-                                className={cn(
-                                    cardClass,
-                                    'flex flex-col items-center gap-2 border-dashed py-14 text-center',
-                                )}
-                            >
-                                <KeenIcon
-                                    name="electronic-clock"
-                                    className="text-3xl text-[#A9C7B8]"
-                                />
-                                <p className="font-semibold text-foreground">
-                                    No appointments found
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                    Try a different search term or status
-                                    filter.
-                                </p>
-                            </div>
+                        {listIsEmpty && totalAppointments === 0 && !isFilteredView ? (
+                            <EmptyState
+                                illustration="bookings"
+                                title="No appointments yet"
+                                description="When clients book with you, requests and confirmed visits show up here."
+                                actions={
+                                    <Link
+                                        href={schedule.calender.index()}
+                                        className={emptyStatePrimaryActionClassName()}
+                                    >
+                                        Open calendar
+                                    </Link>
+                                }
+                                contextLabel="Appointments"
+                                className="bg-card"
+                            />
+                        ) : listIsEmpty ? (
+                            <EmptyStateCompact
+                                title={
+                                    hasSearch
+                                        ? 'No clients match that search'
+                                        : 'No appointments in this filter'
+                                }
+                                description={
+                                    hasSearch
+                                        ? 'Try another name or clear search to see everyone on your list.'
+                                        : 'Try another status tab or clear filters to see your full schedule.'
+                                }
+                                actions={
+                                    isFilteredView ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSearchTerm('');
+                                                handleStatusChange('all');
+                                            }}
+                                            className={emptyStateCompactActionClassName()}
+                                        >
+                                            Clear filters
+                                        </button>
+                                    ) : undefined
+                                }
+                            />
                         ) : (
                             groupedByDay.map((group) => (
                                 <section

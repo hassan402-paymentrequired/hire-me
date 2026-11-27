@@ -18,9 +18,29 @@ use Laravel\Fortify\Features;
 class GuestController extends Controller
 {
     /**
-     * Optimized welcome page with aggressive caching and query optimization.
+     * Landing page: hero, categories and a few top-rated providers.
      */
-    public function welcome(Request $request)
+    public function welcome()
+    {
+        $featuredProviders = Cache::tags([CacheKey::PROVIDERS->value, CacheKey::MARKETPLACE->value])->remember(
+            CacheKey::PROVIDER_MARKETPLACE->value.'featured',
+            now()->addMinutes(10),
+            fn () => collect($this->fetchProviders(null, null, null, null, null, null, 'rating_desc', 1)->resolve())
+                ->take(4)
+                ->values()
+                ->all()
+        );
+
+        return Inertia::render('guest/welcome', [
+            'canRegister' => Features::enabled(Features::registration()),
+            'featuredProviders' => $featuredProviders,
+        ]);
+    }
+
+    /**
+     * Marketplace: searchable, filterable provider listing with caching.
+     */
+    public function explore(Request $request)
     {
         $user = $request->user();
         $activeAddress = $user?->activeClientAddress;
@@ -33,6 +53,7 @@ class GuestController extends Controller
         }
 
         $search = $request->search;
+        $location = $request->location;
         $category = $request->category !== 'For You' ? $request->category : null;
         $minRating = $request->min_rating ? (float) $request->min_rating : null;
         $sort = $request->input('sort', 'recommended');
@@ -51,6 +72,7 @@ class GuestController extends Controller
             'lat' => $lat,
             'lng' => $lng,
             'search' => $search,
+            'location' => $location,
             'category' => $category,
             'min_rating' => $minRating,
             'sort' => $sort,
@@ -61,7 +83,7 @@ class GuestController extends Controller
         $providers = Cache::tags([CacheKey::PROVIDERS->value, CacheKey::MARKETPLACE->value])->remember(
             $cacheKey,
             now()->addMinutes(5),
-            fn () => $this->fetchProviders($lat, $lng, $search, $category, $minRating, $sort, $page)
+            fn () => $this->fetchProviders($lat, $lng, $search, $location, $category, $minRating, $sort, $page)
         );
 
         $categories = Cache::tags(['categories'])->remember(
@@ -70,8 +92,7 @@ class GuestController extends Controller
             fn () => Category::orderBy('name')->get(['name', 'slug'])
         );
 
-        return Inertia::render('guest/welcome', [
-            'canRegister' => Features::enabled(Features::registration()),
+        return Inertia::render('guest/explore', [
             'providers' => Inertia::scroll(fn () => $providers),
             'categories' => $categories,
             'favoriteBusinessIds' => $user
@@ -82,6 +103,7 @@ class GuestController extends Controller
                 : [],
             'filters' => [
                 'search' => $search,
+                'location' => $location,
                 'category' => $request->category,
                 'lat' => $lat,
                 'lng' => $lng,
@@ -115,6 +137,7 @@ class GuestController extends Controller
         ?float $lat,
         ?float $lng,
         ?string $search,
+        ?string $location,
         ?string $category,
         ?float $minRating,
         string $sort,
@@ -184,11 +207,20 @@ class GuestController extends Controller
         if ($search) {
             $searchTerm = "%{$search}%";
             $query->where(function ($q) use ($searchTerm) {
-                $q->whereLike('users.name', 'like', $searchTerm)
+                $q->whereLike('users.name', $searchTerm)
                     ->orWhereLike('business_profiles.business_name', $searchTerm)
                     ->orWhereLike('business_profiles.description', $searchTerm)
                     ->orWhereLike('business_profiles.address', $searchTerm)
                     ->orWhereLike('business_profiles.city', $searchTerm);
+            });
+        }
+
+        if ($location) {
+            $locationTerm = "%{$location}%";
+            $query->where(function ($q) use ($locationTerm) {
+                $q->whereLike('business_profiles.address', $locationTerm)
+                    ->orWhereLike('business_profiles.city', $locationTerm)
+                    ->orWhereLike('business_profiles.state', $locationTerm);
             });
         }
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
+use App\Services\FileUploadService;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,11 +20,12 @@ class ProfileController extends Controller
     public function edit(Request $request): Response
     {
         $user = $request->user();
-        $page = $user->has_provider_setup ? 'settings/profile' : 'client/settings/profile';
-        
+        $page = $request->routeIs('business.account.*') ? 'settings/profile' : 'client/settings/profile';
+
         return Inertia::render($page, [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
+            'genders' => ProfileUpdateRequest::GENDERS,
             'googleCalendar' => [
                 'connected' => (bool) $user->googleCalendarAccount,
                 'email' => $user->googleCalendarAccount?->google_email,
@@ -39,15 +41,23 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
+        $user->fill($request->profileAttributes());
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
         }
 
-        $request->user()->save();
+        if ($request->hasFile('avatar')) {
+            $path = FileUploadService::upload($request->file('avatar'), 'avatars', 'public');
+            $user->avatar = FileUploadService::url($path, 'public');
+        } elseif ($request->boolean('remove_avatar')) {
+            $user->avatar = null;
+        }
 
-        return to_route('profile.edit');
+        $user->save();
+
+        return back(fallback: route('profile.edit'));
     }
 
     /**

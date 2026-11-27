@@ -1,16 +1,9 @@
-import { AppSelect } from '@/components/ui/app-select';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import KeenIcon from '@/components/keen-icon';
 import AppLayout from '@/layouts/app-layout';
 import business from '@/routes/business';
 import { BreadcrumbItem } from '@/types';
-import { InboxArrowDownIcon } from '@heroicons/react/24/solid';
-import { Head, router, useForm } from '@inertiajs/react';
-import { Mail, User } from 'lucide-react';
-import { useState } from 'react';
-import InviteModal from './components/invite-modal';
+import { Head, Link, router } from '@inertiajs/react';
+import { TeamInviteEmailForm } from './components/team-invite-email-form';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -22,232 +15,49 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: business.team.index().url,
     },
     {
-        title: 'Add Team Member',
+        title: 'Invite by email',
         href: '',
     },
 ];
 
+const card =
+    'rounded-[20px] border border-[#0E3B2E]/10 bg-card shadow-[0_1px_2px_rgba(19,32,27,0.04)] dark:border-white/10';
+
 export default function TeamCreate() {
-    const { data, setData, processing, errors, setError, reset } = useForm({
-        name: '',
-        email: '',
-        role: 'staff',
-    });
-    const [inviteModalOpen, setInviteModalOpen] = useState(false);
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        router.post(business.team.index().url, data, {
-            preserveScroll: true,
-            onError: (error) => {
-                if (error?.exists) {
-                    setInviteModalOpen(true);
-                } else {
-                    setError(error);
-                }
-            },
-        });
-    };
-
-    const handleAccept = () => {
-        router.post(business.team.invite().url, data, {
-            preserveScroll: true,
-            onSuccess: () => {
-                setInviteModalOpen(false);
-                reset();
-            },
-        });
-    };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <InviteModal
-                showDialog={inviteModalOpen}
-                setShowDialog={setInviteModalOpen}
-                dialogIcon={<InboxArrowDownIcon className="size-12" />}
-                title="Invite team member"
-                description="The user you are trying to add already exists on the platform. Do you want to send them a team invitation instead?"
-                acceptLabel="Send invite"
-                rejectLabel="Cancel"
-                handleAccept={handleAccept}
-                handleReject={() => {
-                    setInviteModalOpen(false);
-                    reset();
-                }}
-            />
+            <Head title="Invite by email" />
 
-            <Head title="Add Team Member" />
-            <div className="mx-auto w-full max-w-6xl space-y-6 p-4">
-                <div className="flex items-center gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight">
-                            Add Team Member
+            <div className="flex flex-col gap-[22px] p-4 md:p-6">
+                <header className="flex flex-wrap items-end gap-3">
+                    <div className="flex flex-[1_1_300px] flex-col gap-1">
+                        <Link
+                            href={business.team.index().url}
+                            className="flex w-fit items-center gap-1.5 text-[13px] font-bold text-[#0E3B2E] dark:text-[#C8F169]"
+                        >
+                            <KeenIcon name="arrow-left" className="text-sm" />
+                            Team members
+                        </Link>
+                        <h1 className="font-[Sora] text-[28px] font-bold tracking-[-0.02em] text-foreground">
+                            Invite by email
                         </h1>
-                        <p className="text-muted-foreground">
-                            Invite a user to join your team
-                        </p>
+                        <span className="text-sm text-muted-foreground">
+                            Send a personal invitation to someone on your team.
+                        </span>
                     </div>
-                </div>
+                </header>
 
-                <Card className="w-full">
-                    <CardHeader>
-                        <CardTitle>Team Member Details</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            <div className="space-y-2">
-                                <Label htmlFor="email">
-                                    Name{' '}
-                                    <span className="text-destructive">*</span>
-                                </Label>
-                                <div className="relative">
-                                    <User className="absolute top-3 left-3 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        id="name"
-                                        type="name"
-                                        placeholder="e.g John doe"
-                                        className="pl-10"
-                                        value={data.name}
-                                        onChange={(e) =>
-                                            setData('name', e.target.value)
-                                        }
-                                        required
-                                    />
-                                </div>
-                                {errors.name && (
-                                    <p className="text-sm text-destructive">
-                                        {errors.name}
-                                    </p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="email">
-                                    Email Address{' '}
-                                    <span className="text-destructive">*</span>
-                                </Label>
-                                <div className="relative">
-                                    <Mail className="absolute top-3 left-3 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        placeholder="user@example.com"
-                                        className="pl-10"
-                                        value={data.email}
-                                        onChange={(e) =>
-                                            setData('email', e.target.value)
-                                        }
-                                        required
-                                    />
-                                </div>
-                                {errors.email && (
-                                    <p className="text-sm text-destructive">
-                                        {errors.email}
-                                    </p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="role">
-                                    Role{' '}
-                                    <span className="text-destructive">*</span>
-                                </Label>
-                                <AppSelect
-                                    id="role"
-                                    value={data.role}
-                                    onChange={(value) =>
-                                        setData(
-                                            'role',
-                                            value as 'admin' | 'staff',
-                                        )
-                                    }
-                                    searchable={false}
-                                    options={[
-                                        {
-                                            value: 'admin',
-                                            label: 'Admin',
-                                            description:
-                                                'Full access to manage business',
-                                            icon: 'shield-tick',
-                                        },
-                                        {
-                                            value: 'staff',
-                                            label: 'Staff',
-                                            description:
-                                                'Can manage appointments and services',
-                                            icon: 'user',
-                                        },
-                                    ]}
-                                />
-                                {errors.role && (
-                                    <p className="text-sm text-destructive">
-                                        {errors.role}
-                                    </p>
-                                )}
-                            </div>
-
-                            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:bg-blue-950/20">
-                                <h4 className="mb-2 font-medium text-blue-900 dark:text-blue-100">
-                                    Role Permissions
-                                </h4>
-                                <ul className="space-y-1 text-sm text-blue-800 dark:text-blue-200">
-                                    {data.role === 'admin' ? (
-                                        <>
-                                            <li>
-                                                • Full access to all business
-                                                settings
-                                            </li>
-                                            <li>• Can manage team members</li>
-                                            <li>
-                                                • Can manage appointments and
-                                                services
-                                            </li>
-                                            <li>
-                                                • Can view analytics and reports
-                                            </li>
-                                            <li>
-                                                • Can manage business hours and
-                                                settings
-                                            </li>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <li>
-                                                • Can view and manage
-                                                appointments
-                                            </li>
-                                            <li>• Can view services</li>
-                                            <li>
-                                                • Cannot modify business
-                                                settings
-                                            </li>
-                                            <li>
-                                                • Cannot manage team members
-                                            </li>
-                                        </>
-                                    )}
-                                </ul>
-                            </div>
-
-                            <div className="flex items-center justify-end gap-4">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() =>
-                                        router.visit(business.team.index().url)
-                                    }
-                                >
-                                    Cancel
-                                </Button>
-                                <Button type="submit" disabled={processing}>
-                                    {processing
-                                        ? 'Adding...'
-                                        : 'Add Team Member'}
-                                </Button>
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
+                <section className={`${card} max-w-xl p-6 md:p-7`}>
+                    <TeamInviteEmailForm
+                        showCancel
+                        onCancel={() =>
+                            router.visit(business.team.index().url)
+                        }
+                        onSuccess={() => {
+                            router.visit(business.team.index().url);
+                        }}
+                    />
+                </section>
             </div>
         </AppLayout>
     );

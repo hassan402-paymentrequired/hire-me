@@ -1,21 +1,11 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import BrandMark from '@/components/brand-mark';
 import { cn } from '@/lib/utils';
 
-export default function AppLogoIcon({ className, ...props }: any) {
+export default function AppLogoIcon({ className }: { className?: string }) {
     return (
         <>
-            <img
-                {...props}
-                src="/brand/logo/proxideck-logo-primary.svg"
-                alt="Proxideck"
-                className={cn('size-9 dark:hidden', className)}
-            />
-            <img
-                {...props}
-                src="/brand/logo/proxideck-logo-reversed.svg"
-                alt="Proxideck"
-                className={cn('hidden size-9 dark:block', className)}
-            />
+            <BrandMark className={cn('size-9 dark:hidden', className)} />
+            <BrandMark onDark className={cn('hidden size-9 dark:block', className)} />
         </>
     );
 }

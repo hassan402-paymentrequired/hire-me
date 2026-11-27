@@ -48,3 +48,12 @@ test('correct password must be provided to update password', function () {
         ->assertSessionHasErrors('current_password')
         ->assertRedirect(route('user-password.edit'));
 });
+test('security page shows whether two-factor is on', function () {
+    $user = User::factory()->withoutTwoFactor()->create();
+
+    $this->actingAs($user)
+        ->get(route('user-password.edit'))
+        ->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+            ->component('client/settings/password')
+            ->where('twoFactorEnabled', false));
+});

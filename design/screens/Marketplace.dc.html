@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Explore pros</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:'Satoshi';src:url('/_blob/aa99b90ef361c613c9d43e57b82b3414') format('woff2');font-weight:300 900;font-style:normal;font-display:swap}
+body{margin:0;background:#FFFFFF}
+a{color:#0E3B2E}a:hover{color:#13201B}
+.mk *{box-sizing:border-box}
+.mk button,.mk input,.mk select{font-family:inherit}
+.mk button{cursor:pointer}
+.mk .card:hover .ph{box-shadow:0 12px 30px rgba(19,32,27,.14)}
+.mk .slot:hover{background:#0E3B2E;color:#FFFFFF;border-color:#0E3B2E}
+.mk .chip:hover{border-color:#A9C7B8}
+</style>
+</helmet>
+<div class="mk" style="font-family: 'Satoshi', system-ui, sans-serif; color: #13201B; background: #FFFFFF;">
+
+  <!-- Search header on banner -->
+  <section style="position: relative; overflow: hidden; background: #0B3227;">
+    <img src="/_blob/a3af140719150ee9eef5b57357fd1c46" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;">
+    <div style="position: absolute; inset: 0; background: rgba(11,50,39,0.66);"></div>
+    <div style="position: relative;"><dc-import name="SiteNav" variant="dark" auth="user" hint-size="100%,80px"></dc-import></div>
+    <div style="position: relative; max-width: 1240px; margin: 0 auto; padding: 56px 24px 64px; display: flex; flex-direction: column; gap: 28px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap;">
+        <h1 style="margin: 0; font-size: 56px; line-height: 1.02; font-weight: 700; letter-spacing: -0.03em; color: #FFFFFF; max-width: 640px;">Good hands, <span style="color: #C8F169;">right around the corner.</span></h1>
+        <p style="margin: 0; font-size: 17px; line-height: 1.6; color: #C9E2D3; max-width: 360px;">Real prices, real reviews and open slots from pros near you.</p>
+      </div>
+      <form style="background: #FFFFFF; border-radius: 22px; padding: 8px; display: flex; flex-wrap: wrap; gap: 4px;">
+        <label style="flex: 1.4 1 220px; display: flex; flex-direction: column; gap: 2px; padding: 10px 18px;">
+          <span style="font-size: 12px; font-weight: 700;">What</span>
+          <input value="{{query}}" style="border: 0; outline: 0; font-size: 16px; font-weight: 600; color: #13201B; background: transparent; padding: 0;">
+        </label>
+        <span style="width: 1px; background: #E6EBE7; margin: 12px 0;"></span>
+        <label style="flex: 1 1 160px; display: flex; flex-direction: column; gap: 2px; padding: 10px 18px;">
+          <span style="font-size: 12px; font-weight: 700;">Where</span>
+          <input value="Lekki, Lagos" style="border: 0; outline: 0; font-size: 16px; color: #13201B; background: transparent; padding: 0;">
+        </label>
+        <span style="width: 1px; background: #E6EBE7; margin: 12px 0;"></span>
+        <label style="flex: 1 1 160px; display: flex; flex-direction: column; gap: 2px; padding: 10px 18px;">
+          <span style="font-size: 12px; font-weight: 700;">When</span>
+          <input value="Any time" style="border: 0; outline: 0; font-size: 16px; color: #13201B; background: transparent; padding: 0;">
+        </label>
+        <button type="submit" style="height: 62px; padding: 0 30px; border-radius: 16px; border: 0; background: #C8F169; color: #0E3B2E; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 10px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0E3B2E" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>Search</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Category rail -->
+  <div style="border-bottom: 1px solid #E6EBE7; background: #FFFFFF;">
+    <div role="tablist" aria-label="Categories" style="max-width: 1240px; margin: 0 auto; padding: 18px 24px; display: flex; gap: 8px; flex-wrap: wrap;">
+      <sc-for list="{{cats}}" as="c" hint-placeholder-count="8">
+        <button role="tab" aria-selected="{{c.active}}" onClick="{{c.pick}}" class="chip" style="height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid {{c.border}}; background: {{c.bg}}; color: {{c.fg}}; font-size: 15px; font-weight: 600;">{{c.label}}</button>
+      </sc-for>
+    </div>
+  </div>
+
+  <main style="max-width: 1240px; margin: 0 auto; padding: 32px 24px 0; display: flex; flex-direction: column; gap: 28px;">
+
+    <!-- Toolbar -->
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+      <div>
+        <h2 style="margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.01em;">{{heading}}</h2>
+        <div style="font-size: 14px; color: #4A5A52; margin-top: 4px;">126 places in Lekki, Lagos · sorted by recommended</div>
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+        <button style="height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid #0E3B2E; background: #E6F4EC; color: #0E3B2E; font-size: 14px; font-weight: 600;">Open now</button>
+        <button style="height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid #DDE3DE; background: #FFFFFF; color: #13201B; font-size: 14px;">Home service</button>
+        <button style="height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid #DDE3DE; background: #FFFFFF; color: #13201B; font-size: 14px;">4.5+ rating</button>
+        <button style="height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid #DDE3DE; background: #FFFFFF; color: #13201B; font-size: 14px;">Price</button>
+        <button style="height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid #DDE3DE; background: #FFFFFF; color: #13201B; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#13201B" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"></path></svg>All filters</button>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px 24px;">
+      <sc-for list="{{venues}}" as="v" hint-placeholder-count="9">
+        <article class="card" style="display: flex; flex-direction: column; gap: 12px;">
+          <a href="Main.dc.html" class="ph" style="height: 220px; border-radius: 20px; overflow: hidden; background: {{v.bg}}; position: relative; transition: box-shadow .2s; display: grid; place-items: center; text-decoration: none;">
+            <sc-if value="{{v.photo}}" hint-placeholder-val="{{false}}"><img src="/_blob/cdf24fbcb8d78ab34151bc7182d1ad42" alt="Glow House studio" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 55% 40%;"></sc-if>
+            <sc-if value="{{v.noPhoto}}" hint-placeholder-val="{{true}}"><span style="font-size: 48px; font-weight: 700; color: {{v.fg}}; letter-spacing: -0.02em;">{{v.mono}}</span></sc-if>
+            <sc-if value="{{v.home}}" hint-placeholder-val="{{false}}"><span style="position: absolute; left: 12px; top: 12px; background: #FFFFFF; color: #0E3B2E; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 999px;">Home service</span></sc-if>
+          </a>
+          <button aria-label="Save {{v.name}}" style="position: relative; margin-top: -60px; margin-left: auto; margin-right: 12px; width: 40px; height: 40px; border-radius: 999px; border: 0; background: #FFFFFF; display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0,0,0,.12);"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#13201B" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7.5-4.6-9.2-9.3C1.6 7.3 4 4 7.3 4c2 0 3.6 1.1 4.7 2.7C13.1 5.1 14.7 4 16.7 4 20 4 22.4 7.3 21.2 10.7 19.5 15.4 12 20 12 20z"></path></svg></button>
+          <div style="display: flex; justify-content: space-between; gap: 8px; align-items: baseline; margin-top: 8px;">
+            <a href="Main.dc.html" style="font-size: 17px; font-weight: 700; color: #13201B; text-decoration: none;">{{v.name}}</a>
+            <span style="display: flex; align-items: center; gap: 4px; font-size: 14px; white-space: nowrap;"><strong>{{v.rating}}</strong><svg width="13" height="13" viewBox="0 0 24 24" fill="#13201B" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3 6.1 20.6l1.3-6.6L2.5 9.4l6.6-.8z"></path></svg><span style="color: #4A5A52;">({{v.count}})</span></span>
+          </div>
+          <div style="font-size: 14px; color: #4A5A52; margin-top: -6px;">{{v.area}} · {{v.distance}} · from <strong style="color: #13201B;">{{v.from}}</strong></div>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <sc-for list="{{v.slots}}" as="t" hint-placeholder-count="3">
+              <a href="Booking.dc.html" class="slot" style="height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid #DDE3DE; font-size: 13px; font-weight: 600; color: #13201B; text-decoration: none; display: flex; align-items: center;">{{t}}</a>
+            </sc-for>
+          </div>
+        </article>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px 0 0;">
+      <div style="width: 240px; height: 4px; border-radius: 99px; background: #E6EBE7; overflow: hidden;"><div style="width: 7%; height: 100%; background: #0E3B2E;"></div></div>
+      <span style="font-size: 14px; color: #4A5A52;">Showing 9 of 126</span>
+      <button style="height: 48px; padding: 0 28px; border-radius: 999px; border: 1px solid #DDE3DE; background: #FFFFFF; font-size: 15px; font-weight: 700; color: #13201B;">Show more</button>
+    </div>
+  </main>
+
+  <div style="height: 104px;"></div>
+  <dc-import name="SiteFooter" hint-size="100%,640px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2700}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { cat: 'All' }; }
+  renderVals() {
+    const cat = this.state.cat;
+    const labels = ['All', 'Hair & braids', 'Nails', 'Barbers', 'Makeup', 'Spa & fitness', 'Home cleaning', 'Repairs'];
+    const heads = {
+      'All': 'Top picks near you', 'Hair & braids': 'Hair pros people rebook', 'Nails': 'Nail techs worth the drive',
+      'Barbers': 'Barbers with steady hands', 'Makeup': 'Makeup artists for every occasion', 'Spa & fitness': 'Unwind or level up',
+      'Home cleaning': 'Cleaners who come to you', 'Repairs': 'Fixers who show up on time'
+    };
+    const cats = labels.map((l) => {
+      const on = l === cat;
+      return { label: l, active: on, bg: on ? '#0E3B2E' : '#FFFFFF', fg: on ? '#FFFFFF' : '#13201B', border: on ? '#0E3B2E' : '#DDE3DE', pick: () => this.setState({ cat: l }) };
+    });
+    const v = (o) => ({ ...o, noPhoto: !o.photo });
+    return {
+      cats,
+      heading: heads[cat],
+      query: cat === 'All' ? 'All treatments' : cat,
+      soon: [
+        { mono: 'Ny', name: 'Nyla Nail Bar', svc: 'Gel manicure · ₦10,000', time: '4:30 pm', bg: '#C8F169', fg: '#0E3B2E' },
+        { mono: 'Ks', name: 'Kraft Studio Barbers', svc: 'Skin fade · ₦6,000', time: '5:00 pm', bg: '#0E3B2E', fg: '#C8F169' },
+        { mono: 'G', name: 'Glow House by Amara', svc: 'Silk press · ₦25,000', time: '6:15 pm', bg: '#13201B', fg: '#E6F4EC' }
+      ],
+      venues: [
+        v({ photo: true, home: true, name: 'Glow House by Amara', rating: '4.9', count: '1,284', area: 'Lekki Phase 1', distance: '0.8 km', from: '₦12,000', bg: '#E6F4EC', slots: ['Today 6:15 pm', 'Tomorrow 10:30 am', '+ more'] }),
+        v({ mono: 'Ks', home: true, name: 'Kraft Studio Barbers', rating: '4.9', count: '940', area: 'Ikate', distance: '1.6 km', from: '₦6,000', bg: '#0E3B2E', fg: '#C8F169', slots: ['Today 5:00 pm', 'Today 7:30 pm', '+ more'] }),
+        v({ mono: 'Ny', name: 'Nyla Nail Bar', rating: '4.8', count: '612', area: 'Lekki Phase 1', distance: '1.2 km', from: '₦10,000', bg: '#C8F169', fg: '#0E3B2E', slots: ['Today 4:30 pm', 'Tomorrow 9:00 am', '+ more'] }),
+        v({ mono: 'Bb', home: true, name: 'Braids by Bola', rating: '5.0', count: '158', area: 'Chevron', distance: '4.2 km', from: '₦35,000', bg: '#13201B', fg: '#E6F4EC', slots: ['Sat 9:00 am', 'Sun 12:00 pm'] }),
+        v({ mono: 'Lu', name: 'Lumière Skin Clinic', rating: '4.7', count: '233', area: 'Oniru', distance: '3.1 km', from: '₦18,000', bg: '#E6F4EC', fg: '#0E3B2E', slots: ['Tomorrow 11:00 am', 'Tomorrow 2:00 pm'] }),
+        v({ mono: 'Sp', home: true, name: 'Sparkle Home Cleaning', rating: '4.8', count: '301', area: 'Ajah', distance: '6.8 km', from: '₦20,000', bg: '#1F6B43', fg: '#C8F169', slots: ['Thu 8:00 am', 'Fri 8:00 am'] }),
+        v({ mono: 'Pd', home: true, name: 'Polished by Dami', rating: '5.0', count: '187', area: 'Ikate', distance: '2.1 km', from: '₦8,000', bg: '#C8F169', fg: '#0E3B2E', slots: ['Today 7:00 pm', 'Tomorrow 1:00 pm'] }),
+        v({ mono: 'Fx', home: true, name: 'FixRight Technicians', rating: '4.6', count: '412', area: 'Lekki Phase 1', distance: '0.9 km', from: '₦15,000', bg: '#0E3B2E', fg: '#C8F169', slots: ['Tomorrow 9:00 am', '+ more'] }),
+        v({ mono: 'Fs', name: 'Form Studio Pilates', rating: '4.9', count: '276', area: 'Victoria Island', distance: '5.4 km', from: '₦12,500', bg: '#E6F4EC', fg: '#0E3B2E', slots: ['Today 6:00 pm', 'Tomorrow 7:00 am'] })
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

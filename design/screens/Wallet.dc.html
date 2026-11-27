@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Wallet</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:'Satoshi';src:url('/_blob/aa99b90ef361c613c9d43e57b82b3414') format('woff2');font-weight:300 900;font-style:normal;font-display:swap}
+body{margin:0;background:#FFFFFF}
+a{color:#0E3B2E}a:hover{color:#13201B}
+.ac *{box-sizing:border-box}
+.ac button{font-family:inherit;cursor:pointer}
+.ac .tx:hover{background:#F7FAF7}
+</style>
+</helmet>
+<div class="ac" style="font-family: 'Satoshi', system-ui, sans-serif; color: #13201B; background: #FFFFFF;">
+  <dc-import name="SiteNav" variant="light" auth="user" hint-size="100%,80px"></dc-import>
+
+  <div style="max-width: 1240px; margin: 0 auto; padding: 40px 24px 96px; display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-start;">
+    <aside style="flex: 1 1 240px; max-width: 280px;">
+      <dc-import name="AccountMenu" active="wallet" hint-size="100%,560px"></dc-import>
+    </aside>
+
+    <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 28px;">
+      <div>
+        <h1 style="margin: 0; font-size: 40px; font-weight: 700; letter-spacing: -0.02em;">Wallet</h1>
+        <p style="margin: 6px 0 0; font-size: 16px; color: #4A5A52;">Top up once, pay deposits in a tap, get refunds back instantly.</p>
+      </div>
+
+      <!-- Balance card -->
+      <section style="position: relative; overflow: hidden; border-radius: 28px; background: #0B3227; color: #FFFFFF;">
+        <img src="/_blob/a3af140719150ee9eef5b57357fd1c46" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;">
+        <div style="position: relative; padding: 36px; background: rgba(11,50,39,0.62); display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-end; justify-content: space-between;">
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <span style="font-size: 15px; color: #C9E2D3;">Total balance</span>
+            <span style="font-size: 64px; font-weight: 700; letter-spacing: -0.03em; line-height: 1;">₦47,500<span style="font-size: 28px; color: #A9C7B8;">.00</span></span>
+            <div style="display: flex; gap: 24px; margin-top: 12px; flex-wrap: wrap;">
+              <div><div style="font-size: 13px; color: #A9C7B8;">Available</div><div style="font-size: 20px; font-weight: 700;">₦42,500</div></div>
+              <div style="width: 1px; background: rgba(255,255,255,0.18);"></div>
+              <div><div style="font-size: 13px; color: #A9C7B8; display: flex; align-items: center; gap: 6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A9C7B8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 018 0v3"></path></svg>Held for bookings</div><div style="font-size: 20px; font-weight: 700; color: #C8F169;">₦5,000</div></div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button style="height: 52px; padding: 0 24px; border-radius: 999px; border: 0; background: #C8F169; color: #0E3B2E; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E3B2E" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add money</button>
+            <button style="height: 52px; padding: 0 22px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.35); background: rgba(11,50,39,0.5); color: #FFFFFF; font-size: 16px; font-weight: 600;">Withdraw</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Two cards: fund + escrow -->
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
+        <section style="border: 1px solid #E6EBE7; border-radius: 24px; padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;"><h2 style="margin: 0; font-size: 18px; font-weight: 700;">Top up by bank transfer</h2><span style="font-size: 12px; font-weight: 700; color: #1F6B43; background: #E6F4EC; padding: 4px 10px; border-radius: 999px;">Instant</span></div>
+          <div style="background: #F7FAF7; border-radius: 16px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; justify-content: space-between; font-size: 14px;"><span style="color: #4A5A52;">Bank</span><strong>[PARTNER BANK]</strong></div>
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px;"><span style="color: #4A5A52;">Account number</span><span style="display: flex; align-items: center; gap: 8px;"><strong style="font-size: 18px; letter-spacing: 0.04em;">[ACCOUNT NO.]</strong><button aria-label="Copy account number" style="width: 32px; height: 32px; border-radius: 10px; border: 1px solid #DDE3DE; background: #FFFFFF; display: grid; place-items: center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#13201B" stroke-width="2" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"></path></svg></button></span></div>
+            <div style="display: flex; justify-content: space-between; font-size: 14px;"><span style="color: #4A5A52;">Name</span><strong>Proxideck / Tolu Adeyemi</strong></div>
+          </div>
+          <p style="margin: 0; font-size: 13px; color: #4A5A52; line-height: 1.5;">Money sent to this account lands in your wallet within a minute.</p>
+        </section>
+
+        <section style="border: 1px solid #E6EBE7; border-radius: 24px; padding: 24px; display: flex; flex-direction: column; gap: 14px;">
+          <h2 style="margin: 0; font-size: 18px; font-weight: 700;">Held for upcoming bookings</h2>
+          <div style="display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 16px; background: #F7FAF7;">
+            <span style="width: 44px; height: 44px; border-radius: 12px; background: #0E3B2E; color: #C8F169; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; flex-shrink: 0;"><span style="font-size: 10px; font-weight: 700;">NOV</span><span style="font-size: 17px; font-weight: 700;">29</span></span>
+            <div style="flex: 1; min-width: 0;"><div style="font-size: 15px; font-weight: 700;">Silk press &amp; trim</div><div style="font-size: 13px; color: #4A5A52;">Glow House · releases after appointment</div></div>
+            <strong style="font-size: 15px;">₦5,000</strong>
+          </div>
+          <p style="margin: 0; font-size: 13px; color: #4A5A52; line-height: 1.5;">If the pro cancels or doesn’t show, held money goes straight back to Available.</p>
+        </section>
+      </div>
+
+      <!-- Transactions -->
+      <section style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+          <h2 style="margin: 0; font-size: 22px; font-weight: 700;">Transactions</h2>
+          <div style="display: flex; gap: 8px;">
+            <button style="height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid #0E3B2E; background: #0E3B2E; color: #FFFFFF; font-size: 13px; font-weight: 600;">All</button>
+            <button style="height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid #DDE3DE; background: #FFFFFF; color: #13201B; font-size: 13px;">Money in</button>
+            <button style="height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid #DDE3DE; background: #FFFFFF; color: #13201B; font-size: 13px;">Money out</button>
+          </div>
+        </div>
+        <div style="border: 1px solid #E6EBE7; border-radius: 22px; overflow: hidden;">
+          <sc-for list="{{tx}}" as="t" hint-placeholder-count="6">
+            <div class="tx" style="display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-bottom: 1px solid #EEF2EF;">
+              <span style="width: 40px; height: 40px; border-radius: 12px; background: {{t.iconBg}}; display: grid; place-items: center; flex-shrink: 0; color: {{t.iconFg}}; font-size: 18px; font-weight: 700;">{{t.glyph}}</span>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 15px; font-weight: 600;">{{t.title}}</div>
+                <div style="font-size: 13px; color: #4A5A52;">{{t.date}} · {{t.type}}</div>
+              </div>
+              <span style="font-size: 12px; font-weight: 700; color: {{t.stFg}}; background: {{t.stBg}}; padding: 4px 10px; border-radius: 999px;">{{t.status}}</span>
+              <strong style="width: 110px; text-align: right; font-size: 15px; color: {{t.amtColor}};">{{t.amount}}</strong>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dc-import name="SiteFooter" hint-size="100%,640px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const inn = { glyph: '+', iconBg: '#E6F4EC', iconFg: '#1F6B43', amtColor: '#1F6B43' };
+    const out = { glyph: '−', iconBg: '#F2F5F2', iconFg: '#13201B', amtColor: '#13201B' };
+    const held = { glyph: '•', iconBg: '#C8F169', iconFg: '#0E3B2E', amtColor: '#13201B' };
+    const done = { status: 'Completed', stBg: '#E6F4EC', stFg: '#1F6B43' };
+    return {
+      no: false,
+      tx: [
+        { ...held, title: 'Deposit — Glow House by Amara', date: '24 Nov', type: 'Booking deposit', amount: '−₦5,000', status: 'Held', stBg: '#FFF4D6', stFg: '#7A5200' },
+        { ...inn, ...done, title: 'Bank transfer top-up', date: '22 Nov', type: 'Top-up', amount: '+₦30,000' },
+        { ...out, ...done, title: 'Nyla Nail Bar', date: '14 Nov', type: 'Booking payment', amount: '−₦12,000' },
+        { ...inn, ...done, title: 'Refund — Sparkle Home Cleaning', date: '18 Oct', type: 'Refund', amount: '+₦8,000' },
+        { ...out, ...done, title: 'Braids by Bola', date: '2 Nov', type: 'Booking payment', amount: '−₦45,000' },
+        { ...inn, ...done, title: 'Card top-up', date: '1 Nov', type: 'Top-up', amount: '+₦60,000' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

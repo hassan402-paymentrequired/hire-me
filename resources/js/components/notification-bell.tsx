@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/site/empty-state';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -6,16 +6,18 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Spinner } from '@/components/ui/spinner';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { cn, formatDate } from '@/lib/utils';
 import notifications from '@/routes/notifications';
 import { Link, router } from '@inertiajs/react';
-import { Bell } from 'lucide-react';
+import {
+    Bell,
+    Check,
+    Clock,
+    type LucideIcon,
+    Star,
+    Wallet,
+    X,
+} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 const NOTIFICATIONS_POLL_INTERVAL_MS = 60_000;
@@ -29,7 +31,7 @@ interface NotificationItem {
 }
 
 interface NotificationsResponse {
-    data: NotificationItem[];
+    data: { data: NotificationItem[] };
     unread_count: number;
     meta: {
         current_page: number;
@@ -49,19 +51,52 @@ async function fetchNotifications(): Promise<NotificationsResponse> {
 }
 
 async function markAsRead(id: string): Promise<void> {
-    router.post(notifications.read(id).url, {}, {
-        preserveScroll: true,
-    });
+    router.post(
+        notifications.read(id).url,
+        {},
+        {
+            preserveScroll: true,
+        },
+    );
 }
 
 async function markAllAsRead(): Promise<void> {
-    router.post(notifications.readAll().url, {}, {
-        preserveScroll: true,
-    });
+    router.post(
+        notifications.readAll().url,
+        {},
+        {
+            preserveScroll: true,
+        },
+    );
+}
+
+const groupLabel = (createdAt: string): string =>
+    new Date(createdAt).toDateString() === new Date().toDateString()
+        ? 'Today'
+        : 'Earlier';
+
+/** Pick an icon and colour from the notification class name. */
+function notificationKind(type: string): {
+    icon: LucideIcon;
+    className: string;
+} {
+    if (/Cancel/i.test(type))
+        return { icon: X, className: 'bg-[#FFF1F0] text-[#B42318]' };
+    if (/Confirmed|Booked/i.test(type))
+        return { icon: Check, className: 'bg-lime text-forest' };
+    if (/Completed|Awaiting/i.test(type))
+        return { icon: Star, className: 'bg-[#FFF4D6] text-[#7A5200]' };
+    if (/Balance|Refund|Wallet/i.test(type))
+        return { icon: Wallet, className: 'bg-mint text-leaf' };
+    if (/Recurring|Updated|Urgent|Delayed/i.test(type))
+        return { icon: Clock, className: 'bg-mint text-forest' };
+
+    return { icon: Bell, className: 'bg-mint text-forest' };
 }
 
 export function NotificationBell() {
     const [open, setOpen] = useState(false);
+    const [filter, setFilter] = useState<'all' | 'unread'>('all');
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -122,178 +157,190 @@ export function NotificationBell() {
         }
     }, []);
 
+    const visible =
+        filter === 'unread'
+            ? notifications.filter((n) => !n.read_at)
+            : notifications;
+
     return (
-        <TooltipProvider delayDuration={0}>
-            <Tooltip>
-                <DropdownMenu open={open} onOpenChange={setOpen}>
-                    <DropdownMenuTrigger asChild>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                size="icon"
+        <DropdownMenu open={open} onOpenChange={setOpen}>
+            <DropdownMenuTrigger
+                aria-label={
+                    unreadCount > 0
+                        ? `Notifications, ${unreadCount} new`
+                        : 'Notifications'
+                }
+                className="relative grid size-11 place-items-center rounded-full border border-[#DDE3DE] bg-transparent transition hover:bg-black/5"
+            >
+                <Bell className="size-5" />
+                {unreadCount > 0 && (
+                    <span className="absolute top-2 right-2.5 size-2.5 rounded-full border-2 border-white bg-[#E5484D]" />
+                )}
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent
+                align="end"
+                sideOffset={10}
+                className="w-[26rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-3xl border border-line p-0 font-heading text-ink shadow-[0_24px_60px_rgba(19,32,27,0.16)]"
+            >
+                <div className="flex flex-col gap-3.5 px-5.5 pt-5">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-xl font-bold">Notifications</h2>
+                        <button
+                            type="button"
+                            onClick={handleMarkAllAsRead}
+                            disabled={unreadCount === 0}
+                            className="text-sm font-bold text-forest disabled:text-sage"
+                        >
+                            Mark all as read
+                        </button>
+                    </div>
+                    <div
+                        role="tablist"
+                        aria-label="Filter notifications"
+                        className="flex gap-1 border-b border-line"
+                    >
+                        {(['all', 'unread'] as const).map((tab) => (
+                            <button
+                                key={tab}
+                                type="button"
+                                role="tab"
+                                aria-selected={filter === tab}
+                                onClick={() => setFilter(tab)}
                                 className={cn(
-                                    'relative h-10 w-10 rounded-2xl border border-black/10 bg-white/80 shadow-none transition-all hover:bg-muted/60',
-                                    unreadCount > 0 && 'border-primary/30 bg-primary/5 text-primary',
+                                    '-mb-px flex h-10 items-center gap-1.5 border-b-2 px-3 text-sm capitalize',
+                                    filter === tab
+                                        ? 'border-forest font-bold'
+                                        : 'border-transparent text-moss',
                                 )}
                             >
-                                <Bell className={cn('size-4', unreadCount > 0 && 'fill-current/10')} />
-                                {unreadCount > 0 ? (
-                                    <>
-                                        <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-background bg-primary px-1 text-[10px] font-semibold text-primary-foreground shadow-sm">
-                                            {unreadCount > 99 ? '99+' : unreadCount}
-                                        </span>
-                                        <span className="absolute inset-0 rounded-2xl ring-1 ring-primary/20" />
-                                    </>
-                                ) : (
-                                    <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-muted-foreground/20" />
-                                )}
-                            </Button>
-                        </TooltipTrigger>
-                    </DropdownMenuTrigger>
-                    <TooltipContent>
-                        <p>Notifications</p>
-                    </TooltipContent>
-
-                    <DropdownMenuContent
-                        align="end"
-                        className="w-[26rem] rounded-3xl border border-border/70 p-0 font-heading shadow-none"
-                    >
-                        <div className="border-b border-border/70 bg-muted/30 px-4 py-3">
-                            <div className="flex items-start justify-between gap-4">
-                                <div className="flex items-center gap-3">
-                                    <span className="flex h-9 w-9 items-center justify-center rounded-2xl border border-border/70 bg-background text-foreground">
-                                        <Bell className="size-4" />
+                                {tab}
+                                {tab === 'unread' && unreadCount > 0 && (
+                                    <span className="rounded-full bg-lime px-1.5 text-xs font-bold text-forest">
+                                        {unreadCount}
                                     </span>
-                                    <div>
-                                        <p className="text-sm font-semibold text-foreground">Notifications</p>
-                                        <p className="text-xs text-muted-foreground">
-                                            {unreadCount > 0
-                                                ? `${unreadCount} unread update${unreadCount > 1 ? 's' : ''}`
-                                                : 'You are all caught up'}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {unreadCount > 0 && (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-8 rounded-full px-3 text-xs"
-                                        onClick={handleMarkAllAsRead}
-                                    >
-                                        Mark all read
-                                    </Button>
                                 )}
-                            </div>
-                        </div>
+                            </button>
+                        ))}
+                    </div>
+                </div>
 
-                        {loading && notifications.length === 0 ? (
-                            <div className="flex justify-center py-10">
-                                <Spinner className="size-6" />
-                            </div>
-                        ) : error ? (
-                            <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                                {error}
-                            </div>
-                        ) : notifications.length === 0 ? (
-                            <div className="px-4 py-10 text-center">
-                                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-3xl border border-border/70 bg-muted/30 text-muted-foreground">
-                                    <Bell className="size-5" />
-                                </div>
-                                <p className="text-sm font-medium text-foreground">No notifications yet</p>
-                                <p className="mt-1 text-xs text-muted-foreground">
-                                    New booking updates and system alerts will appear here.
-                                </p>
-                            </div>
-                        ) : (
-                            <ScrollArea className="h-[360px]">
-                                <ul className="p-2">
-                                    {notifications.map((n) => {
-                                        const data = n.data || {};
-                                        const title = data.title || 'Notification';
-                                        const message = data.message || '';
-                                        const actionUrl = data.action_url;
-                                        const isUnread = !n.read_at;
-
-                                        const itemContent = (
-                                            <div
+                {loading && notifications.length === 0 ? (
+                    <div className="flex justify-center py-12">
+                        <Spinner className="size-6" />
+                    </div>
+                ) : error ? (
+                    <p className="px-6 py-10 text-center text-sm text-moss">
+                        {error}
+                    </p>
+                ) : visible.length === 0 ? (
+                    <EmptyState
+                        illustration="notifications"
+                        title="You're all caught up"
+                        description="Booking confirmations, reminders and refunds will appear here."
+                        className="border-0 px-6 py-9"
+                    />
+                ) : (
+                    <ScrollArea className="max-h-[470px]">
+                        <ul className="p-2">
+                            {visible.map((n, index) => {
+                                const group = groupLabel(n.created_at);
+                                const showGroup =
+                                    index === 0 ||
+                                    groupLabel(
+                                        visible[index - 1].created_at,
+                                    ) !== group;
+                                const isUnread = !n.read_at;
+                                const kind = notificationKind(n.type);
+                                const content = (
+                                    <span
+                                        className={cn(
+                                            'flex gap-3 rounded-2xl px-3.5 py-3 text-left hover:bg-paper',
+                                            isUnread && 'bg-[#F3FAF5]',
+                                        )}
+                                    >
+                                        <span
+                                            className={cn(
+                                                'grid size-10 shrink-0 place-items-center rounded-xl',
+                                                kind.className,
+                                            )}
+                                        >
+                                            <kind.icon className="size-4.5" />
+                                        </span>
+                                        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                                            <span
                                                 className={cn(
-                                                    'relative flex gap-3 rounded-2xl px-3 py-3 text-left transition-colors',
+                                                    'text-[15px]',
                                                     isUnread
-                                                        ? 'bg-primary/[0.04] hover:bg-primary/[0.07]'
-                                                        : 'hover:bg-muted/50',
+                                                        ? 'font-bold'
+                                                        : 'font-semibold',
                                                 )}
                                             >
-                                                <div className="pt-1">
-                                                    <span
-                                                        className={cn(
-                                                            'block h-2.5 w-2.5 rounded-full',
-                                                            isUnread ? 'bg-primary' : 'bg-muted-foreground/25',
-                                                        )}
-                                                    />
-                                                </div>
-                                                <div className="min-w-0 flex-1">
-                                                    <div className="flex items-start justify-between gap-3">
-                                                        <p
-                                                            className={cn(
-                                                                'line-clamp-1 text-sm',
-                                                                isUnread
-                                                                    ? 'font-semibold text-foreground'
-                                                                    : 'font-medium text-foreground/85',
-                                                            )}
-                                                        >
-                                                            {title}
-                                                        </p>
-                                                        <span className="shrink-0 text-[11px] text-muted-foreground">
-                                                            { formatDate(n.created_at)}
-                                                        </span>
-                                                    </div>
-                                                    {message && (
-                                                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
-                                                            {message}
-                                                        </p>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
+                                                {n.data?.title ||
+                                                    'Notification'}
+                                            </span>
+                                            {n.data?.message && (
+                                                <span className="line-clamp-2 text-sm leading-snug text-moss">
+                                                    {n.data.message}
+                                                </span>
+                                            )}
+                                            <span className="mt-0.5 text-xs text-moss">
+                                                {formatDate(n.created_at)}
+                                            </span>
+                                        </span>
+                                        {isUnread && (
+                                            <span
+                                                aria-label="Unread"
+                                                className="mt-1.5 size-2.5 shrink-0 rounded-full bg-leaf"
+                                            />
+                                        )}
+                                    </span>
+                                );
+                                const markRead = () =>
+                                    isUnread && handleMarkAsRead(n.id);
 
-                                        return (
-                                            <li key={n.id} className="py-1">
-                                                {actionUrl ? (
-                                                    <Link
-                                                        href={actionUrl}
-                                                        className="block"
-                                                        onClick={() => {
-                                                            setOpen(false);
-                                                            if (isUnread) {
-                                                                handleMarkAsRead(n.id);
-                                                            }
-                                                        }}
-                                                    >
-                                                        {itemContent}
-                                                    </Link>
-                                                ) : (
-                                                    <button
-                                                        type="button"
-                                                        className="block w-full"
-                                                        onClick={() => {
-                                                            if (isUnread) {
-                                                                handleMarkAsRead(n.id);
-                                                            }
-                                                        }}
-                                                    >
-                                                        {itemContent}
-                                                    </button>
-                                                )}
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            </ScrollArea>
-                        )}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </Tooltip>
-        </TooltipProvider>
+                                return (
+                                    <li key={n.id}>
+                                        {showGroup && (
+                                            <div className="px-3.5 pt-3 pb-1.5 text-xs font-bold text-moss">
+                                                {group}
+                                            </div>
+                                        )}
+                                        {n.data?.action_url ? (
+                                            <Link
+                                                href={n.data.action_url}
+                                                className="block"
+                                                onClick={() => {
+                                                    setOpen(false);
+                                                    markRead();
+                                                }}
+                                            >
+                                                {content}
+                                            </Link>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                className="block w-full"
+                                                onClick={markRead}
+                                            >
+                                                {content}
+                                            </button>
+                                        )}
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </ScrollArea>
+                )}
+
+                <div className="border-t border-line px-5.5 py-3.5">
+                    <span className="text-sm text-moss">
+                        {unreadCount > 0
+                            ? `${unreadCount} unread`
+                            : 'Nothing new'}
+                    </span>
+                </div>
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 }

@@ -17,9 +17,11 @@ class PasswordController extends Controller
     public function edit(Request $request): Response
     {
         $user = $request->user();
-        $page = $user->has_provider_setup ? 'settings/password' : 'client/settings/password';
-        
-        return Inertia::render($page);
+        $page = $request->routeIs('business.account.*') ? 'settings/password' : 'client/settings/password';
+
+        return Inertia::render($page, [
+            'twoFactorEnabled' => $user->hasEnabledTwoFactorAuthentication(),
+        ]);
     }
 
     /**

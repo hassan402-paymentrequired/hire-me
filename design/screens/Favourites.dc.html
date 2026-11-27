@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Favourite pros</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:'Satoshi';src:url('/_blob/aa99b90ef361c613c9d43e57b82b3414') format('woff2');font-weight:300 900;font-style:normal;font-display:swap}
+body{margin:0;background:#FFFFFF}
+a{color:#0E3B2E}a:hover{color:#13201B}
+.ac *{box-sizing:border-box}
+.ac button{font-family:inherit;cursor:pointer}
+.ac .fav:hover{box-shadow:0 12px 32px rgba(19,32,27,.10)}
+</style>
+</helmet>
+<div class="ac" style="font-family: 'Satoshi', system-ui, sans-serif; color: #13201B; background: #FFFFFF;">
+  <dc-import name="SiteNav" variant="light" auth="user" hint-size="100%,80px"></dc-import>
+
+  <div style="max-width: 1240px; margin: 0 auto; padding: 40px 24px 96px; display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-start;">
+    <aside style="flex: 1 1 240px; max-width: 280px;">
+      <dc-import name="AccountMenu" active="favourites" hint-size="100%,560px"></dc-import>
+    </aside>
+
+    <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap;">
+        <div>
+          <h1 style="margin: 0; font-size: 40px; font-weight: 700; letter-spacing: -0.02em;">Favourite pros</h1>
+          <p style="margin: 6px 0 0; font-size: 16px; color: #4A5A52;">Your go-to people, ready to rebook.</p>
+        </div>
+        <span style="font-size: 15px; color: #4A5A52;">5 saved</span>
+      </div>
+
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button style="height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid #0E3B2E; background: #0E3B2E; color: #FFFFFF; font-size: 14px; font-weight: 600;">All</button>
+        <button style="height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid #DDE3DE; background: #FFFFFF; color: #13201B; font-size: 14px;">Hair</button>
+        <button style="height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid #DDE3DE; background: #FFFFFF; color: #13201B; font-size: 14px;">Nails</button>
+        <button style="height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid #DDE3DE; background: #FFFFFF; color: #13201B; font-size: 14px;">Barbers</button>
+        <button style="height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid #DDE3DE; background: #FFFFFF; color: #13201B; font-size: 14px;">Home services</button>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px;">
+        <sc-for list="{{pros}}" as="p" hint-placeholder-count="5">
+          <article class="fav" style="border: 1px solid #E6EBE7; border-radius: 24px; overflow: hidden; display: flex; flex-direction: column; transition: box-shadow .2s;">
+            <div style="height: 150px; background: {{p.bg}}; position: relative; overflow: hidden; display: grid; place-items: center;">
+              <sc-if value="{{p.photo}}" hint-placeholder-val="{{false}}"><img src="/_blob/cdf24fbcb8d78ab34151bc7182d1ad42" alt="Glow House studio" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 55% 40%;"></sc-if>
+              <sc-if value="{{p.noPhoto}}" hint-placeholder-val="{{true}}"><span style="font-size: 44px; font-weight: 700; color: {{p.fg}}; letter-spacing: -0.02em;">{{p.mono}}</span></sc-if>
+              <button aria-label="Remove from favourites" style="position: absolute; top: 12px; right: 12px; width: 40px; height: 40px; border-radius: 999px; border: 0; background: #FFFFFF; display: grid; place-items: center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="#0E3B2E" stroke="#0E3B2E" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7.5-4.6-9.2-9.3C1.6 7.3 4 4 7.3 4c2 0 3.6 1.1 4.7 2.7C13.1 5.1 14.7 4 16.7 4 20 4 22.4 7.3 21.2 10.7 19.5 15.4 12 20 12 20z"></path></svg></button>
+            </div>
+            <div style="padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 10px;">
+              <div style="display: flex; justify-content: space-between; gap: 8px; align-items: baseline;">
+                <a href="Main.dc.html" style="font-size: 17px; font-weight: 700; color: #13201B; text-decoration: none;">{{p.name}}</a>
+                <span style="display: flex; align-items: center; gap: 4px; font-size: 14px;"><strong>{{p.rating}}</strong><svg width="13" height="13" viewBox="0 0 24 24" fill="#13201B" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3 6.1 20.6l1.3-6.6L2.5 9.4l6.6-.8z"></path></svg></span>
+              </div>
+              <div style="font-size: 14px; color: #4A5A52; margin-top: -4px;">{{p.area}} · {{p.cat}}</div>
+              <div style="display: flex; align-items: center; gap: 8px; background: #F7FAF7; border-radius: 12px; padding: 10px 12px; font-size: 13px;">
+                <span style="width: 8px; height: 8px; border-radius: 99px; background: #2F7D4F; flex-shrink: 0;"></span><span>Next free: <strong>{{p.next}}</strong></span>
+              </div>
+              <div style="font-size: 13px; color: #4A5A52;">Last time: {{p.last}}</div>
+              <a href="Booking.dc.html" style="height: 44px; border-radius: 999px; background: #0E3B2E; color: #FFFFFF; font-size: 15px; font-weight: 700; text-decoration: none; display: flex; align-items: center; justify-content: center; margin-top: 4px;">Book again</a>
+            </div>
+          </article>
+        </sc-for>
+      </div>
+    </main>
+  </div>
+
+  <dc-import name="SiteFooter" hint-size="100%,640px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1700}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = (o) => ({ ...o, noPhoto: !o.photo });
+    return {
+      no: false,
+      pros: [
+        v({ photo: true, name: 'Glow House by Amara', rating: '4.9', area: 'Lekki Phase 1', cat: 'Hair & makeup', next: 'Today, 4:30 pm', last: 'Soft glam, 21 Oct', bg: '#E6F4EC' }),
+        v({ mono: 'Ks', name: 'Kraft Studio Barbers', rating: '4.9', area: 'Ikate', cat: 'Barber', next: 'Tomorrow, 10:00 am', last: 'Fade & beard trim, 4 Oct', bg: '#0E3B2E', fg: '#C8F169' }),
+        v({ mono: 'Ny', name: 'Nyla Nail Bar', rating: '4.8', area: 'Lekki Phase 1', cat: 'Nails', next: 'Today, 6:00 pm', last: 'Gel manicure, 14 Nov', bg: '#C8F169', fg: '#0E3B2E' }),
+        v({ mono: 'Bb', name: 'Braids by Bola', rating: '5.0', area: 'Chevron', cat: 'Hair', next: 'Sat, 9:00 am', last: 'Knotless braids, 2 Nov', bg: '#13201B', fg: '#E6F4EC' }),
+        v({ mono: 'Sp', name: 'Sparkle Home Cleaning', rating: '4.8', area: 'Ajah', cat: 'Cleaning', next: 'Thu, 8:00 am', last: 'Not booked yet', bg: '#E6F4EC', fg: '#0E3B2E' })
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

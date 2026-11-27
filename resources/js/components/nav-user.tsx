@@ -1,3 +1,5 @@
+import { ProviderMenuNav } from '@/components/provider-menu-nav';
+import { accountDropdownPanelClass } from '@/components/site/account-menu-nav';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -10,8 +12,9 @@ import {
     useSidebar,
 } from '@/components/ui/sidebar';
 import { UserInfo } from '@/components/user-info';
-import { UserMenuContent } from '@/components/user-menu-content';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
+import { cn } from '@/lib/utils';
 import { type SharedData } from '@/types';
 import { usePage } from '@inertiajs/react';
 import { ChevronsUpDown } from 'lucide-react';
@@ -20,6 +23,7 @@ export function NavUser() {
     const { auth } = usePage<SharedData>().props;
     const { state } = useSidebar();
     const isMobile = useIsMobile();
+    const cleanup = useMobileNavigation();
 
     return (
         <SidebarMenu>
@@ -36,8 +40,12 @@ export function NavUser() {
                         </SidebarMenuButton>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
-                        className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+                        className={cn(
+                            accountDropdownPanelClass,
+                            'w-(--radix-dropdown-menu-trigger-width) min-w-[280px]',
+                        )}
                         align="end"
+                        sideOffset={8}
                         side={
                             isMobile
                                 ? 'bottom'
@@ -46,9 +54,9 @@ export function NavUser() {
                                   : 'bottom'
                         }
                     >
-                        <UserMenuContent
+                        <ProviderMenuNav
                             user={auth.user}
-                            showHelpCenter={false}
+                            onNavigate={cleanup}
                         />
                     </DropdownMenuContent>
                 </DropdownMenu>

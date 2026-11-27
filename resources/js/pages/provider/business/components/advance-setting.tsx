@@ -24,6 +24,7 @@ interface AdvancedSettingsProps {
             | 'provider_visits_client'
             | 'both';
         billing_model?: 'commission' | 'subscription';
+        home_service_fee?: string | number | null;
         [key: string]: any;
     };
     onSettingsChange: (field: string, value: any) => void;
@@ -435,6 +436,26 @@ const AdvancedSettings = ({
                         );
                     })}
                 </div>
+                {deliveryMode !== 'client_visits_provider' && (
+                    <Rule
+                        title="Home service fee"
+                        description="Added to the total when a client asks you to come to them. Leave empty to charge nothing extra."
+                        htmlFor="home_service_fee"
+                    >
+                        <NumberInput
+                            id="home_service_fee"
+                            value={settings?.home_service_fee}
+                            suffix="₦"
+                            placeholder="No fee"
+                            onChange={(value) =>
+                                onSettingsChange(
+                                    'home_service_fee',
+                                    value === '' ? null : value,
+                                )
+                            }
+                        />
+                    </Rule>
+                )}
             </Group>
         </div>
     );

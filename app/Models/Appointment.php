@@ -2,15 +2,24 @@
 
 namespace App\Models;
 
+use App\Observers\AppointmentObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUlids;
 
+#[ObservedBy(AppointmentObserver::class)]
 class Appointment extends Model
 {
     use HasFactory, HasUlids;
 
     protected $fillable = [
+        'reference',
+        'home_service_fee',
+        'promo_code_id',
+        'promo_discount_amount',
+        'client_day_before_reminder_sent_at',
+        'client_two_hour_reminder_sent_at',
         'provider_id',
         'client_id',
         'service_id',
@@ -62,6 +71,10 @@ class Appointment extends Model
         'start_time' => 'datetime',
         'end_time' => 'datetime',
         'price' => 'decimal:2',
+        'home_service_fee' => 'decimal:2',
+        'promo_discount_amount' => 'decimal:2',
+        'client_day_before_reminder_sent_at' => 'datetime',
+        'client_two_hour_reminder_sent_at' => 'datetime',
         'escrow_amount' => 'decimal:2',
         'payment_released_at' => 'datetime',
         'recurrence_end_date' => 'date',
@@ -97,7 +110,14 @@ class Appointment extends Model
 
     public function services()
     {
-        return $this->belongsToMany(Service::class, 'appointment_services');
+        return $this->belongsToMany(Service::class, 'appointment_services')
+            ->withPivot('team_member_id')
+            ->orderBy('appointment_services.id');
+    }
+
+    public function promoCode()
+    {
+        return $this->belongsTo(PromoCode::class);
     }
 
     public function review()
@@ -144,7 +164,7 @@ class Appointment extends Model
      */
     public function isRecurring(): bool
     {
-        return !is_null($this->recurrence_pattern) || !is_null($this->recurrence_parent_id);
+        return ! is_null($this->recurrence_pattern) || ! is_null($this->recurrence_parent_id);
     }
 
     /**
@@ -152,15 +172,15 @@ class Appointment extends Model
      */
     public function isRecurrenceParent(): bool
     {
-        return !is_null($this->recurrence_pattern) && is_null($this->recurrence_parent_id);
+        return ! is_null($this->recurrence_pattern) && is_null($this->recurrence_parent_id);
     }
 
     /**
      * Get the next appointment date based on recurrence pattern
      */
-    public function getNextRecurrenceDate(\Carbon\Carbon $fromDate = null): ?\Carbon\Carbon
+    public function getNextRecurrenceDate(?\Carbon\Carbon $fromDate = null): ?\Carbon\Carbon
     {
-        if (!$this->recurrence_pattern) {
+        if (! $this->recurrence_pattern) {
             return null;
         }
 

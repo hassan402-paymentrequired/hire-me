@@ -1,13 +1,11 @@
 <?php
 
+use App\Http\Controllers\Client\ClientAddressController;
+use App\Http\Controllers\Settings\GoogleCalendarController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
-use App\Http\Controllers\Settings\GoogleCalendarController;
 use App\Http\Controllers\Settings\TwoFactorAuthenticationController;
-use App\Http\Controllers\Client\ClientAddressController;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::middleware('auth')->group(function () {
     Route::redirect('settings', '/settings/profile');
@@ -25,12 +23,7 @@ Route::middleware('auth')->group(function () {
         ->middleware('throttle:6,1')
         ->name('user-password.update');
 
-    Route::get('settings/appearance', function (Request $request) {
-        $user = $request->user();
-        $page = $user->has_provider_setup ? 'settings/appearance' : 'client/settings/appearance';
-        
-        return Inertia::render($page);
-    })->name('appearance.edit');
+    Route::inertia('settings/appearance', 'client/settings/appearance')->name('appearance.edit');
 
     Route::get('settings/two-factor', [TwoFactorAuthenticationController::class, 'show'])
         ->name('two-factor.show');

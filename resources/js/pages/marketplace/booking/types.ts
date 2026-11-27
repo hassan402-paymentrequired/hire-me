@@ -5,7 +5,7 @@ import type {
 
 export type RecurrencePattern = 'weekly' | 'bi_weekly' | 'monthly';
 
-export type PaymentOption = 'online' | 'offline';
+export type PaymentOption = 'online' | 'card' | 'offline';
 
 export interface Service {
     id: string;
@@ -15,6 +15,25 @@ export interface Service {
     price: number;
     categoryId?: string | null;
     categoryName?: string | null;
+    isMostBooked?: boolean;
+}
+
+/** Service id → team member id. An empty string means anyone available. */
+export type ServiceTeamMembers = Record<string, string>;
+
+export interface DayAvailability {
+    date: string;
+    slots: number;
+    closed: boolean;
+}
+
+/** Team member id (or "any") → ISO time of their next open slot. */
+export type NextAvailability = Record<string, string | null>;
+
+export interface AppliedPromo {
+    code: string;
+    discountType: 'percent' | 'fixed';
+    discountValue: number;
 }
 
 export interface Provider {
@@ -64,6 +83,7 @@ export interface ProviderSettings {
         | 'client_visits_provider'
         | 'provider_visits_client'
         | 'both';
+    home_service_fee?: number | null;
 }
 
 export interface AddressFormState {
@@ -87,6 +107,8 @@ export interface BookingPayload {
     start_time: string;
     notes: string;
     team_member_id: string | null;
+    service_team_members?: Record<string, string | null>;
+    promo_code?: string;
     payment_option: PaymentOption;
     use_business_address?: boolean;
     client_address_id?: string;

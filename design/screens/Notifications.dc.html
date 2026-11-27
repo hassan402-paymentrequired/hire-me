@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Notifications panel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:'Satoshi';src:url('/_blob/aa99b90ef361c613c9d43e57b82b3414') format('woff2');font-weight:300 900;font-style:normal;font-display:swap}
+body{margin:0;background:#F7FAF7}
+.np *{box-sizing:border-box}
+.np button{font-family:inherit;cursor:pointer}
+.np .item:hover{background:#F7FAF7}
+</style>
+</helmet>
+<div class="np" style="width: 1440px; height: 960px; position: relative; overflow: hidden; background: #F7FAF7; font-family: 'Satoshi', system-ui, sans-serif; color: #13201B;">
+  <dc-import name="SiteNav" variant="light" auth="user" hint-size="100%,80px"></dc-import>
+
+  <!-- Dimmed page behind -->
+  <div style="max-width: 1240px; margin: 0 auto; padding: 40px 24px; display: flex; flex-direction: column; gap: 16px; opacity: 0.45;">
+    <div style="height: 48px; width: 360px; border-radius: 14px; background: #E6EBE7;"></div>
+    <div style="height: 22px; width: 520px; border-radius: 10px; background: #E6EBE7;"></div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; margin-top: 16px;">
+      <div style="height: 280px; border-radius: 20px; background: #E6EBE7;"></div>
+      <div style="height: 280px; border-radius: 20px; background: #E6EBE7;"></div>
+      <div style="height: 280px; border-radius: 20px; background: #E6EBE7;"></div>
+    </div>
+  </div>
+
+  <!-- Panel (anchored under the bell) -->
+  <section aria-label="Notifications" style="position: absolute; top: 76px; right: 236px; width: 420px; background: #FFFFFF; border: 1px solid #E6EBE7; border-radius: 24px; box-shadow: 0 24px 60px rgba(19,32,27,0.16); overflow: hidden;">
+    <span aria-hidden="true" style="position: absolute; top: -7px; right: 48px; width: 14px; height: 14px; background: #FFFFFF; border-left: 1px solid #E6EBE7; border-top: 1px solid #E6EBE7; transform: rotate(45deg);"></span>
+    <header style="padding: 20px 22px 0; display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="margin: 0; font-size: 20px; font-weight: 700;">Notifications</h2>
+        <button onClick="{{markAll}}" disabled="{{noUnread}}" style="border: 0; background: transparent; font-size: 14px; font-weight: 700; color: {{markColor}}; padding: 6px 0;">Mark all as read</button>
+      </div>
+      <div role="tablist" aria-label="Filter notifications" style="display: flex; gap: 4px; border-bottom: 1px solid #E6EBE7;">
+        <button role="tab" aria-selected="{{allActive}}" onClick="{{showAll}}" style="height: 40px; padding: 0 12px; border: 0; background: transparent; font-size: 14px; font-weight: {{allWeight}}; color: {{allColor}}; border-bottom: 2px solid {{allLine}}; margin-bottom: -1px;">All</button>
+        <button role="tab" aria-selected="{{unreadActive}}" onClick="{{showUnread}}" style="height: 40px; padding: 0 12px; border: 0; background: transparent; font-size: 14px; font-weight: {{unreadWeight}}; color: {{unreadColor}}; border-bottom: 2px solid {{unreadLine}}; margin-bottom: -1px; display: flex; align-items: center; gap: 6px;">Unread<span style="font-size: 12px; font-weight: 700; background: #C8F169; color: #0E3B2E; padding: 1px 7px; border-radius: 999px;">{{unreadCount}}</span></button>
+      </div>
+    </header>
+
+    <sc-if value="{{hasItems}}" hint-placeholder-val="{{true}}">
+      <div style="max-height: 470px; overflow: auto; padding: 6px 8px;">
+        <sc-for list="{{items}}" as="n" hint-placeholder-count="5">
+          <sc-if value="{{n.groupStart}}" hint-placeholder-val="{{false}}">
+            <div style="padding: 12px 14px 6px; font-size: 12px; font-weight: 700; color: #4A5A52;">{{n.group}}</div>
+          </sc-if>
+          <a href="{{n.href}}" class="item" onClick="{{n.read}}" style="display: flex; gap: 12px; padding: 12px 14px; border-radius: 16px; text-decoration: none; color: #13201B; background: {{n.bg}};">
+            <span style="width: 40px; height: 40px; border-radius: 12px; background: {{n.iconBg}}; color: {{n.iconFg}}; display: grid; place-items: center; flex-shrink: 0; font-size: 18px; font-weight: 700;">{{n.glyph}}</span>
+            <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+              <span style="font-size: 15px; font-weight: {{n.weight}};">{{n.title}}</span>
+              <span style="font-size: 14px; line-height: 1.45; color: #4A5A52;">{{n.message}}</span>
+              <span style="font-size: 12px; color: #4A5A52; margin-top: 2px;">{{n.time}}</span>
+            </span>
+            <sc-if value="{{n.unread}}" hint-placeholder-val="{{false}}"><span aria-label="Unread" style="width: 9px; height: 9px; border-radius: 99px; background: #1F6B43; margin-top: 6px; flex-shrink: 0;"></span></sc-if>
+          </a>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{empty}}" hint-placeholder-val="{{false}}">
+      <div style="padding: 40px 28px 44px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px;">
+        <svg width="96" height="84" viewBox="0 0 140 120" aria-hidden="true">
+          <circle cx="70" cy="56" r="48" fill="#E6F4EC"></circle>
+          <path d="M50 70c4-4 4-10 4-18a16 16 0 0132 0c0 8 0 14 4 18z" fill="#FFFFFF" stroke="#0E3B2E" stroke-width="4" stroke-linejoin="round"></path>
+          <path d="M60 52l7 7 13-13" stroke="#1F6B43" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+          <path d="M30 104H110" stroke="#0E3B2E" stroke-width="5" stroke-linecap="round"></path>
+        </svg>
+        <div style="font-size: 17px; font-weight: 700;">You're all caught up</div>
+        <div style="font-size: 14px; color: #4A5A52;">New booking updates will show up here.</div>
+      </div>
+    </sc-if>
+
+    <footer style="border-top: 1px solid #E6EBE7; padding: 14px 22px; display: flex; justify-content: space-between; align-items: center;">
+      <a href="#" style="font-size: 14px; font-weight: 700; color: #0E3B2E; text-decoration: none;">View all notifications</a>
+      <a href="Settings.dc.html" style="font-size: 13px; color: #4A5A52; text-decoration: none;">Settings</a>
+    </footer>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":960}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { filter: 'all', read: {} };
+  }
+  renderVals() {
+    const types = {
+      confirmed: { glyph: '✓', iconBg: '#C8F169', iconFg: '#0E3B2E' },
+      reminder: { glyph: '◷', iconBg: '#E6F4EC', iconFg: '#0E3B2E' },
+      refund: { glyph: '₦', iconBg: '#E6F4EC', iconFg: '#1F6B43' },
+      review: { glyph: '★', iconBg: '#FFF4D6', iconFg: '#7A5200' },
+      cancelled: { glyph: '×', iconBg: '#FFF1F0', iconFg: '#B42318' }
+    };
+    const all = [
+      { id: 1, group: 'Today', type: 'confirmed', title: 'Booking confirmed', message: 'Glow House confirmed your silk press on Sat 29 Nov at 10:30 am.', time: '12 min ago', href: 'Bookings.dc.html', unread: true },
+      { id: 2, group: 'Today', type: 'reminder', title: 'Reminder for tomorrow', message: 'Fade & beard trim with Kraft Studio at 2:00 pm. They’re coming to you.', time: '2 h ago', href: 'Bookings.dc.html', unread: true },
+      { id: 3, group: 'Earlier', type: 'refund', title: '₦8,000 refunded', message: 'Sparkle Home Cleaning cancelled, so your money is back in your wallet.', time: 'Mon', href: 'Wallet.dc.html', unread: false },
+      { id: 4, group: 'Earlier', type: 'review', title: 'How was your visit?', message: 'Rate your gel manicure at Nyla Nail Bar.', time: '14 Nov', href: 'Bookings.dc.html', unread: false },
+      { id: 5, group: 'Earlier', type: 'cancelled', title: 'Booking cancelled', message: 'Lumière Skin Clinic can’t make 18 Oct. Pick another time anytime.', time: '17 Oct', href: 'Marketplace.dc.html', unread: false }
+    ];
+    const read = this.state.read;
+    const withState = all.map((n) => ({ ...n, unread: n.unread && !read[n.id] }));
+    const unreadCount = withState.filter((n) => n.unread).length;
+    const visible = this.state.filter === 'unread' ? withState.filter((n) => n.unread) : withState;
+    const items = visible.map((n, i) => ({
+      ...n,
+      ...types[n.type],
+      groupStart: i === 0 || visible[i - 1].group !== n.group,
+      bg: n.unread ? '#F3FAF5' : 'transparent',
+      weight: n.unread ? 700 : 600,
+      read: () => this.setState({ read: { ...this.state.read, [n.id]: true } })
+    }));
+    const tab = (on) => ({ weight: on ? 700 : 500, color: on ? '#13201B' : '#4A5A52', line: on ? '#0E3B2E' : 'transparent' });
+    const a = tab(this.state.filter === 'all');
+    const u = tab(this.state.filter === 'unread');
+    return {
+      items,
+      hasItems: items.length > 0,
+      empty: items.length === 0,
+      unreadCount: String(unreadCount),
+      noUnread: unreadCount === 0,
+      markColor: unreadCount ? '#0E3B2E' : '#A9C7B8',
+      markAll: () => this.setState({ read: { 1: true, 2: true, 3: true, 4: true, 5: true } }),
+      allActive: this.state.filter === 'all', unreadActive: this.state.filter === 'unread',
+      showAll: () => this.setState({ filter: 'all' }),
+      showUnread: () => this.setState({ filter: 'unread' }),
+      allWeight: a.weight, allColor: a.color, allLine: a.line,
+      unreadWeight: u.weight, unreadColor: u.color, unreadLine: u.line
+    };
+  }
+}
+</script>
+</body>
+</html>

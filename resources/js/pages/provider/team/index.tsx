@@ -9,15 +9,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { TeamInviteDialog } from './components/team-invite-dialog';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -25,6 +17,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import AppLayout from '@/layouts/app-layout';
+import { copyTextToClipboard, toAbsoluteUrl } from '@/lib/utils';
 import business from '@/routes/business';
 import team from '@/routes/business/team';
 import { BreadcrumbItem } from '@/types';
@@ -148,12 +141,12 @@ export default function TeamIndex({
     };
 
     const handleCopyInviteLink = async () => {
-        try {
-            await navigator.clipboard.writeText(providerInvitationLink);
+        const link = toAbsoluteUrl(providerInvitationLink);
+        const copied = link ? await copyTextToClipboard(link) : false;
+
+        if (copied) {
             setCopiedInviteLink(true);
             window.setTimeout(() => setCopiedInviteLink(false), 2000);
-        } catch {
-            setCopiedInviteLink(false);
         }
     };
 
@@ -210,14 +203,27 @@ export default function TeamIndex({
                             Invite people to take bookings under your business.
                         </span>
                     </div>
-                    <button
-                        type="button"
-                        onClick={() => setInviteOptionsOpen(true)}
-                        className="flex h-11 items-center gap-2 rounded-xl bg-[#0E3B2E] px-[18px] text-sm font-semibold text-white hover:bg-[#0E3B2E]/90 dark:bg-[#C8F169] dark:text-[#0E3B2E]"
-                    >
-                        <KeenIcon name="plus" className="text-lg" />
-                        Invite member
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={handleCopyInviteLink}
+                            disabled={!providerInvitationLink}
+                            className="flex h-11 items-center gap-2 rounded-xl border border-[#0E3B2E]/15 bg-card px-4 text-sm font-semibold text-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/15"
+                        >
+                            <KeenIcon name="copy" className="text-lg" />
+                            {copiedInviteLink
+                                ? 'Link copied'
+                                : 'Copy invite link'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setInviteOptionsOpen(true)}
+                            className="flex h-11 items-center gap-2 rounded-xl bg-[#0E3B2E] px-[18px] text-sm font-semibold text-white hover:bg-[#0E3B2E]/90 dark:bg-[#C8F169] dark:text-[#0E3B2E]"
+                        >
+                            <KeenIcon name="plus" className="text-lg" />
+                            Invite member
+                        </button>
+                    </div>
                 </header>
 
                 <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
@@ -243,39 +249,6 @@ export default function TeamIndex({
                         </div>
                     ))}
                 </div>
-
-                {/* Invite link banner */}
-                <section className="relative flex flex-wrap items-center gap-3.5 overflow-hidden rounded-[20px] bg-[#0E3B2E] px-5 py-[18px] text-white">
-                    <img
-                        src="/brand/banners/proxideck-banner-general-dark.svg"
-                        alt=""
-                        className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-60"
-                    />
-                    <div className="relative flex size-11 items-center justify-center rounded-xl bg-[#C8F169] text-[#0E3B2E]">
-                        <KeenIcon name="fasten" className="text-[22px]" />
-                    </div>
-                    <div className="relative flex flex-[1_1_240px] flex-col gap-0.5">
-                        <span className="font-[Sora] text-base font-semibold">
-                            Invite with a link
-                        </span>
-                        <span className="text-[13px] text-white/80">
-                            Anyone with this link can join your team as staff.
-                        </span>
-                    </div>
-                    <div className="relative flex min-w-0 flex-[0_1_420px] items-center gap-2 rounded-xl bg-white py-1.5 pr-1.5 pl-3.5">
-                        <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-[#13201B]">
-                            {providerInvitationLink.replace(/^https?:\/\//, '')}
-                        </span>
-                        <button
-                            type="button"
-                            onClick={handleCopyInviteLink}
-                            className="flex h-9 items-center gap-1.5 rounded-[9px] bg-[#0E3B2E] px-3 text-[13px] font-bold text-white"
-                        >
-                            <KeenIcon name="copy" className="text-sm" />
-                            {copiedInviteLink ? 'Copied' : 'Copy'}
-                        </button>
-                    </div>
-                </section>
 
                 {/* Members */}
                 <section className={`${card} overflow-hidden`}>
@@ -494,67 +467,10 @@ export default function TeamIndex({
                 </section>
             </div>
 
-            {/* Invite options */}
-            <Dialog
+            <TeamInviteDialog
                 open={inviteOptionsOpen}
                 onOpenChange={setInviteOptionsOpen}
-            >
-                <DialogContent className="sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle className="font-[Sora]">
-                            Invite a team member
-                        </DialogTitle>
-                        <DialogDescription>
-                            Share a link, or send an invite to their email.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex flex-col gap-3">
-                        <div className="flex flex-col gap-2 rounded-2xl border border-[#0E3B2E]/10 p-4 dark:border-white/10">
-                            <span className="flex items-center gap-2 font-semibold text-foreground">
-                                <KeenIcon name="fasten" className="text-base" />
-                                Invite by link
-                            </span>
-                            <span className="text-sm text-muted-foreground">
-                                They’ll sign up or log in and join as staff
-                                automatically.
-                            </span>
-                            <span className="rounded-xl bg-muted p-3 text-xs break-all text-foreground">
-                                {providerInvitationLink}
-                            </span>
-                        </div>
-                        <div className="flex flex-col gap-2 rounded-2xl border border-[#0E3B2E]/10 p-4 dark:border-white/10">
-                            <span className="flex items-center gap-2 font-semibold text-foreground">
-                                <KeenIcon name="sms" className="text-base" />
-                                Invite by email
-                            </span>
-                            <span className="text-sm text-muted-foreground">
-                                Enter their details and we’ll send them an
-                                invitation.
-                            </span>
-                        </div>
-                    </div>
-                    <DialogFooter className="gap-2 sm:justify-between">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleCopyInviteLink}
-                        >
-                            <KeenIcon name="copy" className="mr-2 text-sm" />
-                            {copiedInviteLink ? 'Copied' : 'Copy invite link'}
-                        </Button>
-                        <Button
-                            type="button"
-                            onClick={() => {
-                                setInviteOptionsOpen(false);
-                                router.visit(business.team.create().url);
-                            }}
-                        >
-                            <KeenIcon name="sms" className="mr-2 text-sm" />
-                            Invite by email
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            />
 
             {/* Remove confirmation */}
             <AlertDialog

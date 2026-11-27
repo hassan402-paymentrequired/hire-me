@@ -1,8 +1,79 @@
 import { AppSelect } from '@/components/ui/app-select';
 import { Input } from '@/components/ui/input';
 import { router } from '@inertiajs/react';
-import { MapPin, Search } from 'lucide-react';
+import {
+    BookOpen,
+    Briefcase,
+    Camera,
+    Car,
+    Droplet,
+    Dumbbell,
+    Flower2,
+    GraduationCap,
+    Hammer,
+    HeartPulse,
+    Home,
+    LayoutGrid,
+    Lightbulb,
+    type LucideIcon,
+    MapPin,
+    MessagesSquare,
+    Palette,
+    Scale,
+    Scissors,
+    Search,
+    ShoppingBag,
+    Sparkles,
+    Store,
+    Video,
+    Wrench,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+    'home-services': Home,
+    cleaning: Sparkles,
+    plumbing: Wrench,
+    'electrical-repairs': Lightbulb,
+    carpentry: Hammer,
+    'beauty-personal-care': Sparkles,
+    salon: Store,
+    barbing: Scissors,
+    makeup: Palette,
+    nails: Droplet,
+    'spa-massage': Flower2,
+    'fitness-training': Dumbbell,
+    'health-wellness': HeartPulse,
+    'events-photography': Camera,
+    photography: Camera,
+    videography: Video,
+    'education-tutoring': GraduationCap,
+    'private-tutors': BookOpen,
+    'professional-services': Briefcase,
+    'personal-shopping': ShoppingBag,
+    'legal-services': Scale,
+    consulting: MessagesSquare,
+    automotive: Car,
+    'car-repairs': Wrench,
+    other: LayoutGrid,
+};
+
+const categoryIcon = (slug: string): LucideIcon =>
+    CATEGORY_ICONS[slug] ?? LayoutGrid;
+
+const categoryChipClass = (active: boolean) =>
+    `inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium whitespace-nowrap transition-colors ${
+        active
+            ? 'border-[#0E3B2E] bg-[#0E3B2E] text-white dark:border-[#C8F169] dark:bg-[#C8F169] dark:text-[#0E3B2E]'
+            : 'border-[#E6EBE3] bg-white text-[#173028] hover:border-[#C9D5CC] dark:border-white/10 dark:bg-transparent dark:text-foreground'
+    }`;
+
+const categoryIconClass = (active: boolean) =>
+    `size-3.5 shrink-0 stroke-[1.75] ${
+        active
+            ? 'text-[#C8F169] dark:text-[#0E3B2E]'
+            : 'text-[#6E9480] dark:text-[#A9C7B8]'
+    }`;
 
 interface Category {
     name: string;
@@ -153,27 +224,32 @@ export const HeaderFilter = ({
             <div className="scrollbar-hide mt-5 flex space-x-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <button
                     onClick={() => handleCategoryChange('For You')}
-                    className={`rounded px-4 py-2 text-sm font-medium whitespace-nowrap transition-all ${
-                        selectedCategory === 'For You'
-                            ? 'bg-foreground text-background shadow-md'
-                            : 'bg-muted/30 text-muted-foreground hover:bg-muted/80 hover:text-foreground'
-                    }`}
+                    className={categoryChipClass(
+                        selectedCategory === 'For You',
+                    )}
                 >
+                    <LayoutGrid
+                        className={categoryIconClass(
+                            selectedCategory === 'For You',
+                        )}
+                    />
                     For You
                 </button>
-                {categories.map((category) => (
-                    <button
-                        key={category.slug}
-                        onClick={() => handleCategoryChange(category.slug)}
-                        className={`rounded px-4 py-2 text-xs font-medium whitespace-nowrap transition-all ${
-                            selectedCategory === category.slug
-                                ? 'bg-foreground text-background shadow-md'
-                                : 'bg-muted/30 text-muted-foreground hover:bg-muted/80 hover:text-foreground'
-                        }`}
-                    >
-                        {category.name}
-                    </button>
-                ))}
+                {categories.map((category) => {
+                    const Icon = categoryIcon(category.slug);
+                    const active = selectedCategory === category.slug;
+
+                    return (
+                        <button
+                            key={category.slug}
+                            onClick={() => handleCategoryChange(category.slug)}
+                            className={categoryChipClass(active)}
+                        >
+                            <Icon className={categoryIconClass(active)} />
+                            {category.name}
+                        </button>
+                    );
+                })}
             </div>
         </div>
     );

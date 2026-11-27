@@ -1,0 +1,236 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "About.dc.html": {
+      "expand": "fill",
+      "h": 3000,
+      "title": "About us",
+      "w": 1440,
+      "x": 0,
+      "y": 7520
+    },
+    "AccountMenu.dc.html": {
+      "h": 560,
+      "title": "Component — account menu",
+      "w": 280,
+      "x": 1520,
+      "y": 4020
+    },
+    "Booking.dc.html": {
+      "expand": "fill",
+      "h": 980,
+      "is_interactive": true,
+      "title": "Booking — 1. Services",
+      "w": 1440,
+      "x": 1990,
+      "y": 0
+    },
+    "BookingDetail.dc.html": {
+      "expand": "fill",
+      "h": 1800,
+      "is_interactive": true,
+      "title": "Booking details",
+      "w": 1440,
+      "x": 6080,
+      "y": 5200
+    },
+    "Bookings.dc.html": {
+      "expand": "fill",
+      "h": 1900,
+      "is_interactive": true,
+      "title": "My bookings",
+      "w": 1440,
+      "x": 0,
+      "y": 5200
+    },
+    "Contact.dc.html": {
+      "expand": "fill",
+      "h": 1900,
+      "title": "Contact us",
+      "w": 1440,
+      "x": 1520,
+      "y": 7520
+    },
+    "EmptyStates.dc.html": {
+      "h": 1500,
+      "title": "Empty states",
+      "w": 1440,
+      "x": 4560,
+      "y": 7520
+    },
+    "Favourites.dc.html": {
+      "expand": "fill",
+      "h": 1700,
+      "title": "Favourite pros",
+      "w": 1440,
+      "x": 4560,
+      "y": 5200
+    },
+    "Identity-yyux.dc.html": {
+      "h": 2000,
+      "title": "Identity — Horizon mark",
+      "w": 1440,
+      "x": 2420,
+      "y": -2750
+    },
+    "Legal.dc.html": {
+      "expand": "fill",
+      "h": 2600,
+      "is_interactive": true,
+      "title": "Privacy & terms",
+      "w": 1440,
+      "x": 3040,
+      "y": 7520
+    },
+    "Main.dc.html": {
+      "expand": "fill",
+      "h": 3900,
+      "is_interactive": true,
+      "title": "Provider profile — desktop",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "Marketplace.dc.html": {
+      "expand": "fill",
+      "h": 2700,
+      "is_interactive": true,
+      "title": "Marketplace — explore",
+      "w": 1440,
+      "x": 1990,
+      "y": 1100
+    },
+    "Notifications.dc.html": {
+      "h": 960,
+      "is_interactive": true,
+      "title": "Notifications panel",
+      "w": 1440,
+      "x": 4560,
+      "y": 9140
+    },
+    "ProfileMobile.dc.html": {
+      "h": 2400,
+      "title": "Provider profile — mobile",
+      "w": 390,
+      "x": 1520,
+      "y": 0
+    },
+    "Settings.dc.html": {
+      "expand": "fill",
+      "h": 1900,
+      "is_interactive": true,
+      "title": "Account settings",
+      "w": 1440,
+      "x": 3040,
+      "y": 5200
+    },
+    "SiteFooter.dc.html": {
+      "h": 620,
+      "title": "Component — site footer",
+      "w": 1440,
+      "x": 0,
+      "y": 4220
+    },
+    "SiteNav.dc.html": {
+      "h": 80,
+      "title": "Component — site navbar",
+      "w": 1440,
+      "x": 0,
+      "y": 4020
+    },
+    "Wallet.dc.html": {
+      "expand": "fill",
+      "h": 1900,
+      "title": "Wallet",
+      "w": 1440,
+      "x": 1520,
+      "y": 5200
+    },
+    "Welcome.dc.html": {
+      "expand": "fill",
+      "h": 4500,
+      "title": "Welcome — landing page",
+      "w": 1440,
+      "x": 3510,
+      "y": 0
+    },
+    "BookingTime.dc.html": {
+      "x": 5030,
+      "y": 0,
+      "w": 1440,
+      "h": 1200,
+      "title": "Booking — 2. Time",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "BookingConfirm.dc.html": {
+      "x": 6550,
+      "y": 0,
+      "w": 1440,
+      "h": 1400,
+      "title": "Booking — 3. Confirm",
+      "expand": "fill",
+      "is_interactive": true
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-11-24T12:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "acct": {
+      "kind": "title1",
+      "maxW": 5900,
+      "text": "Account pages",
+      "w": 240,
+      "x": 0,
+      "y": 4900
+    },
+    "info": {
+      "kind": "title1",
+      "maxW": 4400,
+      "text": "Company pages",
+      "w": 240,
+      "x": 0,
+      "y": 7220
+    },
+    "states": {
+      "kind": "title1",
+      "maxW": 1440,
+      "text": "States",
+      "w": 240,
+      "x": 4560,
+      "y": 7220
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Welcome.dc.html",
+    "ProfileMobile.dc.html",
+    "Booking.dc.html",
+    "Marketplace.dc.html",
+    "SiteNav.dc.html",
+    "SiteFooter.dc.html",
+    "AccountMenu.dc.html",
+    "Bookings.dc.html",
+    "Wallet.dc.html",
+    "Settings.dc.html",
+    "Favourites.dc.html",
+    "About.dc.html",
+    "Contact.dc.html",
+    "Legal.dc.html",
+    "Identity-yyux.dc.html",
+    "EmptyStates.dc.html",
+    "Notifications.dc.html",
+    "BookingDetail.dc.html",
+    "BookingTime.dc.html",
+    "BookingConfirm.dc.html"
+  ],
+  "pages": [],
+  "title": "Proxideck Premium Client Pages"
+}

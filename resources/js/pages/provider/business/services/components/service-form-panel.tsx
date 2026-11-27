@@ -9,6 +9,7 @@ export interface ServiceFormData {
     name: string;
     description: string;
     price: string;
+    price_is_starting: boolean;
     duration_minutes: string;
     status: 'active' | 'inactive';
 }
@@ -63,7 +64,6 @@ export default function ServiceFormPanel({
     const [isCustomDuration, setIsCustomDuration] = useState(
         data.duration_minutes !== '' && !durationIsPreset,
     );
-
 
     const isAvailable = data.status === 'active';
     const chip =
@@ -151,6 +151,21 @@ export default function ServiceFormPanel({
                                 className="h-full min-w-0 flex-1 bg-transparent px-4 text-base text-foreground outline-none placeholder:text-muted-foreground"
                             />
                         </div>
+                        <label className="flex items-center gap-2.5 text-[13px] text-muted-foreground">
+                            <input
+                                type="checkbox"
+                                checked={data.price_is_starting}
+                                onChange={(e) =>
+                                    setData(
+                                        'price_is_starting',
+                                        e.target.checked,
+                                    )
+                                }
+                                className="size-4 rounded accent-[#0E3B2E]"
+                            />
+                            Starting price — clients see &ldquo;from ₦
+                            {Number(data.price || 0).toLocaleString()}&rdquo;
+                        </label>
                         <FieldError message={errors.price} />
                     </div>
 

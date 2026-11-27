@@ -6,7 +6,6 @@ namespace App\Models;
 
 use App\Enum\UserRoleEnum;
 use App\Observers\UserObserver;
-use App\Models\ClientAddress;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
@@ -33,12 +32,17 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $fillable = [
         'name',
         'email',
+        'phone',
+        'gender',
+        'date_of_birth',
+        'avatar',
         'password',
         'role',
         'referral_code',
         'referred_by',
         'is_verified',
         'invitation_link',
+        'notification_preferences',
     ];
 
     public function isProvider(): bool
@@ -81,6 +85,8 @@ class User extends Authenticatable implements MustVerifyEmail
             'two_factor_confirmed_at' => 'datetime',
             'role' => UserRoleEnum::class,
             'is_verified' => 'boolean',
+            'notification_preferences' => 'array',
+            'date_of_birth' => 'date:Y-m-d',
         ];
     }
 

@@ -1,5 +1,7 @@
 import KeenIcon from '@/components/keen-icon';
 import { Pagination } from '@/components/pagination';
+import { EmptyState, EmptyStateInset } from '@/components/site/empty-state';
+import { CustomAlertDialog } from '@/components/ui/custom-alert-dialog';
 import {
     Dialog,
     DialogContent,
@@ -28,6 +30,7 @@ interface Service {
     name: string;
     description: string;
     price: number;
+    price_is_starting: boolean;
     duration_minutes: number;
     category_id: string | null;
     category_name: string | null;
@@ -111,6 +114,7 @@ export default function ServicesIndex({
             name: '',
             description: '',
             price: '',
+            price_is_starting: false,
             duration_minutes: '60',
             status: 'active',
         });
@@ -169,15 +173,30 @@ export default function ServicesIndex({
             name: service.name,
             description: service.description || '',
             price: service.price.toString(),
+            price_is_starting: service.price_is_starting,
             duration_minutes: service.duration_minutes.toString(),
             status: service.status,
         });
     };
 
-    const handleDelete = (id: string) => {
-        if (confirm('Are you sure you want to delete this service?')) {
-            router.delete(`/business/services/${id}`);
+    const requestDeleteService = (id: string, name: string) => {
+        setDeleteTarget({ kind: 'service', id, name });
+    };
+
+    const confirmDelete = () => {
+        if (!deleteTarget) {
+            return;
         }
+
+        if (deleteTarget.kind === 'service') {
+            router.delete(`/business/services/${deleteTarget.id}`);
+        } else {
+            router.delete(`/business/services/categories/${deleteTarget.id}`, {
+                preserveScroll: true,
+            });
+        }
+
+        setDeleteTarget(null);
     };
 
     const toggleStatus = (id: string) => {
@@ -209,16 +228,21 @@ export default function ServicesIndex({
         setCategoryData('name', category.name);
     };
 
-    const handleDeleteCategory = (category: ServiceCategory) => {
-        if (confirm(`Delete "${category.name}"?`)) {
-            router.delete(`/business/services/categories/${category.id}`, {
-                preserveScroll: true,
-            });
-        }
+    const requestDeleteCategory = (category: ServiceCategory) => {
+        setDeleteTarget({
+            kind: 'category',
+            id: category.id,
+            name: category.name,
+        });
     };
 
     const [categoryFilter, setCategoryFilter] = useState<string>('all');
     const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<
+        | { kind: 'service'; id: string; name: string }
+        | { kind: 'category'; id: string; name: string }
+        | null
+    >(null);
     const isServiceFormOpen = isAddModalOpen || !!editingService;
 
     const visibleServices = services.data.filter(
@@ -436,8 +460,40 @@ export default function ServicesIndex({
                             />
                         </div>
                     )}
-                    {/* Grid */}
-                    <div className="grid min-w-0 flex-1 grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
+                    <div className="flex min-w-0 flex-1 flex-col gap-4">
+                        {services.data.length === 0 &&
+                            serviceCategories.length > 0 && (
+                                <EmptyState
+                                    illustration="reviews"
+                                    title="No services yet"
+                                    description="Add what clients can book — name, price, duration and category."
+                                    contextLabel="Services"
+                                    className="bg-card"
+                                    actions={
+                                        <button
+                                            type="button"
+                                            onClick={openNewServiceForm}
+                                            className="flex h-12 items-center rounded-full bg-forest px-6 text-[15px] font-bold text-white dark:bg-lime dark:text-forest"
+                                        >
+                                            Add a service
+                                        </button>
+                                    }
+                                />
+                            )}
+
+                        {services.data.length > 0 &&
+                            visibleServices.length === 0 && (
+                                <EmptyStateInset
+                                    borderTop
+                                    illustration="search"
+                                    title="No services match"
+                                    description="Try another category or clear your search."
+                                    className="rounded-[20px] border border-[#0E3B2E]/10 bg-card dark:border-white/10"
+                                />
+                            )}
+
+                        {visibleServices.length > 0 && (
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
                         {visibleServices.map((service) => {
                             const isActive = service.status === 'active';
 
@@ -457,15 +513,18 @@ export default function ServicesIndex({
                                                 <button
                                                     type="button"
                                                     aria-label={`More for ${service.name}`}
-                                                    className="flex size-9 items-center justify-center rounded-[10px] text-muted-foreground hover:bg-muted"
+                                                    className="flex size-9 shrink-0 items-center justify-center rounded-[10px] border border-[#0E3B2E]/20 bg-[#F7FAF7] text-[#0E3B2E] shadow-sm transition-colors hover:border-[#0E3B2E]/35 hover:bg-[#E6F4EC] dark:border-white/20 dark:bg-[#0E3B2E]/40 dark:text-[#C8F169] dark:hover:bg-[#0E3B2E]"
                                                 >
                                                     <KeenIcon
                                                         name="dots-horizontal"
-                                                        className="text-lg"
+                                                        className="text-[18px]"
                                                     />
                                                 </button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
+                                            <DropdownMenuContent
+                                                align="end"
+                                                className="min-w-[9.5rem] rounded-xl border border-[#0E3B2E]/12 p-1 shadow-lg dark:border-white/15"
+                                            >
                                                 <DropdownMenuItem
                                                     onClick={() =>
                                                         handleEdit(service)
@@ -479,9 +538,12 @@ export default function ServicesIndex({
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
                                                     onClick={() =>
-                                                        handleDelete(service.id)
+                                                        requestDeleteService(
+                                                            service.id,
+                                                            service.name,
+                                                        )
                                                     }
-                                                    className="text-destructive"
+                                                    className="font-semibold text-destructive focus:text-destructive"
                                                 >
                                                     <KeenIcon
                                                         name="trash"
@@ -525,6 +587,11 @@ export default function ServicesIndex({
                                     <div className="mt-auto h-px bg-[#0E3B2E]/[0.08] dark:bg-white/10" />
                                     <div className="flex items-center justify-between gap-2.5">
                                         <span className="font-[Sora] text-xl font-bold text-[#0E3B2E] dark:text-[#C8F169]">
+                                            {service.price_is_starting && (
+                                                <span className="mr-1 text-sm font-semibold text-muted-foreground">
+                                                    from
+                                                </span>
+                                            )}
                                             ₦
                                             {Number(
                                                 service.price,
@@ -564,7 +631,8 @@ export default function ServicesIndex({
                             );
                         })}
 
-                        {serviceCategories.length > 0 && (
+                        {serviceCategories.length > 0 &&
+                            visibleServices.length > 0 && (
                             <button
                                 type="button"
                                 onClick={openNewServiceForm}
@@ -585,13 +653,9 @@ export default function ServicesIndex({
                             </button>
                         )}
                     </div>
+                        )}
+                    </div>
                 </div>
-
-                {visibleServices.length === 0 && services.data.length > 0 && (
-                    <p className="text-center text-sm text-muted-foreground">
-                        No services in this category on this page.
-                    </p>
-                )}
 
                 {services.links?.length > 3 && (
                     <div className="flex justify-center">
@@ -654,7 +718,7 @@ export default function ServicesIndex({
                                     type="button"
                                     aria-label={`Delete ${category.name}`}
                                     onClick={() =>
-                                        handleDeleteCategory(category)
+                                        requestDeleteCategory(category)
                                     }
                                     className="flex size-9 items-center justify-center rounded-[10px] border border-[#0E3B2E]/12 text-red-700 hover:bg-red-50 dark:border-white/15 dark:text-red-300"
                                 >
@@ -714,6 +778,37 @@ export default function ServicesIndex({
                     </form>
                 </DialogContent>
             </Dialog>
+
+            <CustomAlertDialog
+                open={deleteTarget !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setDeleteTarget(null);
+                    }
+                }}
+                icon={
+                    <span className="flex size-14 items-center justify-center rounded-2xl bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300">
+                        <KeenIcon name="trash" className="text-3xl" />
+                    </span>
+                }
+                title={
+                    deleteTarget?.kind === 'category'
+                        ? `Delete “${deleteTarget.name}”?`
+                        : 'Delete this service?'
+                }
+                description={
+                    deleteTarget?.kind === 'category'
+                        ? 'Services in this category stay on your account but lose this grouping. This cannot be undone.'
+                        : deleteTarget
+                          ? `“${deleteTarget.name}” will be removed from your menu and clients will no longer be able to book it.`
+                          : ''
+                }
+                acceptLabel="Delete"
+                rejectLabel="Cancel"
+                onAccept={confirmDelete}
+                acceptVariant="destructive"
+                rejectVariant="outline"
+            />
         </AppLayout>
     );
 }

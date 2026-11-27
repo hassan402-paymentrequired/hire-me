@@ -1,4 +1,5 @@
 import KeenIcon from '@/components/keen-icon';
+import { EmptyStateInset } from '@/components/site/empty-state';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes/business';
@@ -451,18 +452,11 @@ export default function Index({
                         </div>
 
                         {upcomingAppointments.length === 0 ? (
-                            <div className="flex flex-col items-center gap-2 border-t border-[#0E3B2E]/10 py-10 text-center dark:border-white/10">
-                                <KeenIcon
-                                    name="calendar-tick"
-                                    className="text-3xl text-[#A9C7B8]"
-                                />
-                                <span className="text-sm font-semibold text-foreground">
-                                    No upcoming appointments
-                                </span>
-                                <span className="text-[13px] text-muted-foreground">
-                                    Confirmed bookings will show up here.
-                                </span>
-                            </div>
+                            <EmptyStateInset
+                                borderTop
+                                title="No upcoming appointments"
+                                description="Confirmed bookings will show up here."
+                            />
                         ) : (
                             <ul>
                                 {upcomingAppointments.map(
@@ -520,18 +514,12 @@ export default function Index({
                         </h3>
 
                         {attentionItems.length === 0 ? (
-                            <div className="flex flex-col items-center gap-2 py-8 text-center">
-                                <KeenIcon
-                                    name="like-shapes"
-                                    className="text-3xl text-[#A9C7B8]"
-                                />
-                                <span className="text-sm font-semibold text-foreground">
-                                    You’re all caught up
-                                </span>
-                                <span className="text-[13px] text-muted-foreground">
-                                    Nothing needs your decision right now.
-                                </span>
-                            </div>
+                            <EmptyStateInset
+                                illustration="notifications"
+                                className="flex-1 py-8"
+                                title="You're all caught up"
+                                description="Nothing needs your decision right now."
+                            />
                         ) : (
                             attentionItems.map((item) => (
                                 <div

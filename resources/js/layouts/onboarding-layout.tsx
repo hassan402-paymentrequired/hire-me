@@ -3,7 +3,7 @@ import ToastNotification from '@/components/ui/toast-notification';
 import { cn } from '@/lib/utils';
 import { home } from '@/routes';
 import { Head, Link } from '@inertiajs/react';
-import { Check, LucideIcon } from 'lucide-react';
+import { Check, Lightbulb, LucideIcon } from 'lucide-react';
 import { PropsWithChildren } from 'react';
 
 interface Step {
@@ -20,14 +20,81 @@ interface OnboardingLayoutProps extends PropsWithChildren {
     currentStepId: string;
 }
 
+const statusLabels: Record<Step['status'], string> = {
+    completed: 'Done',
+    current: 'In progress',
+    upcoming: 'Next',
+};
+
+interface StepTip {
+    title: string;
+    text: string;
+}
+
+const stepTips: Record<string, StepTip> = {
+    profile: {
+        title: 'First impressions count',
+        text: 'Add a clear cover photo and your exact area. It is the first thing clients see on your listing.',
+    },
+    hours: {
+        title: 'Only open hours you can keep',
+        text: 'Clients book straight into your open slots, so block out the times you are usually busy.',
+    },
+    services: {
+        title: 'Name services the way clients search',
+        text: 'Use names like "Knotless braids" or "Gel manicure" and include how long each one takes.',
+    },
+};
+
+const defaultTip: StepTip = {
+    title: 'You can change this later',
+    text: 'Everything you add here can be edited from your dashboard once you are live.',
+};
+
+function SegmentedProgress({ steps }: { steps: Step[] }) {
+    return (
+        <div className="flex gap-1.5" aria-hidden>
+            {steps.map((step) => (
+                <div
+                    key={step.id}
+                    className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"
+                >
+                    <div
+                        className={cn(
+                            'h-full rounded-full bg-forest transition-all duration-500 dark:bg-lime',
+                            step.status === 'completed' && 'w-full',
+                            step.status === 'current' && 'w-1/2',
+                            step.status === 'upcoming' && 'w-0',
+                        )}
+                    />
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function encouragement(stepsLeft: number): string {
+    if (stepsLeft <= 0) {
+        return 'Last step before verification.';
+    }
+
+    return stepsLeft === 1
+        ? '1 step after this one.'
+        : `${stepsLeft} steps after this one.`;
+}
+
 export default function OnboardingLayout({
     title,
     steps,
     currentStepId,
     children,
 }: OnboardingLayoutProps) {
-    const currentStepIndex = steps.findIndex((s) => s.id === currentStepId);
-    const progress = ((currentStepIndex + 1) / steps.length) * 100;
+    const currentStepIndex = Math.max(
+        steps.findIndex((s) => s.id === currentStepId),
+        0,
+    );
+    const currentStep = steps[currentStepIndex];
+    const stepsLeft = steps.length - currentStepIndex - 1;
 
     return (
         <div className="flex h-screen overflow-hidden bg-background">
@@ -49,31 +116,26 @@ export default function OnboardingLayout({
                                     className="hidden size-8 dark:block"
                                     onDark
                                 />
-                                <span className="font-['Sora'] text-xl font-bold tracking-[-0.03em] text-[#0E3B2E] dark:text-white">
+                                <span className="font-['Sora'] text-xl font-bold tracking-[-0.03em] text-forest dark:text-white">
                                     proxideck
                                 </span>
                             </Link>
                             <div className="text-xs font-semibold text-muted-foreground lg:hidden">
-                                Step {currentStepIndex + 1}/{steps.length}
+                                Step {currentStepIndex + 1} of {steps.length}
                             </div>
                         </div>
 
-                        {/* Mobile progress bar */}
-                        <div className="mb-7 lg:hidden">
-                            <div className="mb-2 flex items-center justify-between">
-                                <div className="text-[11px] font-semibold tracking-[0.18em] text-[#2F7D4F] uppercase dark:text-[#C8F169]">
-                                    {steps[currentStepIndex]?.title || 'Step'}
-                                </div>
-                                <div className="text-xs font-medium text-muted-foreground">
-                                    {Math.round(progress)}%
-                                </div>
+                        {/* Mobile progress */}
+                        <div className="mb-7 flex flex-col gap-2.5 lg:hidden">
+                            <div className="flex items-baseline justify-between gap-3">
+                                <span className="font-['Sora'] text-sm font-bold text-forest dark:text-lime">
+                                    {currentStep?.title}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                    {encouragement(stepsLeft)}
+                                </span>
                             </div>
-                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                                <div
-                                    className="h-full rounded-full bg-[#0E3B2E] transition-all duration-500 dark:bg-[#C8F169]"
-                                    style={{ width: `${progress}%` }}
-                                />
-                            </div>
+                            <SegmentedProgress steps={steps} />
                         </div>
 
                         {/* Content (no card wrapper; keep it on the page background) */}
@@ -85,28 +147,37 @@ export default function OnboardingLayout({
             </div>
 
             {/* Right Panel - Steps on brand illustration */}
-            <aside className="relative hidden min-h-screen w-[440px] shrink-0 flex-col overflow-hidden bg-[#0E3B2E] lg:flex">
+            <aside className="relative hidden min-h-screen w-[440px] shrink-0 flex-col overflow-hidden bg-forest lg:flex">
                 <img
                     src="/brand/banners/proxideck-auth-panel-dark.svg"
                     alt=""
                     className="pointer-events-none absolute inset-0 h-full w-full object-cover"
                 />
-                <div className="pointer-events-none absolute inset-0 bg-[#0E3B2E]/55" />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-forest/80 via-forest/55 to-forest/90" />
 
-                <div className="relative z-10 flex h-full flex-col overflow-y-auto p-8">
-                    <div className="flex items-center justify-between">
-                        <p className="text-xs font-semibold tracking-[0.18em] text-white/75 uppercase">
-                            Setup steps
-                        </p>
-                        <span className="rounded-full border border-[#C8F169]/35 bg-[#0E3B2E]/70 px-3 py-1 text-[11px] font-semibold text-[#C8F169] backdrop-blur-sm">
-                            Onboarding
+                <div className="relative z-10 flex h-full flex-col overflow-y-auto p-9">
+                    {/* Current step headline */}
+                    <div className="flex items-end gap-4">
+                        <span className="font-['Sora'] text-[72px] leading-[0.8] font-bold tracking-[-0.05em] text-lime">
+                            {String(currentStepIndex + 1).padStart(2, '0')}
+                        </span>
+                        <span className="pb-1 text-sm font-medium text-sage">
+                            of {String(steps.length).padStart(2, '0')}
                         </span>
                     </div>
+                    <h2 className="mt-5 font-['Sora'] text-[28px] leading-tight font-bold tracking-tight text-white">
+                        {currentStep?.title}
+                    </h2>
+                    <p className="mt-2 max-w-80 text-[15px] leading-relaxed text-[#C9E2D3]">
+                        {currentStep?.description}
+                    </p>
 
-                    <ol className="mt-6 space-y-2">
+                    {/* Timeline */}
+                    <ol className="mt-10">
                         {steps.map((step, index) => {
                             const isCurrent = step.status === 'current';
                             const isCompleted = step.status === 'completed';
+                            const isLast = index === steps.length - 1;
 
                             return (
                                 <li
@@ -114,58 +185,72 @@ export default function OnboardingLayout({
                                     aria-current={
                                         isCurrent ? 'step' : undefined
                                     }
-                                    className={cn(
-                                        'flex gap-4 rounded-2xl border p-3.5 backdrop-blur-sm transition-colors',
-                                        isCurrent
-                                            ? 'border-[#C8F169]/40 bg-white/[0.12]'
-                                            : 'border-transparent bg-[#0E3B2E]/40',
-                                    )}
+                                    className="flex gap-4"
                                 >
-                                    <div
-                                        className={cn(
-                                            'mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl',
-                                            isCompleted
-                                                ? 'bg-[#C8F169] text-[#0E3B2E]'
-                                                : isCurrent
-                                                  ? 'bg-white text-[#0E3B2E]'
-                                                  : 'border border-white/20 text-white/70',
-                                        )}
-                                        aria-hidden="true"
-                                    >
-                                        {isCompleted ? (
-                                            <Check
-                                                className="h-5 w-5"
-                                                strokeWidth={2.5}
+                                    <div className="flex flex-col items-center">
+                                        <span
+                                            aria-hidden
+                                            className={cn(
+                                                'grid size-9 shrink-0 place-items-center rounded-full text-sm font-bold transition-colors',
+                                                isCompleted &&
+                                                    'bg-lime text-forest',
+                                                isCurrent &&
+                                                    'bg-white text-forest ring-4 ring-lime/30',
+                                                !isCompleted &&
+                                                    !isCurrent &&
+                                                    'border border-dashed border-white/35 text-white/60',
+                                            )}
+                                        >
+                                            {isCompleted ? (
+                                                <Check
+                                                    className="size-4"
+                                                    strokeWidth={3}
+                                                />
+                                            ) : isCurrent ? (
+                                                <step.icon className="size-4" />
+                                            ) : (
+                                                index + 1
+                                            )}
+                                        </span>
+                                        {!isLast && (
+                                            <span
+                                                aria-hidden
+                                                className={cn(
+                                                    'my-1 w-0.5 flex-1 rounded-full',
+                                                    isCompleted
+                                                        ? 'bg-lime'
+                                                        : 'bg-white/15',
+                                                )}
                                             />
-                                        ) : isCurrent ? (
-                                            <step.icon className="h-5 w-5" />
-                                        ) : (
-                                            <span className="text-sm font-bold">
-                                                {index + 1}
-                                            </span>
                                         )}
                                     </div>
-
-                                    <div className="min-w-0 flex-1">
+                                    <div
+                                        className={cn(
+                                            'min-w-0 flex-1 pt-1.5',
+                                            !isLast && 'pb-7',
+                                        )}
+                                    >
                                         <div
                                             className={cn(
-                                                'font-[Sora] text-sm font-semibold',
-                                                isCurrent || isCompleted
+                                                "font-['Sora'] text-[15px] font-semibold",
+                                                isCurrent
                                                     ? 'text-white'
-                                                    : 'text-white/70',
+                                                    : isCompleted
+                                                      ? 'text-white/85'
+                                                      : 'text-white/55',
                                             )}
                                         >
                                             {step.title}
                                         </div>
                                         <div
                                             className={cn(
-                                                'mt-1 text-xs leading-relaxed',
+                                                'mt-0.5 text-[13px]',
                                                 isCurrent
-                                                    ? 'text-white/80'
-                                                    : 'text-white/60',
+                                                    ? 'text-lime'
+                                                    : 'text-white/45',
                                             )}
                                         >
-                                            {step.description}
+                                            {statusLabels[step.status]}
                                         </div>
                                     </div>
                                 </li>
@@ -173,28 +258,23 @@ export default function OnboardingLayout({
                         })}
                     </ol>
 
-                    <div className="mt-auto pt-8">
-                        <div className="rounded-2xl bg-white p-4 shadow-[0_24px_60px_rgba(0,0,0,0.3)]">
-                            <div className="flex items-center justify-between">
-                                <span className="font-['Sora'] text-sm font-semibold text-[#13201B]">
-                                    Your progress
-                                </span>
-                                <span className="font-['Sora'] text-sm font-bold text-[#0E3B2E]">
-                                    {Math.round(progress)}%
-                                </span>
-                            </div>
-                            <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#E6F4EC]">
-                                <div
-                                    className="h-full rounded-full bg-[#0E3B2E] transition-all duration-500"
-                                    style={{ width: `${progress}%` }}
-                                />
-                            </div>
-                            <div className="mt-2 flex items-center justify-between text-xs text-[#4A5A52]">
-                                <span>
-                                    Step {currentStepIndex + 1} of{' '}
-                                    {steps.length}
-                                </span>
-                                <span>You’re close.</span>
+                    {/* Listing preview */}
+                    <div className="mt-auto pt-10">
+                        <div className="flex gap-3.5 rounded-3xl bg-white p-5 shadow-[0_24px_60px_rgba(0,0,0,0.3)]">
+                            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-mint text-forest">
+                                <Lightbulb className="size-4.5" />
+                            </span>
+                            <div className="min-w-0 flex-1">
+                                <div className="font-['Sora'] text-[15px] font-bold text-ink">
+                                    {(currentStep &&
+                                        stepTips[currentStep.id]?.title) ??
+                                        defaultTip.title}
+                                </div>
+                                <p className="mt-1 text-[13px] leading-relaxed text-moss">
+                                    {(currentStep &&
+                                        stepTips[currentStep.id]?.text) ??
+                                        defaultTip.text}
+                                </p>
                             </div>
                         </div>
 

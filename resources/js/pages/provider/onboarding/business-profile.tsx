@@ -13,12 +13,13 @@ import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import OnboardingLayout from '@/layouts/onboarding-layout';
 import { cn } from '@/lib/utils';
-import { CloudArrowUpIcon } from '@heroicons/react/24/solid';
 import { useForm, usePage } from '@inertiajs/react';
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
 import {
     AlertCircle,
+    ArrowRight,
     CheckCircle2,
+    ImagePlus,
     LocateFixed,
     Map,
     MapPin,
@@ -46,6 +47,28 @@ interface BusinessProfileProps {
 
 const libraries: 'places'[] = ['places'];
 
+function FormSection({
+    title,
+    description,
+    children,
+}: {
+    title: string;
+    description: string;
+    children: React.ReactNode;
+}) {
+    return (
+        <section className="grid gap-5 border-t border-line pt-8 first:border-t-0 first:pt-0 lg:grid-cols-[220px_1fr] lg:gap-10 dark:border-white/10">
+            <div>
+                <h2 className="font-['Sora'] text-base font-bold">{title}</h2>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                    {description}
+                </p>
+            </div>
+            <div className="min-w-0 space-y-4">{children}</div>
+        </section>
+    );
+}
+
 type AddressMode = 'autocomplete' | 'manual' | 'map';
 type AddressAutocompleteUi = 'new' | 'legacy';
 
@@ -60,8 +83,7 @@ export default function BusinessProfile({
         business_name: businessProfile?.business_name || '',
         description: businessProfile?.description || '',
         images: [] as File[],
-        logo_index:
-            businessProfile?.images?.findIndex((img) => img.is_logo) ?? 0,
+        cover_index: 0,
         address: businessProfile?.address || '',
         city: businessProfile?.city || '',
         state: businessProfile?.state || '',
@@ -289,8 +311,6 @@ export default function BusinessProfile({
 
     const handleAddressInput = (e: React.ChangeEvent<HTMLInputElement>) => {
         const target = e.target.value;
-        console.log(target);
-
         setData('address', target);
         setAddressDraft(target);
         setGoogleResolved(false);
@@ -702,12 +722,15 @@ export default function BusinessProfile({
                 // Classic marker fallback
                 cleanupAdvanced();
                 if (!classicMarkerRef.current) {
-                    classicMarkerRef.current = new g.maps.Marker({
-                        map: mapInstance,
-                        position: markerPosition,
-                        draggable: true,
-                    });
-                    classicMarkerRef.current.addListener('dragend', () => {
+                    const classicMarker: google.maps.Marker = new g.maps.Marker(
+                        {
+                            map: mapInstance,
+                            position: markerPosition,
+                            draggable: true,
+                        },
+                    );
+                    classicMarkerRef.current = classicMarker;
+                    classicMarker.addListener('dragend', () => {
                         const pos = classicMarkerRef.current?.getPosition?.();
                         if (!pos) return;
                         setMarkerPosition({ lat: pos.lat(), lng: pos.lng() });
@@ -744,8 +767,8 @@ export default function BusinessProfile({
         setData((prev: typeof data) => ({
             ...prev,
             images: merged,
-            logo_index: Math.min(
-                prev.logo_index,
+            cover_index: Math.min(
+                prev.cover_index,
                 Math.max(0, merged.length - 1),
             ),
         }));
@@ -766,17 +789,17 @@ export default function BusinessProfile({
     const removeImage = (index: number) => {
         const newImages = data.images.filter((_, i) => i !== index);
         const newPreviews = imagePreviews.filter((_, i) => i !== index);
-        const nextLogoIndex =
-            data.logo_index === index
+        const nextCoverIndex =
+            data.cover_index === index
                 ? 0
-                : data.logo_index > index
-                  ? data.logo_index - 1
-                  : data.logo_index;
+                : data.cover_index > index
+                  ? data.cover_index - 1
+                  : data.cover_index;
         setData({
             ...data,
             images: newImages,
-            logo_index: Math.min(
-                nextLogoIndex,
+            cover_index: Math.min(
+                nextCoverIndex,
                 Math.max(0, newImages.length - 1),
             ),
         });
@@ -798,7 +821,7 @@ export default function BusinessProfile({
 
     const isManualMode = addressMode === 'manual';
     const selectedIndex = Math.min(
-        Math.max(0, data.logo_index ?? 0),
+        Math.max(0, data.cover_index ?? 0),
         Math.max(0, imagePreviews.length - 1),
     );
     const otherThumbs = imagePreviews
@@ -818,21 +841,34 @@ export default function BusinessProfile({
             steps={getStepsWithStatus('profile')}
             currentStepId="profile"
         >
-            <div className="min-w-0 space-y-6">
-                <div className="space-y-2">
-                    <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
-                        Tell us about your business
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        This information will be visible to clients on your
-                        public profile.
+            <div className="min-w-0 space-y-10">
+                <div className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-leaf dark:text-lime">
+                        Step 1 · Business profile
+                    </span>
+                    <h1 className="font-['Sora'] text-3xl leading-tight font-bold tracking-tight sm:text-4xl">
+                        Tell clients who you are
+                    </h1>
+                    <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground">
+                        This is what clients see on your public listing. You can
+                        change any of it later from your dashboard.
                     </p>
                 </div>
 
-                <form onSubmit={submit} className="grid min-w-0 gap-4">
+                <form onSubmit={submit} className="grid min-w-0 gap-10">
                     {/* ── Images Upload ─────────────────────────────────────────── */}
-                    <div className="space-y-3">
-                        <div className="relative overflow-hidden rounded-2xl border bg-muted/15">
+                    <FormSection
+                        title="Photos"
+                        description="Up to 3 banner photos for your public listing. Pick which one clients see first as the cover."
+                    >
+                        <div
+                            className={cn(
+                                'relative overflow-hidden rounded-3xl',
+                                imagePreviews.length === 0
+                                    ? 'border-2 border-dashed border-line bg-paper dark:border-white/15 dark:bg-white/[0.03]'
+                                    : 'border border-line dark:border-white/10',
+                            )}
+                        >
                             <input
                                 ref={imageInputRef}
                                 type="file"
@@ -848,18 +884,17 @@ export default function BusinessProfile({
                                     onClick={() =>
                                         imageInputRef.current?.click()
                                     }
-                                    className="flex h-[180px] w-full flex-col items-center justify-center gap-2 px-4 text-center transition-colors hover:bg-muted/25 sm:h-[260px] sm:px-6"
+                                    className="flex h-[200px] w-full flex-col items-center justify-center gap-3 px-4 text-center transition-colors hover:bg-mint/50 sm:h-[260px] sm:px-6 dark:hover:bg-white/[0.05]"
                                 >
-                                    <div className="flex size-14 items-center justify-center rounded-2xl border bg-background/60">
-                                        <CloudArrowUpIcon className="h-7 w-7 text-muted-foreground" />
+                                    <div className="flex size-14 items-center justify-center rounded-2xl bg-forest text-lime">
+                                        <ImagePlus className="size-6" />
                                     </div>
-                                    <div className="text-sm font-semibold">
-                                        Upload your banner
+                                    <div className="font-['Sora'] text-base font-bold">
+                                        Add photos of your work or space
                                     </div>
-                                    <div className="max-w-md text-xs text-muted-foreground">
-                                        Click to upload up to 3 images. After
-                                        uploading, pick the one you want clients
-                                        to see first as your logo.
+                                    <div className="max-w-sm text-sm text-muted-foreground">
+                                        JPG or PNG. Photos of your work or space
+                                        help your listing stand out.
                                     </div>
                                 </button>
                             ) : (
@@ -895,8 +930,8 @@ export default function BusinessProfile({
                                             Remove
                                         </Button>
                                     </div>
-                                    <div className="absolute bottom-2 left-2 rounded-full bg-black/55 px-2.5 py-0.5 text-[10px] font-semibold tracking-wide text-white sm:bottom-3 sm:left-3 sm:px-3 sm:py-1 sm:text-[11px]">
-                                        LOGO
+                                    <div className="absolute bottom-2 left-2 rounded-full bg-lime px-3 py-1 text-xs font-bold text-forest sm:bottom-3 sm:left-3">
+                                        Cover photo
                                     </div>
                                     {otherThumbs.length > 0 && (
                                         <div className="absolute right-2 bottom-2 flex max-w-[55%] items-end gap-1.5 overflow-x-auto sm:right-3 sm:bottom-3 sm:max-w-none sm:gap-2">
@@ -905,10 +940,10 @@ export default function BusinessProfile({
                                                     key={i}
                                                     type="button"
                                                     onClick={() =>
-                                                        setData('logo_index', i)
+                                                        setData('cover_index', i)
                                                     }
                                                     className="group relative overflow-hidden rounded-xl border border-white/20 bg-black/30 shadow-sm backdrop-blur-sm transition-transform hover:-translate-y-0.5"
-                                                    aria-label="Set as logo"
+                                                    aria-label="Set as cover photo"
                                                 >
                                                     <img
                                                         src={src}
@@ -929,280 +964,302 @@ export default function BusinessProfile({
                                 {errors.images}
                             </p>
                         )}
-                        {errors.logo_index && (
+                        {errors.cover_index && (
                             <p className="mt-1 text-sm text-destructive">
-                                {errors.logo_index}
+                                {errors.cover_index}
                             </p>
                         )}
-                    </div>
+                    </FormSection>
 
                     {/* ── Business Name & Category ──────────────────────────────── */}
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="space-y-1.5">
-                            <Label className="text-sm font-medium">
-                                Business Name{' '}
-                                <span className="text-destructive">*</span>
-                            </Label>
-                            <Input
-                                type="text"
-                                value={data.business_name}
-                                onChange={(e) =>
-                                    setData('business_name', e.target.value)
-                                }
-                                placeholder="What's your business name?"
-                                required
-                                className="h-10"
-                            />
-                            {errors.business_name && (
-                                <p className="mt-1 text-xs text-destructive">
-                                    {errors.business_name}
-                                </p>
-                            )}
-                        </div>
-
-                        <SearchableSelect
-                            label="Business Category"
-                            required={true}
-                            options={categories}
-                            value={data.category}
-                            onChange={(value: string) =>
-                                setData('category', value)
-                            }
-                            placeholder="Select a category"
-                            searchPlaceholder="Search categories..."
-                            error={errors.category}
-                        />
-                    </div>
-
-                    {/* ── Description ──────────────────────────────────────────── */}
-                    <div className="space-y-1.5">
-                        <Label className="text-sm font-medium">
-                            Description
-                        </Label>
-                        <Textarea
-                            value={data.description}
-                            onChange={(e) =>
-                                setData('description', e.target.value)
-                            }
-                            rows={6}
-                            placeholder="Tell clients about your business..."
-                            className="field-sizing-fixed max-h-60 min-h-36 resize-none overflow-auto whitespace-pre-wrap"
-                        />
-                        {errors.description && (
-                            <p className="mt-1 text-xs text-destructive">
-                                {errors.description}
-                            </p>
-                        )}
-                    </div>
-
-                    {/* ── Address Block ─────────────────────────────────────────── */}
-                    <div className="space-y-3">
-                        <div className="space-y-1.5">
-                            <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
+                    <FormSection
+                        title="About your business"
+                        description="Your name, what you do and a short pitch in your own words."
+                    >
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="space-y-1.5">
                                 <Label className="text-sm font-medium">
-                                    Business Address{' '}
+                                    Business Name{' '}
                                     <span className="text-destructive">*</span>
                                 </Label>
-
-                                {googleResolved && (
-                                    <span className="flex items-center gap-1 text-xs font-medium text-emerald-600">
-                                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                                        Location confirmed
-                                    </span>
-                                )}
-
-                                {isManualMode && !googleResolved && (
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setAddressMode('autocomplete');
-                                            setShowFallbackHint(false);
-                                        }}
-                                        className="w-fit text-xs text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
-                                    >
-                                        Use autocomplete instead
-                                    </button>
-                                )}
-                            </div>
-
-                            {/* Address input */}
-                            {map_enabled ? (
-                                <div className="relative">
-                                    <MapPin
-                                        className={cn(
-                                            'pointer-events-none absolute top-1/2 left-3 z-10 h-4 w-4 -translate-y-1/2 transition-colors',
-                                            googleResolved
-                                                ? 'text-emerald-500'
-                                                : 'text-muted-foreground',
-                                        )}
-                                    />
-
-                                    {/* New PlaceAutocompleteElement container */}
-                                    <div
-                                        className={cn(
-                                            'flex h-10 items-center rounded-md border bg-background pr-3 pl-9',
-                                            googleResolved &&
-                                                'border-emerald-500 focus-visible:ring-emerald-500/30',
-                                            (!isLoaded ||
-                                                addressAutocompleteUi !==
-                                                    'new') &&
-                                                'hidden',
-                                        )}
-                                        style={{ colorScheme: 'only light' }}
-                                    >
-                                        <div
-                                            ref={placeAutocompleteContainerRef}
-                                            className="w-full"
-                                        />
-                                    </div>
-
-                                    {/* Legacy autocomplete / no-Maps fallback */}
-
-                                    <Input
-                                        ref={inputRef}
-                                        value={data.address}
-                                        onChange={handleAddressInput}
-                                        onBlur={handleAddressBlur}
-                                        placeholder={
-                                            googleMapsApiKey && !isLoaded
-                                                ? 'Loading maps…'
-                                                : 'Start typing your address...'
-                                        }
-                                        disabled={
-                                            Boolean(googleMapsApiKey) &&
-                                            !isLoaded
-                                        }
-                                        autoComplete="off"
-                                        className={cn(
-                                            'h-10 pr-4 pl-9',
-                                            googleResolved &&
-                                                'border-emerald-500 focus-visible:ring-emerald-500/30',
-                                            isLoaded &&
-                                                addressAutocompleteUi ===
-                                                    'new' &&
-                                                'hidden',
-                                        )}
-                                    />
-                                </div>
-                            ) : (
                                 <Input
                                     type="text"
-                                    value={data.address}
+                                    value={data.business_name}
                                     onChange={(e) =>
-                                        setData('address', e.target.value)
+                                        setData('business_name', e.target.value)
                                     }
-                                    placeholder="Start typing your address?"
+                                    placeholder="What's your business name?"
                                     required
                                     className="h-10"
                                 />
-                            )}
+                                {errors.business_name && (
+                                    <p className="mt-1 text-xs text-destructive">
+                                        {errors.business_name}
+                                    </p>
+                                )}
+                            </div>
 
-                            {errors.address && (
+                            <SearchableSelect
+                                label="Business Category"
+                                required={true}
+                                options={categories}
+                                value={data.category}
+                                onChange={(value: string) =>
+                                    setData('category', value)
+                                }
+                                placeholder="Select a category"
+                                searchPlaceholder="Search categories..."
+                                error={errors.category}
+                            />
+                        </div>
+
+                        {/* ── Description ──────────────────────────────────────────── */}
+                        <div className="space-y-1.5">
+                            <Label className="text-sm font-medium">
+                                Description
+                            </Label>
+                            <Textarea
+                                value={data.description}
+                                onChange={(e) =>
+                                    setData('description', e.target.value)
+                                }
+                                rows={6}
+                                placeholder="What do you specialise in, how long have you been doing it, and what should clients expect?"
+                                className="field-sizing-fixed max-h-60 min-h-36 resize-none overflow-auto whitespace-pre-wrap"
+                            />
+                            {errors.description && (
                                 <p className="mt-1 text-xs text-destructive">
-                                    {errors.address}
+                                    {errors.description}
                                 </p>
                             )}
                         </div>
+                    </FormSection>
 
-                        {/* ── Fallback hint ──────────────────────────────────────── */}
-                        {shouldShowFallbackActions && !isManualMode && (
-                            <Alert className="border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/20">
-                                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                                <AlertDescription className="ml-2 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
-                                    <span className="font-heading text-xs leading-snug text-amber-700 dark:text-amber-300">
-                                        Can't find your address? Enter it
-                                        manually or{' '}
-                                        <span className="font-medium">
-                                            pin it on a map.
+                    {/* ── Address Block ─────────────────────────────────────────── */}
+                    <FormSection
+                        title="Location"
+                        description="Where clients come to you, or the area you work from if you do home service."
+                    >
+                        <div className="space-y-3">
+                            <div className="space-y-1.5">
+                                <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
+                                    <Label className="text-sm font-medium">
+                                        Business Address{' '}
+                                        <span className="text-destructive">
+                                            *
                                         </span>
-                                    </span>
-                                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-                                        <Button
+                                    </Label>
+
+                                    {googleResolved && (
+                                        <span className="flex items-center gap-1 text-xs font-semibold text-leaf dark:text-lime">
+                                            <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                                            Location confirmed
+                                        </span>
+                                    )}
+
+                                    {isManualMode && !googleResolved && (
+                                        <button
                                             type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            className="h-8 w-full gap-1.5 border-amber-300 text-xs hover:bg-amber-100 sm:h-7 sm:w-auto dark:hover:bg-amber-900"
                                             onClick={() => {
-                                                setAddressMode('manual');
+                                                setAddressMode('autocomplete');
                                                 setShowFallbackHint(false);
                                             }}
+                                            className="w-fit text-xs text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
                                         >
-                                            <PencilLine className="h-3 w-3" />
-                                            Type manually
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            className="h-8 w-full gap-1.5 text-xs sm:h-7 sm:w-auto"
-                                            onClick={openMapPicker}
+                                            Use autocomplete instead
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Address input */}
+                                {map_enabled ? (
+                                    <div className="relative">
+                                        <MapPin
+                                            className={cn(
+                                                'pointer-events-none absolute top-1/2 left-3 z-10 h-4 w-4 -translate-y-1/2 transition-colors',
+                                                googleResolved
+                                                    ? 'text-leaf dark:text-lime'
+                                                    : 'text-muted-foreground',
+                                            )}
+                                        />
+
+                                        {/* New PlaceAutocompleteElement container */}
+                                        <div
+                                            className={cn(
+                                                'flex h-10 items-center rounded-md border bg-background pr-3 pl-9',
+                                                googleResolved &&
+                                                    'border-leaf focus-visible:ring-leaf/30 dark:border-lime dark:focus-visible:ring-lime/30',
+                                                (!isLoaded ||
+                                                    addressAutocompleteUi !==
+                                                        'new') &&
+                                                    'hidden',
+                                            )}
+                                            style={{
+                                                colorScheme: 'only light',
+                                            }}
                                         >
-                                            <Map className="h-3 w-3" />
-                                            Pick on map
-                                        </Button>
+                                            <div
+                                                ref={
+                                                    placeAutocompleteContainerRef
+                                                }
+                                                className="w-full"
+                                            />
+                                        </div>
+
+                                        {/* Legacy autocomplete / no-Maps fallback */}
+
+                                        <Input
+                                            ref={inputRef}
+                                            value={data.address}
+                                            onChange={handleAddressInput}
+                                            onBlur={handleAddressBlur}
+                                            placeholder={
+                                                googleMapsApiKey && !isLoaded
+                                                    ? 'Loading maps…'
+                                                    : 'Start typing your address...'
+                                            }
+                                            disabled={
+                                                Boolean(googleMapsApiKey) &&
+                                                !isLoaded
+                                            }
+                                            autoComplete="off"
+                                            className={cn(
+                                                'h-10 pr-4 pl-9',
+                                                googleResolved &&
+                                                    'border-leaf focus-visible:ring-leaf/30 dark:border-lime dark:focus-visible:ring-lime/30',
+                                                isLoaded &&
+                                                    addressAutocompleteUi ===
+                                                        'new' &&
+                                                    'hidden',
+                                            )}
+                                        />
                                     </div>
-                                </AlertDescription>
-                            </Alert>
-                        )}
+                                ) : (
+                                    <Input
+                                        type="text"
+                                        value={data.address}
+                                        onChange={(e) =>
+                                            setData('address', e.target.value)
+                                        }
+                                        placeholder="Start typing your address?"
+                                        required
+                                        className="h-10"
+                                    />
+                                )}
 
-                        {/* ── City / State (manual or after resolve) ──────────────── */}
-                        <div
-                            className={cn(
-                                'grid grid-cols-1 gap-3 overflow-hidden transition-all duration-300 ease-in-out md:grid-cols-2',
-                                isManualMode || googleResolved || !map_enabled
-                                    ? 'max-h-40 opacity-100'
-                                    : 'pointer-events-none max-h-0 opacity-0',
+                                {errors.address && (
+                                    <p className="mt-1 text-xs text-destructive">
+                                        {errors.address}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* ── Fallback hint ──────────────────────────────────────── */}
+                            {shouldShowFallbackActions && !isManualMode && (
+                                <Alert className="border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/20">
+                                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                                    <AlertDescription className="ml-2 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+                                        <span className="font-heading text-xs leading-snug text-amber-700 dark:text-amber-300">
+                                            Can't find your address? Enter it
+                                            manually or{' '}
+                                            <span className="font-medium">
+                                                pin it on a map.
+                                            </span>
+                                        </span>
+                                        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 w-full gap-1.5 border-amber-300 text-xs hover:bg-amber-100 sm:h-7 sm:w-auto dark:hover:bg-amber-900"
+                                                onClick={() => {
+                                                    setAddressMode('manual');
+                                                    setShowFallbackHint(false);
+                                                }}
+                                            >
+                                                <PencilLine className="h-3 w-3" />
+                                                Type manually
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                className="h-8 w-full gap-1.5 text-xs sm:h-7 sm:w-auto"
+                                                onClick={openMapPicker}
+                                            >
+                                                <Map className="h-3 w-3" />
+                                                Pick on map
+                                            </Button>
+                                        </div>
+                                    </AlertDescription>
+                                </Alert>
                             )}
-                        >
-                            <div className="space-y-1.5">
-                                <Label className="text-sm font-medium">
-                                    City
-                                </Label>
-                                <Input
-                                    value={data.city}
-                                    onChange={(e) =>
-                                        setData('city', e.target.value)
-                                    }
-                                    placeholder="City"
-                                    className={cn(
-                                        'h-10',
-                                        googleResolved &&
-                                            !isManualMode &&
-                                            'cursor-default bg-muted/50 text-muted-foreground',
-                                    )}
-                                    readOnly={googleResolved && !isManualMode}
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label className="text-sm font-medium">
-                                    State
-                                </Label>
-                                <Input
-                                    value={data.state}
-                                    onChange={(e) =>
-                                        setData('state', e.target.value)
-                                    }
-                                    placeholder="State"
-                                    className={cn(
-                                        'h-10',
-                                        googleResolved &&
-                                            !isManualMode &&
-                                            'cursor-default bg-muted/50 text-muted-foreground',
-                                    )}
-                                    readOnly={googleResolved && !isManualMode}
-                                />
-                            </div>
-                        </div>
 
-                        {googleResolved && (
-                            <button
-                                type="button"
-                                onClick={() => setAddressMode('manual')}
-                                className="w-fit text-xs text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
+                            {/* ── City / State (manual or after resolve) ──────────────── */}
+                            <div
+                                className={cn(
+                                    'grid grid-cols-1 gap-3 overflow-hidden transition-all duration-300 ease-in-out md:grid-cols-2',
+                                    isManualMode ||
+                                        googleResolved ||
+                                        !map_enabled
+                                        ? 'max-h-40 opacity-100'
+                                        : 'pointer-events-none max-h-0 opacity-0',
+                                )}
                             >
-                                Edit city / state
-                            </button>
-                        )}
-                    </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-sm font-medium">
+                                        City
+                                    </Label>
+                                    <Input
+                                        value={data.city}
+                                        onChange={(e) =>
+                                            setData('city', e.target.value)
+                                        }
+                                        placeholder="City"
+                                        className={cn(
+                                            'h-10',
+                                            googleResolved &&
+                                                !isManualMode &&
+                                                'cursor-default bg-muted/50 text-muted-foreground',
+                                        )}
+                                        readOnly={
+                                            googleResolved && !isManualMode
+                                        }
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-sm font-medium">
+                                        State
+                                    </Label>
+                                    <Input
+                                        value={data.state}
+                                        onChange={(e) =>
+                                            setData('state', e.target.value)
+                                        }
+                                        placeholder="State"
+                                        className={cn(
+                                            'h-10',
+                                            googleResolved &&
+                                                !isManualMode &&
+                                                'cursor-default bg-muted/50 text-muted-foreground',
+                                        )}
+                                        readOnly={
+                                            googleResolved && !isManualMode
+                                        }
+                                    />
+                                </div>
+                            </div>
+
+                            {googleResolved && (
+                                <button
+                                    type="button"
+                                    onClick={() => setAddressMode('manual')}
+                                    className="w-fit text-xs text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
+                                >
+                                    Edit city / state
+                                </button>
+                            )}
+                        </div>
+                    </FormSection>
 
                     {/* ── Phone ─────────────────────────────────────────────────── */}
                     {/* <div className="space-y-1.5">
@@ -1230,16 +1287,19 @@ export default function BusinessProfile({
                     </div> */}
 
                     {/* ── Submit ────────────────────────────────────────────────── */}
-                    <div className="flex items-center justify-end gap-4 pt-4">
-                        <Button
+                    <div className="sticky bottom-0 z-20 -mx-5 flex flex-col-reverse items-stretch gap-3 border-t border-line bg-background/95 px-5 py-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between md:-mx-8 md:px-8 lg:-mx-10 lg:px-10 dark:border-white/10">
+                        <p className="text-center text-sm text-muted-foreground sm:text-left">
+                            Next: set the hours you take bookings.
+                        </p>
+                        <button
                             type="submit"
-                            size="lg"
                             disabled={processing}
-                            className="w-full min-w-[120px] sm:w-auto"
+                            className="flex h-12 items-center justify-center gap-2 rounded-full bg-forest px-6 font-bold text-white transition hover:bg-forest-deep disabled:opacity-70 dark:bg-lime dark:text-forest dark:hover:brightness-95"
                         >
-                            {processing && <Spinner className="mr-2" />}
-                            Continue
-                        </Button>
+                            {processing && <Spinner className="size-4" />}
+                            Continue to work hours
+                            {!processing && <ArrowRight className="size-4" />}
+                        </button>
                     </div>
                 </form>
             </div>

@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 test('profile page is displayed', function () {
     $user = User::factory()->create();
@@ -82,4 +84,58 @@ test('correct password must be provided to delete account', function () {
         ->assertRedirect(route('profile.edit'));
 
     expect($user->fresh())->not->toBeNull();
+});
+test('client profile details can be updated from the account settings form', function () {
+    Storage::fake('public');
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), [
+            'first_name' => 'Tolu',
+            'last_name' => 'Adeyemi',
+            'email' => $user->email,
+            'phone' => '+234 803 000 0000',
+            'gender' => 'female',
+            'date_of_birth' => '1996-04-12',
+            'avatar' => UploadedFile::fake()->image('me.jpg'),
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('profile.edit'));
+
+    $user->refresh();
+
+    expect($user->name)->toBe('Tolu Adeyemi')
+        ->and($user->phone)->toBe('+234 803 000 0000')
+        ->and($user->gender)->toBe('female')
+        ->and($user->date_of_birth->toDateString())->toBe('1996-04-12')
+        ->and($user->avatar)->not->toBeNull();
+});
+
+test('profile photo can be removed', function () {
+    $user = User::factory()->create(['avatar' => 'https://example.test/me.jpg']);
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), [
+            'first_name' => 'Tolu',
+            'email' => $user->email,
+            'remove_avatar' => true,
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($user->fresh()->avatar)->toBeNull()
+        ->and($user->fresh()->name)->toBe('Tolu');
+});
+
+test('profile details are validated', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), [
+            'first_name' => '',
+            'email' => $user->email,
+            'phone' => 'not-a-phone',
+            'gender' => 'unknown',
+            'date_of_birth' => now()->addDay()->toDateString(),
+        ])
+        ->assertSessionHasErrors(['first_name', 'phone', 'gender', 'date_of_birth']);
 });

@@ -1,29 +1,21 @@
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/site/empty-state';
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
-import { EmptyCard } from '@/components/ui/empty-card';
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SearchableSelect } from '@/components/ui/searchable-select';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
-import AppLayout from '@/layouts/guest-layout';
+import AccountLayout from '@/layouts/account-layout';
+import { cn } from '@/lib/utils';
 import walletRoutes from '@/routes/wallet';
+import { recipient as withdrawRecipient } from '@/routes/wallet/client/withdraw';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { ArrowDown, ArrowDownUp, Building2, Loader2, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { Copy, Loader2, Lock, Minus, Plus } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 interface WalletData {
@@ -33,7 +25,7 @@ interface WalletData {
 }
 
 interface Transaction {
-    id: number;
+    id: string;
     type: string;
     amount: number;
     balance_before: number;
@@ -41,18 +33,20 @@ interface Transaction {
     status: string;
     description: string;
     created_at: string;
-    appointment_id?: number;
+    date_label: string;
+    business_name?: string | null;
+    is_held: boolean;
+    appointment_id?: string | null;
     reference?: string;
 }
 
-interface Withdrawal {
-    id: number;
+interface HeldBooking {
+    id: string;
+    service_name: string;
+    business_name: string | null;
     amount: number;
-    status: string;
-    description: string;
-    created_at: string;
-    reference?: string;
-    metadata?: any;
+    month: string;
+    day: string;
 }
 
 interface Bank {
@@ -67,33 +61,133 @@ interface BankAccount {
     account_number_masked: string;
 }
 
+interface Paginated<T> {
+    data: T[];
+    prev_page_url: string | null;
+    next_page_url: string | null;
+    from: number | null;
+    to: number | null;
+    total: number;
+}
+
 interface Props {
     wallet: WalletData;
-    transactions: {
-        data: Transaction[];
-        links: any;
-        meta: any;
-    };
-    withdrawals?: {
-        data: Withdrawal[];
-        links: any;
-        meta: any;
-    };
+    transactions: Paginated<Transaction>;
+    heldBookings: HeldBooking[];
     banks?: Bank[];
     bankAccount?: BankAccount | null;
-    paystackPublicKey: string;
     paymentProvider: string;
     payengineWallet: {
         is_configured: boolean;
         account_number: string | null;
         status: string | null;
+        bank_name: string | null;
+        account_name: string;
     };
+}
+
+type TransactionFilter = 'all' | 'in' | 'out';
+
+const TRANSACTION_FILTERS: Array<{ key: TransactionFilter; label: string }> = [
+    { key: 'all', label: 'All' },
+    { key: 'in', label: 'Money in' },
+    { key: 'out', label: 'Money out' },
+];
+
+const HOLD_TYPES = ['payment_hold', 'escrow_hold'];
+
+const cardClass = 'rounded-[20px] border border-line bg-white p-6';
+
+const chipClass =
+    'h-10 rounded-full px-4 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest';
+
+const primaryButtonClass =
+    'inline-flex h-12 items-center justify-center gap-2 rounded-full bg-forest px-6 text-sm font-bold text-white transition hover:bg-forest-deep disabled:cursor-not-allowed disabled:bg-forest/40';
+
+const outlineButtonClass =
+    'inline-flex h-12 items-center justify-center gap-2 rounded-full border border-line bg-white px-6 text-sm font-semibold text-ink transition hover:bg-paper';
+
+function formatNaira(amount: number): string {
+    return `₦${Math.abs(Number(amount) || 0).toLocaleString('en-NG', {
+        maximumFractionDigits: 0,
+    })}`;
+}
+
+function isMoneyIn(transaction: Transaction): boolean {
+    return !HOLD_TYPES.includes(transaction.type) && transaction.amount > 0;
+}
+
+function transactionKind(type: string): string {
+    const kinds: Record<string, string> = {
+        deposit: 'Top-up',
+        withdrawal: 'Withdrawal',
+        escrow_hold: 'Booking deposit',
+        payment_hold: 'Booking deposit',
+        escrow_release: 'Booking payment',
+        payment_release: 'Booking payment',
+        escrow_refund: 'Refund',
+        refund: 'Refund',
+        escrow_forfeit: 'Forfeited deposit',
+    };
+
+    return kinds[type] ?? type.replace(/_/g, ' ');
+}
+
+function transactionTitle(
+    transaction: Transaction,
+    paymentProvider: string,
+): string {
+    const business = transaction.business_name;
+
+    switch (transaction.type) {
+        case 'deposit':
+            return paymentProvider === 'payengine'
+                ? 'Bank transfer top-up'
+                : 'Card top-up';
+        case 'withdrawal':
+            return 'Withdrawal to bank';
+        case 'escrow_hold':
+        case 'payment_hold':
+            return business ? `Deposit — ${business}` : 'Booking deposit';
+        case 'escrow_refund':
+        case 'refund':
+            return business ? `Refund — ${business}` : 'Refund';
+        default:
+            return business ?? transaction.description ?? 'Transaction';
+    }
+}
+
+function TransactionStatus({ transaction }: { transaction: Transaction }) {
+    if (transaction.is_held) {
+        return (
+            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-800">
+                Held
+            </span>
+        );
+    }
+
+    const styles: Record<string, string> = {
+        completed: 'bg-mint text-leaf',
+        pending: 'bg-paper text-moss',
+        failed: 'bg-red-50 text-red-700',
+    };
+
+    return (
+        <span
+            className={cn(
+                'rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize',
+                styles[transaction.status] ?? 'bg-paper text-moss',
+            )}
+        >
+            {transaction.status}
+        </span>
+    );
 }
 
 export default function WalletIndex({
     wallet,
     transactions,
-    withdrawals,
+    heldBookings = [],
     banks = [],
     bankAccount = null,
     paymentProvider,
@@ -102,6 +196,16 @@ export default function WalletIndex({
     const [topUpAmount, setTopUpAmount] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [showAddBank, setShowAddBank] = useState(false);
+    const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
+    const [filter, setFilter] = useState<TransactionFilter>('all');
+    const topUpRef = useRef<HTMLElement>(null);
+    const topUpInputRef = useRef<HTMLInputElement>(null);
+
+    const usesPayEngine = paymentProvider === 'payengine';
+    const hasBankAccount = !!bankAccount;
+    const [wholeBalance, balanceKobo] = Number(wallet.balance || 0)
+        .toFixed(2)
+        .split('.');
 
     const {
         data: withdrawalData,
@@ -124,6 +228,7 @@ export default function WalletIndex({
         transform: transformBank,
         processing: processingBank,
         errors: bankErrors,
+        reset: resetBank,
     } = useForm({
         account_number: '',
         bank_code: '',
@@ -131,80 +236,83 @@ export default function WalletIndex({
         bank_name: '',
     });
 
-    const hasBankAccount = !!bankAccount;
+    const filteredTransactions = useMemo(
+        () =>
+            transactions.data.filter((transaction) => {
+                if (filter === 'all') {
+                    return true;
+                }
 
-    const handleTopUp = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!topUpAmount) {
-            return;
-        }
+                return filter === 'in'
+                    ? isMoneyIn(transaction)
+                    : !isMoneyIn(transaction);
+            }),
+        [transactions.data, filter],
+    );
 
-        if (
-            parseFloat(topUpAmount) < 100 ||
-            parseFloat(topUpAmount) > 1000000
-        ) {
-            toast.error(
-                'Amount can not be less ₦1,000 or greater than ₦1,000,000',
-            );
+    const scrollToTopUp = () => {
+        topUpRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+        });
+        topUpInputRef.current?.focus({ preventScroll: true });
+    };
+
+    const handleTopUp = (event: React.FormEvent) => {
+        event.preventDefault();
+        const amount = parseFloat(topUpAmount);
+
+        if (!amount || amount < 100 || amount > 1000000) {
+            toast.error('Enter an amount between ₦100 and ₦1,000,000.');
+
             return;
         }
 
         setIsProcessing(true);
-        try {
-            try {
-                router.post('/wallet/top-up/initialize', {
-                    amount: parseFloat(topUpAmount),
-                });
-                setIsProcessing(false);
-            } catch (error) {
-                console.error('Top-up error:', error);
-                toast.error('An error occurred. Please try again.');
-                setIsProcessing(false);
-            }
-            setIsProcessing(false);
-        } catch (error) {
-            console.error('Top-up error:', error);
-            alert('An error occurred. Please try again.');
-            setIsProcessing(false);
-        }
+        router.post(
+            walletRoutes.topUp.initialize.url(),
+            { amount },
+            { onFinish: () => setIsProcessing(false) },
+        );
     };
 
-    const getTypeLabel = (type: string) => {
-        const labels: Record<string, string> = {
-            deposit: 'Top-up',
-            withdrawal: 'Withdrawal',
-            escrow_hold: 'Escrow Hold',
-            escrow_release: 'Escrow Release',
-            escrow_refund: 'Escrow Refund',
-            escrow_forfeit: 'Escrow Forfeit',
-        };
-        return labels[type] || type;
-    };
-
-    const handleAddOrUpdateBank = (e: React.FormEvent) => {
-        e.preventDefault();
-        const bankName =
-            banks.find((b) => b.code === bankData.bank_code)?.name ?? '';
-        if (!bankName) {
-            toast.error('Please select a valid bank');
+    const copyAccountNumber = async () => {
+        if (!payengineWallet.account_number) {
             return;
         }
+
+        try {
+            await navigator.clipboard.writeText(payengineWallet.account_number);
+            toast.success('Account number copied');
+        } catch {
+            toast.error('Could not copy the account number.');
+        }
+    };
+
+    const handleAddOrUpdateBank = (event: React.FormEvent) => {
+        event.preventDefault();
+        const bankName =
+            banks.find((bank) => bank.code === bankData.bank_code)?.name ?? '';
+
+        if (!bankName) {
+            toast.error('Please select a valid bank');
+
+            return;
+        }
+
         transformBank((data) => ({ ...data, bank_name: bankName }));
-        postBank('/wallet/client/withdraw/recipient', {
+        postBank(withdrawRecipient.url(), {
+            preserveScroll: true,
             onSuccess: () => {
                 setShowAddBank(false);
-                setBankData({
-                    account_number: '',
-                    bank_code: '',
-                    account_name: '',
-                    bank_name: '',
-                });
+                resetBank();
             },
         });
     };
 
-    const handleWithdraw = (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleWithdraw = (event: React.FormEvent) => {
+        event.preventDefault();
+
         if (bankAccount) {
             transformWithdrawal((data) => ({
                 ...data,
@@ -213,592 +321,624 @@ export default function WalletIndex({
                 bank_name: bankAccount.bank_name,
             }));
         }
-        postWithdrawal('/wallet/client/withdraw', {
+
+        postWithdrawal(walletRoutes.client.withdraw.url(), {
+            preserveScroll: true,
             onSuccess: () => {
-                setWithdrawalData((prev) => ({ ...prev, amount: '' }));
+                setWithdrawalData('amount', '');
+                setIsWithdrawOpen(false);
             },
         });
     };
 
-    const getStatusBadge = (status: string) => {
-        const variants: Record<
-            string,
-            'default' | 'secondary' | 'destructive' | 'outline'
-        > = {
-            completed: 'default',
-            pending: 'secondary',
-            failed: 'destructive',
-        };
-
-        return (
-            <Badge variant={variants[status] || 'outline'}>
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-            </Badge>
-        );
-    };
-
-    const bankOptions = banks.map((bank) => ({
-        value: bank.code,
-        label: bank.name,
-    }));
+    const withdrawAmount = parseFloat(withdrawalData.amount);
+    const canSubmitWithdrawal =
+        !processingWithdrawal &&
+        withdrawAmount >= 100 &&
+        withdrawAmount <= wallet.available_balance;
 
     return (
-        <AppLayout>
+        <AccountLayout
+            active="wallet"
+            title="Wallet"
+            description="Top up once, pay deposits in a tap, get refunds back instantly."
+        >
             <Head title="My Wallet" />
-            <div className="mx-auto w-full max-w-6xl px-4 py-8">
-                <div className="mb-6">
-                    <h1 className="text-3xl font-bold tracking-tight">
-                        My Wallet
-                    </h1>
-                    <p className="mt-2 text-muted-foreground">
-                        Manage your wallet balance and view transaction history
-                    </p>
+
+            <section className="relative overflow-hidden rounded-[28px] bg-forest-deep text-white">
+                <img
+                    src="/brand/banners/proxideck-banner-general-dark.jpg"
+                    alt=""
+                    aria-hidden
+                    className="absolute inset-0 size-full object-cover"
+                />
+                <div className="relative flex flex-wrap items-end justify-between gap-8 bg-forest-deep/60 p-7 sm:p-9">
+                    <div>
+                        <p className="text-[15px] text-[#C9E2D3]">
+                            Total balance
+                        </p>
+                        <p className="mt-2 text-5xl leading-none font-bold tracking-tight sm:text-[64px]">
+                            ₦{Number(wholeBalance).toLocaleString('en-NG')}
+                            <span className="text-2xl font-semibold text-sage sm:text-3xl">
+                                .{balanceKobo}
+                            </span>
+                        </p>
+                        <div className="mt-5 flex flex-wrap gap-6">
+                            <div>
+                                <p className="text-[13px] text-sage">
+                                    Available
+                                </p>
+                                <p className="text-xl font-bold">
+                                    {formatNaira(wallet.available_balance)}
+                                </p>
+                            </div>
+                            <div className="w-px bg-white/20" aria-hidden />
+                            <div>
+                                <p className="inline-flex items-center gap-1 text-[13px] text-sage">
+                                    <Lock className="size-3" aria-hidden />
+                                    Held for bookings
+                                </p>
+                                <p className="text-xl font-bold text-lime">
+                                    {formatNaira(wallet.escrow_balance)}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                        {usesPayEngine && !payengineWallet.is_configured ? (
+                            <Link
+                                href={walletRoutes.payengine.setup.url()}
+                                className="inline-flex h-12 items-center gap-2 rounded-full bg-lime px-6 text-[15px] font-bold text-forest transition hover:brightness-95"
+                            >
+                                <Plus className="size-4" />
+                                Add money
+                            </Link>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={scrollToTopUp}
+                                className="inline-flex h-12 items-center gap-2 rounded-full bg-lime px-6 text-[15px] font-bold text-forest transition hover:brightness-95"
+                            >
+                                <Plus className="size-4" />
+                                Add money
+                            </button>
+                        )}
+                        {!usesPayEngine && (
+                            <button
+                                type="button"
+                                onClick={() => setIsWithdrawOpen(true)}
+                                disabled={wallet.available_balance <= 0}
+                                className="inline-flex h-12 items-center rounded-full border border-white/40 px-6 text-[15px] font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Withdraw
+                            </button>
+                        )}
+                    </div>
                 </div>
+            </section>
 
-                <div className="mb-8 grid gap-6 md:grid-cols-3">
-                    {/* Available Balance */}
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardDescription>Available Balance</CardDescription>
-                            <CardTitle className="text-3xl font-bold">
-                                ₦{wallet.available_balance.toLocaleString()}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-xs text-muted-foreground">
-                                Ready to use for bookings
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    {/* Total Balance */}
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardDescription>Total Balance</CardDescription>
-                            <CardTitle className="text-3xl font-bold">
-                                ₦{wallet.balance.toLocaleString()}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-xs text-muted-foreground">
-                                Including escrow funds
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    {/* Escrow Balance */}
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardDescription>Escrow Balance</CardDescription>
-                            <CardTitle className="text-3xl font-bold">
-                                ₦{wallet.escrow_balance.toLocaleString()}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-xs text-muted-foreground">
-                                Held for active appointments
-                            </p>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {paymentProvider === 'payengine' ? (
-                    <Card className="mb-8">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Plus className="h-5 w-5" />
-                                Add money by bank transfer
-                            </CardTitle>
-                            <CardDescription>
-                                {payengineWallet.is_configured
-                                    ? 'Transfer to your dedicated PayEngine account. Your Proxideck balance updates after the transfer settles.'
-                                    : 'Set up a dedicated PayEngine account before adding money to your wallet.'}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
+            <div className="grid gap-4 md:grid-cols-2">
+                <section ref={topUpRef} className={cardClass}>
+                    {usesPayEngine ? (
+                        <>
+                            <div className="flex items-center justify-between gap-3">
+                                <h2 className="text-lg font-bold">
+                                    Top up by bank transfer
+                                </h2>
+                                <span className="rounded-full bg-mint px-2.5 py-1 text-[11px] font-semibold text-leaf">
+                                    Instant
+                                </span>
+                            </div>
                             {payengineWallet.is_configured ? (
-                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">
-                                            Account number
-                                        </p>
-                                        <p className="text-2xl font-semibold">
-                                            {payengineWallet.account_number}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                            PayEngine virtual account
-                                        </p>
-                                    </div>
-                                    <Button asChild variant="outline">
-                                        <Link
-                                            href={walletRoutes.payengine.setup.url()}
-                                        >
-                                            View account
-                                        </Link>
-                                    </Button>
-                                </div>
+                                <>
+                                    <dl className="mt-4 space-y-3 rounded-2xl bg-paper px-4 py-4 text-sm">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <dt className="text-moss">Bank</dt>
+                                            <dd className="font-semibold">
+                                                {payengineWallet.bank_name ??
+                                                    'Partner bank'}
+                                            </dd>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-3">
+                                            <dt className="text-moss">
+                                                Account number
+                                            </dt>
+                                            <dd className="flex items-center gap-2">
+                                                <span className="text-lg font-bold tracking-wide">
+                                                    {
+                                                        payengineWallet.account_number
+                                                    }
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={copyAccountNumber}
+                                                    aria-label="Copy account number"
+                                                    className="grid size-8 place-items-center rounded-lg border border-line bg-white transition hover:bg-paper"
+                                                >
+                                                    <Copy className="size-3.5" />
+                                                </button>
+                                            </dd>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-3">
+                                            <dt className="text-moss">Name</dt>
+                                            <dd className="text-right font-semibold">
+                                                {payengineWallet.account_name}
+                                            </dd>
+                                        </div>
+                                    </dl>
+                                    <p className="mt-4 text-xs text-moss">
+                                        Money sent to this account lands in your
+                                        wallet within a minute.
+                                    </p>
+                                </>
                             ) : (
-                                <Button asChild>
+                                <>
+                                    <p className="mt-3 text-sm text-moss">
+                                        Get your own account number. Money you
+                                        send to it lands in your wallet within a
+                                        minute.
+                                    </p>
                                     <Link
                                         href={walletRoutes.payengine.setup.url()}
+                                        className={cn(
+                                            primaryButtonClass,
+                                            'mt-5',
+                                        )}
                                     >
-                                        Set up virtual account
+                                        Set up account number
                                     </Link>
-                                </Button>
+                                </>
                             )}
-                        </CardContent>
-                    </Card>
-                ) : (
-                    /* Top-up Section */
-                    <Card className="mb-8">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Plus className="h-5 w-5" />
-                                Top Up Wallet
-                            </CardTitle>
-                            <CardDescription>
-                                Add funds to your wallet to book appointments
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <form onSubmit={handleTopUp} className="space-y-4">
-                                <div className="flex gap-4">
-                                    <div className="flex-1">
-                                        <Label htmlFor="amount">
-                                            Amount (₦)
-                                        </Label>
-                                        <Input
-                                            id="amount"
-                                            type="number"
-                                            min="100"
-                                            step="100"
-                                            value={topUpAmount}
-                                            onChange={(e) =>
-                                                setTopUpAmount(e.target.value)
-                                            }
-                                            placeholder="Enter amount (minimum ₦100)"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="flex items-end">
-                                        <Button
-                                            type="submit"
-                                            disabled={
-                                                isProcessing ||
-                                                !topUpAmount ||
-                                                parseFloat(topUpAmount) < 100
-                                            }
-                                        >
-                                            {isProcessing ? (
-                                                <>
-                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                    Processing...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Plus className="mr-2 h-4 w-4" />
-                                                    Top Up
-                                                </>
-                                            )}
-                                        </Button>
-                                    </div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="flex items-center justify-between gap-3">
+                                <h2 className="text-lg font-bold">
+                                    Top up by card
+                                </h2>
+                                <span className="rounded-full bg-mint px-2.5 py-1 text-[11px] font-semibold text-leaf">
+                                    Instant
+                                </span>
+                            </div>
+                            <form
+                                onSubmit={handleTopUp}
+                                className="mt-4 rounded-2xl bg-paper p-4"
+                            >
+                                <Label htmlFor="amount" className="text-moss">
+                                    Amount (₦)
+                                </Label>
+                                <div className="mt-2 flex gap-2">
+                                    <Input
+                                        ref={topUpInputRef}
+                                        id="amount"
+                                        type="number"
+                                        min="100"
+                                        step="100"
+                                        value={topUpAmount}
+                                        onChange={(event) =>
+                                            setTopUpAmount(event.target.value)
+                                        }
+                                        placeholder="e.g. 20000"
+                                        className="h-12 rounded-full bg-white px-4"
+                                        required
+                                    />
+                                    <button
+                                        type="submit"
+                                        disabled={
+                                            isProcessing ||
+                                            !topUpAmount ||
+                                            parseFloat(topUpAmount) < 100
+                                        }
+                                        className={cn(
+                                            primaryButtonClass,
+                                            'shrink-0',
+                                        )}
+                                    >
+                                        {isProcessing && (
+                                            <Loader2 className="size-4 animate-spin" />
+                                        )}
+                                        Top up
+                                    </button>
                                 </div>
-                                <p className="text-xs text-muted-foreground">
-                                    Minimum top-up amount is ₦100. You'll be
-                                    redirected to Paystack to complete the
-                                    payment.
-                                </p>
                             </form>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* Withdrawal Section */}
-                {paymentProvider !== 'payengine' &&
-                    wallet.available_balance > 0 && (
-                        <Card className="mb-8">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <ArrowDown className="h-5 w-5" />
-                                    Withdraw Funds
-                                </CardTitle>
-                                <CardDescription>
-                                    Transfer money from your wallet to your bank
-                                    account
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {!hasBankAccount && !showAddBank && (
-                                    <div className="py-4 text-center">
-                                        <p className="mb-4 text-sm text-muted-foreground">
-                                            Add a bank account to withdraw funds
-                                        </p>
-                                        <Button
-                                            type="button"
-                                            onClick={() => setShowAddBank(true)}
-                                            className="w-full"
-                                        >
-                                            <Building2 className="mr-2 h-4 w-4" />
-                                            Add Bank Account
-                                        </Button>
-                                    </div>
-                                )}
-
-                                {showAddBank && (
-                                    <form
-                                        onSubmit={handleAddOrUpdateBank}
-                                        className="space-y-4"
-                                    >
-                                        <SearchableSelect
-                                            label="Bank"
-                                            value={bankData.bank_code}
-                                            onChange={(value) =>
-                                                setBankData('bank_code', value)
-                                            }
-                                            options={bankOptions}
-                                            placeholder="Select bank"
-                                            searchPlaceholder="Search banks..."
-                                            error={bankErrors.bank_code}
-                                        />
-
-                                        <div>
-                                            <Label htmlFor="account_number">
-                                                Account Number
-                                            </Label>
-                                            <Input
-                                                id="account_number"
-                                                type="text"
-                                                maxLength={10}
-                                                value={bankData.account_number}
-                                                onChange={(e) =>
-                                                    setBankData(
-                                                        'account_number',
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                placeholder="Enter 10-digit account number"
-                                            />
-                                            {bankErrors.account_number && (
-                                                <p className="mt-1 text-sm text-destructive">
-                                                    {bankErrors.account_number}
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        <div>
-                                            <Label htmlFor="account_name">
-                                                Account Name
-                                            </Label>
-                                            <Input
-                                                id="account_name"
-                                                type="text"
-                                                value={bankData.account_name}
-                                                onChange={(e) =>
-                                                    setBankData(
-                                                        'account_name',
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                placeholder="Enter account name"
-                                            />
-                                            {bankErrors.account_name && (
-                                                <p className="mt-1 text-sm text-destructive">
-                                                    {bankErrors.account_name}
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        <div className="flex gap-2">
-                                            <Button
-                                                type="submit"
-                                                disabled={processingBank}
-                                                className="flex-1"
-                                            >
-                                                {processingBank && (
-                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                )}
-                                                {hasBankAccount
-                                                    ? 'Update Bank Account'
-                                                    : 'Add Bank Account'}
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                onClick={() => {
-                                                    setShowAddBank(false);
-                                                    setBankData({
-                                                        account_number: '',
-                                                        bank_code: '',
-                                                        account_name: '',
-                                                    });
-                                                }}
-                                            >
-                                                Cancel
-                                            </Button>
-                                        </div>
-                                    </form>
-                                )}
-
-                                {hasBankAccount && !showAddBank && (
-                                    <form
-                                        onSubmit={handleWithdraw}
-                                        className="space-y-4"
-                                    >
-                                        <div>
-                                            <Label htmlFor="withdraw_amount">
-                                                Amount (₦)
-                                            </Label>
-                                            <Input
-                                                id="withdraw_amount"
-                                                type="number"
-                                                min="100"
-                                                step="100"
-                                                max={wallet.available_balance}
-                                                value={withdrawalData.amount}
-                                                onChange={(e) =>
-                                                    setWithdrawalData(
-                                                        'amount',
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                placeholder="Enter amount (minimum ₦100)"
-                                                required
-                                            />
-                                            {withdrawalErrors.amount && (
-                                                <p className="mt-1 text-sm text-destructive">
-                                                    {withdrawalErrors.amount}
-                                                </p>
-                                            )}
-                                            <p className="mt-1 text-xs text-muted-foreground">
-                                                Maximum: ₦
-                                                {wallet.available_balance.toLocaleString()}
-                                            </p>
-                                        </div>
-
-                                        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/20">
-                                            <p className="mb-1 text-sm font-medium">
-                                                Bank Account
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {bankAccount
-                                                    ? `${bankAccount.bank_name} - ${bankAccount.account_name} (****${bankAccount.account_number_masked})`
-                                                    : `${withdrawalData.bank_name} - ${withdrawalData.account_name}`}
-                                            </p>
-                                        </div>
-
-                                        <Button
-                                            type="submit"
-                                            disabled={
-                                                processingWithdrawal ||
-                                                !withdrawalData.amount ||
-                                                parseFloat(
-                                                    withdrawalData.amount,
-                                                ) < 100 ||
-                                                parseFloat(
-                                                    withdrawalData.amount,
-                                                ) > wallet.available_balance
-                                            }
-                                            className="w-full"
-                                        >
-                                            {processingWithdrawal ? (
-                                                <>
-                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                    Processing...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <ArrowDown className="mr-2 h-4 w-4" />
-                                                    Withdraw Funds
-                                                </>
-                                            )}
-                                        </Button>
-
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={() => setShowAddBank(true)}
-                                            className="w-full"
-                                        >
-                                            Update Bank Account
-                                        </Button>
-                                    </form>
-                                )}
-                            </CardContent>
-                        </Card>
+                            <p className="mt-4 text-xs text-moss">
+                                Minimum ₦100. You'll finish paying on Paystack.
+                            </p>
+                        </>
                     )}
+                </section>
 
-                {/* Withdrawal History */}
-                {withdrawals && withdrawals.data.length > 0 && (
-                    <Card className="mb-8">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <ArrowDown className="h-5 w-5" />
-                                Withdrawal History
-                            </CardTitle>
-                            <CardDescription>
-                                View your withdrawal requests
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Date</TableHead>
-                                            <TableHead>Amount</TableHead>
-                                            <TableHead>Description</TableHead>
-                                            <TableHead>Status</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {withdrawals.data.map((withdrawal) => (
-                                            <TableRow key={withdrawal.id}>
-                                                <TableCell className="text-sm">
-                                                    {withdrawal.created_at}
-                                                </TableCell>
-                                                <TableCell className="font-medium">
-                                                    ₦
-                                                    {withdrawal.amount.toLocaleString()}
-                                                </TableCell>
-                                                <TableCell className="max-w-xs truncate">
-                                                    {withdrawal.description}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {getStatusBadge(
-                                                        withdrawal.status,
-                                                    )}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        </CardContent>
-                    </Card>
+                <section className={cardClass}>
+                    <h2 className="text-lg font-bold">
+                        Held for upcoming bookings
+                    </h2>
+                    {heldBookings.length === 0 ? (
+                        <p className="mt-4 rounded-2xl bg-paper px-4 py-5 text-sm text-moss">
+                            Nothing held right now. Deposits for your next
+                            bookings will show here.
+                        </p>
+                    ) : (
+                        <ul className="mt-4 space-y-2">
+                            {heldBookings.map((booking) => (
+                                <li
+                                    key={booking.id}
+                                    className="flex items-center gap-3 rounded-2xl bg-paper px-3.5 py-3"
+                                >
+                                    <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-forest text-center leading-none text-white">
+                                        <span>
+                                            <span className="block text-[9px] font-bold text-lime uppercase">
+                                                {booking.month}
+                                            </span>
+                                            <span className="block text-base font-bold text-lime">
+                                                {booking.day}
+                                            </span>
+                                        </span>
+                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate text-sm font-semibold">
+                                            {booking.service_name}
+                                        </p>
+                                        <p className="truncate text-xs text-moss">
+                                            {booking.business_name &&
+                                                `${booking.business_name} · `}
+                                            releases after appointment
+                                        </p>
+                                    </div>
+                                    <span className="shrink-0 text-sm font-bold">
+                                        {formatNaira(booking.amount)}
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                    <p className="mt-4 text-xs leading-5 text-moss">
+                        If the pro cancels or doesn&rsquo;t show, held money
+                        goes straight back to Available.
+                    </p>
+                </section>
+            </div>
+
+            <section aria-labelledby="transactions-heading" className="mt-2">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h2
+                        id="transactions-heading"
+                        className="text-[22px] font-bold tracking-tight"
+                    >
+                        Transactions
+                    </h2>
+                    <div
+                        role="tablist"
+                        aria-label="Filter transactions"
+                        className="flex gap-2"
+                    >
+                        {TRANSACTION_FILTERS.map((option) => {
+                            const isActive = filter === option.key;
+
+                            return (
+                                <button
+                                    key={option.key}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={isActive}
+                                    onClick={() => setFilter(option.key)}
+                                    className={cn(
+                                        chipClass,
+                                        isActive
+                                            ? 'bg-forest text-white'
+                                            : 'border border-line bg-white hover:bg-paper',
+                                    )}
+                                >
+                                    {option.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {filteredTransactions.length === 0 ? (
+                    <EmptyState
+                        illustration="wallet"
+                        title={
+                            transactions.data.length === 0
+                                ? 'No transactions yet'
+                                : 'Nothing here'
+                        }
+                        description={
+                            transactions.data.length === 0
+                                ? 'Top up once and pay deposits in a tap. Refunds land back here instantly.'
+                                : 'No transactions match this filter on this page.'
+                        }
+                        className="mt-4 rounded-[20px] border border-line py-10"
+                    />
+                ) : (
+                    <ul className="mt-4 divide-y divide-line overflow-hidden rounded-[20px] border border-line bg-white">
+                        {filteredTransactions.map((transaction) => {
+                            const moneyIn = isMoneyIn(transaction);
+
+                            return (
+                                <li
+                                    key={transaction.id}
+                                    className="flex items-center gap-4 px-5 py-4"
+                                >
+                                    <span
+                                        aria-hidden
+                                        className={cn(
+                                            'grid size-10 shrink-0 place-items-center rounded-xl',
+                                            transaction.is_held
+                                                ? 'bg-lime text-forest'
+                                                : moneyIn
+                                                  ? 'bg-mint text-leaf'
+                                                  : 'bg-paper text-ink',
+                                        )}
+                                    >
+                                        {transaction.is_held ? (
+                                            <span className="size-1.5 rounded-full bg-forest" />
+                                        ) : moneyIn ? (
+                                            <Plus className="size-4" />
+                                        ) : (
+                                            <Minus className="size-4" />
+                                        )}
+                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate text-[15px] font-semibold">
+                                            {transactionTitle(
+                                                transaction,
+                                                paymentProvider,
+                                            )}
+                                        </p>
+                                        <p className="truncate text-xs text-moss">
+                                            {transaction.date_label} ·{' '}
+                                            {transactionKind(transaction.type)}
+                                        </p>
+                                    </div>
+                                    <span className="hidden sm:inline-flex">
+                                        <TransactionStatus
+                                            transaction={transaction}
+                                        />
+                                    </span>
+                                    <span
+                                        className={cn(
+                                            'w-24 shrink-0 text-right text-[15px] font-bold',
+                                            moneyIn ? 'text-leaf' : 'text-ink',
+                                        )}
+                                    >
+                                        {moneyIn ? '+' : '−'}
+                                        {formatNaira(transaction.amount)}
+                                    </span>
+                                </li>
+                            );
+                        })}
+                    </ul>
                 )}
 
-                {/* Transaction History */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <ArrowDownUp className="h-5 w-5" />
-                            Transaction History
-                        </CardTitle>
-                        <CardDescription>
-                            View all your wallet transactions
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {transactions.data.length === 0 ? (
-                            <EmptyCard
-                                title="No transactions yet"
-                                image="assets/gifs/empty.svg"
-                                className="size-36"
-                            />
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Date</TableHead>
-                                            <TableHead>Type</TableHead>
-                                            <TableHead>Description</TableHead>
-                                            <TableHead className="text-right">
-                                                Amount
-                                            </TableHead>
-                                            <TableHead className="text-right">
-                                                Balance After
-                                            </TableHead>
-                                            <TableHead>Status</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {transactions.data.map(
-                                            (transaction) => (
-                                                <TableRow key={transaction.id}>
-                                                    <TableCell className="text-sm">
-                                                        {transaction.created_at}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {getTypeLabel(
-                                                            transaction.type,
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="max-w-xs truncate">
-                                                        {
-                                                            transaction.description
-                                                        }
-                                                    </TableCell>
-                                                    <TableCell
-                                                        className={`text-right font-medium ${
-                                                            transaction.amount >
-                                                            0
-                                                                ? 'text-green-600'
-                                                                : 'text-red-600'
-                                                        }`}
-                                                    >
-                                                        {transaction.amount > 0
-                                                            ? '+'
-                                                            : ''}
-                                                        ₦
-                                                        {Math.abs(
-                                                            transaction.amount,
-                                                        ).toLocaleString()}
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        ₦
-                                                        {transaction.balance_after.toLocaleString()}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {getStatusBadge(
-                                                            transaction.status,
-                                                        )}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ),
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        )}
+                {(transactions.prev_page_url || transactions.next_page_url) && (
+                    <div className="mt-4 flex items-center justify-between gap-3 text-sm text-moss">
+                        <span>
+                            {transactions.from}–{transactions.to} of{' '}
+                            {transactions.total}
+                        </span>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                disabled={!transactions.prev_page_url}
+                                onClick={() =>
+                                    transactions.prev_page_url &&
+                                    router.visit(transactions.prev_page_url, {
+                                        preserveScroll: true,
+                                    })
+                                }
+                                className={cn(
+                                    outlineButtonClass,
+                                    'h-10 disabled:opacity-40',
+                                )}
+                            >
+                                Previous
+                            </button>
+                            <button
+                                type="button"
+                                disabled={!transactions.next_page_url}
+                                onClick={() =>
+                                    transactions.next_page_url &&
+                                    router.visit(transactions.next_page_url, {
+                                        preserveScroll: true,
+                                    })
+                                }
+                                className={cn(
+                                    outlineButtonClass,
+                                    'h-10 disabled:opacity-40',
+                                )}
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </section>
 
-                        {/* Pagination */}
-                        {transactions.links &&
-                            transactions.links.length > 3 && (
-                                <div className="mt-4 flex items-center justify-between">
-                                    <div className="text-sm text-muted-foreground">
-                                        Showing {transactions.meta.from} to{' '}
-                                        {transactions.meta.to} of{' '}
-                                        {transactions.meta.total} transactions
-                                    </div>
-                                    <div className="flex gap-2">
-                                        {transactions.links.map(
-                                            (link: any, index: number) => (
-                                                <Button
-                                                    key={index}
-                                                    variant={
-                                                        link.active
-                                                            ? 'default'
-                                                            : 'outline'
-                                                    }
-                                                    size="sm"
-                                                    disabled={!link.url}
-                                                    onClick={() =>
-                                                        link.url &&
-                                                        router.visit(link.url)
-                                                    }
-                                                    dangerouslySetInnerHTML={{
-                                                        __html: link.label,
-                                                    }}
-                                                />
-                                            ),
-                                        )}
-                                    </div>
+            {!usesPayEngine && (
+                <Dialog
+                    open={isWithdrawOpen}
+                    onOpenChange={(open) => {
+                        setIsWithdrawOpen(open);
+
+                        if (!open) {
+                            setShowAddBank(false);
+                        }
+                    }}
+                >
+                    <DialogContent className="rounded-3xl sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>
+                                {showAddBank || !hasBankAccount
+                                    ? 'Add a bank account'
+                                    : 'Withdraw to your bank'}
+                            </DialogTitle>
+                            <DialogDescription>
+                                Available to withdraw:{' '}
+                                {formatNaira(wallet.available_balance)}
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        {showAddBank || !hasBankAccount ? (
+                            <form
+                                onSubmit={handleAddOrUpdateBank}
+                                className="space-y-4"
+                            >
+                                <SearchableSelect
+                                    label="Bank"
+                                    value={bankData.bank_code}
+                                    onChange={(value) =>
+                                        setBankData('bank_code', value)
+                                    }
+                                    options={banks.map((bank) => ({
+                                        value: bank.code,
+                                        label: bank.name,
+                                    }))}
+                                    placeholder="Select bank"
+                                    searchPlaceholder="Search banks..."
+                                    error={bankErrors.bank_code}
+                                />
+                                <div>
+                                    <Label htmlFor="account_number">
+                                        Account number
+                                    </Label>
+                                    <Input
+                                        id="account_number"
+                                        type="text"
+                                        inputMode="numeric"
+                                        maxLength={10}
+                                        value={bankData.account_number}
+                                        onChange={(event) =>
+                                            setBankData(
+                                                'account_number',
+                                                event.target.value,
+                                            )
+                                        }
+                                        placeholder="10-digit account number"
+                                    />
+                                    {bankErrors.account_number && (
+                                        <p className="mt-1 text-sm text-destructive">
+                                            {bankErrors.account_number}
+                                        </p>
+                                    )}
                                 </div>
-                            )}
-                    </CardContent>
-                </Card>
-            </div>
-        </AppLayout>
+                                <div>
+                                    <Label htmlFor="account_name">
+                                        Account name
+                                    </Label>
+                                    <Input
+                                        id="account_name"
+                                        type="text"
+                                        value={bankData.account_name}
+                                        onChange={(event) =>
+                                            setBankData(
+                                                'account_name',
+                                                event.target.value,
+                                            )
+                                        }
+                                        placeholder="Name on the account"
+                                    />
+                                    {bankErrors.account_name && (
+                                        <p className="mt-1 text-sm text-destructive">
+                                            {bankErrors.account_name}
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="flex gap-2">
+                                    <button
+                                        type="submit"
+                                        disabled={processingBank}
+                                        className={cn(
+                                            primaryButtonClass,
+                                            'flex-1',
+                                        )}
+                                    >
+                                        {processingBank && (
+                                            <Loader2 className="size-4 animate-spin" />
+                                        )}
+                                        {hasBankAccount
+                                            ? 'Update bank account'
+                                            : 'Add bank account'}
+                                    </button>
+                                    {hasBankAccount && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowAddBank(false);
+                                                resetBank();
+                                            }}
+                                            className={outlineButtonClass}
+                                        >
+                                            Cancel
+                                        </button>
+                                    )}
+                                </div>
+                            </form>
+                        ) : (
+                            <form
+                                onSubmit={handleWithdraw}
+                                className="space-y-4"
+                            >
+                                <div>
+                                    <Label htmlFor="withdraw_amount">
+                                        Amount (₦)
+                                    </Label>
+                                    <Input
+                                        id="withdraw_amount"
+                                        type="number"
+                                        min="100"
+                                        step="100"
+                                        max={wallet.available_balance}
+                                        value={withdrawalData.amount}
+                                        onChange={(event) =>
+                                            setWithdrawalData(
+                                                'amount',
+                                                event.target.value,
+                                            )
+                                        }
+                                        placeholder="Minimum ₦100"
+                                        required
+                                    />
+                                    {withdrawalErrors.amount && (
+                                        <p className="mt-1 text-sm text-destructive">
+                                            {withdrawalErrors.amount}
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="flex items-center justify-between gap-3 rounded-2xl bg-paper px-4 py-3 text-sm">
+                                    <div className="min-w-0">
+                                        <p className="font-semibold">
+                                            {bankAccount?.bank_name}
+                                        </p>
+                                        <p className="truncate text-moss">
+                                            {bankAccount?.account_name} · ****
+                                            {bankAccount?.account_number_masked}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowAddBank(true)}
+                                        className="shrink-0 font-semibold text-forest underline underline-offset-2"
+                                    >
+                                        Change
+                                    </button>
+                                </div>
+                                <button
+                                    type="submit"
+                                    disabled={!canSubmitWithdrawal}
+                                    className={cn(primaryButtonClass, 'w-full')}
+                                >
+                                    {processingWithdrawal && (
+                                        <Loader2 className="size-4 animate-spin" />
+                                    )}
+                                    Withdraw
+                                </button>
+                            </form>
+                        )}
+                    </DialogContent>
+                </Dialog>
+            )}
+        </AccountLayout>
     );
 }

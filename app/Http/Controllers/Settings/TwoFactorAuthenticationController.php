@@ -30,7 +30,7 @@ class TwoFactorAuthenticationController extends Controller implements HasMiddlew
         $request->ensureStateIsValid();
 
         $user = $request->user();
-        $page = $user->has_provider_setup ? 'settings/two-factor' : 'client/settings/two-factor';
+        $page = $request->routeIs('business.account.*') ? 'settings/two-factor' : 'client/settings/two-factor';
 
         return Inertia::render($page, [
             'twoFactorEnabled' => $user->hasEnabledTwoFactorAuthentication(),

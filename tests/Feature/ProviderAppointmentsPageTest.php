@@ -17,6 +17,19 @@ function onboardedProvider(): User
     return $provider;
 }
 
+test('the appointments page loads with an empty list', function () {
+    $provider = onboardedProvider();
+
+    $this->actingAs($provider)
+        ->get(route('schedule.appointments.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('provider/schedule/appointments')
+            ->where('appointments.total', 0)
+            ->has('appointments.data', 0)
+        );
+});
+
 test('the appointments page shares counts for each status', function () {
     $provider = onboardedProvider();
     $client = User::factory()->create();

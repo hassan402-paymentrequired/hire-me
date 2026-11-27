@@ -18,7 +18,48 @@ export function resolveUrl(url: NonNullable<InertiaLinkProps['href']>): string {
     return typeof url === 'string' ? url : url.url;
 }
 
+export function normalizePathname(url: string): string {
+    const path = url.split('?')[0].split('#')[0];
 
+    if (!path || path === '/') {
+        return '/';
+    }
+
+    return path.replace(/\/+$/, '');
+}
+
+export function navPathMatches(pagePath: string, itemPath: string): boolean {
+    if (pagePath === itemPath) {
+        return true;
+    }
+
+    return pagePath.startsWith(`${itemPath}/`);
+}
+
+export function resolveActiveNavPath(
+    pageUrl: string,
+    itemHrefs: Array<NonNullable<InertiaLinkProps['href']>>,
+): string | null {
+    const pagePath = normalizePathname(pageUrl);
+
+    let bestPath: string | null = null;
+    let bestLength = -1;
+
+    for (const href of itemHrefs) {
+        const itemPath = normalizePathname(resolveUrl(href));
+
+        if (!navPathMatches(pagePath, itemPath)) {
+            continue;
+        }
+
+        if (itemPath.length > bestLength) {
+            bestPath = itemPath;
+            bestLength = itemPath.length;
+        }
+    }
+
+    return bestPath;
+}
 
 // Format date nicely
 export function formatDate(dateString: string | Date): string {
@@ -120,4 +161,60 @@ export function isUpcoming(dateString: string | Date): boolean {
     const hoursDiff = differenceInHours(date, now);
 
     return hoursDiff > 0 && hoursDiff <= 24;
+}
+
+/** Resolve a path or partial URL to a full string suitable for sharing or copying. */
+export function toAbsoluteUrl(url: string): string {
+    const trimmed = url.trim();
+
+    if (!trimmed) {
+        return '';
+    }
+
+    if (/^https?:\/\//i.test(trimmed)) {
+        return trimmed;
+    }
+
+    if (typeof window === 'undefined') {
+        return trimmed;
+    }
+
+    return new URL(trimmed.startsWith('/') ? trimmed : `/${trimmed}`, window.location.origin).href;
+}
+
+export async function copyTextToClipboard(text: string): Promise<boolean> {
+    const value = text.trim();
+
+    if (!value) {
+        return false;
+    }
+
+    if (navigator.clipboard?.writeText) {
+        try {
+            await navigator.clipboard.writeText(value);
+
+            return true;
+        } catch {
+            // Fall through to execCommand.
+        }
+    }
+
+    try {
+        const textarea = document.createElement('textarea');
+        textarea.value = value;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.top = '0';
+        textarea.style.left = '0';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const copied = document.execCommand('copy');
+        document.body.removeChild(textarea);
+
+        return copied;
+    } catch {
+        return false;
+    }
 }

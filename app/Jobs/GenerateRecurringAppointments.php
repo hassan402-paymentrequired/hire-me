@@ -8,7 +8,6 @@ use App\Notifications\RecurringAppointmentInsufficientBalanceNotification;
 use App\Notifications\RecurringAppointmentRescheduledNotification;
 use App\Notifications\RecurringAppointmentSlotTakenNotification;
 use App\Services\SlotAvailabilityService;
-use Carbon\Carbon;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\DB;
@@ -49,7 +48,7 @@ class GenerateRecurringAppointments implements ShouldQueue
                 Log::error('Failed to create recurring appointment', [
                     'parent_appointment_id' => $parent->id,
                     'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
+                    'trace' => $e->getTraceAsString(),
                 ]);
             }
         }
@@ -69,7 +68,7 @@ class GenerateRecurringAppointments implements ShouldQueue
         // Calculate next appointment date
         $nextDate = $parent->getNextRecurrenceDate($lastAppointment->start_time);
 
-        if (!$nextDate) {
+        if (! $nextDate) {
             return;
         }
 
@@ -107,8 +106,9 @@ class GenerateRecurringAppointments implements ShouldQueue
             ->get();
 
         $slotEndWithBuffer = $endTime->copy()->addMinutes($maxBuffer);
-        $slotOverlaps = $existingAppointments->contains(function ($apt) use ($nextDate, $slotEndWithBuffer, $maxBuffer) {
+        $slotOverlaps = $existingAppointments->contains(function ($apt) use ($nextDate, $slotEndWithBuffer) {
             $aptEndWithBuffer = $apt->end_time->copy()->addMinutes($apt->buffer_time_minutes ?? 0);
+
             return $nextDate->lt($aptEndWithBuffer) && $slotEndWithBuffer->gt($apt->start_time);
         });
 
@@ -123,13 +123,14 @@ class GenerateRecurringAppointments implements ShouldQueue
                 $nextDate
             );
 
-            if (!$alternativeSlot) {
+            if (! $alternativeSlot) {
                 Log::warning('Recurring appointment: no alternative slot found', [
                     'parent_appointment_id' => $parent->id,
                     'provider_id' => $parent->provider_id,
                     'proposed_start' => $originalProposedTime->toIso8601String(),
                 ]);
                 $parent->client->notify(new RecurringAppointmentSlotTakenNotification($parent, $originalProposedTime));
+
                 return;
             }
 
@@ -144,10 +145,11 @@ class GenerateRecurringAppointments implements ShouldQueue
         // Calculate price with discount
         $originalPrice = $parent->original_price ?? $parent->price;
         $discountPercent = $parent->discount_percent ?? 0;
-        $discountedPrice = $originalPrice * (1 - ($discountPercent / 100));
+        $homeServiceFee = (float) ($parent->home_service_fee ?? 0);
+        $discountedPrice = $originalPrice * (1 - ($discountPercent / 100)) + $homeServiceFee;
 
         // Check if client has sufficient balance
-        if (!$clientWallet->hasSufficientBalance($discountedPrice)) {
+        if (! $clientWallet->hasSufficientBalance($discountedPrice)) {
             Log::warning('Insufficient balance for recurring appointment', [
                 'parent_appointment_id' => $parent->id,
                 'client_id' => $parent->client_id,
@@ -159,6 +161,7 @@ class GenerateRecurringAppointments implements ShouldQueue
                 $discountedPrice,
                 (float) $clientWallet->available_balance
             ));
+
             return;
         }
 
@@ -178,6 +181,7 @@ class GenerateRecurringAppointments implements ShouldQueue
                 'buffer_time_minutes' => $maxBuffer,
                 'status' => $autoConfirm ? 'confirmed' : 'pending',
                 'price' => $discountedPrice,
+                'home_service_fee' => $homeServiceFee,
                 'original_price' => $originalPrice,
                 'discount_percent' => $discountPercent,
                 'notes' => $parent->notes,
@@ -193,11 +197,14 @@ class GenerateRecurringAppointments implements ShouldQueue
             ]);
 
             // Attach services
-            $serviceIds = $services->pluck('id')->toArray();
-            $appointment->services()->attach($serviceIds);
+            $appointment->services()->attach(
+                $services->mapWithKeys(fn ($service) => [
+                    $service->id => ['team_member_id' => $service->pivot?->team_member_id],
+                ])->all()
+            );
 
             // Create escrow hold
-            $escrowTransaction = $clientWallet->holdEscrow($discountedPrice, $appointment, "Escrow hold for recurring appointment");
+            $escrowTransaction = $clientWallet->holdEscrow($discountedPrice, $appointment, 'Escrow hold for recurring appointment');
             $appointment->update([
                 'escrow_amount' => $discountedPrice,
                 'escrow_status' => 'held',

@@ -78,3 +78,32 @@ test('services page shares bookings this month per service', function () {
             ->where('services.data.0.bookings_this_month', 0)
             ->where('stats.mostBooked.bookings', 0));
 });
+
+test('a service can be saved with a starting price', function () {
+    [$provider, $serviceCategory] = providerWithServiceCategory();
+
+    $this->actingAs($provider)
+        ->post('/business/services', [
+            'service_category_id' => $serviceCategory->id,
+            'name' => 'Knotless braids',
+            'price' => 45000,
+            'price_is_starting' => true,
+            'duration_minutes' => 300,
+        ])
+        ->assertSessionHasNoErrors();
+
+    $service = Service::where('provider_id', $provider->id)->first();
+    expect($service->price_is_starting)->toBeTrue();
+
+    $this->actingAs($provider)
+        ->put("/business/services/{$service->id}", [
+            'service_category_id' => $serviceCategory->id,
+            'name' => 'Knotless braids',
+            'price' => 45000,
+            'price_is_starting' => false,
+            'duration_minutes' => 300,
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($service->fresh()->price_is_starting)->toBeFalse();
+});

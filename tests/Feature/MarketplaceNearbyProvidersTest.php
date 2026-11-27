@@ -17,7 +17,25 @@ function providerInCategory(string $category, bool $verified = true): BusinessPr
     return $profile;
 }
 
-it('shows at most five nearby providers from the same category', function () {
+it('includes the business phone and city on the provider profile', function () {
+    $provider = User::factory()->create(['role' => 'provider', 'is_verified' => true]);
+    $profile = BusinessProfile::factory()->create([
+        'user_id' => $provider->id,
+        'category' => 'Salon',
+        'phone' => '+2348010000000',
+        'city' => 'Lagos',
+    ]);
+    Service::factory()->create(['provider_id' => $provider->id]);
+
+    $this->get(route('provider.show', $profile->slug))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('marketplace/provider')
+            ->where('provider.phone', '+2348010000000')
+            ->where('provider.city', 'Lagos'));
+});
+
+it('shows at most four nearby providers from the same category', function () {
     $business = providerInCategory('Salon');
 
     foreach (range(1, 7) as $i) {
@@ -30,7 +48,7 @@ it('shows at most five nearby providers from the same category', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('marketplace/provider')
-            ->has('nearbyProviders', 5)
+            ->has('nearbyProviders', 4)
             ->where('nearbyProviders', fn ($nearby) => collect($nearby)->every(
                 fn (array $p): bool => $p['category'] === 'Salon' && $p['slug'] !== $business->slug && $p['isVerified'],
             )));

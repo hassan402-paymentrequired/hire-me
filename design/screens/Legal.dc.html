@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Privacy and terms</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:'Satoshi';src:url('/_blob/aa99b90ef361c613c9d43e57b82b3414') format('woff2');font-weight:300 900;font-style:normal;font-display:swap}
+body{margin:0;background:#FFFFFF}
+a{color:#0E3B2E}a:hover{color:#13201B}
+.lg *{box-sizing:border-box}
+.lg button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div class="lg" style="font-family: 'Satoshi', system-ui, sans-serif; color: #13201B; background: #FFFFFF;">
+  <dc-import name="SiteNav" variant="light" show-search="{{no}}" hint-size="100%,80px"></dc-import>
+
+  <header style="background: #F7FAF7; border-bottom: 1px solid #E6EBE7;">
+    <div style="max-width: 1240px; margin: 0 auto; padding: 56px 24px 0; display: flex; flex-direction: column; gap: 14px;">
+      <span style="font-size: 15px; font-weight: 700; color: #1F6B43;">Legal</span>
+      <h1 style="margin: 0; font-size: 52px; font-weight: 700; letter-spacing: -0.03em;">{{heading}}</h1>
+      <p style="margin: 0; font-size: 15px; color: #4A5A52;">Last updated [DATE] · Draft for legal review</p>
+      <div role="tablist" aria-label="Legal documents" style="display: flex; gap: 4px; margin-top: 20px;">
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="2">
+          <button role="tab" aria-selected="{{t.active}}" onClick="{{t.pick}}" style="height: 52px; padding: 0 22px; border: 0; background: transparent; font-size: 16px; font-weight: {{t.weight}}; color: {{t.color}}; border-bottom: 3px solid {{t.line}}; margin-bottom: -1px;">{{t.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+  </header>
+
+  <div style="max-width: 1240px; margin: 0 auto; padding: 56px 24px 104px; display: flex; flex-wrap: wrap; gap: 64px; align-items: flex-start;">
+    <nav aria-label="On this page" style="flex: 1 1 220px; max-width: 260px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 24px;">
+      <span style="font-size: 13px; font-weight: 700; color: #4A5A52; margin-bottom: 8px;">On this page</span>
+      <sc-for list="{{sections}}" as="s" hint-placeholder-count="6">
+        <a href="#{{s.id}}" style="font-size: 15px; color: #13201B; text-decoration: none; padding: 8px 12px; border-radius: 10px; border-left: 2px solid #E6EBE7;">{{s.title}}</a>
+      </sc-for>
+    </nav>
+
+    <article style="flex: 999 1 560px; min-width: 0; max-width: 760px; display: flex; flex-direction: column; gap: 40px;">
+      <div style="background: #0E3B2E; color: #FFFFFF; border-radius: 24px; padding: 28px 32px; display: flex; flex-direction: column; gap: 12px;">
+        <span style="font-size: 14px; font-weight: 700; color: #C8F169;">In short</span>
+        <sc-for list="{{summary}}" as="x" hint-placeholder-count="3">
+          <div style="display: flex; gap: 12px; font-size: 16px; line-height: 1.55;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8F169" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg><span>{{x}}</span></div>
+        </sc-for>
+      </div>
+
+      <sc-for list="{{sections}}" as="s" hint-placeholder-count="6">
+        <section id="{{s.id}}" style="display: flex; flex-direction: column; gap: 12px; padding-top: 8px;">
+          <h2 style="margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; display: flex; gap: 14px; align-items: baseline;"><span style="font-size: 15px; color: #1F6B43;">{{s.n}}</span>{{s.title}}</h2>
+          <p style="margin: 0; font-size: 17px; line-height: 1.75; color: #33392D;">{{s.body}}</p>
+        </section>
+      </sc-for>
+
+      <div style="border: 1px solid #E6EBE7; border-radius: 20px; padding: 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+        <div style="flex: 1 1 240px;"><div style="font-size: 17px; font-weight: 700;">Questions about this policy?</div><div style="font-size: 15px; color: #4A5A52; margin-top: 2px;">Our team will get back to you within 2 working days.</div></div>
+        <a href="Contact.dc.html" style="height: 46px; padding: 0 20px; border-radius: 999px; background: #0E3B2E; color: #FFFFFF; font-size: 15px; font-weight: 700; text-decoration: none; display: flex; align-items: center;">Contact us</a>
+      </div>
+    </article>
+  </div>
+
+  <dc-import name="SiteFooter" hint-size="100%,640px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2600}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { doc: 'privacy' }; }
+  renderVals() {
+    const doc = this.state.doc;
+    const defs = [ { id: 'privacy', label: 'Privacy policy' }, { id: 'terms', label: 'Terms & conditions' } ];
+    const tabs = defs.map((d) => {
+      const on = d.id === doc;
+      return { ...d, active: on, weight: on ? 700 : 500, color: on ? '#13201B' : '#4A5A52', line: on ? '#0E3B2E' : 'transparent', pick: () => this.setState({ doc: d.id }) };
+    });
+    const privacy = {
+      heading: 'Privacy policy',
+      summary: ['We only collect what we need to run your bookings and payments.', 'We never sell your personal data.', 'You can download or delete your data at any time.'],
+      sections: [
+        { id: 'collect', title: 'What we collect', body: 'Your name, email, phone number and saved addresses; booking history; wallet transactions; and basic device information used to keep your account secure.' },
+        { id: 'use', title: 'How we use it', body: 'To create and manage bookings, process wallet payments and refunds, send booking updates, prevent fraud, and improve Proxideck.' },
+        { id: 'share', title: 'Who we share it with', body: 'The pro you book sees your name, phone number and the address for home-service bookings. Our payment partner processes wallet top-ups and withdrawals. We do not sell your data.' },
+        { id: 'payments', title: 'Payments and your wallet', body: 'Card and bank details are handled by our licensed payment partner. Proxideck stores only the references needed to show your transaction history.' },
+        { id: 'rights', title: 'Your rights', body: 'Under the Nigeria Data Protection Act you can access, correct, export or delete your personal data. Request this from Account settings or by contacting us.' },
+        { id: 'retention', title: 'How long we keep it', body: 'We keep account data while your account is open, and transaction records for as long as the law requires.' }
+      ]
+    };
+    const terms = {
+      heading: 'Terms & conditions',
+      summary: ['Book in good faith and turn up on time.', 'Deposits are held until your appointment is complete.', 'Reviews must be honest and based on a real booking.'],
+      sections: [
+        { id: 'using', title: 'Using Proxideck', body: 'Proxideck is a marketplace that connects customers with independent service providers. Providers set their own services, prices and availability.' },
+        { id: 'bookings', title: 'Bookings and cancellations', body: 'A booking is confirmed when the provider accepts it. Each provider sets a cancellation window, shown before you pay. Late cancellations may forfeit the deposit.' },
+        { id: 'deposits', title: 'Deposits and refunds', body: 'Deposits are held in escrow and released to the provider after the appointment. If the provider cancels or does not show up, the deposit is returned to your wallet.' },
+        { id: 'providers', title: 'Provider responsibilities', body: 'Providers must give accurate prices, keep their calendar up to date, hold any licences their work requires, and treat customers with respect.' },
+        { id: 'reviews', title: 'Reviews', body: 'Only customers with a completed booking can leave a review. We may remove reviews that are abusive, fake or unrelated to the service.' },
+        { id: 'liability', title: 'Liability', body: 'Services are provided by independent providers. Proxideck is responsible for the platform and payments, and will help resolve disputes raised through the app.' }
+      ]
+    };
+    const d = doc === 'privacy' ? privacy : terms;
+    return { no: false, tabs, heading: d.heading, summary: d.summary, sections: d.sections.map((s, i) => ({ ...s, n: String(i + 1).padStart(2, '0') })) };
+  }
+}
+</script>
+</body>
+</html>

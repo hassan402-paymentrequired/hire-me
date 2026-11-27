@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Hedvig+Letters+Sans&family=Josefin+Sans:ital,wght@0,100..700;1,100..700&family=Sekuya&family=Sora:wght@600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@500..800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=Roboto+Flex:opsz,wght,XOPQ,XTRA,YOPQ,YTDE,YTFI,YTLC,YTUC@8..144,100..1000,96,468,79,-203,738,514,712&display=swap');
 @import 'tailwindcss';
 
@@ -6,7 +7,7 @@
 
 @font-face {
     font-family: 'Satoshi';
-    src: url('../../public/assets') format('woff2');
+    src: url('../../public/assets/fonts/WEB/fonts/Satoshi-Regular.woff2') format('woff2');
     font-weight: 400;
     font-style: normal;
     font-display: swap;
@@ -42,12 +43,34 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
+    /* Proxideck brand palette (client-facing pages) */
+    --color-forest: #0E3B2E;
+    --color-forest-deep: #0B3227;
+    --color-lime: #C8F169;
+    --color-mint: #E6F4EC;
+    --color-sage: #A9C7B8;
+    --color-ink: #13201B;
+    --color-moss: #4A5A52;
+    --color-leaf: #1F6B43;
+    --color-paper: #F7FAF7;
+    --color-line: #E6EBE7;
+
+    --animate-marquee: marquee 45s linear infinite;
+
+    @keyframes marquee {
+        to {
+            transform: translateX(-50%);
+        }
+    }
+
     --font-sans:
        'Josefin Sans', 'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
 
     --font-heading: 'Satoshi', 'Roboto Flex';
+
+    --font-wordmark: 'Geist', 'Satoshi', ui-sans-serif, system-ui, sans-serif;
 
     --font-buttons:
         'Figtree', 'Courier New', Courier, monospace,
@@ -465,4 +488,21 @@
 [data-sidebar='menu-button'][data-active='true'] > svg,
 [data-sidebar='menu-button'][data-active='true'] > i {
     color: #c8f169;
+}
+
+/* Google Places suggestions must sit above (and stay clickable inside) modal dialogs */
+.pac-container {
+    z-index: 70;
+    pointer-events: auto;
+    margin-top: 6px;
+    border: 1px solid rgb(14 59 46 / 0.1);
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgb(14 59 46 / 0.18);
+    font-family: inherit;
+}
+
+.pac-item {
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
 }

@@ -1,15 +1,40 @@
-import React from 'react';
-import { useForm, usePage } from '@inertiajs/react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {
     Tooltip,
     TooltipContent,
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { PageProps } from '@/types';
-import { CircleHelp } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { type SharedData } from '@/types';
+import { useForm, usePage } from '@inertiajs/react';
+import {
+    ArrowRight,
+    Car,
+    Check,
+    CircleHelp,
+    Repeat,
+    Store,
+    type LucideIcon,
+} from 'lucide-react';
+import React, { type ReactNode } from 'react';
+
+type DeliveryMode =
+    | 'client_visits_provider'
+    | 'provider_visits_client'
+    | 'both';
+type BillingModel = 'commission' | 'subscription';
+type ToggleField =
+    | 'accept_online_payment'
+    | 'accept_offline_booking'
+    | 'allowSameDay'
+    | 'autoConfirm'
+    | 'allowOffHoursRequests';
 
 const defaultBusinessSettings = {
     bufferTime: '15',
@@ -22,15 +47,87 @@ const defaultBusinessSettings = {
     accept_online_payment: true,
     accept_offline_booking: false,
     offers_home_service: false,
-    service_delivery_mode: 'client_visits_provider' as
-        | 'client_visits_provider'
-        | 'provider_visits_client'
-        | 'both',
-    billing_model: 'commission',
+    service_delivery_mode: 'client_visits_provider' as DeliveryMode,
+    billing_model: 'commission' as BillingModel,
 };
 
+type SegmentOption<T extends string> = {
+    value: T;
+    segmentLabel: string;
+    title: string;
+    description: string;
+    perks: string[];
+    icon?: LucideIcon;
+};
+
+const billingOptions: SegmentOption<BillingModel>[] = [
+    {
+        value: 'commission',
+        segmentLabel: '10% per booking',
+        title: 'Pay as you earn',
+        description:
+            'Proxideck takes a cut only when money lands in your wallet — nothing on empty slots.',
+        perks: [
+            'No monthly fee',
+            'Charged on completed payouts only',
+            'Switch to subscription later',
+        ],
+    },
+    {
+        value: 'subscription',
+        segmentLabel: 'Subscription',
+        title: 'Keep every payout',
+        description:
+            'One monthly plan from Billing; completed bookings pay out to you in full.',
+        perks: [
+            '100% of booking revenue',
+            'Predictable monthly cost',
+            'Built for busy calendars',
+        ],
+    },
+];
+
+const deliveryOptions: SegmentOption<DeliveryMode>[] = [
+    {
+        value: 'client_visits_provider',
+        segmentLabel: 'At my place',
+        title: 'Clients come to me',
+        description: 'Salon, barbershop or studio — clients travel to you.',
+        perks: [
+            'Show your studio address on your profile',
+            'No travel or mileage to manage',
+            'Ideal for fixed-location businesses',
+        ],
+        icon: Store,
+    },
+    {
+        value: 'provider_visits_client',
+        segmentLabel: 'Home visits',
+        title: 'I go to them',
+        description: 'Clients add their address when they book.',
+        perks: [
+            'Home service at the address they provide',
+            'Set a travel or call-out fee in services',
+            'You control how far you travel',
+        ],
+        icon: Car,
+    },
+    {
+        value: 'both',
+        segmentLabel: 'Both',
+        title: 'Studio or home',
+        description: 'Clients pick at the salon or at their address.',
+        perks: [
+            'Offer in-studio and home service',
+            'Clients choose on each booking',
+            'Widest reach in search',
+        ],
+        icon: Repeat,
+    },
+];
+
 export default function BusinessPolicyModal() {
-    const { auth } = usePage<PageProps>().props;
+    const { auth } = usePage<SharedData>().props;
     const user = auth.user;
 
     const show = user?.has_provider_setup && !user?.has_setup_business_policy;
@@ -38,227 +135,176 @@ export default function BusinessPolicyModal() {
     const form = useForm({
         settings: {
             ...defaultBusinessSettings,
-            ...(user?.business_profile?.settings || {}),
-        },
+            ...(user?.business_profile?.settings ?? {}),
+        } as typeof defaultBusinessSettings,
     });
 
-    if (!show) return null;
+    if (!show) {
+        return null;
+    }
+
+    const settings = form.data.settings;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         form.post('/business/settings/advanced', { preserveScroll: true });
     };
 
-    const toggleSetting = (field: string) => {
-        form.setData('settings', {
-            ...form.data.settings,
-            [field]: !form.data.settings[field],
-        });
+    const toggleSetting = (field: ToggleField) => {
+        form.setData('settings', { ...settings, [field]: !settings[field] });
     };
 
-    const setBillingModel = (value: 'commission' | 'subscription') => {
-        form.setData('settings', {
-            ...form.data.settings,
-            billing_model: value,
-        });
+    const setBillingModel = (value: BillingModel) => {
+        form.setData('settings', { ...settings, billing_model: value });
     };
 
-    const setDeliveryMode = (
-        value: 'client_visits_provider' | 'provider_visits_client' | 'both',
-    ) => {
+    const setDeliveryMode = (value: DeliveryMode) => {
         form.setData('settings', {
-            ...form.data.settings,
+            ...settings,
             service_delivery_mode: value,
             offers_home_service:
                 value === 'provider_visits_client' || value === 'both',
         });
     };
 
-    const deliveryMode =
-        form.data.settings.service_delivery_mode ??
-        (form.data.settings.offers_home_service
+    const deliveryMode: DeliveryMode =
+        settings.service_delivery_mode ??
+        (settings.offers_home_service
             ? 'provider_visits_client'
             : 'client_visits_provider');
 
+    // The server needs at least one way for clients to book, so the last
+    // payment option that is on cannot be switched off.
+    const isOnlyPaymentOption = (field: ToggleField) =>
+        settings[field] &&
+        !(field === 'accept_online_payment'
+            ? settings.accept_offline_booking
+            : settings.accept_online_payment);
+
     return (
-        <Dialog open={true} >
+        <Dialog open={true}>
             <DialogContent
-                className="w-2xl border-none bg-transparent p-0 shadow-none sm:max-h-[90vh] [&>button]:hidden"
+                className="w-[calc(100%-1.5rem)] max-w-2xl border-none bg-transparent p-0 font-heading shadow-none sm:max-h-[90vh] [&>button]:hidden"
                 onPointerDownOutside={(e) => e.preventDefault()}
                 onEscapeKeyDown={(e) => e.preventDefault()}
             >
-                <div className="bg-background flex max-h-[90vh] flex-col overflow-hidden rounded-2xl border border-border/40">
-
+                <div className="flex max-h-[90vh] flex-col overflow-hidden rounded-[28px] bg-background">
                     {/* Header */}
-                    <div className="shrink-0 px-8 pt-7 pb-6">
-                        <h2 className="text-xl font-medium text-foreground mb-1">
-                            Business policy
-                        </h2>
-                        <p className="text-sm text-muted-foreground">
-                            Configure your booking and payment rules. You can change these anytime.
-                        </p>
+                    <div className="relative shrink-0 overflow-hidden bg-forest px-6 pt-7 pb-6 text-white sm:px-8">
+                        <span className="rounded-full bg-lime px-3 py-1 text-xs font-bold text-forest">
+                            Almost there
+                        </span>
+                        <DialogTitle className="mt-4 font-['Sora'] text-2xl leading-tight font-bold tracking-tight sm:text-[28px]">
+                            How do you take bookings?
+                        </DialogTitle>
+                        <DialogDescription className="mt-2 max-w-md text-[15px] leading-relaxed text-[#C9E2D3]">
+                            Set your booking and payment rules. You can change
+                            any of these later in your settings.
+                        </DialogDescription>
                     </div>
 
-                    <div className="border-t border-border/40" />
+                    <form
+                        onSubmit={handleSubmit}
+                        className="flex min-h-0 flex-1 flex-col"
+                    >
+                        <div className="min-h-0 flex-1 divide-y divide-line overflow-y-auto dark:divide-white/10">
+                            <PolicySection title="How you pay Proxideck">
+                                <SegmentDetailPicker
+                                    ariaLabel="How you pay Proxideck"
+                                    options={billingOptions}
+                                    value={settings.billing_model}
+                                    onChange={setBillingModel}
+                                    columns={2}
+                                />
+                            </PolicySection>
 
-                    <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-                        <div className="min-h-0 flex-1 overflow-y-auto">
-                            <div className="px-8 py-6">
-                                <p className="mb-4 text-[11px] font-medium tracking-widest text-muted-foreground uppercase">
-                                    Billing
-                                </p>
-                                <div className="grid gap-3">
-                                    <BillingOptionCard
-                                        title="Pay 10% per booking"
-                                        description="Use the default pay-as-you-book model"
-                                        detail="The system deducts a 10% platform fee only when a completed appointment is released to your wallet."
-                                        selected={form.data.settings.billing_model === 'commission'}
-                                        onSelect={() => setBillingModel('commission')}
-                                    />
-                                    <BillingOptionCard
-                                        title="Use subscription"
-                                        description="Keep the full payout from completed bookings"
-                                        detail="Choose this if you prefer to operate on a subscription plan."
-                                        selected={form.data.settings.billing_model === 'subscription'}
-                                        onSelect={() => setBillingModel('subscription')}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="border-t border-border/40" />
-
-                            {/* Payment section */}
-                            <div className="px-8 py-6">
-                                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-4">
-                                    Payment
-                                </p>
-                                <div className="space-y-0 divide-y divide-border/40">
-                                    <ToggleRow
-                                        label="Accept online payments"
-                                        description="Clients pay through Proxideck at booking"
-                                        tooltip="When this is enabled, clients must complete payment online during checkout before the booking is submitted. This is useful if you want confirmed appointments to always come in with payment attached."
-                                        enabled={form.data.settings.accept_online_payment}
-                                        onChange={() => toggleSetting('accept_online_payment')}
-                                    />
-                                    <ToggleRow
-                                        label="Allow unpaid requests"
-                                        description="Clients can book without paying upfront"
-                                        tooltip="When this is enabled, clients can submit a booking request without paying first. These bookings usually need your review, and payment can be collected later based on how you run your business."
-                                        enabled={form.data.settings.accept_offline_booking}
-                                        onChange={() => toggleSetting('accept_offline_booking')}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="border-t border-border/40" />
-
-                            {/* Bookings section */}
-                            <div className="px-8 py-6">
-                                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-4">
-                                    Bookings
-                                </p>
-                                <div className="space-y-0 divide-y divide-border/40">
-                                    <ToggleRow
-                                        label="Allow same-day bookings"
-                                        description="Clients can book for today"
-                                        tooltip="This allows customers to choose timeslots on the current day, as long as they still fit within your minimum notice period and available working hours."
-                                        enabled={form.data.settings.allowSameDay}
-                                        onChange={() => toggleSetting('allowSameDay')}
-                                    />
-                                    <ToggleRow
-                                        label="Auto-confirm bookings"
-                                        description="Skip manual review and approve automatically"
-                                        tooltip="Turn this on if you want eligible bookings to move forward without waiting for manual approval. This works best when your availability, pricing, and service rules are already set up carefully."
-                                        enabled={form.data.settings.autoConfirm}
-                                        onChange={() => toggleSetting('autoConfirm')}
-                                    />
-                                    <ToggleRow
-                                        label="Allow off-hours requests"
-                                        description="Accept bookings outside working hours"
-                                        tooltip="This lets clients request appointments outside the working schedule you configured. It does not mean those bookings should be auto-approved by default, but it gives clients a way to ask for exceptions."
-                                        enabled={form.data.settings.allowOffHoursRequests}
-                                        onChange={() => toggleSetting('allowOffHoursRequests')}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="border-t border-border/40" />
-
-                            <div className="px-8 py-6">
-                                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-4">
-                                    Service delivery
-                                </p>
-                                <p className="mb-4 text-sm text-muted-foreground">
-                                    Tell clients whether they visit you, you go
-                                    to them, or both. This controls booking
-                                    address requirements.
-                                </p>
-                                <RadioGroup
-                                    value={deliveryMode}
-                                    onValueChange={(value) =>
-                                        setDeliveryMode(
-                                            value as
-                                                | 'client_visits_provider'
-                                                | 'provider_visits_client'
-                                                | 'both',
-                                        )
+                            <PolicySection
+                                title="Payment"
+                                hint="Keep at least one of these on so clients can book you."
+                            >
+                                <ToggleRow
+                                    label="Accept online payments"
+                                    description="Clients pay through Proxideck when they book"
+                                    tooltip="Clients complete payment during checkout before the booking is sent, so confirmed appointments always come with payment attached."
+                                    enabled={settings.accept_online_payment}
+                                    locked={isOnlyPaymentOption(
+                                        'accept_online_payment',
+                                    )}
+                                    onChange={() =>
+                                        toggleSetting('accept_online_payment')
                                     }
-                                    className="space-y-3"
-                                >
-                                    {[
-                                        {
-                                            value: 'client_visits_provider',
-                                            title: 'Clients visit my location',
-                                            description:
-                                                'Salon, barbershop, or studio — clients come to your address.',
-                                        },
-                                        {
-                                            value: 'provider_visits_client',
-                                            title: 'I go to the client',
-                                            description:
-                                                'Mobile stylists, handymen, cleaners — clients must add their service address.',
-                                        },
-                                        {
-                                            value: 'both',
-                                            title: 'Both options',
-                                            description:
-                                                'Clients choose to visit you or receive service at their address.',
-                                        },
-                                    ].map((option) => (
-                                        <label
-                                            key={option.value}
-                                            htmlFor={`policy-delivery-${option.value}`}
-                                            className="flex cursor-pointer items-start gap-3 rounded-xl border border-border/60 p-4 transition-colors hover:bg-muted/20"
-                                        >
-                                            <RadioGroupItem
-                                                value={option.value}
-                                                id={`policy-delivery-${option.value}`}
-                                                className="mt-0.5"
-                                            />
-                                            <div className="space-y-1">
-                                                <p className="text-sm font-medium text-foreground">
-                                                    {option.title}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {option.description}
-                                                </p>
-                                            </div>
-                                        </label>
-                                    ))}
-                                </RadioGroup>
-                            </div>
+                                />
+                                <ToggleRow
+                                    label="Allow unpaid requests"
+                                    description="Clients can book without paying upfront"
+                                    tooltip="Clients can send a booking request without paying first. These usually need your review, and you collect payment your own way."
+                                    enabled={settings.accept_offline_booking}
+                                    locked={isOnlyPaymentOption(
+                                        'accept_offline_booking',
+                                    )}
+                                    onChange={() =>
+                                        toggleSetting('accept_offline_booking')
+                                    }
+                                />
+                            </PolicySection>
+
+                            <PolicySection title="Bookings">
+                                <ToggleRow
+                                    label="Allow same-day bookings"
+                                    description="Clients can book for today"
+                                    tooltip="Clients can pick slots on the current day, as long as they fit your minimum notice and working hours."
+                                    enabled={settings.allowSameDay}
+                                    onChange={() =>
+                                        toggleSetting('allowSameDay')
+                                    }
+                                />
+                                <ToggleRow
+                                    label="Auto-confirm bookings"
+                                    description="Approve bookings without reviewing each one"
+                                    tooltip="Eligible bookings go ahead without waiting for you. Works best once your hours, prices and services are set up carefully."
+                                    enabled={settings.autoConfirm}
+                                    onChange={() =>
+                                        toggleSetting('autoConfirm')
+                                    }
+                                />
+                                <ToggleRow
+                                    label="Allow off-hours requests"
+                                    description="Clients can ask for times outside your hours"
+                                    tooltip="Clients can request times outside your schedule. You still decide whether to accept them."
+                                    enabled={settings.allowOffHoursRequests}
+                                    onChange={() =>
+                                        toggleSetting('allowOffHoursRequests')
+                                    }
+                                />
+                            </PolicySection>
+
+                            <PolicySection title="Where you work">
+                                <SegmentDetailPicker
+                                    ariaLabel="Where you work"
+                                    options={deliveryOptions}
+                                    value={deliveryMode}
+                                    onChange={setDeliveryMode}
+                                    columns={3}
+                                />
+                            </PolicySection>
                         </div>
 
-                        <div className="shrink-0 border-t border-border/40" />
-
                         {/* Footer */}
-                        <div className="flex shrink-0 justify-end px-8 py-5">
+                        <div className="flex shrink-0 flex-col-reverse items-stretch gap-3 border-t border-line px-6 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8 dark:border-white/10">
+                            <p className="text-center text-[13px] text-muted-foreground sm:text-left">
+                                You can change these any time in Settings.
+                            </p>
                             <button
                                 type="submit"
                                 disabled={form.processing}
-                                className="h-9 px-5 rounded-md bg-foreground text-background text-sm font-medium disabled:opacity-50 transition-opacity"
+                                className="flex h-12 items-center justify-center gap-2 rounded-full bg-forest px-6 font-bold text-white transition hover:bg-forest-deep disabled:opacity-60 dark:bg-lime dark:text-forest dark:hover:brightness-95"
                             >
-                                {form.processing ? 'Saving…' : 'Get started'}
+                                {form.processing
+                                    ? 'Saving…'
+                                    : 'Save and continue'}
+                                {!form.processing && (
+                                    <ArrowRight className="size-4" />
+                                )}
                             </button>
                         </div>
                     </form>
@@ -268,44 +314,113 @@ export default function BusinessPolicyModal() {
     );
 }
 
-function BillingOptionCard({
+function SegmentDetailPicker<T extends string>({
+    ariaLabel,
+    options,
+    value,
+    onChange,
+    columns,
+}: {
+    ariaLabel: string;
+    options: SegmentOption<T>[];
+    value: T;
+    onChange: (value: T) => void;
+    columns: 2 | 3;
+}) {
+    const active =
+        options.find((option) => option.value === value) ?? options[0];
+    const Icon = active.icon;
+
+    return (
+        <div className="flex flex-col gap-3.5">
+            <div
+                role="radiogroup"
+                aria-label={ariaLabel}
+                className={cn(
+                    'grid gap-1 rounded-full bg-paper p-1',
+                    columns === 2 ? 'grid-cols-2' : 'grid-cols-3',
+                )}
+            >
+                {options.map((option) => {
+                    const selected = value === option.value;
+
+                    return (
+                        <button
+                            key={option.value}
+                            type="button"
+                            role="radio"
+                            aria-checked={selected}
+                            onClick={() => onChange(option.value)}
+                            className={cn(
+                                'h-11 rounded-full px-1.5 text-[11px] font-bold transition sm:px-2 sm:text-sm',
+                                columns === 3 && 'text-[12px]',
+                                selected
+                                    ? 'bg-forest text-lime shadow-[0_2px_8px_rgba(14,59,46,0.25)]'
+                                    : 'text-moss hover:text-ink',
+                            )}
+                        >
+                            {option.segmentLabel}
+                        </button>
+                    );
+                })}
+            </div>
+
+            <div
+                key={String(active.value)}
+                className="flex flex-col gap-3 rounded-[20px] bg-[#F7FAF7] px-4 py-4 sm:px-5"
+            >
+                <div className="flex items-start gap-3">
+                    {Icon && (
+                        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-lime text-forest">
+                            <Icon className="size-5" aria-hidden />
+                        </span>
+                    )}
+                    <div className="min-w-0">
+                        <p className="font-[Sora] text-lg font-bold text-forest">
+                            {active.title}
+                        </p>
+                        <p className="mt-1 text-[13px] leading-relaxed text-moss sm:text-sm">
+                            {active.description}
+                        </p>
+                    </div>
+                </div>
+                <ul className="flex flex-col gap-2">
+                    {active.perks.map((perk) => (
+                        <li
+                            key={perk}
+                            className="flex items-center gap-2.5 text-[13px] font-semibold text-ink sm:text-sm"
+                        >
+                            <span className="grid size-5 shrink-0 place-items-center rounded-full bg-lime text-forest">
+                                <Check className="size-3" strokeWidth={3} />
+                            </span>
+                            {perk}
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        </div>
+    );
+}
+
+function PolicySection({
     title,
-    description,
-    detail,
-    selected,
-    onSelect,
+    hint,
+    children,
 }: {
     title: string;
-    description: string;
-    detail: string;
-    selected: boolean;
-    onSelect: () => void;
+    hint?: string;
+    children: ReactNode;
 }) {
     return (
-        <button
-            type="button"
-            onClick={onSelect}
-            className={`rounded-2xl border px-4 py-4 text-left transition-all ${
-                selected
-                    ? 'border-foreground bg-foreground/5 ring-2 ring-foreground/10'
-                    : 'border-border/60 hover:border-foreground/30 hover:bg-muted/20'
-            }`}
-        >
-            <div className="flex items-start justify-between gap-4">
-                <div>
-                    <p className="text-sm font-medium text-foreground">{title}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-                </div>
-                <span
-                    className={`mt-0.5 inline-flex h-5 w-5 shrink-0 rounded-full border ${
-                        selected ? 'border-foreground bg-foreground' : 'border-border'
-                    }`}
-                >
-                    {selected ? <span className="m-auto h-2 w-2 rounded-full bg-background" /> : null}
-                </span>
-            </div>
-            <p className="mt-3 text-xs leading-5 text-muted-foreground">{detail}</p>
-        </button>
+        <section className="px-6 py-6 sm:px-8">
+            <h3 className="font-['Sora'] text-base font-bold">{title}</h3>
+            {hint && (
+                <p className="mt-0.5 text-[13px] text-muted-foreground">
+                    {hint}
+                </p>
+            )}
+            <div className="mt-4">{children}</div>
+        </section>
     );
 }
 
@@ -314,44 +429,78 @@ function ToggleRow({
     description,
     tooltip,
     enabled,
+    locked = false,
     onChange,
 }: {
     label: string;
     description: string;
     tooltip: string;
     enabled: boolean;
+    locked?: boolean;
     onChange: () => void;
 }) {
     return (
-        <div className="flex items-center justify-between py-3">
-            <div className="pr-6">
-                <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-foreground">{label}</p>
+        <div className="flex items-center justify-between gap-6 py-3">
+            <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                    <p className="text-[15px] font-semibold">{label}</p>
                     <HelpTooltip content={tooltip} />
                 </div>
-                <p className="text-[13px] text-muted-foreground mt-0.5">{description}</p>
+                <p className="mt-0.5 text-[13px] text-muted-foreground">
+                    {description}
+                </p>
             </div>
-            <button
-                type="button"
-                role="switch"
-                aria-checked={enabled}
-                onClick={onChange}
-                className={`
-                    relative inline-flex h-[22px] w-10 shrink-0 cursor-pointer rounded-full
-                    transition-colors duration-150 focus-visible:outline-none
-                    focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
-                    ${enabled ? 'bg-foreground' : 'bg-border'}
-                `}
-            >
-                <span
-                    className={`
-                        pointer-events-none inline-block h-[16px] w-[16px] rounded-full bg-background
-                        shadow-sm transition-transform duration-150 mt-[3px]
-                        ${enabled ? 'translate-x-[21px]' : 'translate-x-[3px]'}
-                    `}
-                />
-            </button>
+            <ProxideckSwitch
+                checked={enabled}
+                disabled={locked}
+                label={label}
+                onChange={onChange}
+            />
         </div>
+    );
+}
+
+/** Brand switch: forest track with a lime knob when on, a quiet grey track when off. */
+function ProxideckSwitch({
+    checked,
+    disabled,
+    label,
+    onChange,
+}: {
+    checked: boolean;
+    disabled?: boolean;
+    label: string;
+    onChange: () => void;
+}) {
+    return (
+        <button
+            type="button"
+            role="switch"
+            aria-checked={checked}
+            aria-label={label}
+            disabled={disabled}
+            title={disabled ? 'Keep at least one payment option on' : undefined}
+            onClick={onChange}
+            className={cn(
+                'relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200',
+                'focus-visible:ring-2 focus-visible:ring-forest focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-lime dark:focus-visible:ring-offset-background',
+                'disabled:cursor-not-allowed disabled:opacity-60',
+                checked
+                    ? 'bg-forest dark:bg-lime'
+                    : 'bg-[#DDE3DE] dark:bg-white/15',
+            )}
+        >
+            <span
+                className={cn(
+                    'grid size-5.5 place-items-center rounded-full shadow-sm transition-transform duration-200',
+                    checked
+                        ? 'translate-x-[23px] bg-lime text-forest dark:bg-forest dark:text-lime'
+                        : 'translate-x-[3px] bg-white',
+                )}
+            >
+                {checked && <Check className="size-3" strokeWidth={3.5} />}
+            </span>
+        </button>
     );
 }
 
@@ -363,12 +512,16 @@ function HelpTooltip({ content }: { content: string }) {
                     <button
                         type="button"
                         aria-label="More information"
-                        className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        className="inline-flex size-5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     >
-                        <CircleHelp className="h-4 w-4" />
+                        <CircleHelp className="size-4" />
                     </button>
                 </TooltipTrigger>
-                <TooltipContent side="top" align="start" className="max-w-xs text-xs leading-5">
+                <TooltipContent
+                    side="top"
+                    align="start"
+                    className="max-w-xs text-xs leading-5"
+                >
                     {content}
                 </TooltipContent>
             </Tooltip>
